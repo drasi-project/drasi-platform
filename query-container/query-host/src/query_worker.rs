@@ -404,7 +404,7 @@ impl QueryWorker {
 
         let handle = tokio::spawn(async move {
             match inner_handle.await {
-                Ok(r) => log::info!("Query {} worker finished", query_id2),
+                Ok(_r) => log::info!("Query {} worker finished", query_id2),
                 Err(e) => log::error!("View {} worker exited with error {:?}", query_id2, e),
             };
             _ = is_shutdown_tx.send(());

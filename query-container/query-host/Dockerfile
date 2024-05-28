@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libss
 
 WORKDIR /usr/src
 COPY . .
-WORKDIR /usr/src/query-host
+WORKDIR /usr/src
 RUN cargo install --path .
 
 FROM gcr.io/distroless/cc-debian11

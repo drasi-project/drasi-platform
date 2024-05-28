@@ -30,8 +30,8 @@ impl Display for QueryState {
             //QueryState::Paused => write!(f, "Paused"),
             //QueryState::Stopped => write!(f, "Stopped"),
             QueryState::Deleted => write!(f, "Deleted"),
-            QueryState::TerminalError(o) => write!(f, "TerminalError"),
-            QueryState::TransientError(o) => write!(f, "TransientError"),
+            QueryState::TerminalError(_o) => write!(f, "TerminalError"),
+            QueryState::TransientError(_o) => write!(f, "TransientError"),
         }
     }
 }
