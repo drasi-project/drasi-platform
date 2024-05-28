@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: drasi-resource-provider
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: drasi-resource-provider-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: drasi-resource-provider-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: drasi-resource-provider-role
+subjects:
+- kind: ServiceAccount
+  name: drasi-resource-provider
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drasi-resource-provider
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      drasi/infra: resource-provider
+  template:
+    metadata:
+      annotations:
+        dapr.io/app-id: resource-provider
+        dapr.io/config: dapr-config
+        dapr.io/app-port: "8080"
+        dapr.io/enabled: "true"
+        dapr.io/sidecar-image: "daprio/daprd:1.9.0"
+      labels:
+        drasi/infra: resource-provider
+    spec:
+      serviceAccountName: drasi-resource-provider
+      containers:
+      - name: kubernetes-provider
+        image: reactive-graph/kubernetes-provider
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: NAMESPACE
+          value: default        
+        resources:
+          limits:
+            cpu: 200m
+          requests:
+            cpu: 50m
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: FallbackToLogsOnError

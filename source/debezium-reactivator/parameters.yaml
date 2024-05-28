@@ -1,0 +1,6 @@
+nodes:
+  - tableName: public.MyTable
+    keyField: Id
+    labels:
+      - Person
+relationships:

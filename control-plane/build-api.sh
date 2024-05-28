@@ -1,0 +1,1 @@
+docker build . -f ./mgmt_api/Dockerfile  -t reactive-graph/api

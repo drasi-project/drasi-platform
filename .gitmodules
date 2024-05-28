@@ -1,0 +1,3 @@
+[submodule "query-container/query-host/drasi-core"]
+	path = query-container/query-host/drasi-core
+	url = https://github.com/project-drasi/drasi-core.git

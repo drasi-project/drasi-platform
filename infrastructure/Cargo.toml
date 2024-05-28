@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+    "drasi-comms-abstractions",
+    "drasi-comms-dapr"
+]
+
+[workspace.package]
+version = "0.1.0"

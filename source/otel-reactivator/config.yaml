@@ -1,0 +1,16 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+
+exporters:
+  drasi:
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [drasi]
+  telemetry:
+    logs:
+      level: debug

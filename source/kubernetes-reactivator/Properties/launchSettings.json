@@ -1,0 +1,22 @@
+{
+  "profiles": {
+    "kubernetes-reactivator": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DAPR_HTTP_PORT": "35000",
+        "DAPR_GRPC_PORT": "63483",
+        "SOURCE_ID": "TEST"
+      },
+      "applicationUrl": "https://localhost:55742;http://localhost:55743"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchBrowser": true,
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
+      "publishAllPorts": true,
+      "useSSL": true
+    }
+  }
+}

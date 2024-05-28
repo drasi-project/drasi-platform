@@ -1,0 +1,20 @@
+[package]
+name = "publish-api"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dapr = { git = "https://github.com/ruokun-niu/rust-sdk.git", branch = "master" }
+env_logger = { version = "0.11.2" }
+log = "0.4.20"
+redis = { version = "0.23.0", features = ["tokio-comp"] }
+serde_json = "1.0.113"
+tokio = { version = "1.36.0", features = ["full"] }
+tonic = "0.11.0"
+tracing-subscriber = "0.3.18"
+
+
+[build-dependencies]
+tonic-build = "0.11"

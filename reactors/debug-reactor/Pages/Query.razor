@@ -1,0 +1,114 @@
+﻿@page "/query/{queryId}"
+
+<PageTitle>Query</PageTitle>
+
+@using Dapr.Actors.Client
+@using debug_reactor.Services
+@using debug_reactor.Models
+@inject IQueryDebugService _queryService;
+@inject IActorProxyFactory _actorService;
+
+<h1>Query Results - @QueryId</h1>
+
+@if (_queryResult == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                @foreach (var fieldName in _queryResult.FieldNames)
+                {
+                    <th>@fieldName</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in _queryResult.Data)
+            {
+                <tr>
+                    @foreach (var fieldName in _queryResult.FieldNames)
+                    {
+                        @if (row.ContainsKey(fieldName))
+                        {
+                            <td>@row[fieldName]</td>
+                        }
+                        else
+                        {
+                            <td>-</td>
+                        }                        
+                    }                    
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @foreach (var error in _queryResult.Errors)
+    {
+        <div class="alert alert-danger" role="alert">
+            @error
+        </div>
+    }
+}
+
+<hr />
+
+@if (_debugInfo != null)
+{
+    <h2>Debug Info</h2>
+    @foreach (var key in _debugInfo.Keys)
+    {
+        <p>@key: @(_debugInfo[key])</p>
+    }
+}
+
+<button class="btn btn-secondary" @onclick="FetchResultCache">Refetch Result Cache</button>
+
+@code {
+
+    [Parameter]
+    public string? QueryId { get; set; }
+
+    private QueryResult? _queryResult;
+    private Dictionary<string, object>? _debugInfo;
+
+    protected override async Task OnInitializedAsync()
+    {        
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        if (string.IsNullOrEmpty(QueryId))
+            return;
+        _queryResult = await _queryService.GetQueryResult(QueryId);        
+        _queryResult.PropertyChanged += QueryChanged;
+        _debugInfo = null;
+        _ = GetDebugInfo();
+    }
+
+    private async Task GetDebugInfo()
+    {
+        if (string.IsNullOrEmpty(QueryId))
+            return;
+        _debugInfo = await _queryService.GetDebugInfo(QueryId);
+        await InvokeAsync(() => this.StateHasChanged());
+    }
+
+    private void QueryChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        InvokeAsync(() => this.StateHasChanged());
+    }
+
+    private void FetchResultCache()
+    {
+        Task.Run(async () =>
+        {
+            _queryResult = await _queryService.ReinitializeQuery(QueryId);
+            _queryResult.PropertyChanged += QueryChanged;
+            await InvokeAsync(() => this.StateHasChanged());
+        });
+    }
+}

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Reaction
+name: hello-world-debug
+spec:
+  kind: Debug
+  queries:
+    query1:

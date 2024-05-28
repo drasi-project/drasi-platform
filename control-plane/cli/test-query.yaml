@@ -1,0 +1,15 @@
+kind: ContinuousQuery
+apiVersion: v1
+name: query1
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: foo
+  query: >
+    MATCH 
+      (i:Item {Category: '1'})
+    RETURN 
+      i.ItemId AS Id, 
+      i.Name as Name,
+      i.Category as Category

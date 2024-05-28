@@ -1,0 +1,7 @@
+cli
+kubernetes-operator
+kubernetes-provider-node
+mgmt-api-node
+kubernetes_provider/target
+mgmt_api/target
+resource_provider_api/target

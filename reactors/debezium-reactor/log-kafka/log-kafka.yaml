@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-my-kafka-topic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-my-kafka-topic
+  template:
+    metadata:
+      labels:
+        app: log-my-kafka-topic
+    spec:
+      containers:
+      - name: log-kafka
+        image: drasi.azurecr.io/reactive-graph/log-kafka-topic:latest
+        env:
+        - name: LOG_KAFKA_BROKERS
+          value: "test-kafka:9092"
+        - name: LOG_KAFKA_TOPIC
+          value: "my-kafka-topic"
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi

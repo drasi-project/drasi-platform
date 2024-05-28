@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "publish-api",
+    "view-svc",
+    "query-host"]
+[workspace.package]
+version = "0.2.0"
