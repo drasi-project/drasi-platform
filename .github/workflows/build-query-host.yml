@@ -13,19 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get token from Github App
-        uses: actions/create-github-app-token@v1
-        id: app_token
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PEM }}
-          owner: ${{ github.repository_owner }}
-    
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: true
-          token: ${{ steps.app_token.outputs.token }}
+          token: ${{ secrets.DRASI_CORE_PAT }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
