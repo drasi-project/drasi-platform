@@ -32,7 +32,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./query-container/query-host
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/query-host:latest
