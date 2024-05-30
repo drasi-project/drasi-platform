@@ -33,6 +33,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./query-container/query-host
+          file: ./query-container/query-host/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/query-host:latest
