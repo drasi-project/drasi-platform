@@ -1,6 +1,6 @@
 use std::{error::Error, sync::Arc};
 
-use drasi_query_core::models::{
+use drasi_core::models::{
     ElementMetadata, ElementReference, QuerySubscription, SourceChange,
 };
 use serde::Deserialize;
@@ -85,7 +85,7 @@ impl BootstrapEvents {
 
         for node in self.nodes {
             changes.push(SourceChange::Insert {
-                element: drasi_query_core::models::Element::Node {
+                element: drasi_core::models::Element::Node {
                     metadata: ElementMetadata {
                         reference: ElementReference::new(source_id, &node.id),
                         labels: Arc::from(vec![Arc::from(node.label)]),
@@ -98,7 +98,7 @@ impl BootstrapEvents {
 
         for rel in self.rels {
             changes.push(SourceChange::Insert {
-                element: drasi_query_core::models::Element::Relation {
+                element: drasi_core::models::Element::Relation {
                     metadata: ElementMetadata {
                         reference: ElementReference::new(source_id, &rel.id),
                         labels: Arc::from(vec![Arc::from(rel.label)]),

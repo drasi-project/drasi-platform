@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-drasi-query-core = { path = "./drasi-core/drasi-query-core" }
-drasi-query-cypher = { path = "./drasi-core/drasi-query-cypher" }
-drasi-query-ast = { path = "./drasi-core/drasi-query-ast" }
-drasi-query-middleware = { path = "./drasi-core/drasi-query-middleware" }
-drasi-query-index-garnet = { path = "./drasi-core/drasi-query-index-garnet" }
-drasi-query-index-rocksdb = { path = "./drasi-core/drasi-query-index-rocksdb" }
+drasi-core = { path = "./drasi-core/core" }
+drasi-query-cypher = { path = "./drasi-core/query-cypher" }
+drasi-query-ast = { path = "./drasi-core/query-ast" }
+drasi-middleware = { path = "./drasi-core/middleware" }
+drasi-index-garnet = { path = "./drasi-core/index-garnet" }
+drasi-index-rocksdb = { path = "./drasi-core/index-rocksdb" }
 dapr = { git = "https://github.com/danielgerlag/rust-sdk.git", branch = "actors-refactor" }
 env_logger = "0.11"
 log = "0.4"

@@ -865,15 +865,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1435fa1053d8b2fbbe9be7e97eca7f33d37b28409959813daefc1446a14247f1"
 
 [[package]]
-name = "drasi-query-ast"
-version = "0.2.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "drasi-query-core"
+name = "drasi-core"
 version = "0.2.0"
 dependencies = [
  "approx",
@@ -909,25 +901,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "drasi-query-cypher"
-version = "0.2.0"
-dependencies = [
- "drasi-query-ast",
- "peg",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "drasi-query-index-garnet"
+name = "drasi-index-garnet"
 version = "0.2.0"
 dependencies = [
  "async-recursion",
  "async-stream",
  "async-trait",
  "bit-set",
+ "drasi-core",
  "drasi-query-ast",
- "drasi-query-core",
  "fnv",
  "hashers",
  "log",
@@ -944,14 +926,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "drasi-query-index-rocksdb"
+name = "drasi-index-rocksdb"
 version = "0.2.0"
 dependencies = [
  "async-stream",
  "async-trait",
  "bit-set",
+ "drasi-core",
  "drasi-query-ast",
- "drasi-query-core",
  "fastmurmur3",
  "fnv",
  "hashers",
@@ -968,16 +950,34 @@ dependencies = [
 ]
 
 [[package]]
-name = "drasi-query-middleware"
+name = "drasi-middleware"
 version = "0.2.0"
 dependencies = [
  "async-trait",
- "drasi-query-core",
+ "drasi-core",
  "jsonpath-rust",
  "log",
  "serde",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "drasi-query-ast"
+version = "0.2.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "drasi-query-cypher"
+version = "0.2.0"
+dependencies = [
+ "drasi-query-ast",
+ "peg",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2752,12 +2752,12 @@ dependencies = [
  "async-trait",
  "axum 0.6.20",
  "dapr 0.14.0 (git+https://github.com/danielgerlag/rust-sdk.git?branch=actors-refactor)",
+ "drasi-core",
+ "drasi-index-garnet",
+ "drasi-index-rocksdb",
+ "drasi-middleware",
  "drasi-query-ast",
- "drasi-query-core",
  "drasi-query-cypher",
- "drasi-query-index-garnet",
- "drasi-query-index-rocksdb",
- "drasi-query-middleware",
  "either",
  "env_logger 0.11.3",
  "futures",
@@ -3431,10 +3431,10 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "drasi-core",
+ "drasi-middleware",
  "drasi-query-ast",
- "drasi-query-core",
  "drasi-query-cypher",
- "drasi-query-middleware",
  "env_logger 0.10.2",
  "futures",
  "log",

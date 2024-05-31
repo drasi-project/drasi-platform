@@ -6,7 +6,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use drasi_query_core::{
+use drasi_core::{
     interface::{ElementIndex, ResultIndex, ResultSequence},
     middleware::MiddlewareTypeRegistry,
     models,

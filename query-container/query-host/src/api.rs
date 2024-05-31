@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use drasi_query_core::{
+use drasi_core::{
     evaluation::context::{PhaseEvaluationContext, QueryVariables},
     interface::FutureElementRef,
     models::{Element, ElementMetadata, ElementReference, SourceChange},
@@ -487,7 +487,7 @@ mod mappings {
     use std::sync::Arc;
 
     use crate::api;
-    use drasi_query_core::models;
+    use drasi_core::models;
 
     impl Into<models::QuerySourceElement> for api::QuerySourceLabel {
         fn into(self) -> models::QuerySourceElement {

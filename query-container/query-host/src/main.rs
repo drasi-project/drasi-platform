@@ -1,6 +1,6 @@
 use std::{env, sync::Arc, time::Duration};
 
-use drasi_query_core::middleware::MiddlewareTypeRegistry;
+use drasi_core::middleware::MiddlewareTypeRegistry;
 use opentelemetry::{metrics, sdk::Resource, trace::TraceError, KeyValue};
 use opentelemetry_otlp::{ExportConfig, WithExportConfig};
 
@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     let mut middleware_registry = MiddlewareTypeRegistry::new();
-    middleware_registry.register(Arc::new(drasi_query_middleware::map::MapFactory::new()));
+    middleware_registry.register(Arc::new(drasi_middleware::map::MapFactory::new()));
     let middleware_registry = Arc::new(middleware_registry);
 
     dapr_server

@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::SystemTime};
 
 use async_trait::async_trait;
-use drasi_query_core::interface::{FutureElementRef, FutureQueueConsumer};
+use drasi_core::interface::{FutureElementRef, FutureQueueConsumer};
 
 use crate::{api::ChangeEvent, change_stream};
 

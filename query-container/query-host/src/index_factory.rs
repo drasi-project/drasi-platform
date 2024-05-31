@@ -1,22 +1,22 @@
 use std::sync::Arc;
 use std::{collections::BTreeMap, env};
 
-use drasi_query_core::in_memory_index::in_memory_element_index::InMemoryElementIndex;
-use drasi_query_core::in_memory_index::in_memory_future_queue::InMemoryFutureQueue;
-use drasi_query_core::in_memory_index::in_memory_result_index::InMemoryResultIndex;
-use drasi_query_core::index_cache::cached_element_index::CachedElementIndex;
-use drasi_query_core::index_cache::cached_result_index::CachedResultIndex;
-use drasi_query_core::interface::{
+use drasi_core::in_memory_index::in_memory_element_index::InMemoryElementIndex;
+use drasi_core::in_memory_index::in_memory_future_queue::InMemoryFutureQueue;
+use drasi_core::in_memory_index::in_memory_result_index::InMemoryResultIndex;
+use drasi_core::index_cache::cached_element_index::CachedElementIndex;
+use drasi_core::index_cache::cached_result_index::CachedResultIndex;
+use drasi_core::interface::{
     ElementArchiveIndex, ElementIndex, FutureQueue, IndexError, ResultIndex,
 };
-use drasi_query_core::models::QueryJoin;
-use drasi_query_core::path_solver::match_path::MatchPath;
-use drasi_query_index_garnet::element_index::GarnetElementIndex;
-use drasi_query_index_garnet::future_queue::GarnetFutureQueue;
-use drasi_query_index_garnet::result_index::GarnetResultIndex;
-use drasi_query_index_rocksdb::element_index::{RocksDbElementIndex, RocksIndexOptions};
-use drasi_query_index_rocksdb::future_queue::RocksDbFutureQueue;
-use drasi_query_index_rocksdb::result_index::RocksDbResultIndex;
+use drasi_core::models::QueryJoin;
+use drasi_core::path_solver::match_path::MatchPath;
+use drasi_index_garnet::element_index::GarnetElementIndex;
+use drasi_index_garnet::future_queue::GarnetFutureQueue;
+use drasi_index_garnet::result_index::GarnetResultIndex;
+use drasi_index_rocksdb::element_index::{RocksDbElementIndex, RocksIndexOptions};
+use drasi_index_rocksdb::future_queue::RocksDbFutureQueue;
+use drasi_index_rocksdb::result_index::RocksDbResultIndex;
 
 enum StorageSpec {
     Memory {
