@@ -6,15 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dapr = { git = "https://github.com/ruokun-niu/rust-sdk.git", branch = "master" }
-env_logger = { version = "0.11.2" }
-log = "0.4.20"
+env_logger = "0.10"
+log = "0.4"
+tokio = { version = "1.6", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1.68"
+axum = "0.6.19"
 redis = { version = "0.23.0", features = ["tokio-comp"] }
-serde_json = "1.0.113"
-tokio = { version = "1.36.0", features = ["full"] }
-tonic = "0.11.0"
-tracing-subscriber = "0.3.18"
-
-
-[build-dependencies]
-tonic-build = "0.11"
+tracing-subscriber = "0.3.17"

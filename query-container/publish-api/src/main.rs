@@ -1,16 +1,18 @@
-use dapr::{
-    appcallback::*,
-    dapr::dapr::proto::runtime::v1::app_callback_server::{AppCallback, AppCallbackServer},
+use std::{net::SocketAddr, sync::Arc};
+
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    response::IntoResponse,
+    routing::post,
+    Router,
 };
-use log::info;
 use publisher::Publisher;
-use serde_json::Value;
-use tonic::{transport::Server, Request, Response, Status};
 
 mod publisher;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() {
     tracing_subscriber::fmt::init();
 
     let query_container_id = std::env::var("QUERY_NODE_ID").unwrap();
@@ -28,97 +30,94 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let publisher = Publisher::connect(&redis_url, topic).await.unwrap();
 
-    let addr = "[::]:50052".parse().unwrap();
+    let shared_state = Arc::new(AppState { publisher });
 
-    let app_callback_service = AppCallbackService::new(publisher);
-    info!("AppCallbackServer listening on {}", addr);
+    let app = Router::new()
+        .route("/change", post(change))
+        .route("/data", post(data))
+        .with_state(shared_state);
 
-    Server::builder()
-        .add_service(AppCallbackServer::new(app_callback_service))
-        .serve(addr)
-        .await?;
+    let port: u16 = std::env::var("PORT")
+        .unwrap_or(String::from("4000"))
+        .parse()
+        .unwrap_or(4000);
 
-    Ok(())
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+
+    log::info!("Listening on {}", addr);
+
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
 
-pub struct AppCallbackService {
+struct AppState {
     publisher: Publisher,
 }
 
-impl AppCallbackService {
-    pub fn new(publisher: Publisher) -> Self {
-        Self { publisher }
+async fn change(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    body: String,
+) -> impl IntoResponse {
+    let trace_state = match headers.get("tracestate") {
+        Some(trace_state) => Some(trace_state.to_str().unwrap().to_string()),
+        None => None,
+    };
+
+    let trace_parent = match headers.get("traceparent") {
+        Some(trace_parent) => Some(trace_parent.to_str().unwrap().to_string()),
+        None => None,
+    };
+
+    log::info!("Publishing change: {:?}", body);
+
+    match state
+        .publisher
+        .publish(body, trace_state, trace_parent)
+        .await
+    {
+        Ok(_) => {
+            log::debug!("Published change");
+            StatusCode::OK
+        }
+        Err(e) => {
+            log::error!("Error publishing change: {:?}", e);
+            StatusCode::BAD_GATEWAY
+        }
     }
 }
 
-#[tonic::async_trait]
-impl AppCallback for AppCallbackService {
-    async fn on_invoke(
-        &self,
-        request: Request<InvokeRequest>,
-    ) -> Result<Response<InvokeResponse>, Status> {
-        let header = request.metadata().clone();
-        println!("Received header: {:?}", header);
-        let r = request.into_inner();
-        let method = &r.method;
+async fn data(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    body: String,
+) -> impl IntoResponse {
+    let trace_state = match headers.get("tracestate") {
+        Some(trace_state) => Some(trace_state.to_str().unwrap().to_string()),
+        None => None,
+    };
 
-        let data = &r.data;
-        if let Some(data) = data {
-            let json_data: Value = serde_json::from_slice(&data.value).unwrap();
+    let trace_parent = match headers.get("traceparent") {
+        Some(trace_parent) => Some(trace_parent.to_str().unwrap().to_string()),
+        None => None,
+    };
 
-            let traceparent = match json_data.get("traceparent") {
-                Some(traceparent) => Some(traceparent.as_str().unwrap().to_string()),
-                None => None,
-            };
+    log::info!("Publishing data: {:?}", body);
 
-            println!("Received traceparent: {:?}", traceparent);
-            match method.as_str() {
-                "change" => {
-                    let change = json_data.get("data").unwrap();
-                    info!("Publishing change: {:?}", change);
-                    self.publisher
-                        .publish(change.to_string(), None, traceparent)
-                        .await
-                        .unwrap();
-                }
-                "data" => {
-                    info!("Publishing data: {:?}", json_data);
-                    self.publisher
-                        .publish(json_data.to_string(), None, None)
-                        .await
-                        .unwrap();
-                }
-                _ => {}
-            }
+    match state
+        .publisher
+        .publish(body, trace_state, trace_parent)
+        .await
+    {
+        Ok(_) => {
+            log::debug!("Published data");
+            StatusCode::OK
         }
-        Ok(Response::new(InvokeResponse::default()))
-    }
-
-    async fn list_topic_subscriptions(
-        &self,
-        _request: Request<()>,
-    ) -> Result<Response<ListTopicSubscriptionsResponse>, Status> {
-        Ok(Response::new(ListTopicSubscriptionsResponse::default()))
-    }
-
-    async fn on_topic_event(
-        &self,
-        _request: Request<TopicEventRequest>,
-    ) -> Result<Response<TopicEventResponse>, Status> {
-        Ok(Response::new(TopicEventResponse::default()))
-    }
-
-    async fn list_input_bindings(
-        &self,
-        _request: Request<()>,
-    ) -> Result<Response<ListInputBindingsResponse>, Status> {
-        Ok(Response::new(ListInputBindingsResponse::default()))
-    }
-
-    async fn on_binding_event(
-        &self,
-        _request: Request<BindingEventRequest>,
-    ) -> Result<Response<BindingEventResponse>, Status> {
-        Ok(Response::new(BindingEventResponse::default()))
+        Err(e) => {
+            log::error!("Error publishing data: {:?}", e);
+            StatusCode::BAD_GATEWAY
+        }
     }
 }

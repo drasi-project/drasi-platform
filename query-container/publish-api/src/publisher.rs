@@ -41,8 +41,8 @@ impl Publisher {
     pub async fn publish(
         &self,
         data: String,
-        tracestate: Option<String>,
-        traceparent: Option<String>,
+        trace_state: Option<String>,
+        trace_parent: Option<String>,
     ) -> Result<(), PublishError> {
         let mut connection = self.connection.clone();
         let mut items = Vec::with_capacity(4);
@@ -53,11 +53,11 @@ impl Publisher {
             .to_string();
         items.push(("data", data));
         items.push(("enqueue_time", now));
-        if let Some(tracestate) = tracestate {
-            items.push(("tracestate", tracestate));
+        if let Some(trace_state) = trace_state {
+            items.push(("tracestate", trace_state));
         }
-        if let Some(traceparent) = traceparent {
-            items.push(("traceparent", traceparent));
+        if let Some(trace_parent) = trace_parent {
+            items.push(("traceparent", trace_parent));
         }
 
         let _: redis::Value = match connection.xadd(&self.topic, "*", &items).await {
