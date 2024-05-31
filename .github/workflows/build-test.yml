@@ -1,0 +1,297 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  TAG_PREFIX: drasi/
+
+jobs:
+  build-query-container:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          token: ${{ secrets.DRASI_CORE_PAT }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+      
+      - name: Build Query Host
+        uses: docker/build-push-action@v5
+        with:
+          context: ./query-container/query-host
+          file: ./query-container/query-host/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}query-container-query-host:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/query-container-query-host.tar
+
+      - name: Build Publish API
+        uses: docker/build-push-action@v5
+        with:
+          context: ./query-container/publish-api
+          file: ./query-container/publish-api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/query-container-publish-api.tar
+
+      - name: Build View Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./query-container/view-svc
+          file: ./query-container/view-svc/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/query-container-view-svc.tar
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: query-container
+          path: |
+            /tmp/query-container-query-host.tar
+            /tmp/query-container-publish-api.tar
+            /tmp/query-container-view-svc.tar
+
+
+  build-control-plane:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+      
+      - name: Build Management API
+        uses: docker/build-push-action@v5
+        with:
+          context: ./control-planes
+          file: ./control-planes/mgmt_api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}api:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/api.tar
+
+      - name: Build k8s Resource Provider
+        uses: docker/build-push-action@v5
+        with:
+          context: ./control-planes
+          file: ./control-planes/kubernetes_provider/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/kubernetes-provider.tar
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-plane
+          path: |
+            /tmp/api.tar
+            /tmp/kubernetes-provider.tar
+
+  build-sources:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+      
+      - name: Build Change Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sources/shared/change-svc
+          file: ./sources/shared/change-svc/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}source-change-svc:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/source-change-svc.tar
+
+      - name: Build Change Dispatcher
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sources/shared/change-dispatcher
+          file: ./sources/shared/change-dispatcher/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/source-change-dispatcher.tar          
+
+      - name: Build Query API
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sources/shared/query-api
+          file: ./sources/shared/query-api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}source-query-api:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/source-query-api.tar          
+
+      - name: Build Debezium Reactivator
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sources/debezium/debezium-reactivator
+          file: ./sources/debezium/debezium-reactivator/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/source-debezium-reactivator.tar          
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sources
+          path: |
+            /tmp/source-change-svc.tar
+            /tmp/source-change-dispatcher.tar
+            /tmp/source-query-api.tar
+            /tmp/source-debezium-reactivator.tar
+
+
+  build-reactions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+      
+      - name: Build SiganlR reaction
+        uses: docker/build-push-action@v5
+        with:
+          context: ./reactions/signalr-reactor
+          file: ./reactions/signalr-reactor/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}reaction-signalr:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/reaction-signalr.tar
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: reactions
+          path: |
+            /tmp/reaction-signalr.tar
+  build-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.18'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Build
+        working-directory: cli
+        run: make
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: cli
+          path: cli/bin
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: 
+      - build-query-container
+      - build-control-plane
+      - build-sources
+      - build-reactions
+      - build-cli
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download CLI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: cli
+          path: /tmp
+
+      - name: Install Drasi CLI
+        run: |
+          chmod +x /tmp/linux-x64/drasi
+          sudo mv /tmp/linux-x64/drasi /usr/local/bin/drasi
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Load images
+        run: |
+          docker load --input query-container-query-host.tar
+          docker load --input query-container-publish-api.tar
+          docker load --input query-container-view-svc.tar
+          docker load --input api.tar
+          docker load --input kubernetes-provider.tar
+          docker load --input source-change-svc.tar
+          docker load --input source-change-dispatcher.tar
+          docker load --input source-query-api.tar
+          docker load --input source-debezium-reactivator.tar
+          docker load --input reaction-signalr.tar
+        
+      - name: Install Kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.17.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Install Kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+
+
+      - name: Install Drasi
+        run: drasi init --local
+
+      - name: npm install
+        working-directory: e2e-tests
+        run: npm install
+
+      - name: Run e2e tests
+        working-directory: e2e-tests
+        run: npm test
+

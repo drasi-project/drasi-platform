@@ -79,8 +79,8 @@ impl RuntimeConfig {
 
         RuntimeConfig {
             image_prefix: match std::env::var("ACR") {
-                Ok(acr) => format!("{}/reactive-graph/", acr),
-                Err(_) => "reactive-graph/".to_string(),
+                Ok(acr) => format!("{}/drasi/", acr),
+                Err(_) => "drasi/".to_string(),
             },
             image_tag: match std::env::var("IMAGE_VERSION_TAG") {
                 Ok(tag) => tag,

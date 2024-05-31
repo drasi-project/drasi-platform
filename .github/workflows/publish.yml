@@ -1,0 +1,70 @@
+name: Publish
+
+on:
+    workflow_dispatch:
+
+env:
+  TAG_PREFIX: drasi/
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true      
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Load images
+        run: |
+          docker load --input query-container-query-host.tar
+          docker load --input query-container-publish-api.tar
+          docker load --input query-container-view-svc.tar
+          docker load --input api.tar
+          docker load --input kubernetes-provider.tar
+          docker load --input source-change-svc.tar
+          docker load --input source-change-dispatcher.tar
+          docker load --input source-query-api.tar
+          docker load --input source-debezium-reactivator.tar
+          docker load --input reaction-signalr.tar
+      
+      
+      - name: Tag  images
+        run: |
+          docker tag ${{ env.TAG_PREFIX }}reaction-signalr:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}reaction-signalr:${{ github.head_ref }}
+          docker tag ${{ env.TAG_PREFIX }}query-container-query-host:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}query-container-query-host:${{ github.head_ref }}
+          docker tag ${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.head_ref }}
+          docker tag ${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.head_ref }}
+          docker tag ${{ env.TAG_PREFIX }}api:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}api:${{ github.head_ref }}
+          docker tag ${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.head_ref }}
+          docker tag ${{ env.TAG_PREFIX }}source-change-svc:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}source-change-svc:${{ github.head_ref }}
+          docker tag ${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.head_ref }}
+          docker tag ${{ env.TAG_PREFIX }}source-query-api:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}source-query-api:${{ github.head_ref }}
+          docker tag ${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.sha }} ghcr.io/project-drasi/${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.head_ref }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Push images
+        run: |
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}reaction-signalr:${{ github.head_ref }}
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}query-container-query-host:${{ github.head_ref }}
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.head_ref }}
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.head_ref }}
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}api:${{ github.head_ref }}
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.head_ref }}
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}source-change-svc:${{ github.head_ref }}
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.head_ref }}
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}source-query-api:${{ github.head_ref }}
+          docker push ghcr.io/project-drasi/${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.head_ref }}
+
+      - name: Logout from GitHub Container Registry
+        run: docker logout ghcr.io
