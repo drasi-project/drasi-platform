@@ -35,7 +35,7 @@ jobs:
         with:
           context: ./query-container/query-host
           file: ./query-container/query-host/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}query-container-query-host:${{ github.sha }}
           outputs: type=oci,dest=/tmp/query-container-query-host.tar
 
@@ -44,7 +44,7 @@ jobs:
         with:
           context: ./query-container/publish-api
           file: ./query-container/publish-api/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.sha }}
           outputs: type=oci,dest=/tmp/query-container-publish-api.tar
 
@@ -53,7 +53,7 @@ jobs:
         with:
           context: ./query-container/view-svc
           file: ./query-container/view-svc/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.sha }}
           outputs: type=oci,dest=/tmp/query-container-view-svc.tar
 
@@ -86,7 +86,7 @@ jobs:
         with:
           context: ./control-planes
           file: ./control-planes/mgmt_api/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}api:${{ github.sha }}
           outputs: type=oci,dest=/tmp/api.tar
 
@@ -95,7 +95,7 @@ jobs:
         with:
           context: ./control-planes
           file: ./control-planes/kubernetes_provider/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.sha }}
           outputs: type=oci,dest=/tmp/kubernetes-provider.tar
 
@@ -127,7 +127,7 @@ jobs:
         with:
           context: .
           file: ./sources/shared/change-svc/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}source-change-svc:${{ github.sha }}
           outputs: type=oci,dest=/tmp/source-change-svc.tar
 
@@ -136,7 +136,7 @@ jobs:
         with:
           context: .
           file: ./sources/shared/change-dispatcher/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.sha }}
           outputs: type=oci,dest=/tmp/source-change-dispatcher.tar          
 
@@ -145,7 +145,7 @@ jobs:
         with:
           context: ./sources/shared/query-api
           file: ./sources/shared/query-api/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}source-query-api:${{ github.sha }}
           outputs: type=oci,dest=/tmp/source-query-api.tar          
 
