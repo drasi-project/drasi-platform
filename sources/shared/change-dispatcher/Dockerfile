@@ -7,9 +7,9 @@ COPY ./infrastructure ./infrastructure
 
 RUN cargo new source/change-dispatcher
 WORKDIR /usr/src/source/change-dispatcher
-COPY ./source/change-dispatcher/Cargo.toml . 
+COPY ./sources/shared/change-dispatcher/Cargo.toml . 
 RUN cargo fetch
-COPY ./source/change-dispatcher .
+COPY ./sources/shared/change-dispatcher .
 RUN cargo install --force --path .
 
     

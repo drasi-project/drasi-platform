@@ -7,9 +7,9 @@ COPY ./infrastructure ./infrastructure
 
 RUN cargo new source/change-svc
 WORKDIR /usr/src/source/change-svc
-COPY ./source/change-svc/Cargo.toml . 
+COPY ./sources/shared/change-svc/Cargo.toml . 
 RUN cargo fetch
-COPY ./source/change-svc . 
+COPY ./sources/shared/change-svc . 
 RUN cargo install --force --path .
 
 
