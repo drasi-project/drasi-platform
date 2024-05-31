@@ -125,7 +125,7 @@ jobs:
       - name: Build Change Service
         uses: docker/build-push-action@v5
         with:
-          context: ./sources/shared/change-svc
+          context: .
           file: ./sources/shared/change-svc/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}source-change-svc:${{ github.sha }}
@@ -134,7 +134,7 @@ jobs:
       - name: Build Change Dispatcher
         uses: docker/build-push-action@v5
         with:
-          context: ./sources/shared/change-dispatcher
+          context: .
           file: ./sources/shared/change-dispatcher/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.sha }}
