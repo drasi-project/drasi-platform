@@ -37,7 +37,7 @@ jobs:
           file: ./query-container/query-host/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}query-container-query-host:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/query-container-query-host.tar
+          outputs: type=oci,dest=/tmp/query-container-query-host.tar
 
       - name: Build Publish API
         uses: docker/build-push-action@v5
@@ -46,7 +46,7 @@ jobs:
           file: ./query-container/publish-api/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/query-container-publish-api.tar
+          outputs: type=oci,dest=/tmp/query-container-publish-api.tar
 
       - name: Build View Service
         uses: docker/build-push-action@v5
@@ -55,7 +55,7 @@ jobs:
           file: ./query-container/view-svc/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/query-container-view-svc.tar
+          outputs: type=oci,dest=/tmp/query-container-view-svc.tar
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -65,7 +65,6 @@ jobs:
             /tmp/query-container-query-host.tar
             /tmp/query-container-publish-api.tar
             /tmp/query-container-view-svc.tar
-
 
   build-control-plane:
     runs-on: ubuntu-latest
@@ -89,7 +88,7 @@ jobs:
           file: ./control-planes/mgmt_api/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}api:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/api.tar
+          outputs: type=oci,dest=/tmp/api.tar
 
       - name: Build k8s Resource Provider
         uses: docker/build-push-action@v5
@@ -98,7 +97,7 @@ jobs:
           file: ./control-planes/kubernetes_provider/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/kubernetes-provider.tar
+          outputs: type=oci,dest=/tmp/kubernetes-provider.tar
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -130,7 +129,7 @@ jobs:
           file: ./sources/shared/change-svc/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}source-change-svc:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/source-change-svc.tar
+          outputs: type=oci,dest=/tmp/source-change-svc.tar
 
       - name: Build Change Dispatcher
         uses: docker/build-push-action@v5
@@ -139,7 +138,7 @@ jobs:
           file: ./sources/shared/change-dispatcher/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/source-change-dispatcher.tar          
+          outputs: type=oci,dest=/tmp/source-change-dispatcher.tar          
 
       - name: Build Query API
         uses: docker/build-push-action@v5
@@ -148,7 +147,7 @@ jobs:
           file: ./sources/shared/query-api/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}source-query-api:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/source-query-api.tar          
+          outputs: type=oci,dest=/tmp/source-query-api.tar          
 
       - name: Build Debezium Reactivator
         uses: docker/build-push-action@v5
@@ -157,7 +156,7 @@ jobs:
           file: ./sources/debezium/debezium-reactivator/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/source-debezium-reactivator.tar          
+          outputs: type=oci,dest=/tmp/source-debezium-reactivator.tar          
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -168,7 +167,6 @@ jobs:
             /tmp/source-change-dispatcher.tar
             /tmp/source-query-api.tar
             /tmp/source-debezium-reactivator.tar
-
 
   build-reactions:
     runs-on: ubuntu-latest
@@ -192,7 +190,7 @@ jobs:
           file: ./reactions/signalr-reactor/Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.TAG_PREFIX }}reaction-signalr:${{ github.sha }}
-          outputs: type=docker,dest=/tmp/reaction-signalr.tar
+          outputs: type=oci,dest=/tmp/reaction-signalr.tar
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -200,6 +198,7 @@ jobs:
           name: reactions
           path: |
             /tmp/reaction-signalr.tar
+
   build-cli:
     runs-on: ubuntu-latest
     steps:
@@ -209,7 +208,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.18'
+          go-version: '1.20'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -258,18 +257,37 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
 
+      - name: Install Skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Convert OCI to Docker format
+        run: |
+          mkdir -p docker-output
+          skopeo copy oci:query-container-query-host.tar docker-archive:docker-output/query-container-query-host.tar
+          skopeo copy oci:query-container-publish-api.tar docker-archive:docker-output/query-container-publish-api.tar
+          skopeo copy oci:query-container-view-svc.tar docker-archive:docker-output/query-container-view-svc.tar
+          skopeo copy oci:api.tar docker-archive:docker-output/api.tar
+          skopeo copy oci:kubernetes-provider.tar docker-archive:docker-output/kubernetes-provider.tar
+          skopeo copy oci:source-change-svc.tar docker-archive:docker-output/source-change-svc.tar
+          skopeo copy oci:source-change-dispatcher.tar docker-archive:docker-output/source-change-dispatcher.tar
+          skopeo copy oci:source-query-api.tar docker-archive:docker-output/source-query-api.tar
+          skopeo copy oci:source-debezium-reactivator.tar docker-archive:docker-output/source-debezium-reactivator.tar
+          skopeo copy oci:reaction-signalr.tar docker-archive:docker-output/reaction-signalr.tar
+          
       - name: Load images
         run: |
-          docker load --input query-container-query-host.tar
-          docker load --input query-container-publish-api.tar
-          docker load --input query-container-view-svc.tar
-          docker load --input api.tar
-          docker load --input kubernetes-provider.tar
-          docker load --input source-change-svc.tar
-          docker load --input source-change-dispatcher.tar
-          docker load --input source-query-api.tar
-          docker load --input source-debezium-reactivator.tar
-          docker load --input reaction-signalr.tar
+          docker load --input docker-output/query-container-query-host.tar
+          docker load --input docker-output/query-container-publish-api.tar
+          docker load --input docker-output/query-container-view-svc.tar
+          docker load --input docker-output/api.tar
+          docker load --input docker-output/kubernetes-provider.tar
+          docker load --input docker-output/source-change-svc.tar
+          docker load --input docker-output/source-change-dispatcher.tar
+          docker load --input docker-output/source-query-api.tar
+          docker load --input docker-output/source-debezium-reactivator.tar
+          docker load --input docker-output/reaction-signalr.tar
         
       - name: Install Kind
         run: |
