@@ -243,19 +243,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download CLI artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
-        with:
-          name: cli
-          path: /tmp
 
       - name: Install Drasi CLI
         run: |
-          chmod +x /tmp/linux-x64/drasi
-          sudo mv /tmp/linux-x64/drasi /usr/local/bin/drasi
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+          chmod +x ./cli/linux-x64/drasi
+          sudo mv ./cli/linux-x64/drasi /usr/local/bin/drasi
 
       - name: Install Skopeo
         run: |
@@ -265,16 +259,16 @@ jobs:
       - name: Convert OCI to Docker format
         run: |
           mkdir -p docker-output
-          skopeo copy oci:query-container-query-host.tar docker-archive:docker-output/query-container-query-host.tar
-          skopeo copy oci:query-container-publish-api.tar docker-archive:docker-output/query-container-publish-api.tar
-          skopeo copy oci:query-container-view-svc.tar docker-archive:docker-output/query-container-view-svc.tar
-          skopeo copy oci:api.tar docker-archive:docker-output/api.tar
-          skopeo copy oci:kubernetes-provider.tar docker-archive:docker-output/kubernetes-provider.tar
-          skopeo copy oci:source-change-svc.tar docker-archive:docker-output/source-change-svc.tar
-          skopeo copy oci:source-change-dispatcher.tar docker-archive:docker-output/source-change-dispatcher.tar
-          skopeo copy oci:source-query-api.tar docker-archive:docker-output/source-query-api.tar
-          skopeo copy oci:source-debezium-reactivator.tar docker-archive:docker-output/source-debezium-reactivator.tar
-          skopeo copy oci:reaction-signalr.tar docker-archive:docker-output/reaction-signalr.tar
+          skopeo copy oci:./query-container/query-container-query-host.tar docker-archive:docker-output/query-container-query-host.tar
+          skopeo copy oci:./query-container/query-container-publish-api.tar docker-archive:docker-output/query-container-publish-api.tar
+          skopeo copy oci:./query-container/query-container-view-svc.tar docker-archive:docker-output/query-container-view-svc.tar
+          skopeo copy oci:./control-plane/api.tar docker-archive:docker-output/api.tar
+          skopeo copy oci:./control-plane/kubernetes-provider.tar docker-archive:docker-output/kubernetes-provider.tar
+          skopeo copy oci:./sources/source-change-svc.tar docker-archive:docker-output/source-change-svc.tar
+          skopeo copy oci:./sources/source-change-dispatcher.tar docker-archive:docker-output/source-change-dispatcher.tar
+          skopeo copy oci:./sources/source-query-api.tar docker-archive:docker-output/source-query-api.tar
+          skopeo copy oci:./sources/source-debezium-reactivator.tar docker-archive:docker-output/source-debezium-reactivator.tar
+          skopeo copy oci:./reactions/reaction-signalr.tar docker-archive:docker-output/reaction-signalr.tar
           
       - name: Load images
         run: |
