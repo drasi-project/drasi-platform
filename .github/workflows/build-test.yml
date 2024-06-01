@@ -354,6 +354,20 @@ jobs:
           docker load --input docker-output/source-debezium-reactivator.tar
           docker load --input docker-output/source-sql-proxy.tar
           docker load --input docker-output/reaction-signalr.tar
+
+      - name: Tag images
+        run: |
+          docker image tag ${{ env.TAG_PREFIX }}query-container-query-host:${{ github.sha }} ${{ env.TAG_PREFIX }}query-container-query-host
+          docker image tag ${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.sha }} ${{ env.TAG_PREFIX }}query-container-publish-api
+          docker image tag ${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.sha }} ${{ env.TAG_PREFIX }}query-container-view-svc
+          docker image tag ${{ env.TAG_PREFIX }}api:${{ github.sha }} ${{ env.TAG_PREFIX }}api
+          docker image tag ${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.sha }} ${{ env.TAG_PREFIX }}kubernetes-provider
+          docker image tag ${{ env.TAG_PREFIX }}source-change-svc:${{ github.sha }} ${{ env.TAG_PREFIX }}source-change-svc
+          docker image tag ${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.sha }} ${{ env.TAG_PREFIX }}source-change-dispatcher
+          docker image tag ${{ env.TAG_PREFIX }}source-query-api:${{ github.sha }} ${{ env.TAG_PREFIX }}source-query-api
+          docker image tag ${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.sha }} ${{ env.TAG_PREFIX }}source-debezium-reactivator
+          docker image tag ${{ env.TAG_PREFIX }}source-sql-proxy:${{ github.sha }} ${{ env.TAG_PREFIX }}source-sql-proxy
+          docker image tag ${{ env.TAG_PREFIX }}reaction-signalr:${{ github.sha }} ${{ env.TAG_PREFIX }}reaction-signalr
         
       - name: Install Kind
         run: |
