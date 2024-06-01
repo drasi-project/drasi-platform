@@ -39,7 +39,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Build Query Host
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: ./query-container/query-host
           file: ./query-container/query-host/Dockerfile
@@ -52,7 +52,7 @@ jobs:
           push: true
 
       - name: Build Publish API
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: ./query-container/publish-api
           file: ./query-container/publish-api/Dockerfile
@@ -65,7 +65,7 @@ jobs:
           push: true
 
       - name: Build View Service
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: ./query-container/view-svc
           file: ./query-container/view-svc/Dockerfile
@@ -100,7 +100,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Build Management API
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: ./control-planes
           file: ./control-planes/mgmt_api/Dockerfile
@@ -113,7 +113,7 @@ jobs:
           push: true
 
       - name: Build k8s Resource Provider
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: ./control-planes
           file: ./control-planes/kubernetes_provider/Dockerfile
@@ -148,7 +148,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Build Change Service
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: ./sources/shared/change-svc/Dockerfile
@@ -159,7 +159,7 @@ jobs:
           push: true
 
       - name: Build Change Dispatcher
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: ./sources/shared/change-dispatcher/Dockerfile
@@ -170,7 +170,7 @@ jobs:
           push: true
 
       - name: Build Query API
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: ./sources/shared/query-api
           file: ./sources/shared/query-api/Dockerfile
@@ -181,7 +181,7 @@ jobs:
           push: true
 
       - name: Build Debezium Reactivator
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: ./sources/debezium/debezium-reactivator
           file: ./sources/debezium/debezium-reactivator/Dockerfile
@@ -194,7 +194,7 @@ jobs:
           push: true
 
       - name: Build SQL Proxy
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: ./sources/generic/sql-source-proxy
           file: ./sources/generic/sql-source-proxy/Dockerfile
@@ -229,7 +229,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
      
       - name: Build SiganlR reaction
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: ./reactions/signalr-reactor
           file: ./reactions/signalr-reactor/Dockerfile
