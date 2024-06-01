@@ -46,7 +46,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
-            ${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache
           push: true
@@ -59,7 +58,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
-            ${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
           push: true
@@ -72,7 +70,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }}
-            ${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
           push: true
@@ -107,7 +104,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }}
-            ${{ github.repository_owner }}/api:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache
           push: true
@@ -120,7 +116,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }}
-            ${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache
           push: true
@@ -155,7 +150,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/source-change-svc:${{ github.sha }}
-            ${{ github.repository_owner }}/source-change-svc:${{ github.sha }}
           push: true
 
       - name: Build Change Dispatcher
@@ -166,7 +160,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }}
-            ${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }}
           push: true
 
       - name: Build Query API
@@ -177,7 +170,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }}
-            ${{ github.repository_owner }}/source-query-api:${{ github.sha }}
           push: true
 
       - name: Build Debezium Reactivator
@@ -188,7 +180,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:${{ github.sha }}
-            ${{ github.repository_owner }}/source-debezium-reactivator:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:cache
           push: true
@@ -201,7 +192,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/source-sql-proxy:${{ github.sha }}
-            ${{ github.repository_owner }}/source-sql-proxy:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-sql-proxy:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-sql-proxy:cache
           push: true
@@ -236,7 +226,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/reaction-signalr:${{ github.sha }}
-            ${{ github.repository_owner }}/reaction-signalr:${{ github.sha }}            
           push: true
 
   build-cli:
