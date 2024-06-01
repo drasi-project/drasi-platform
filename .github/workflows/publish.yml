@@ -25,18 +25,41 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract OCI tar file
+        run: |
+          mkdir ./query-container/query-container-query-host
+          tar -xf ./query-container/query-container-query-host.tar -C ./query-container/query-container-query-host
+          mkdir ./query-container/query-container-publish-api
+          tar -xf ./query-container/query-container-publish-api.tar -C ./query-container/query-container-publish-api
+          mkdir ./query-container/query-container-view-svc
+          tar -xf ./query-container/query-container-view-svc.tar -C ./query-container/query-container-view-svc
+          mkdir ./control-plane/api
+          tar -xf ./control-plane/api.tar -C ./control-plane/api
+          mkdir ./control-plane/kubernetes-provider
+          tar -xf ./control-plane/kubernetes-provider.tar -C ./control-plane/kubernetes-provider
+          mkdir ./sources/source-change-svc
+          tar -xf ./sources/source-change-svc.tar -C ./sources/source-change-svc
+          mkdir ./sources/source-change-dispatcher
+          tar -xf ./sources/source-change-dispatcher.tar -C ./sources/source-change-dispatcher
+          mkdir ./sources/source-query-api
+          tar -xf ./sources/source-query-api.tar -C ./sources/source-query-api
+          mkdir ./sources/source-debezium-reactivator
+          tar -xf ./sources/source-debezium-reactivator.tar -C ./sources/source-debezium-reactivator
+          mkdir ./reactions/reaction-signalr
+          tar -xf ./reactions/reaction-signalr.tar -C ./reactions/reaction-signalr
+
       - name: Push OCI image to GHCR
         run: |
-          skopeo copy --all oci:./query-container/query-container-query-host.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}query-container-query-host:${{ github.head_ref }}
-          skopeo copy --all oci:./query-container/query-container-publish-api.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.head_ref }}
-          skopeo copy --all oci:./query-container/query-container-view-svc.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.head_ref }}
-          skopeo copy --all oci:./control-plane/api.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}api:${{ github.head_ref }}
-          skopeo copy --all oci:./control-plane/kubernetes-provider.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.head_ref }}
-          skopeo copy --all oci:./sources/source-change-svc.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}source-change-svc:${{ github.head_ref }}
-          skopeo copy --all oci:./sources/source-change-dispatcher.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.head_ref }}
-          skopeo copy --all oci:./sources/source-query-api.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}source-query-api:${{ github.head_ref }}
-          skopeo copy --all oci:./sources/source-debezium-reactivator.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.head_ref }}
-          skopeo copy --all oci:./reactions/reaction-signalr.tar docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}reaction-signalr:${{ github.head_ref }}
+          skopeo copy --all oci:./query-container/query-container-query-host docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}query-container-query-host:${{ github.head_ref }}
+          skopeo copy --all oci:./query-container/query-container-publish-api docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.head_ref }}
+          skopeo copy --all oci:./query-container/query-container-view-svc docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.head_ref }}
+          skopeo copy --all oci:./control-plane/api docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}api:${{ github.head_ref }}
+          skopeo copy --all oci:./control-plane/kubernetes-provider docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.head_ref }}
+          skopeo copy --all oci:./sources/source-change-svc docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}source-change-svc:${{ github.head_ref }}
+          skopeo copy --all oci:./sources/source-change-dispatcher docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.head_ref }}
+          skopeo copy --all oci:./sources/source-query-api docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}source-query-api:${{ github.head_ref }}
+          skopeo copy --all oci:./sources/source-debezium-reactivator docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.head_ref }}
+          skopeo copy --all oci:./reactions/reaction-signalr docker://ghcr.io/${{ github.repository_owner }}/${{ env.TAG_PREFIX }}reaction-signalr:${{ github.head_ref }}
 
       - name: Logout from GitHub Container Registry
         run: docker logout ghcr.io
