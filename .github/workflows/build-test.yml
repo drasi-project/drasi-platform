@@ -230,8 +230,7 @@ jobs:
 
       - name: Inspect Token Permissions
         run: |
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/user
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/user/packages
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/user/packages?package_type=container
 
       
       - name: Build SiganlR reaction
