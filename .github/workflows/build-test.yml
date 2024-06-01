@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-query-container:
     runs-on: ubuntu-latest
@@ -40,7 +44,9 @@ jobs:
           context: ./query-container/query-host
           file: ./query-container/query-host/Dockerfile
           platforms: linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
+            ${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache
           push: true
@@ -51,7 +57,9 @@ jobs:
           context: ./query-container/publish-api
           file: ./query-container/publish-api/Dockerfile
           platforms: linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}query-container-publish-api:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}query-container-publish-api:${{ github.sha }}
+            ${{ github.repository_owner }}query-container-publish-api:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
           push: true
@@ -62,7 +70,9 @@ jobs:
           context: ./query-container/view-svc
           file: ./query-container/view-svc/Dockerfile
           platforms: linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}query-container-view-svc:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}query-container-view-svc:${{ github.sha }}
+            ${{ github.repository_owner }}query-container-view-svc:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
           push: true
@@ -95,7 +105,9 @@ jobs:
           context: ./control-planes
           file: ./control-planes/mgmt_api/Dockerfile
           platforms: linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}api:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}api:${{ github.sha }}
+            ${{ github.repository_owner }}api:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache
           push: true
@@ -106,7 +118,9 @@ jobs:
           context: ./control-planes
           file: ./control-planes/kubernetes_provider/Dockerfile
           platforms: linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}kubernetes-provider:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}kubernetes-provider:${{ github.sha }}
+            ${{ github.repository_owner }}kubernetes-provider:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache
           push: true
@@ -139,7 +153,9 @@ jobs:
           context: .
           file: ./sources/shared/change-svc/Dockerfile
           platforms: linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}source-change-svc:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}source-change-svc:${{ github.sha }}
+            ${{ github.repository_owner }}source-change-svc:${{ github.sha }}
           push: true
 
       - name: Build Change Dispatcher
@@ -148,7 +164,9 @@ jobs:
           context: .
           file: ./sources/shared/change-dispatcher/Dockerfile
           platforms: linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}source-change-dispatcher:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}source-change-dispatcher:${{ github.sha }}
+            ${{ github.repository_owner }}source-change-dispatcher:${{ github.sha }}
           push: true
 
       - name: Build Query API
@@ -157,7 +175,9 @@ jobs:
           context: ./sources/shared/query-api
           file: ./sources/shared/query-api/Dockerfile
           platforms: linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}source-query-api:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}source-query-api:${{ github.sha }}
+            ${{ github.repository_owner }}source-query-api:${{ github.sha }}
           push: true
 
       - name: Build Debezium Reactivator
@@ -166,7 +186,9 @@ jobs:
           context: ./sources/debezium/debezium-reactivator
           file: ./sources/debezium/debezium-reactivator/Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository_owner }}source-debezium-reactivator:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}source-debezium-reactivator:${{ github.sha }}
+            ${{ github.repository_owner }}source-debezium-reactivator:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:cache
           push: true
@@ -177,7 +199,9 @@ jobs:
           context: ./sources/generic/sql-source-proxy
           file: ./sources/generic/sql-source-proxy/Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository_owner }}source-sql-proxy:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}source-sql-proxy:${{ github.sha }}
+            ${{ github.repository_owner }}source-sql-proxy:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-sql-proxy:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-sql-proxy:cache
           push: true
@@ -210,7 +234,9 @@ jobs:
           context: ./reactions/signalr-reactor
           file: ./reactions/signalr-reactor/Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository_owner }}reaction-signalr:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}reaction-signalr:${{ github.sha }}
+            ${{ github.repository_owner }}reaction-signalr:${{ github.sha }}            
           push: true
 
   build-cli:
