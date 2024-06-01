@@ -8,9 +8,6 @@ on:
     branches:
       - main
 
-env:
-  TAG_PREFIX: drasi/
-
 jobs:
   build-query-container:
     runs-on: ubuntu-latest
@@ -43,8 +40,10 @@ jobs:
           context: ./query-container/query-host
           file: ./query-container/query-host/Dockerfile
           platforms: linux/amd64
-          tags: ${{ env.TAG_PREFIX }}query-container-query-host:${{ github.sha }}
-          outputs: type=oci,dest=/tmp/query-container-query-host.tar
+          tags: ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache
+          push: true
 
       - name: Build Publish API
         uses: docker/build-push-action@v5
@@ -52,8 +51,10 @@ jobs:
           context: ./query-container/publish-api
           file: ./query-container/publish-api/Dockerfile
           platforms: linux/amd64
-          tags: ${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.sha }}
-          outputs: type=oci,dest=/tmp/query-container-publish-api.tar
+          tags: ghcr.io/${{ github.repository_owner }}query-container-publish-api:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
+          push: true
 
       - name: Build View Service
         uses: docker/build-push-action@v5
@@ -61,17 +62,10 @@ jobs:
           context: ./query-container/view-svc
           file: ./query-container/view-svc/Dockerfile
           platforms: linux/amd64
-          tags: ${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.sha }}
-          outputs: type=oci,dest=/tmp/query-container-view-svc.tar
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: query-container
-          path: |
-            /tmp/query-container-query-host.tar
-            /tmp/query-container-publish-api.tar
-            /tmp/query-container-view-svc.tar
+          tags: ghcr.io/${{ github.repository_owner }}query-container-view-svc:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
+          push: true
 
   build-control-plane:
     runs-on: ubuntu-latest
@@ -101,8 +95,10 @@ jobs:
           context: ./control-planes
           file: ./control-planes/mgmt_api/Dockerfile
           platforms: linux/amd64
-          tags: ${{ env.TAG_PREFIX }}api:${{ github.sha }}
-          outputs: type=oci,dest=/tmp/api.tar
+          tags: ghcr.io/${{ github.repository_owner }}api:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache
+          push: true
 
       - name: Build k8s Resource Provider
         uses: docker/build-push-action@v5
@@ -110,16 +106,10 @@ jobs:
           context: ./control-planes
           file: ./control-planes/kubernetes_provider/Dockerfile
           platforms: linux/amd64
-          tags: ${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.sha }}
-          outputs: type=oci,dest=/tmp/kubernetes-provider.tar
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: control-plane
-          path: |
-            /tmp/api.tar
-            /tmp/kubernetes-provider.tar
+          tags: ghcr.io/${{ github.repository_owner }}kubernetes-provider:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache
+          push: true
 
   build-sources:
     runs-on: ubuntu-latest
@@ -149,8 +139,8 @@ jobs:
           context: .
           file: ./sources/shared/change-svc/Dockerfile
           platforms: linux/amd64
-          tags: ${{ env.TAG_PREFIX }}source-change-svc:${{ github.sha }}
-          outputs: type=oci,dest=/tmp/source-change-svc.tar
+          tags: ghcr.io/${{ github.repository_owner }}source-change-svc:${{ github.sha }}
+          push: true
 
       - name: Build Change Dispatcher
         uses: docker/build-push-action@v5
@@ -158,8 +148,8 @@ jobs:
           context: .
           file: ./sources/shared/change-dispatcher/Dockerfile
           platforms: linux/amd64
-          tags: ${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.sha }}
-          outputs: type=oci,dest=/tmp/source-change-dispatcher.tar          
+          tags: ghcr.io/${{ github.repository_owner }}source-change-dispatcher:${{ github.sha }}
+          push: true
 
       - name: Build Query API
         uses: docker/build-push-action@v5
@@ -167,8 +157,8 @@ jobs:
           context: ./sources/shared/query-api
           file: ./sources/shared/query-api/Dockerfile
           platforms: linux/amd64
-          tags: ${{ env.TAG_PREFIX }}source-query-api:${{ github.sha }}
-          outputs: type=oci,dest=/tmp/source-query-api.tar          
+          tags: ghcr.io/${{ github.repository_owner }}source-query-api:${{ github.sha }}
+          push: true
 
       - name: Build Debezium Reactivator
         uses: docker/build-push-action@v5
@@ -176,10 +166,10 @@ jobs:
           context: ./sources/debezium/debezium-reactivator
           file: ./sources/debezium/debezium-reactivator/Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }}
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }},mode=max
-          outputs: type=oci,dest=/tmp/source-debezium-reactivator.tar
+          tags: ghcr.io/${{ github.repository_owner }}source-debezium-reactivator:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:cache
+          push: true
 
       - name: Build SQL Proxy
         uses: docker/build-push-action@v5
@@ -187,21 +177,10 @@ jobs:
           context: ./sources/generic/sql-source-proxy
           file: ./sources/generic/sql-source-proxy/Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ${{ env.TAG_PREFIX }}source-sql-proxy:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }}
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }},mode=max
-          outputs: type=oci,dest=/tmp/source-sql-proxy.tar
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sources
-          path: |
-            /tmp/source-change-svc.tar
-            /tmp/source-change-dispatcher.tar
-            /tmp/source-query-api.tar
-            /tmp/source-debezium-reactivator.tar
-            /tmp/source-sql-proxy.tar
+          tags: ghcr.io/${{ github.repository_owner }}source-sql-proxy:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-sql-proxy:cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/source-sql-proxy:cache
+          push: true
 
   build-reactions:
     runs-on: ubuntu-latest
@@ -231,15 +210,8 @@ jobs:
           context: ./reactions/signalr-reactor
           file: ./reactions/signalr-reactor/Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ${{ env.TAG_PREFIX }}reaction-signalr:${{ github.sha }}
-          outputs: type=oci,dest=/tmp/reaction-signalr.tar
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: reactions
-          path: |
-            /tmp/reaction-signalr.tar
+          tags: ghcr.io/${{ github.repository_owner }}reaction-signalr:${{ github.sha }}
+          push: true
 
   build-cli:
     runs-on: ubuntu-latest
@@ -293,83 +265,42 @@ jobs:
           chmod +x ./cli/linux-x64/drasi
           sudo mv ./cli/linux-x64/drasi /usr/local/bin/drasi
 
-      - name: Install Skopeo
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y skopeo
-
-      - name: Extract OCI tar file
-        run: |
-          mkdir ./query-container/query-container-query-host
-          tar -xf ./query-container/query-container-query-host.tar -C ./query-container/query-container-query-host
-          mkdir ./query-container/query-container-publish-api
-          tar -xf ./query-container/query-container-publish-api.tar -C ./query-container/query-container-publish-api
-          mkdir ./query-container/query-container-view-svc
-          tar -xf ./query-container/query-container-view-svc.tar -C ./query-container/query-container-view-svc
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
           
-          mkdir ./control-plane/api
-          tar -xf ./control-plane/api.tar -C ./control-plane/api
-          mkdir ./control-plane/kubernetes-provider
-          tar -xf ./control-plane/kubernetes-provider.tar -C ./control-plane/kubernetes-provider
-          
-          mkdir ./sources/source-change-svc
-          tar -xf ./sources/source-change-svc.tar -C ./sources/source-change-svc
-          mkdir ./sources/source-change-dispatcher
-          tar -xf ./sources/source-change-dispatcher.tar -C ./sources/source-change-dispatcher
-          mkdir ./sources/source-query-api
-          tar -xf ./sources/source-query-api.tar -C ./sources/source-query-api
-          mkdir ./sources/source-debezium-reactivator
-          tar -xf ./sources/source-debezium-reactivator.tar -C ./sources/source-debezium-reactivator
-          mkdir ./sources/source-sql-proxy
-          tar -xf ./sources/source-sql-proxy.tar -C ./sources/source-sql-proxy
-          
-          mkdir ./reactions/reaction-signalr
-          tar -xf ./reactions/reaction-signalr.tar -C ./reactions/reaction-signalr
-
-      - name: Convert OCI to Docker format
+      - name: Download images
         run: |
-          mkdir -p docker-output
-          skopeo copy oci:./query-container/query-container-query-host docker-archive:docker-output/query-container-query-host.tar
-          skopeo copy oci:./query-container/query-container-publish-api docker-archive:docker-output/query-container-publish-api.tar
-          skopeo copy oci:./query-container/query-container-view-svc docker-archive:docker-output/query-container-view-svc.tar
-          skopeo copy oci:./control-plane/api docker-archive:docker-output/api.tar
-          skopeo copy oci:./control-plane/kubernetes-provider docker-archive:docker-output/kubernetes-provider.tar
-          skopeo copy oci:./sources/source-change-svc docker-archive:docker-output/source-change-svc.tar
-          skopeo copy oci:./sources/source-change-dispatcher docker-archive:docker-output/source-change-dispatcher.tar
-          skopeo copy oci:./sources/source-query-api docker-archive:docker-output/source-query-api.tar
-          skopeo copy oci:./sources/source-debezium-reactivator docker-archive:docker-output/source-debezium-reactivator.tar
-          skopeo copy oci:./sources/source-sql-proxy docker-archive:docker-output/source-sql-proxy.tar
-          skopeo copy oci:./reactions/reaction-signalr docker-archive:docker-output/reaction-signalr.tar
+          docker pull ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-change-svc:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-sql-proxy:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/reaction-signalr:${{ github.sha }}
           
-      - name: Load images
-        run: |
-          docker load --input docker-output/query-container-query-host.tar
-          docker load --input docker-output/query-container-publish-api.tar
-          docker load --input docker-output/query-container-view-svc.tar
-          docker load --input docker-output/api.tar
-          docker load --input docker-output/kubernetes-provider.tar
-          docker load --input docker-output/source-change-svc.tar
-          docker load --input docker-output/source-change-dispatcher.tar
-          docker load --input docker-output/source-query-api.tar
-          docker load --input docker-output/source-debezium-reactivator.tar
-          docker load --input docker-output/source-sql-proxy.tar
-          docker load --input docker-output/reaction-signalr.tar
-
           docker image list
 
       - name: Tag images
         run: |
-          docker image tag docker.io/${{ env.TAG_PREFIX }}query-container-query-host:${{ github.sha }} ${{ env.TAG_PREFIX }}query-container-query-host
-          docker image tag docker.io/${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.sha }} ${{ env.TAG_PREFIX }}query-container-publish-api
-          docker image tag docker.io/${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.sha }} ${{ env.TAG_PREFIX }}query-container-view-svc
-          docker image tag docker.io/${{ env.TAG_PREFIX }}api:${{ github.sha }} ${{ env.TAG_PREFIX }}api
-          docker image tag docker.io/${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.sha }} ${{ env.TAG_PREFIX }}kubernetes-provider
-          docker image tag docker.io/${{ env.TAG_PREFIX }}source-change-svc:${{ github.sha }} ${{ env.TAG_PREFIX }}source-change-svc
-          docker image tag docker.io/${{ env.TAG_PREFIX }}source-change-dispatcher:${{ github.sha }} ${{ env.TAG_PREFIX }}source-change-dispatcher
-          docker image tag docker.io/${{ env.TAG_PREFIX }}source-query-api:${{ github.sha }} ${{ env.TAG_PREFIX }}source-query-api
-          docker image tag docker.io/${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.sha }} ${{ env.TAG_PREFIX }}source-debezium-reactivator
-          docker image tag docker.io/${{ env.TAG_PREFIX }}source-sql-proxy:${{ github.sha }} ${{ env.TAG_PREFIX }}source-sql-proxy
-          docker image tag docker.io/${{ env.TAG_PREFIX }}reaction-signalr:${{ github.sha }} ${{ env.TAG_PREFIX }}reaction-signalr
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}query-container-query-host:${{ github.sha }} ${{ github.repository_owner }}query-container-query-host
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}query-container-publish-api:${{ github.sha }} ${{ github.repository_owner }}query-container-publish-api
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}query-container-view-svc:${{ github.sha }} ${{ github.repository_owner }}query-container-view-svc
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}api:${{ github.sha }} ${{ github.repository_owner }}api
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}kubernetes-provider:${{ github.sha }} ${{ github.repository_owner }}kubernetes-provider
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}source-change-svc:${{ github.sha }} ${{ github.repository_owner }}source-change-svc
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}source-change-dispatcher:${{ github.sha }} ${{ github.repository_owner }}source-change-dispatcher
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}source-query-api:${{ github.sha }} ${{ github.repository_owner }}source-query-api
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}source-debezium-reactivator:${{ github.sha }} ${{ github.repository_owner }}source-debezium-reactivator
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}source-sql-proxy:${{ github.sha }} ${{ github.repository_owner }}source-sql-proxy
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}reaction-signalr:${{ github.sha }} ${{ github.repository_owner }}reaction-signalr
         
       - name: Install Kind
         run: |
@@ -391,3 +322,51 @@ jobs:
         working-directory: e2e-tests
         run: npm test
 
+  cleanup:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: 
+      - build-query-container
+      - build-control-plane
+      - build-sources
+      - build-reactions
+      - build-cli
+      - e2e-tests
+    steps:
+    
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete images from GHCR
+        run: |
+          IMAGE_NAMES=(
+            "query-container-query-host"
+            "query-container-publish-api"
+            "query-container-view-svc"
+            "api"
+            "kubernetes-provider"
+            "source-change-svc"
+            "source-change-dispatcher"
+            "source-query-api"
+            "source-debezium-reactivator"
+            "source-sql-proxy"
+            "reaction-signalr"
+          )
+          for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
+            REPO=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+            TAG=${{ github.sha }}
+            FULL_IMAGE_NAME=$REPO:$TAG
+            if docker pull $FULL_IMAGE_NAME; then
+              DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $FULL_IMAGE_NAME | sed 's/.*@//')
+              if [ -n "$DIGEST" ]; then
+                curl -X DELETE -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} https://ghcr.io/v2/${{ github.repository_owner }}/$IMAGE_NAME/manifests/$DIGEST
+                echo "Deleted image $FULL_IMAGE_NAME"
+              fi
+            else
+              echo "Image with tag $TAG for $IMAGE_NAME does not exist."
+            fi
+          done

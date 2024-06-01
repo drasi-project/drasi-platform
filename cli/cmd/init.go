@@ -19,7 +19,7 @@ func NewInitCommand() *cobra.Command {
 			var installer *service.Installer
 			results := make(chan service.StatusUpdate)
 			local := false
-			registry := "drasi.azurecr.io"
+			registry := "ghcr.io"
 			version := "latest"
 
 			var err error
@@ -72,7 +72,7 @@ func NewInitCommand() *cobra.Command {
 	}
 
 	initCommand.Flags().Bool("local", false, "Do not use a container registry, only locally available images")
-	initCommand.Flags().String("registry", "drasi.azurecr.io", "Container registry to pull images from")
+	initCommand.Flags().String("registry", "ghcr.io", "Container registry to pull images from")
 	initCommand.Flags().String("version", "latest", "Container image version tag")
 	initCommand.Flags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into")
 	initCommand.Flags().String("dapr-runtime-version", "1.10.0", "Dapr runtime version to install")

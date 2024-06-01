@@ -95,7 +95,7 @@ spec:
       serviceAccountName: drasi-resource-provider
       containers:
       - name: kubernetes-provider
-        image: drasi/kubernetes-provider
+        image: project-drasi/kubernetes-provider
         imagePullPolicy: IfNotPresent
         env:
         - name: NAMESPACE

@@ -1,26 +1,26 @@
 const cp = require('child_process');
 
 const images = [
-  "drasi/api",
-  "drasi/kubernetes-provider",
+  "project-drasi/api",
+  "project-drasi/kubernetes-provider",
 
-  //"drasi/source-cosmosdb-reactivator",
-  "drasi/source-debezium-reactivator",
-  //"drasi/source-kubernetes-reactivator",
+  //"project-drasi/source-cosmosdb-reactivator",
+  "project-drasi/source-debezium-reactivator",
+  //"project-drasi/source-kubernetes-reactivator",
 
-  "drasi/source-change-dispatcher",
-  "drasi/source-change-svc",
-  "drasi/source-query-api",
-  //"drasi/source-gremlin-proxy",
-  "drasi/source-sql-proxy",
-  //"drasi/source-passthru-proxy",
+  "project-drasi/source-change-dispatcher",
+  "project-drasi/source-change-svc",
+  "project-drasi/source-query-api",
+  //"project-drasi/source-gremlin-proxy",
+  "project-drasi/source-sql-proxy",
+  //"project-drasi/source-passthru-proxy",
 
-  "drasi/query-container-publish-api",
-  "drasi/query-container-query-host",
-  "drasi/query-container-view-svc",
+  "project-drasi/query-container-publish-api",
+  "project-drasi/query-container-query-host",
+  "project-drasi/query-container-view-svc",
 
-  "drasi/reaction-signalr",
-  //"drasi/reaction-gremlin",
+  "project-drasi/reaction-signalr",
+  //"project-drasi/reaction-gremlin",
 ];
 
 async function loadDrasiImages(clusterName) {
