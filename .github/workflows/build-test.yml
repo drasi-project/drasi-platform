@@ -44,8 +44,6 @@ jobs:
           file: ./query-container/query-host/Dockerfile
           platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}query-container-query-host:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cache/query-host:${{ hashFiles('/query-container/query-host/**') }}
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cache/query-host:${{ hashFiles('/query-container/query-host/**') }}
           outputs: type=oci,dest=/tmp/query-container-query-host.tar
 
       - name: Build Publish API
@@ -55,8 +53,6 @@ jobs:
           file: ./query-container/publish-api/Dockerfile
           platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}query-container-publish-api:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }}
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }},mode=max
           outputs: type=oci,dest=/tmp/query-container-publish-api.tar
 
       - name: Build View Service
@@ -66,8 +62,6 @@ jobs:
           file: ./query-container/view-svc/Dockerfile
           platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}query-container-view-svc:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }}
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }},mode=max
           outputs: type=oci,dest=/tmp/query-container-view-svc.tar
 
       - name: Upload artifacts
@@ -108,8 +102,6 @@ jobs:
           file: ./control-planes/mgmt_api/Dockerfile
           platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}api:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cache/control-plane:${{ hashFiles('/control-planes/**') }}
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cache/control-plane:${{ hashFiles('/control-planes/**') }},mode=max
           outputs: type=oci,dest=/tmp/api.tar
 
       - name: Build k8s Resource Provider
@@ -119,8 +111,6 @@ jobs:
           file: ./control-planes/kubernetes_provider/Dockerfile
           platforms: linux/amd64
           tags: ${{ env.TAG_PREFIX }}kubernetes-provider:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cache/control-plane:${{ hashFiles('/control-planes/**') }}
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cache/control-plane:${{ hashFiles('/control-planes/**') }},mode=max
           outputs: type=oci,dest=/tmp/kubernetes-provider.tar
 
       - name: Upload artifacts
