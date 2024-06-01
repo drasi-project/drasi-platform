@@ -6,21 +6,21 @@ const images = [
 
   //"reactive-graph/source-cosmosdb-reactivator",
   "reactive-graph/source-debezium-reactivator",
-  "reactive-graph/source-kubernetes-reactivator",
+  //"reactive-graph/source-kubernetes-reactivator",
 
   "reactive-graph/source-change-dispatcher",
   "reactive-graph/source-change-svc",
   "reactive-graph/source-query-api",
-  "reactive-graph/source-gremlin-proxy",
+  //"reactive-graph/source-gremlin-proxy",
   "reactive-graph/source-sql-proxy",
-  "reactive-graph/source-passthru-proxy",
+  //"reactive-graph/source-passthru-proxy",
 
   "reactive-graph/query-container-publish-api",
   "reactive-graph/query-container-query-host",
   "reactive-graph/query-container-view-svc",
 
   "reactive-graph/reaction-signalr",
-  "reactive-graph/reaction-gremlin",
+  //"reactive-graph/reaction-gremlin",
 ];
 
 async function loadDrasiImages(clusterName) {

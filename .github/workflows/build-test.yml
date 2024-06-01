@@ -189,7 +189,18 @@ jobs:
           tags: ${{ env.TAG_PREFIX }}source-debezium-reactivator:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }}
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }},mode=max
-          outputs: type=oci,dest=/tmp/source-debezium-reactivator.tar          
+          outputs: type=oci,dest=/tmp/source-debezium-reactivator.tar
+
+      - name: Build SQL Proxy
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sources/generic/sql-source-proxy
+          file: ./sources/generic/sql-source-proxy/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.TAG_PREFIX }}source-sql-proxy:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }}
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/shared-cache:${{ github.sha }},mode=max
+          outputs: type=oci,dest=/tmp/source-sql-proxy.tar
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -200,6 +211,7 @@ jobs:
             /tmp/source-change-dispatcher.tar
             /tmp/source-query-api.tar
             /tmp/source-debezium-reactivator.tar
+            /tmp/source-sql-proxy.tar
 
   build-reactions:
     runs-on: ubuntu-latest
@@ -304,10 +316,12 @@ jobs:
           tar -xf ./query-container/query-container-publish-api.tar -C ./query-container/query-container-publish-api
           mkdir ./query-container/query-container-view-svc
           tar -xf ./query-container/query-container-view-svc.tar -C ./query-container/query-container-view-svc
+          
           mkdir ./control-plane/api
           tar -xf ./control-plane/api.tar -C ./control-plane/api
           mkdir ./control-plane/kubernetes-provider
           tar -xf ./control-plane/kubernetes-provider.tar -C ./control-plane/kubernetes-provider
+          
           mkdir ./sources/source-change-svc
           tar -xf ./sources/source-change-svc.tar -C ./sources/source-change-svc
           mkdir ./sources/source-change-dispatcher
@@ -316,6 +330,9 @@ jobs:
           tar -xf ./sources/source-query-api.tar -C ./sources/source-query-api
           mkdir ./sources/source-debezium-reactivator
           tar -xf ./sources/source-debezium-reactivator.tar -C ./sources/source-debezium-reactivator
+          mkdir ./sources/source-sql-proxy
+          tar -xf ./sources/source-sql-proxy.tar -C ./sources/source-sql-proxy
+          
           mkdir ./reactions/reaction-signalr
           tar -xf ./reactions/reaction-signalr.tar -C ./reactions/reaction-signalr
 
@@ -331,6 +348,7 @@ jobs:
           skopeo copy oci:./sources/source-change-dispatcher docker-archive:docker-output/source-change-dispatcher.tar
           skopeo copy oci:./sources/source-query-api docker-archive:docker-output/source-query-api.tar
           skopeo copy oci:./sources/source-debezium-reactivator docker-archive:docker-output/source-debezium-reactivator.tar
+          skopeo copy oci:./sources/source-sql-proxy docker-archive:docker-output/source-sql-proxy.tar
           skopeo copy oci:./reactions/reaction-signalr docker-archive:docker-output/reaction-signalr.tar
           
       - name: Load images
@@ -344,6 +362,7 @@ jobs:
           docker load --input docker-output/source-change-dispatcher.tar
           docker load --input docker-output/source-query-api.tar
           docker load --input docker-output/source-debezium-reactivator.tar
+          docker load --input docker-output/source-sql-proxy.tar
           docker load --input docker-output/reaction-signalr.tar
         
       - name: Install Kind
@@ -357,10 +376,6 @@ jobs:
           curl -LO "https://dl.k8s.io/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/kubectl
-
-
-      - name: Install Drasi
-        run: drasi init --local
 
       - name: npm install
         working-directory: e2e-tests
