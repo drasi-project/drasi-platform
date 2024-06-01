@@ -227,6 +227,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Inspect Token Permissions
+        run: |
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/user
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/user/packages
+
       
       - name: Build SiganlR reaction
         uses: docker/build-push-action@v5
@@ -236,6 +242,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/reaction-signalr:${{ github.sha }}
+            ${{ github.repository_owner }}/reaction-signalr:${{ github.sha }}            
           push: true
 
   build-cli:
