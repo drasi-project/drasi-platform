@@ -126,30 +126,35 @@ jobs:
       matrix:
         component: [
           { 
+            label: 'Change Service',
             context: '.', 
             file: './sources/shared/change-svc/Dockerfile', 
             name: 'source-change-svc', 
             platforms: 'linux/amd64'
           },
           { 
+            label: 'Change Dispatcher',
             context: '.', 
             file: './sources/shared/change-dispatcher/Dockerfile', 
             name: 'source-change-dispatcher', 
             platforms: 'linux/amd64'
           },
           { 
+            label: 'Query API',
             context: './sources/shared/query-api', 
             file: './sources/shared/query-api/Dockerfile', 
             name: 'source-query-api', 
             platforms: 'linux/amd64' 
           },
           { 
+            label: 'Debezium Reactivator',
             context: './sources/debezium/debezium-reactivator', 
             file: './sources/debezium/debezium-reactivator/Dockerfile', 
             name: 'source-debezium-reactivator', 
             platforms: 'linux/amd64,linux/arm64' 
           },
           { 
+            label: 'SQL Proxy',
             context: './sources/generic/sql-source-proxy', 
             file: './sources/generic/sql-source-proxy/Dockerfile', 
             name: 'source-sql-proxy', 
@@ -157,12 +162,14 @@ jobs:
           },
 
           { 
+            label: 'CosmosDB Reactivator',
             context: './sources/cosmosdb/cosmosdb-ffcf-reactivator', 
             file: './sources/cosmosdb/cosmosdb-ffcf-reactivator/Dockerfile', 
             name: 'source-cosmosdb-reactivator', 
             platforms: 'linux/amd64,linux/arm64' 
           },
           { 
+            label: 'Gremlin Proxy',
             context: './sources/cosmosdb/gremlin-source-proxy', 
             file: './sources/cosmosdb/gremlin-source-proxy/Dockerfile', 
             name: 'source-gremlin-proxy', 
@@ -170,12 +177,14 @@ jobs:
           },
 
           { 
+            label: 'Dataverse Reactivator',
             context: './sources/dataverse/dataverse-reactivator', 
             file: './sources/dataverse/dataverse-reactivator/Dockerfile', 
             name: 'source-dataverse-reactivator', 
             platforms: 'linux/amd64,linux/arm64' 
           },
           { 
+            label: 'Dataverse Proxy',
             context: './sources/dataverse/dataverse-proxy', 
             file: './sources/dataverse/dataverse-proxy/Dockerfile', 
             name: 'source-dataverse-proxy', 
@@ -183,12 +192,14 @@ jobs:
           },
 
           { 
+            label: 'EventHub Reactivator',
             context: './sources/eventhub/eventhub-reactivator', 
             file: './sources/eventhub/eventhub-reactivator/Dockerfile', 
             name: 'source-eventhub-reactivator', 
             platforms: 'linux/amd64,linux/arm64' 
           },
           { 
+            label: 'EventHub Proxy',
             context: './sources/eventhub/eventhub-proxy', 
             file: './sources/eventhub/eventhub-proxy/Dockerfile', 
             name: 'source-eventhub-proxy', 
@@ -196,12 +207,14 @@ jobs:
           },
 
           { 
+            label: 'Kubernetes Reactivator',
             context: './sources/kubernetes/kubernetes-reactivator', 
             file: './sources/kubernetes/kubernetes-reactivator/Dockerfile', 
             name: 'source-kubernetes-reactivator', 
             platforms: 'linux/amd64,linux/arm64' 
           },
           { 
+            label: 'Passthru Proxy',
             context: './sources/kubernetes/passthru-proxy', 
             file: './sources/kubernetes/passthru-proxy/Dockerfile', 
             name: 'source-passthru-proxy', 
@@ -209,6 +222,7 @@ jobs:
           },
 
           { 
+            label: 'OpenTelemetry Reactivator',
             context: './sources/open-telemetry/otel-reactivator', 
             file: './sources/open-telemetry/otel-reactivator/Dockerfile', 
             name: 'source-otel-reactivator', 
@@ -252,54 +266,63 @@ jobs:
       matrix:
         component: [
           { 
+            label: 'SignalR',
             context: './reactions/signalr-reaction', 
             file: './reactions/signalr-reaction/Dockerfile', 
             name: 'reaction-signalr', 
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
+            label: 'Dataverse',
             context: './reactions/dataverse-reaction', 
             file: './reactions/dataverse-reaction/Dockerfile', 
             name: 'reaction-dataverse', 
             platforms: 'linux/amd64'
           },
           { 
+            label: 'Debezium',
             context: './reactions/debezium-reaction', 
             file: './reactions/debezium-reaction/Dockerfile', 
             name: 'reaction-debezium', 
             platforms: 'linux/amd64'
           },
           { 
+            label: 'Debug',
             context: './reactions/debug-reaction', 
             file: './reactions/debug-reaction/Dockerfile', 
             name: 'reaction-debug', 
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
+            label: 'EventGrid',
             context: './reactions/eventgrid-reaction', 
             file: './reactions/eventgrid-reaction/Dockerfile', 
             name: 'reaction-eventgrid', 
             platforms: 'linux/amd64'
           },
           { 
+            label: 'Gremlin',
             context: './reactions/gremlin-reaction', 
             file: './reactions/gremlin-reaction/Dockerfile', 
             name: 'reaction-gremlin', 
             platforms: 'linux/amd64'
           },
           { 
+            label: 'Result',
             context: './reactions/result-reaction', 
             file: './reactions/result-reaction/Dockerfile', 
             name: 'reaction-result', 
             platforms: 'linux/amd64'
           },
           { 
+            label: 'StorageQueue',
             context: './reactions/storagequeue-reaction', 
             file: './reactions/storagequeue-reaction/Dockerfile', 
             name: 'reaction-storagequeue', 
             platforms: 'linux/amd64'
           },
           { 
+            label: 'StoredProc',
             context: './reactions/storedproc-reaction', 
             file: './reactions/storedproc-reaction/Dockerfile', 
             name: 'reaction-storedproc', 

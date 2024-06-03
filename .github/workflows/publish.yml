@@ -60,7 +60,7 @@ jobs:
                 REPO=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
 
                 docker pull $REPO:${{ github.sha }}
-                docker tag $REPO:${{ github.sha }} $REPO:${{ github.ref_name }}
+                docker tag $REPO:${{ github.sha }} $REPO:${{ github.event.inputs.tag }}
                 docker push $REPO:${{ github.event.inputs.tag }}
             done
     
