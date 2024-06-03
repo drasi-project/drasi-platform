@@ -28,12 +28,32 @@ jobs:
                 "query-container-view-svc"
                 "api"
                 "kubernetes-provider"
+                
                 "source-change-svc"
                 "source-change-dispatcher"
                 "source-query-api"
+                
                 "source-debezium-reactivator"
                 "source-sql-proxy"
+                "source-cosmosdb-reactivator"
+                "source-gremlin-proxy"
+                "source-kubernetes-reactivator"
+                "source-passthru-proxy"
+                "source-otel-reactivator"                
+                "source-eventhub-reactivator"
+                "source-eventhub-proxy"
+                "source-dataverse-reactivator"
+                "source-dataverse-proxy"
+
                 "reaction-signalr"
+                "reaction-dataverse"
+                "reaction-debezium"
+                "reaction-debug"
+                "reaction-eventgrid"
+                "reaction-gremlin"
+                "reaction-result"
+                "reaction-storagequeue"
+                "reaction-storedproc"
             )
 
             for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
