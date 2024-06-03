@@ -6,7 +6,7 @@ EXPOSE 80
 
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["result-reactor.csproj", "."]
+COPY ["result-reaction.csproj", "."]
 RUN dotnet restore "./result-reaction.csproj"
 COPY . .
 WORKDIR "/src/."
