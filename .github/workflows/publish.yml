@@ -2,6 +2,11 @@ name: Publish
 
 on:
     workflow_dispatch:
+      inputs:
+        tag:
+          description: 'Tag to publish'
+          required: true
+          default: 'latest'
 
 jobs:
   publish:
@@ -36,7 +41,7 @@ jobs:
 
                 docker pull $REPO:${{ github.sha }}
                 docker tag $REPO:${{ github.sha }} $REPO:${{ github.ref_name }}
-                docker push $REPO:${{ github.ref_name }}
+                docker push $REPO:${{ github.event.inputs.tag }}
             done
     
       - name: Logout from GitHub Container Registry
