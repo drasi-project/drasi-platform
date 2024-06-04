@@ -3,12 +3,13 @@ name: Publish Artifacts
 on:
   workflow_run:
     workflows: [Build and Test]
+    branches:
+      - main
     types:
       - completed
   push:
     branches:
       - main
-      - upload-cli
 
 permissions:
   id-token: write # Required for requesting the JWT
