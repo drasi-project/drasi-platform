@@ -1,0 +1,52 @@
+name: Publish Artifacts
+
+on:
+  workflow_run:
+    workflows: [Build and Test]
+    types:
+      - completed
+  push:
+    branches:
+      - main
+      - upload-cli
+
+permissions:
+  id-token: write # Required for requesting the JWT
+  contents: read  # Required for actions/checkout
+
+
+jobs:
+  publish_CLI:
+    needs: build-cli
+    runs-on: ubuntu-latest
+    name: Publish ${{ matrix.os }}_${{ matrix.arch }} binaries
+    environment: 
+      name: github-actions
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: arm64
+          - os: linux
+            arch: x64
+          - os: darwin
+            arch: arm64
+          - os: darwin
+            arch: x64
+          - os: windows
+            arch: x64
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+    
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Upload to ACR  # Uploading to ACR for now; We will switch to gh releases in the future
+        run: |
+            cd cli
+            az storage blob upload-batch --account-name drasi --destination installs --overwrite --source ${{ matrix.os }}-${{ matrix.arch }}/ --destination-path ${{ matrix.os }}-${{ matrix.arch }}/
