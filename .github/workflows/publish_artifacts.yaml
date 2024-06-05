@@ -72,7 +72,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Upload to ACR  # Uploading to ACR for now; We will switch to gh releases in the future
+      - name: Uplaod CLI installation scripts to Azure storage blob
+        run: |
+          az storage blob upload --file deploy/cli/install-drasi-cli.sh --container-name installs --overwrite --name install-drasi-cli.sh --account-name drasi
+          az storage blob upload --file deploy/cli/install.ps1 --container-name installs --overwrite --name install.ps1 --account-name drasi
+
+      - name: Upload CLI binaries to Azure storage blob  # Uploading to Azure storage blob  for now; We will switch to gh releases in the future
         run: |
             cd cli
             az storage blob upload-batch --account-name drasi --destination installs --overwrite --source ${{ matrix.os }}-${{ matrix.arch }}/ --destination-path ${{ matrix.os }}-${{ matrix.arch }}/
