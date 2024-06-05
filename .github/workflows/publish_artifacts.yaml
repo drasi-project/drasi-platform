@@ -62,6 +62,8 @@ jobs:
           - os: windows
             arch: x64
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Download binaries
         uses: actions/download-artifact@v4
     
@@ -88,6 +90,8 @@ jobs:
     environment: 
       name: github-actions
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Building the extension
         run: |
           cd dev-tools/vscode/drasi
