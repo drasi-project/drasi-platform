@@ -19,7 +19,7 @@ func NewInitCommand() *cobra.Command {
 			var installer *service.Installer
 			results := make(chan service.StatusUpdate)
 			local := false
-			registry := "ghcr.io"
+			registry := "drasi.azurecr.io"
 			version := "latest"
 
 			var err error

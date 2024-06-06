@@ -25,7 +25,7 @@ spec:
       containers:
         - name: kubernetes-provider
           imagePullPolicy: %IMAGE_PULL_POLICY%
-          image: %ACR%project-drasi/kubernetes-provider:%TAG%
+          image: %ACR%reactive-graph/kubernetes-provider:%TAG%
           env:
             - name: NAMESPACE
               valueFrom:
@@ -95,7 +95,7 @@ spec:
       containers:
         - name: drasi-api
           imagePullPolicy: %IMAGE_PULL_POLICY%
-          image: %ACR%project-drasi/api:%TAG%
+          image: %ACR%reactive-graph/api:%TAG%
           env:
             - name: NAMESPACE
               valueFrom:
