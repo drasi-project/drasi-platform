@@ -76,7 +76,7 @@ jobs:
 
       - name: Upload the CLI installation scripts to Azure storage blob
         run: |
-          az storage blob upload --file deploy/cli/install-drasi-cli.sh --container-name installs --overwrite --name install-drasi-cli.sh --account-name drasi
+          az storage blob upload --file deploy/cli/install-drasi-cli-ghcr.sh --container-name installs-ghcr --overwrite --name install-drasi-cli-ghcr.sh --account-name drasi
           az storage blob upload --file deploy/cli/install.ps1 --container-name installs --overwrite --name install.ps1 --account-name drasi
 
       - name: Upload the CLI binaries to Azure storage blob  # Uploading to Azure storage blob  for now; We will switch to gh releases in the future
