@@ -138,8 +138,4 @@ jobs:
 
       - name: Github release
         run: |
-          RELEASE=$(gh release list -R project-drasi/drasi-platform | grep "TITLE")
-          if [ -n $"RELEASE" ]; then
-            gh release delete v0.1.0 -y --cleanup-tag
-          fi
           gh release create v${{ env.RELEASE_VERSION }} ${{ env.RELEASE_PATH }}/* --title v${{ env.RELEASE_VERSION }}
