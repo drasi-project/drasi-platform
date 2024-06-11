@@ -8,7 +8,11 @@ on:
 permissions:
   id-token: write # Required for requesting the JWT
   contents: read  # Required for actions/checkout
+  packages: write
 
+env:
+  RELEASE_PATH: ./release
+  RELEASE_VERSION: 0.1.0 # Setting release version to 0.1.0 for now
 
 jobs:
   build-cli:
@@ -66,23 +70,21 @@ jobs:
         uses: actions/checkout@v4
       - name: Download binaries
         uses: actions/download-artifact@v4
-    
-      - name: Login to Azure
-        uses: azure/login@v2
+      - name: Copy cli binaries to release (non-windows)
+        if: matrix.os != 'windows'
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/cli/${{ matrix.os }}-${{ matrix.arch }}/
+          cp -r cli/${{ matrix.os }}-${{ matrix.arch }}/drasi ${{ env.RELEASE_PATH}}/drasi-${{ matrix.os }}-${{ matrix.arch }}
+      - name: Copy cli binaries to release (non-windows)
+        if: matrix.os == 'windows'
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/cli/${{ matrix.os }}-${{ matrix.arch }}/
+          cp -r cli/${{ matrix.os }}-${{ matrix.arch }}/drasi.exe ${{ env.RELEASE_PATH}}/drasi-${{ matrix.os }}-${{ matrix.arch }}.exe
+      - name: Upload release
+        uses: actions/upload-artifact@v4
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Upload the CLI installation scripts to Azure storage blob
-        run: |
-          az storage blob upload --file deploy/cli/install-drasi-cli-ghcr.sh --container-name installs-ghcr --overwrite --name install-drasi-cli-ghcr.sh --account-name drasi
-          az storage blob upload --file deploy/cli/install.ps1 --container-name installs --overwrite --name install.ps1 --account-name drasi
-
-      - name: Upload the CLI binaries to Azure storage blob  # Uploading to Azure storage blob  for now; We will switch to gh releases in the future
-        run: |
-            cd cli
-            az storage blob upload-batch --account-name drasi --destination installs-ghcr --overwrite --source ${{ matrix.os }}-${{ matrix.arch }}/ --destination-path ${{ matrix.os }}-${{ matrix.arch }}/
+          name: drasi_${{ matrix.os }}_${{ matrix.arch }}
+          path: ${{ env.RELEASE_PATH}}
 
   vscode_extension:
     name: Build and publish the VSCode vscode_extension
@@ -92,20 +94,48 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Building the extension
         run: |
           cd dev-tools/vscode/drasi
           npm install -g @vscode/vsce 
           npm install
           vsce package
-      - name: Upload extension to storage blob
-        run: | 
-          cd dev-tools/vscode/drasi
-          az storage blob upload --file drasi-0.0.3.vsix --container-name installs --overwrite --name drasi-0.0.3.vsix --account-name drasi
+      - name: Copy the extension to release
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/vscode-extension/
+          cp dev-tools/vscode/drasi/drasi-0.0.3.vsix ${{ env.RELEASE_PATH}}/drasi-0.0.3.vsix
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        with:
+          name: drasi_vscode_extension
+          path: ${{ env.RELEASE_PATH}}
+
+  release:
+    permissions: write-all
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    name: Github release
+    needs:
+      - vscode_extension
+      - publish_CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Download release
+        uses: actions/download-artifact@v4
+        with:
+          pattern: drasi_*
+          merge-multiple: true
+          path: ${{ env.RELEASE_PATH }}
+      - name: Download release
+        uses: actions/download-artifact@v4
+        with:
+          name: drasi_vscode_extension
+          merge-multiple: true
+          path: ${{ env.RELEASE_PATH }}
+
+      - name: Github release
+        run: |
+          gh release create v${{ env.RELEASE_VERSION }} ${{ env.RELEASE_PATH }}/* --title v${{ env.RELEASE_VERSION }}
