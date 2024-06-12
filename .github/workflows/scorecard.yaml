@@ -15,6 +15,8 @@ jobs:
     permissions:
       security-events: write
       id-token: write
+      contents: read
+      actions: read
 
     steps:
       - name: "Checkout code"
@@ -32,7 +34,6 @@ jobs:
           #     of the value entered here.
           publish_results: false
 
-  
       - name: "Upload artifact"
         uses: actions/upload-artifact@97a0fba1372883ab732affbe8f94b823f91727db # v3.pre.node20
         with:
