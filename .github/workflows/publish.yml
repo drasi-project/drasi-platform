@@ -7,7 +7,11 @@ on:
           description: 'Tag to publish'
           required: true
           default: 'latest'
-          acr: 'drasi'
+        acr_name:
+          description: 'Registry name'
+          required: false
+          default: 'drasi'
+
 
 jobs:
   publish:
@@ -115,7 +119,7 @@ jobs:
           REPO=ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
 
           docker pull $REPO:${{ github.sha }}
-          docker tag $REPO:${{ github.sha }} ${{ github.event.inputs.acr}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
+          docker tag $REPO:${{ github.sha }} ${{ github.event.inputs.acr_name}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -125,4 +129,4 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Push to ACR
-        run: docker push ${{ github.event.inputs.acr}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
+        run: docker push ${{ github.event.inputs.acr_name}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
