@@ -6,7 +6,7 @@ on:
   push:
     branches: [ "main" ]
 
-permissions: write-all
+permissions: read-all
 
 jobs:
   analysis:
@@ -29,6 +29,7 @@ jobs:
         with:
           results_file: results.sarif
           results_format: sarif
+          repo_token: ${{ secrets.SCORECARD_TOKEN }}
           # For private repositories:
           #   - `publish_results` will always be set to `false`, regardless
           #     of the value entered here.
