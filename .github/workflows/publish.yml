@@ -134,4 +134,6 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Push to ACR
-        run: docker push ${{ github.event.inputs.acr_name}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
+        run: |
+          az acr login --name ${{ github.event.inputs.acr_name}}
+          docker push ${{ github.event.inputs.acr_name}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}

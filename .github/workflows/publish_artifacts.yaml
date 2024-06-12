@@ -1,9 +1,7 @@
 name: Publish Artifacts
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   id-token: write # Required for requesting the JWT
