@@ -124,6 +124,7 @@ jobs:
 
           docker pull $REPO:${{ github.sha }}
           docker tag $REPO:${{ github.sha }} ${{ github.event.inputs.acr_name}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
+          docker logout
       
       - name: Login to Azure
         uses: azure/login@v2
