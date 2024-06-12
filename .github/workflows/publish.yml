@@ -7,6 +7,7 @@ on:
           description: 'Tag to publish'
           required: true
           default: 'latest'
+          acr: 'drasi'
 
 jobs:
   publish:
@@ -66,3 +67,62 @@ jobs:
     
       - name: Logout from GitHub Container Registry
         run: docker logout ghcr.io
+
+  publish_ACR:
+    runs-on: ubuntu-latest
+    environment: 
+      name: github-actions
+    strategy:
+      matrix:
+        image:
+          - "query-container-query-host"
+          - "query-container-publish-api"
+          - "query-container-view-svc"
+          - "api"
+          - "kubernetes-provider"
+          - "source-change-svc"
+          - "source-change-dispatcher"
+          - "source-query-api"
+          - "source-debezium-reactivator"
+          - "source-sql-proxy"
+          - "source-cosmosdb-reactivator"
+          - "source-gremlin-proxy"
+          - "source-kubernetes-reactivator"
+          - "source-passthru-proxy"
+          - "source-otel-reactivator"
+          - "source-eventhub-reactivator"
+          - "source-eventhub-proxy"
+          - "source-dataverse-reactivator"
+          - "source-dataverse-proxy"
+          - "reaction-signalr"
+          - "reaction-dataverse"
+          - "reaction-debezium"
+          - "reaction-debug"
+          - "reaction-eventgrid"
+          - "reaction-gremlin"
+          - "reaction-result"
+          - "reaction-storagequeue"
+          - "reaction-storedproc"
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull from ghcr
+        run: |
+          REPO=ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+
+          docker pull $REPO:${{ github.sha }}
+          docker tag $REPO:${{ github.sha }} ${{ github.event.inputs.acr}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Push to ACR
+        run: docker push ${{ github.event.inputs.acr}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
