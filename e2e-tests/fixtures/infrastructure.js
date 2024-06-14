@@ -1,26 +1,26 @@
 const cp = require('child_process');
 
 const images = [
-  "project-drasi/api",
-  "project-drasi/kubernetes-provider",
+  "reactive-graph/api",
+  "reactive-graph/kubernetes-provider",
 
-  //"project-drasi/source-cosmosdb-reactivator",
-  "project-drasi/source-debezium-reactivator",
-  //"project-drasi/source-kubernetes-reactivator",
+  //"reactive-graph/source-cosmosdb-reactivator",
+  "reactive-graph/source-debezium-reactivator",
+  //"reactive-graph/source-kubernetes-reactivator",
 
-  "project-drasi/source-change-dispatcher",
-  "project-drasi/source-change-svc",
-  "project-drasi/source-query-api",
-  //"project-drasi/source-gremlin-proxy",
-  "project-drasi/source-sql-proxy",
-  //"project-drasi/source-passthru-proxy",
+  "reactive-graph/source-change-dispatcher",
+  "reactive-graph/source-change-svc",
+  "reactive-graph/source-query-api",
+  //"reactive-graph/source-gremlin-proxy",
+  "reactive-graph/source-sql-proxy",
+  //"reactive-graph/source-passthru-proxy",
 
-  "project-drasi/query-container-publish-api",
-  "project-drasi/query-container-query-host",
-  "project-drasi/query-container-view-svc",
+  "reactive-graph/query-container-publish-api",
+  "reactive-graph/query-container-query-host",
+  "reactive-graph/query-container-view-svc",
 
-  "project-drasi/reaction-signalr",
-  //"project-drasi/reaction-gremlin",
+  "reactive-graph/reaction-signalr",
+  //"reactive-graph/reaction-gremlin",
 ];
 
 async function loadDrasiImages(clusterName) {
