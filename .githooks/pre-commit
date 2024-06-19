@@ -7,14 +7,8 @@ case ":${PATH}:" in
         ;;
 esac
 
-echo "Running cargo fmt for query host..."
-cargo fmt  --manifest-path ./query-container/query-host/Cargo.toml --check
-
-echo "Running cargo fmt for publish api..."
-cargo fmt  --manifest-path ./query-container/publish-api/Cargo.toml --check
-
-echo "Running cargo fmt for view service..."
-cargo fmt  --manifest-path ./query-container/view-svc/Cargo.toml --check
+echo "Running cargo fmt for query container..."
+cargo fmt  --manifest-path ./query-container/Cargo.toml --check
 
 echo "Running cargo fmt for control plane..."
 cargo fmt  --manifest-path ./control-planes/kubernetes_provider/Cargo.toml --check
