@@ -17,8 +17,8 @@ echo "Running cargo fmt for view service..."
 cargo fmt  --manifest-path ./query-container/view-svc/Cargo.toml --check
 
 echo "Running cargo fmt for control plane..."
-cargo fmt  --manifest-path ./control-plane/kubernetes_provider/Cargo.toml --check
-cargo fmt  --manifest-path ./control-plane/mgmt_api/Cargo.toml --check
-cargo fmt  --manifest-path ./control-plane/resource_provider_api/Cargo.toml --check
+cargo fmt  --manifest-path ./control-planes/kubernetes_provider/Cargo.toml --check
+cargo fmt  --manifest-path ./control-planes/mgmt_api/Cargo.toml --check
+cargo fmt  --manifest-path ./control-planes/resource_provider_api/Cargo.toml --check
 
 cargo fmt  --manifest-path ./infrastructure/Cargo.toml --all --check

@@ -1,6 +1,6 @@
-# Drasi Core
+# Drasi
 
-...
+
 
 ## Contributing
 
