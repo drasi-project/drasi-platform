@@ -10,7 +10,6 @@ use drasi_core::{
     interface::{ElementIndex, ResultIndex, ResultSequence},
     middleware::MiddlewareTypeRegistry,
     models,
-    path_solver::match_path::MatchPath,
     query::{ContinuousQuery, QueryBuilder},
 };
 use opentelemetry::{propagation::TextMapPropagator, KeyValue};
@@ -82,27 +81,7 @@ impl QueryWorker {
             let config: models::QueryConfig = config.into();
             let mut modified_config = config.clone();
 
-            let ast = match drasi_query_cypher::parse(&config.query) {
-                Ok(q) => Arc::new(q),
-                Err(err) => {
-                    log::error!("Error initializing query: {}", err);
-                    lifecycle.change_state(QueryState::TerminalError(err.to_string()));
-                    return;
-                }
-            };
-
-            fill_default_source_labels(&mut modified_config, &ast);
-
-            let match_path = match MatchPath::from_query(&ast.phases[0]) {
-                Ok(mp) => mp,
-                Err(err) => {
-                    log::error!("Error initializing query: {}", err);
-                    lifecycle.change_state(QueryState::TerminalError(err.to_string()));
-                    return;
-                }
-            };
-
-            let mut builder = QueryBuilder::new(ast.clone());
+            let mut builder = QueryBuilder::new(&config.query);
 
             builder = builder.with_joins(config.sources.joins.clone());
 
@@ -110,8 +89,6 @@ impl QueryWorker {
                 .build(
                     &modified_config.storage_profile,
                     &query_id,
-                    &match_path,
-                    builder.get_joins(),
                 )
                 .await
             {
@@ -147,7 +124,9 @@ impl QueryWorker {
                 builder = builder.with_source_pipeline(subscription.id.to_string(), &pipeline);
             }
 
-            let continuous_query = builder.build();
+            let continuous_query = builder.build().await;
+
+            fill_default_source_labels(&mut modified_config, &continuous_query.get_query());
 
             let source_publisher = change_stream::publisher::Publisher::connect(
                 &stream_config.redis_url,
@@ -638,7 +617,7 @@ async fn bootstrap(
 fn fill_default_source_labels(spec: &mut models::QueryConfig, ast: &Query) {
     for source in &mut spec.sources.subscriptions {
         if source.nodes.is_empty() && source.relations.is_empty() {
-            for ph in &ast.phases {
+            for ph in &ast.parts {
                 for mc in &ph.match_clauses {
                     merge_query_source_labels(&mut source.nodes, mc.start.labels.clone());
                     for leg in &mc.path {

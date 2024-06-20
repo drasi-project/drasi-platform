@@ -9,8 +9,6 @@ use drasi_core::index_cache::cached_result_index::CachedResultIndex;
 use drasi_core::interface::{
     ElementArchiveIndex, ElementIndex, FutureQueue, IndexError, ResultIndex,
 };
-use drasi_core::models::QueryJoin;
-use drasi_core::path_solver::match_path::MatchPath;
 use drasi_index_garnet::element_index::GarnetElementIndex;
 use drasi_index_garnet::future_queue::GarnetFutureQueue;
 use drasi_index_garnet::result_index::GarnetResultIndex;
@@ -173,9 +171,7 @@ impl IndexFactory {
     pub async fn build(
         &self,
         store: &Option<String>,
-        query_id: &str,
-        match_path: &MatchPath,
-        joins: &Vec<Arc<QueryJoin>>,
+        query_id: &str,        
     ) -> Result<IndexSet, IndexError> {
         let store = match store {
             Some(store) => store,
@@ -189,7 +185,7 @@ impl IndexFactory {
 
         match spec {
             StorageSpec::Memory { enable_archive } => {
-                let mut element_index = InMemoryElementIndex::new(match_path, joins);
+                let mut element_index = InMemoryElementIndex::new();
                 if *enable_archive {
                     element_index.enable_archive();
                 }
@@ -209,7 +205,7 @@ impl IndexFactory {
                 cache_size,
             } => {
                 let element_index =
-                    GarnetElementIndex::connect(query_id, connection_string, match_path, joins)
+                    GarnetElementIndex::connect(query_id, connection_string)
                         .await?;
 
                 let element_index = Arc::new(element_index);
@@ -260,7 +256,7 @@ impl IndexFactory {
                     direct_io: *direct_io,
                 };
                 let element_index =
-                    RocksDbElementIndex::new(query_id, "/data", match_path, joins, options)?;
+                    RocksDbElementIndex::new(query_id, "/data", options)?;
                 let element_index = Arc::new(element_index);
 
                 let result_index = RocksDbResultIndex::new(query_id, "/data")?;

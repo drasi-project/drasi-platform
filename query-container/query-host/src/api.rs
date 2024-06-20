@@ -4,7 +4,7 @@ use std::{
 };
 
 use drasi_core::{
-    evaluation::context::{PhaseEvaluationContext, QueryVariables},
+    evaluation::context::{QueryPartEvaluationContext, QueryVariables},
     interface::FutureElementRef,
     models::{Element, ElementMetadata, ElementReference, SourceChange},
 };
@@ -390,7 +390,7 @@ impl ResultEvent {
     #[tracing::instrument(skip_all)]
     pub fn from_query_results(
         query_id: &str,
-        data: Vec<PhaseEvaluationContext>,
+        data: Vec<QueryPartEvaluationContext>,
         sequence: u64,
         source_time_ms: u64,
         metadata: Option<Map<String, Value>>,
@@ -401,20 +401,20 @@ impl ResultEvent {
 
         for ctx in data {
             match ctx {
-                PhaseEvaluationContext::Adding { after } => {
+                QueryPartEvaluationContext::Adding { after } => {
                     added_results.push(variables_to_json(after));
                 }
-                PhaseEvaluationContext::Updating { before, after } => {
+                QueryPartEvaluationContext::Updating { before, after } => {
                     updated_results.push(UpdatePayload {
                         before: Some(variables_to_json(before)),
                         after: Some(variables_to_json(after)),
                         grouping_keys: None,
                     });
                 }
-                PhaseEvaluationContext::Removing { before } => {
+                QueryPartEvaluationContext::Removing { before } => {
                     deleted_results.push(variables_to_json(before));
                 }
-                PhaseEvaluationContext::Aggregation {
+                QueryPartEvaluationContext::Aggregation {
                     before,
                     after,
                     grouping_keys,
@@ -429,7 +429,7 @@ impl ResultEvent {
                         grouping_keys: Some(grouping_keys),
                     });
                 }
-                PhaseEvaluationContext::Noop => {}
+                QueryPartEvaluationContext::Noop => {}
             }
         }
 
