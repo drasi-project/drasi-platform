@@ -392,8 +392,6 @@ jobs:
 
   e2e-tests:
     runs-on: e2e-tester
-    env:
-      Image_prefix: reactive-graph
     needs: 
       - build-query-container
       - build-control-plane
@@ -438,17 +436,18 @@ jobs:
 
       - name: Tag images
         run: |
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }} ${{ env.Image_prefix }}/query-container-query-host
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }} ${{ env.Image_prefix }}/query-container-publish-api
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }} ${{ env.Image_prefix }}/query-container-view-svc
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }} ${{ env.Image_prefix }}/api
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }} ${{ env.Image_prefix }}/kubernetes-provider
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-svc:${{ github.sha }} ${{ env.Image_prefix }}/source-change-svc
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }} ${{ env.Image_prefix }}/source-change-dispatcher
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }} ${{ env.Image_prefix }}/source-query-api
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:${{ github.sha }} ${{ env.Image_prefix }}/source-debezium-reactivator
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-sql-proxy:${{ github.sha }} ${{ env.Image_prefix }}/source-sql-proxy
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/reaction-signalr:${{ github.sha }} ${{ env.Image_prefix }}/reaction-signalr
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }} ${{ github.repository_owner }}/query-container-query-host
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }} ${{ github.repository_owner }}/query-container-publish-api
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }} ${{ github.repository_owner }}/query-container-view-svc
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }} ${{ github.repository_owner }}/api
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }} ${{ github.repository_owner }}/kubernetes-provider
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-svc:${{ github.sha }} ${{ github.repository_owner }}/source-change-svc
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }} ${{ github.repository_owner }}/source-change-dispatcher
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }} ${{ github.repository_owner }}/source-query-api
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:${{ github.sha }} ${{ github.repository_owner }}/source-debezium-reactivator
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-sql-proxy:${{ github.sha }} ${{ github.repository_owner }}/source-sql-proxy
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/reaction-signalr:${{ github.sha }} ${{ github.repository_owner }}/reaction-signalr
+        
         
       - name: Install Kind
         run: |

@@ -76,11 +76,12 @@ function extractConfig(cfg) {
   dbConfig.client = cfg.client;
   dbConfig.connection = {};
   dbConfig.connection.host = cfg.host;
-  dbConfig.connection.port = cfg.port;
+  dbConfig.connection.port = parseInt(cfg.port);
   dbConfig.connection.user = cfg.user;
   dbConfig.connection.password = cfg.password;
   dbConfig.connection.database = cfg.database;
   dbConfig.connection.ssl = convertConfigValue(cfg.ssl);
+  dbConfig.connection.encrypt = convertConfigValue(cfg.encrypt);
 
   console.log("sourceProxy.main - dbConfig:", dbConfig);
   return dbConfig;

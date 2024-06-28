@@ -1,6 +1,6 @@
-package com.reactivegraph;
+package com.drasi;
 
-import com.reactivegraph.models.RelationalGraphMapping;
+import com.drasi.models.RelationalGraphMapping;
 import io.debezium.config.Configuration;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
@@ -28,8 +28,7 @@ public class SqlServerChangeMonitor implements ChangeMonitor {
 
         Configuration config = Configuration.create()
                 .with("connector.class", "io.debezium.connector.sqlserver.SqlServerConnector")
-                //.with("offset.storage", "com.reactivegraph.DaprOffsetBackingStore")
-                .with("offset.storage", "org.apache.kafka.connect.storage.MemoryOffsetBackingStore")
+                .with("offset.storage", "com.drasi.DaprOffsetBackingStore")
                 .with("offset.flush.interval.ms", 5000)
                 .with("name", sourceId)
                 .with("topic.prefix", CleanPublicationName(sourceId))
@@ -39,13 +38,8 @@ public class SqlServerChangeMonitor implements ChangeMonitor {
                 .with("database.password", System.getenv("password"))
                 .with("database.names", System.getenv("database"))
                 .with("tombstones.on.delete", false)
-                //.with("snapshot.mode", "no_data")
-                .with("snapshot.mode", "configuration_based")
-                .with("snapshot.mode.configuration.based.snapshot.schema", true)
-                .with("snapshot.mode.configuration.based.start.stream", true)
-                .with("snapshot.mode.configuration.based.snapshot.on.schema.error", true)
-
-                .with("schema.history.internal", "io.debezium.relational.history.MemorySchemaHistory")
+                .with("snapshot.mode", "no_data")
+                .with("schema.history.internal", "com.drasi.NoOpSchemaHistory")
                 .with("decimal.handling.mode", "double")
                 .with("table.include.list", tableListStr).build();
 

@@ -1,25 +1,12 @@
-package com.reactivegraph;
+package com.drasi;
 
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.reactivegraph.models.NodeMapping;
-import com.reactivegraph.models.RelationalGraphMapping;
-import io.debezium.config.Configuration;
-import io.debezium.engine.ChangeEvent;
-import io.debezium.engine.DebeziumEngine;
-import io.debezium.engine.format.Json;
-import io.debezium.engine.spi.OffsetCommitPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.Properties;
 
 public class Reactivator {
 
@@ -29,7 +16,7 @@ public class Reactivator {
 
         try {            
             var sourceId = System.getenv("SOURCE_ID");
-            var publisher = new DebugPublisher(); //DaprChangePublisher(sourceId, pubsubName);
+            var publisher = new DaprChangePublisher(sourceId);
 
             ChangeMonitor monitor;
             switch (System.getenv("connector")) {
@@ -45,8 +32,8 @@ public class Reactivator {
             monitor.run();
 
         } catch (Exception ex) {
-            //log.error(ex.getMessage());
-            //Files.write(Path.of("/dev/termination-log"), ex.getMessage().getBytes());
+            log.error(ex.getMessage());
+            Files.write(Path.of("/dev/termination-log"), ex.getMessage().getBytes());
             throw ex;
         }
     }

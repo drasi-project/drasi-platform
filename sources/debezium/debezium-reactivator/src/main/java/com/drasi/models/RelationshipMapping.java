@@ -1,4 +1,4 @@
-package com.reactivegraph.models;
+package com.drasi.models;
 
 public class RelationshipMapping {
     public String tableName;

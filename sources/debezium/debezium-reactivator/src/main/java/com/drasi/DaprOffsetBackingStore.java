@@ -1,4 +1,4 @@
-package com.reactivegraph;
+package com.drasi;
 
 import io.dapr.client.DaprClient;
 import io.dapr.client.DaprClientBuilder;

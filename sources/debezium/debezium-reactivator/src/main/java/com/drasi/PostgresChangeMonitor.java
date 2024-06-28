@@ -1,6 +1,6 @@
-package com.reactivegraph;
+package com.drasi;
 
-import com.reactivegraph.models.RelationalGraphMapping;
+import com.drasi.models.RelationalGraphMapping;
 import io.debezium.config.Configuration;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
@@ -28,7 +28,7 @@ public class PostgresChangeMonitor implements ChangeMonitor {
 
         Configuration config = io.debezium.config.Configuration.create()
                 .with("connector.class", "io.debezium.connector.postgresql.PostgresConnector")
-                .with("offset.storage", "com.reactivegraph.DaprOffsetBackingStore")
+                .with("offset.storage", "com.drasi.DaprOffsetBackingStore")
                 .with("offset.flush.interval.ms", 5000)
                 .with("name", sourceId)
                 .with("slot.name", "rg_" + CleanPublicationName(sourceId))

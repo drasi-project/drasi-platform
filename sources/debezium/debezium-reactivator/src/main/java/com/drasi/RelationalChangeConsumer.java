@@ -1,11 +1,11 @@
-package com.reactivegraph;
+package com.drasi;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.reactivegraph.models.NodeMapping;
-import com.reactivegraph.models.RelationalGraphMapping;
-import com.reactivegraph.models.RelationshipMapping;
+import com.drasi.models.NodeMapping;
+import com.drasi.models.RelationalGraphMapping;
+import com.drasi.models.RelationshipMapping;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 

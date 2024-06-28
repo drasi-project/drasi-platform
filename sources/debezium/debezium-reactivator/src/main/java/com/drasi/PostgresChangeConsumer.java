@@ -1,7 +1,7 @@
-package com.reactivegraph;
+package com.drasi;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.reactivegraph.models.RelationalGraphMapping;
+import com.drasi.models.RelationalGraphMapping;
 
 public class PostgresChangeConsumer extends RelationalChangeConsumer {
 

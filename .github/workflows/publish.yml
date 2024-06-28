@@ -124,7 +124,7 @@ jobs:
           REPO=ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
 
           docker pull $REPO:${{ github.sha }}
-          docker tag $REPO:${{ github.sha }} ${{ github.event.inputs.acr_name}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
+          docker tag $REPO:${{ github.sha }} ${{ github.event.inputs.acr_name}}.azurecr.io/drasi-project/${{ matrix.image }}:${{ github.event.inputs.tag }}
           docker logout
       
       - name: Login to Azure
@@ -137,4 +137,4 @@ jobs:
       - name: Push to ACR
         run: |
           az acr login --name ${{ github.event.inputs.acr_name}}
-          docker push ${{ github.event.inputs.acr_name}}.azurecr.io/reactive-graph/${{ matrix.image }}:${{ github.event.inputs.tag }}
+          docker push ${{ github.event.inputs.acr_name}}.azurecr.io/drasi-project/${{ matrix.image }}:${{ github.event.inputs.tag }}

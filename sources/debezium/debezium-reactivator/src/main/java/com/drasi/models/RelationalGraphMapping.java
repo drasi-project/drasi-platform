@@ -1,4 +1,4 @@
-package com.reactivegraph.models;
+package com.drasi.models;
 
 import java.util.LinkedList;
 import java.util.List;

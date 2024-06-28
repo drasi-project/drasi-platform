@@ -1,6 +1,6 @@
-package com.reactivegraph;
+package com.drasi;
 
-import com.reactivegraph.models.NodeMapping;
+import com.drasi.models.NodeMapping;
 import io.debezium.config.Configuration;
 import io.debezium.connector.postgresql.PostgresConnectorConfig;
 import io.debezium.connector.postgresql.connection.PostgresConnection;
