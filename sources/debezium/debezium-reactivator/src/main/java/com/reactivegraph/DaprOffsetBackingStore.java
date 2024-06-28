@@ -19,6 +19,7 @@ import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class DaprOffsetBackingStore extends MemoryOffsetBackingStore {
     private static final Logger log = LoggerFactory.getLogger(org.apache.kafka.connect.storage.FileOffsetBackingStore.class);
@@ -98,6 +99,11 @@ public class DaprOffsetBackingStore extends MemoryOffsetBackingStore {
         } catch (IOException e) {
             throw new ConnectException(e);
         }
+    }
+
+    @Override
+    public Set<Map<String, Object>> connectorPartitions(String s) {
+        return Set.of();
     }
 }
 

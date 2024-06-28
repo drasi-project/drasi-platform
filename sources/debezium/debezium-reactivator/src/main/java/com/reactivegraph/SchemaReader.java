@@ -4,24 +4,49 @@ import com.reactivegraph.models.NodeMapping;
 import io.debezium.config.Configuration;
 import io.debezium.connector.postgresql.PostgresConnectorConfig;
 import io.debezium.connector.postgresql.connection.PostgresConnection;
-import io.debezium.jdbc.JdbcConfiguration;
+import io.debezium.connector.sqlserver.SqlServerConnection;
+import io.debezium.connector.sqlserver.SqlServerConnectorConfig;
 import io.debezium.jdbc.JdbcConnection;
+import io.debezium.relational.RelationalDatabaseConnectorConfig;
 
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class SchemaReader {
 
-    private JdbcConfiguration configuration;
+    public enum Connector {
+        Postgres,
+        SqlServer
+    }
+
+    private RelationalDatabaseConnectorConfig configuration;
+    private Connector connector;
+
 
     public SchemaReader(Configuration config) {
-        configuration = new PostgresConnectorConfig(config).getJdbcConfig();  // TODO make generic
+        switch (config.getString("connector.class")) {
+            case "io.debezium.connector.postgresql.PostgresConnector":
+                configuration = new PostgresConnectorConfig(config);
+                connector = Connector.Postgres;
+                break;
+            case "io.debezium.connector.sqlserver.SqlServerConnector":
+                configuration = new SqlServerConnectorConfig(config);
+                connector = Connector.SqlServer;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown connector");
+        }
     }
 
     private JdbcConnection GetConnection() {
-        return new PostgresConnection(configuration, "drasi"); // TODO make generic
+        switch (connector) {
+            case Postgres:
+                return new PostgresConnection(configuration.getJdbcConfig(), "drasi");
+            case SqlServer:
+                return new SqlServerConnection((SqlServerConnectorConfig) configuration, null, new HashSet<>(), true);
+            default:
+                throw new IllegalArgumentException("Unknown connector");
+        }
     }
 
     public List<NodeMapping> ReadMappingsFromSchema(String[] tableNames) throws SQLException {
