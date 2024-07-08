@@ -45,11 +45,21 @@ func NewUninstallCommand() *cobra.Command {
 
 			fmt.Println("Drasi uninstalled successfully")
 
+			if uninstallDapr, _ := cmd.Flags().GetBool("uninstall-dapr"); uninstallDapr {
+				fmt.Println("Uninstalling Dapr")
+				err = service.UninstallDapr(currentNamespace)
+				if err != nil {
+					return err
+				}
+				fmt.Println("Dapr uninstalled successfully")
+			}
+
 			return nil
 		},
 	}
 
-	uninstallCommand.Flags().BoolP("yes", "y", false, "uninstall -y")
+	uninstallCommand.Flags().BoolP("yes", "y", false, "Automatic yes to prompts")
+	uninstallCommand.Flags().BoolP("uninstall-dapr", "d", false, "Uninstall Dapr by deleting the Dapr system namespace")
 
 	return uninstallCommand
 }

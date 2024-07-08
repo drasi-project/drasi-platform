@@ -54,3 +54,46 @@ func UninstallDrasi(namespace string) error {
 
 	return nil
 }
+
+func UninstallDapr(namespace string) error {
+	configLoadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{}
+
+	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoadingRules, configOverrides)
+
+	restConfig, err := config.ClientConfig()
+
+	if err != nil {
+		return err
+	}
+
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+
+	err = clientset.CoreV1().Namespaces().Delete(context.TODO(), "dapr-system", metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+
+	nsDeleted := false
+	for !nsDeleted {
+		list, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+		for _, ns := range list.Items {
+			// check if the namespace is still there
+			if ns.Name == "dapr-system" {
+				fmt.Println("dapr-system namespace is still present. Waiting for it to be deleted")
+				// wait for 10 seconds
+				time.Sleep(10 * time.Second)
+			} else {
+				nsDeleted = true
+			}
+		}
+	}
+
+	return nil
+}
