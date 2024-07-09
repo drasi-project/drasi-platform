@@ -14,8 +14,8 @@ use axum::{
     Json, Router,
 };
 
-use drasi_comms_abstractions::comms::{Headers, Publisher};
-use drasi_comms_dapr::comms::DaprHttpPublisher;
+use comms_abstractions::comms::{Headers, Publisher};
+use comms_dapr::comms::DaprHttpPublisher;
 
 mod change_service_config;
 mod subscriber_map;

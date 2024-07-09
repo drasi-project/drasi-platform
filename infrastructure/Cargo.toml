@@ -1,8 +1,8 @@
 [workspace]
 
 members = [
-    "drasi-comms-abstractions",
-    "drasi-comms-dapr"
+    "comms-abstractions",
+    "comms-dapr"
 ]
 
 [workspace.package]

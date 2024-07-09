@@ -1,5 +1,5 @@
 [package]
-name = "drasi-comms-dapr"
+name = "comms-abstractions"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,4 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1.80"
-drasi-comms-abstractions = { path = "../drasi-comms-abstractions"}
-reqwest = { version = "0.11.24", features = ["blocking", "json"]}
 serde_json = "1.0.117"
