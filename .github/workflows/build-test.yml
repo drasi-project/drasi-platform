@@ -267,64 +267,64 @@ jobs:
         component: [
           { 
             label: 'SignalR',
-            context: './reactions/signalr-reaction', 
-            file: './reactions/signalr-reaction/Dockerfile', 
+            context: './reactions/signalr/signalr-reaction', 
+            file: './reactions/signalr/signalr-reaction/Dockerfile', 
             name: 'reaction-signalr', 
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Dataverse',
-            context: './reactions/dataverse-reaction', 
-            file: './reactions/dataverse-reaction/Dockerfile', 
+            context: './reactions/dataverse/dataverse-reaction', 
+            file: './reactions/dataverse/dataverse-reaction/Dockerfile', 
             name: 'reaction-dataverse', 
             platforms: 'linux/amd64'
           },
           { 
             label: 'Debezium',
-            context: './reactions/debezium-reaction', 
-            file: './reactions/debezium-reaction/Dockerfile', 
+            context: './reactions/debezium/debezium-reaction', 
+            file: './reactions/debezium/debezium-reaction/Dockerfile', 
             name: 'reaction-debezium', 
             platforms: 'linux/amd64'
           },
           { 
             label: 'Debug',
-            context: './reactions/debug-reaction', 
-            file: './reactions/debug-reaction/Dockerfile', 
+            context: './reactions/debug/debug-reaction', 
+            file: './reactions/debug/debug-reaction/Dockerfile', 
             name: 'reaction-debug', 
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'EventGrid',
-            context: './reactions/eventgrid-reaction', 
-            file: './reactions/eventgrid-reaction/Dockerfile', 
+            context: './reactions/eventgrid/eventgrid-reaction', 
+            file: './reactions/eventgrid/eventgrid-reaction/Dockerfile', 
             name: 'reaction-eventgrid', 
             platforms: 'linux/amd64'
           },
           { 
             label: 'Gremlin',
-            context: './reactions/gremlin-reaction', 
-            file: './reactions/gremlin-reaction/Dockerfile', 
+            context: './reactions/gremlin/gremlin-reaction', 
+            file: './reactions/gremlin/gremlin-reaction/Dockerfile', 
             name: 'reaction-gremlin', 
             platforms: 'linux/amd64'
           },
           { 
             label: 'Result',
-            context: './reactions/result-reaction', 
-            file: './reactions/result-reaction/Dockerfile', 
+            context: './reactions/result/result-reaction', 
+            file: './reactions/result/result-reaction/Dockerfile', 
             name: 'reaction-result', 
             platforms: 'linux/amd64'
           },
           { 
             label: 'StorageQueue',
-            context: './reactions/storagequeue-reaction', 
-            file: './reactions/storagequeue-reaction/Dockerfile', 
+            context: './reactions/storagequeue/storagequeue-reaction', 
+            file: './reactions/storagequeue/storagequeue-reaction/Dockerfile', 
             name: 'reaction-storagequeue', 
             platforms: 'linux/amd64'
           },
           { 
             label: 'StoredProc',
-            context: './reactions/storedproc-reaction', 
-            file: './reactions/storedproc-reaction/Dockerfile', 
+            context: './reactions/storedproc/storedproc-reaction', 
+            file: './reactions/storedproc/storedproc-reaction/Dockerfile', 
             name: 'reaction-storedproc', 
             platforms: 'linux/amd64'
           }

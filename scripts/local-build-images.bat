@@ -21,16 +21,14 @@ docker build ../query-container/query-host -t drasi-project/query-container-quer
 docker build ../query-container/view-svc -t drasi-project/query-container-view-svc
 
 @REM # Reactions
-docker build ../reactions/debug-reaction -t drasi-project/reaction-debug
-docker build ../reactions/signalr-reaction -t drasi-project/reaction-signalr
-docker build ../reactions/eventgrid-reaction -t drasi-project/reaction-eventgrid
-docker build ../reactions/performance-reaction -t drasi-project/reaction-performance
-docker build ../reactions/graphql-reaction -t drasi-project/reaction-graphql
-docker build ../reactions/storedproc-reaction -t drasi-project/reaction-storedproc
-docker build ../reactions/gremlin-reaction -t drasi-project/reaction-gremlin
-docker build ../reactions/debezium-reaction -t drasi-project/reaction-debezium
-docker build ../reactions/result-reaction -t drasi-project/reaction-result
-docker build ../reactions/dataverse-reaction -t drasi-project/reaction-dataverse
+docker build ../reactions/debug/debug-reaction -t drasi-project/reaction-debug
+docker build ../reactions/signalr/signalr-reaction -t drasi-project/reaction-signalr
+docker build ../reactions/eventgrid/eventgrid-reaction -t drasi-project/reaction-eventgrid
+docker build ../reactions/storedproc/storedproc-reaction -t drasi-project/reaction-storedproc
+docker build ../reactions/gremlin/gremlin-reaction -t drasi-project/reaction-gremlin
+docker build ../reactions/debezium/debezium-reaction -t drasi-project/reaction-debezium
+docker build ../reactions/result/result-reaction -t drasi-project/reaction-result
+docker build ../reactions/dataverse/dataverse-reaction -t drasi-project/reaction-dataverse
 
 @REM # Control plane
 docker build ../control-planes -f ../control-planes/mgmt_api/Dockerfile  -t drasi-project/api
