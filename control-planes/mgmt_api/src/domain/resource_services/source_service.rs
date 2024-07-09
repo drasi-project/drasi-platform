@@ -7,7 +7,6 @@ use crate::{
     persistence::SourceRepository,
     SpecValidator,
 };
-use actix_identity::config;
 use dapr::client::TonicClient;
 use jsonschema::JSONSchema;
 use serde_json::Value;

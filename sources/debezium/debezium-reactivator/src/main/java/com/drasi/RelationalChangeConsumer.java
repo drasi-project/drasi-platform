@@ -1,11 +1,11 @@
-package com.reactivegraph;
+package com.drasi;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.reactivegraph.models.NodeMapping;
-import com.reactivegraph.models.RelationalGraphMapping;
-import com.reactivegraph.models.RelationshipMapping;
+import com.drasi.models.NodeMapping;
+import com.drasi.models.RelationalGraphMapping;
+import com.drasi.models.RelationshipMapping;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 
@@ -16,7 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-class PostgresChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEvent<String, String>> {
+abstract class RelationalChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEvent<String, String>> {
 
     private String sourceId = System.getenv("SOURCE_ID");
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -24,7 +24,7 @@ class PostgresChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEven
     private Map<String, List<RelationshipMapping>> tableToRelMap;
     private ChangePublisher changePublisher;
 
-    public PostgresChangeConsumer(RelationalGraphMapping mappings, ChangePublisher changePublisher) {
+    public RelationalChangeConsumer(RelationalGraphMapping mappings, ChangePublisher changePublisher) {
         this.changePublisher = changePublisher;
         tableToNodeMap = new HashMap<>();
         tableToRelMap = new HashMap<>();
@@ -65,6 +65,10 @@ class PostgresChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEven
     private List<JsonNode> ExtractNodeChanges(JsonNode sourceChange) {
         var result = new ArrayList<JsonNode>();
         var pgPayload = sourceChange.path("payload");
+
+        if (!pgPayload.has("op"))
+            return result;
+
         var pgSource = pgPayload.path("source");
         var tableName = pgSource.path("schema").asText() + "." + pgSource.path("table").asText();
 
@@ -72,11 +76,10 @@ class PostgresChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEven
             return result;
 
         for (var mapping : tableToNodeMap.get(tableName)) {
-            //JsonFactory.
             var rgSource = JsonNodeFactory.instance.objectNode();
             rgSource.put("db", sourceId);
             rgSource.put("table", "node");
-            rgSource.put("lsn", pgSource.path("lsn").asLong());
+            rgSource.put("lsn", ExtractLsn(pgSource));
             rgSource.put("ts_ms", pgSource.path("ts_ms").asLong());
             rgSource.put("ts_sec", pgSource.path("ts_ms").asLong() / 1000);
 
@@ -98,6 +101,8 @@ class PostgresChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEven
 
         return result;
     }
+
+    protected abstract long ExtractLsn(JsonNode sourceChange);
 
     private String ConvertOp(String op) {
         switch (op) {

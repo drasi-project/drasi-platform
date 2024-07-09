@@ -9,7 +9,7 @@
     <DockerfileContext>.</DockerfileContext>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(RunConfiguration)' == 'debug-reactor' " />
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'debug-reaction' " />
   <ItemGroup>
 	<PackageReference Include="ChartJs.Blazor.Fork" Version="2.0.2" />
 	<PackageReference Include="Dapr.Actors.AspNetCore" Version="1.9.0" />

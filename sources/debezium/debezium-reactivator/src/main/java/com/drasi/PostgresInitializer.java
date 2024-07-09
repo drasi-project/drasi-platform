@@ -1,8 +1,7 @@
-package com.reactivegraph;
+package com.drasi;
 
-import com.reactivegraph.models.NodeMapping;
+import com.drasi.models.NodeMapping;
 import io.debezium.config.Configuration;
-import io.debezium.connector.postgresql.PostgresConnector;
 import io.debezium.connector.postgresql.PostgresConnectorConfig;
 import io.debezium.connector.postgresql.connection.PostgresConnection;
 import io.debezium.jdbc.JdbcConfiguration;
@@ -12,12 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.LogManager;
 import java.util.stream.Collectors;
 
 public class PostgresInitializer {
