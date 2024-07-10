@@ -8,8 +8,8 @@ use std::{
     sync::Arc,
 };
 
-use comms_abstractions::comms::{Headers, Invoker};
-use comms_dapr::comms::DaprHttpInvoker;
+use drasi_comms_abstractions::comms::{Headers, Invoker};
+use drasi_comms_dapr::comms::DaprHttpInvoker;
 
 use axum::{
     extract::State,

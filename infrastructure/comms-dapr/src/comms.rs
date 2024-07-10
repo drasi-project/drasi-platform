@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use comms_abstractions::comms::{Headers, Invoker, Publisher};
+use drasi_comms_abstractions::comms::{Headers, Invoker, Publisher};
 use serde_json::Value;
 
 pub struct DaprHttpPublisher {

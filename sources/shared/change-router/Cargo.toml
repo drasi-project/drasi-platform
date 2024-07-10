@@ -11,8 +11,8 @@ axum = { version = "0.7.5", features = ["macros", "http1", "tokio"] }
 chrono = "0.4.33"
 dapr = { git = "https://github.com/ruokun-niu/rust-sdk.git", branch = "master" }
 dapr-macros = { git = "https://github.com/ruokun-niu/rust-sdk.git", branch = "master" }
-comms-abstractions = { path = "../../../infrastructure/comms-abstractions" }
-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
+drasi-comms-abstractions = { path = "../../../infrastructure/comms-abstractions" }
+drasi-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
 env_logger = { version = "0.11.2" } 
 futures = "0.3.30"
 json = "0.12.4"

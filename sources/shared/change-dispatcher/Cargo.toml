@@ -16,8 +16,8 @@ tokio = {version = "1.36.0", features = ["full"]}
 reqwest = { version = "0.11.24", features = ["blocking", "json"]}
 prost = "0.12.3"
 axum = { version = "0.7.5", features = ["macros", "http1", "tokio"] }
-comms-abstractions = { path = "../../../infrastructure/comms-abstractions" }
-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
+drasi-comms-abstractions = { path = "../../../infrastructure/comms-abstractions" }
+drasi-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
 
 
 [build-dependencies]
