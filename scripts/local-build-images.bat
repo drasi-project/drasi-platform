@@ -5,7 +5,7 @@ docker build ../sources/kubernetes/kubernetes-reactivator -t drasi-project/sourc
 docker build ../sources/open-telemetry/otel-reactivator -t drasi-project/source-otel-reactivator
 docker build ../sources/onedrive/m365-reactivator -t drasi-project/source-m365-reactivator
 docker build ../ -f ../sources/shared/change-dispatcher/Dockerfile -t drasi-project/source-change-dispatcher
-docker build ../ -f ../sources/shared/change-svc/Dockerfile -t drasi-project/source-change-svc
+docker build ../ -f ../sources/shared/change-router/Dockerfile -t drasi-project/source-change-router
 docker build ../sources/shared/query-api -t drasi-project/source-query-api
 docker build ../sources/cosmosdb/gremlin-source-proxy -t drasi-project/source-gremlin-proxy
 docker build ../sources/generic/sql-source-proxy -t drasi-project/source-sql-proxy

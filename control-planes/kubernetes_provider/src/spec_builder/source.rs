@@ -29,13 +29,13 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
 
         specs.push(KubernetesSpec {
             resource_id: source.id.to_string(),
-            service_name: "change-svc".to_string(),
+            service_name: "change-router".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
                 "source",
                 &source.id,
-                "change-svc",
-                "source-change-svc",
+                "change-router",
+                "source-change-router",
                 1,
                 Some(3000),
                 hashmap![

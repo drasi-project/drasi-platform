@@ -4,7 +4,7 @@ kind load docker-image drasi-project/source-kubernetes-reactivator
 kind load docker-image drasi-project/source-otel-reactivator
 kind load docker-image drasi-project/source-m365-reactivator
 kind load docker-image drasi-project/source-change-dispatcher
-kind load docker-image drasi-project/source-change-svc
+kind load docker-image drasi-project/source-change-router
 kind load docker-image drasi-project/source-query-api
 kind load docker-image drasi-project/source-gremlin-proxy
 kind load docker-image drasi-project/source-sql-proxy

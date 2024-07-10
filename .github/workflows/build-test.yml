@@ -128,8 +128,8 @@ jobs:
           { 
             label: 'Change Service',
             context: '.', 
-            file: './sources/shared/change-svc/Dockerfile', 
-            name: 'source-change-svc', 
+            file: './sources/shared/change-router/Dockerfile', 
+            name: 'source-change-router', 
             platforms: 'linux/amd64'
           },
           { 
@@ -425,7 +425,7 @@ jobs:
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/source-change-svc:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-change-router:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:${{ github.sha }}
@@ -441,7 +441,7 @@ jobs:
           docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }} ${{ github.repository_owner }}/query-container-view-svc
           docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }} ${{ github.repository_owner }}/api
           docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }} ${{ github.repository_owner }}/kubernetes-provider
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-svc:${{ github.sha }} ${{ github.repository_owner }}/source-change-svc
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-router:${{ github.sha }} ${{ github.repository_owner }}/source-change-router
           docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }} ${{ github.repository_owner }}/source-change-dispatcher
           docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }} ${{ github.repository_owner }}/source-query-api
           docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:${{ github.sha }} ${{ github.repository_owner }}/source-debezium-reactivator
@@ -497,7 +497,7 @@ jobs:
             "api"
             "kubernetes-provider"
             
-            "source-change-svc"
+            "source-change-router"
             "source-change-dispatcher"
             "source-query-api"
             
