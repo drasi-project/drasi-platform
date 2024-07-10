@@ -155,8 +155,8 @@ jobs:
           },
           { 
             label: 'SQL Proxy',
-            context: './sources/generic/sql-source-proxy', 
-            file: './sources/generic/sql-source-proxy/Dockerfile', 
+            context: './sources/generic/sql-proxy', 
+            file: './sources/generic/sql-proxy/Dockerfile', 
             name: 'source-sql-proxy', 
             platforms: 'linux/amd64' 
           },
@@ -170,8 +170,8 @@ jobs:
           },
           { 
             label: 'Gremlin Proxy',
-            context: './sources/cosmosdb/gremlin-source-proxy', 
-            file: './sources/cosmosdb/gremlin-source-proxy/Dockerfile', 
+            context: './sources/cosmosdb/gremlin-proxy', 
+            file: './sources/cosmosdb/gremlin-proxy/Dockerfile', 
             name: 'source-gremlin-proxy', 
             platforms: 'linux/amd64' 
           },

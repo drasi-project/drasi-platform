@@ -7,8 +7,8 @@ docker build ../sources/onedrive/m365-reactivator -t drasi-project/source-m365-r
 docker build ../ -f ../sources/shared/change-dispatcher/Dockerfile -t drasi-project/source-change-dispatcher
 docker build ../ -f ../sources/shared/change-router/Dockerfile -t drasi-project/source-change-router
 docker build ../sources/shared/query-api -t drasi-project/source-query-api
-docker build ../sources/cosmosdb/gremlin-source-proxy -t drasi-project/source-gremlin-proxy
-docker build ../sources/generic/sql-source-proxy -t drasi-project/source-sql-proxy
+docker build ../sources/cosmosdb/gremlin-proxy -t drasi-project/source-gremlin-proxy
+docker build ../sources/generic/sql-proxy -t drasi-project/source-sql-proxy
 docker build ../sources/kubernetes/passthru-proxy -t drasi-project/source-passthru-proxy
 docker build ../sources/eventhub/eventhub-reactivator -t drasi-project/source-eventhub-reactivator
 docker build ../sources/eventhub/eventhub-proxy -t drasi-project/source-eventhub-proxy
