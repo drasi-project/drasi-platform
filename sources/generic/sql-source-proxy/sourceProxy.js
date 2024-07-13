@@ -16,8 +16,10 @@ const pgTypes = require('pg').types;
 
 const parseBigInt = (value) => Number(value);
 const parseNumeric = (value) => Number(value);
+const parseMoney = (value) => Number(value.replace(/^\$/, ''));
 pgTypes.setTypeParser(20, parseBigInt);
 pgTypes.setTypeParser(1700, parseNumeric);
+pgTypes.setTypeParser(790, parseMoney);
 
 
 async function main() {
