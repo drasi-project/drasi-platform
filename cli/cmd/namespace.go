@@ -13,6 +13,8 @@ func NewNamespaceCommand() *cobra.Command {
 		Long:  `Configure the namespace settings for Drasi`,
 	}
 	namespaceCommand.AddCommand(setNamespaceCommand())
+	namespaceCommand.AddCommand(getNamespaceCommand())
+	namespaceCommand.AddCommand(listNamespaceCommand())
 	return namespaceCommand
 }
 
@@ -25,7 +27,7 @@ This commands assumes that Drasi has been installed to the namespace specified.`
 		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 1 {
-				return fmt.Errorf("Too many arguments")
+				return fmt.Errorf("too many arguments")
 			}
 			var err error
 			var namespace string
@@ -45,7 +47,7 @@ This commands assumes that Drasi has been installed to the namespace specified.`
 				clusterConfig.DrasiNamespace = namespace
 				saveConfig(clusterConfig)
 			} else {
-				return fmt.Errorf("Namespace cannot be empty")
+				return fmt.Errorf("namespace cannot be empty")
 			}
 
 			cfg := readConfig()
@@ -55,4 +57,39 @@ This commands assumes that Drasi has been installed to the namespace specified.`
 		},
 	}
 	return setNamespaceCommand
+}
+
+func getNamespaceCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "get",
+		Short: "Get the current namespace",
+		Long:  `Retrieve the current Drasi namespace`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := readConfig()
+			fmt.Println("Current namespace: " + cfg.DrasiNamespace)
+			return nil
+		},
+	}
+}
+
+func listNamespaceCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List all namespaces",
+		Long:  `List all namespaces that have Drasi installed.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Logic to list all namespaces
+			namespaces, err := listNamespaces()
+			if err != nil {
+				return err
+			}
+
+			fmt.Println("Namespaces:")
+			for _, ns := range namespaces {
+				fmt.Println(ns)
+			}
+
+			return nil
+		},
+	}
 }

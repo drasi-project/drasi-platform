@@ -1,4 +1,4 @@
-package com.reactivegraph;
+package com.drasi;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.dapr.client.DaprClient;
@@ -11,9 +11,13 @@ public class DaprChangePublisher implements ChangePublisher {
     private String pubsubName;
     private String sourceId;
 
-    public DaprChangePublisher(String sourceId, String pubsubName) {
+    public DaprChangePublisher(String sourceId) {
         this.sourceId = sourceId;
-        this.pubsubName = pubsubName;
+
+        this.pubsubName = System.getenv("PUBSUB");
+        if (this.pubsubName == null)
+            this.pubsubName = "rg-pubsub";
+
         client = new DaprClientBuilder().build();
     }
 

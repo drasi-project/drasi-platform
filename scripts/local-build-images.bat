@@ -12,11 +12,12 @@ docker build ../sources/dataverse/dataverse-reactivator -t project-drasi/source-
 docker build ../sources/dataverse/dataverse-proxy -t project-drasi/source-dataverse-proxy
 
 @REM # Query Container
-docker build ../query-container/publish-api -t project-drasi/query-container-publish-api
-docker build ../query-container/query-host -t project-drasi/query-container-query-host
-docker build ../query-container/view-svc -t project-drasi/query-container-view-svc
+docker build ../query-container/publish-api -t drasi-project/query-container-publish-api
+docker build ../query-container/query-host -t drasi-project/query-container-query-host
+docker build ../query-container/view-svc -t drasi-project/query-container-view-svc
 
 @REM # Reactions
+
 docker build ../reactions/debug-reaction -t project-drasi/reaction-debug
 docker build ../reactions/signalr-reaction -t project-drasi/reaction-signalr
 docker build ../reactions/eventgrid-reaction -t project-drasi/reaction-eventgrid
@@ -26,7 +27,8 @@ docker build ../reactions/debezium-reaction -t project-drasi/reaction-debezium
 docker build ../reactions/result-reaction -t project-drasi/reaction-result
 docker build ../reactions/dataverse-reaction -t project-drasi/reaction-dataverse
 
+
 @REM # Control plane
-docker build ../control-planes -f ../control-planes/mgmt_api/Dockerfile  -t project-drasi/api
-docker build ../control-planes -f ../control-planes/kubernetes_provider/Dockerfile  -t project-drasi/kubernetes-provider
+docker build ../control-planes -f ../control-planes/mgmt_api/Dockerfile  -t drasi-project/api
+docker build ../control-planes -f ../control-planes/kubernetes_provider/Dockerfile  -t drasi-project/kubernetes-provider
 

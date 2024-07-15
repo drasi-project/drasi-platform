@@ -19,6 +19,7 @@
     "knex": "^2.3.0",
     "knex-schema-inspector": "^2.0.4",
     "pg": "^8.8.0",
+    "tedious": "^18.2.1",
     "uuid": "^8.3.2"
   }
 }

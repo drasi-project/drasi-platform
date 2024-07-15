@@ -3,7 +3,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.reactivegraph</groupId>
+  <groupId>com.drasi</groupId>
   <artifactId>debezium-reactivator</artifactId>
   <version>1.0</version>
 
@@ -13,9 +13,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <version.debezium>2.1.2.Final</version.debezium>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <version.debezium>2.6.2.Final</version.debezium>
   </properties>
 
   <dependencies>
@@ -32,6 +32,11 @@
     <dependency>
       <groupId>io.debezium</groupId>
       <artifactId>debezium-connector-postgres</artifactId>
+      <version>${version.debezium}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.debezium</groupId>
+      <artifactId>debezium-connector-sqlserver</artifactId>
       <version>${version.debezium}</version>
     </dependency>
 
@@ -116,7 +121,7 @@
               <manifest>
                 <addClasspath>true</addClasspath>
                 <classpathPrefix>lib/</classpathPrefix>
-                <mainClass>com.reactivegraph.Reactivator</mainClass>
+                <mainClass>com.drasi.Reactivator</mainClass>
               </manifest>
             </archive>
           </configuration>
@@ -145,8 +150,8 @@
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-compiler-plugin</artifactId>
               <configuration>
-                  <source>10</source>
-                  <target>10</target>
+                  <source>17</source>
+                  <target>17</target>
               </configuration>
           </plugin>
         <plugin>

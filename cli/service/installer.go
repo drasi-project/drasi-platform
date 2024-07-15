@@ -596,6 +596,9 @@ func CreateNamespace(config *rest.Config, namespace string) error {
 	newNamespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
+			Labels: map[string]string{
+				"drasi.io/namespace": "true",
+			},
 		},
 	}
 

@@ -15,6 +15,7 @@ func init() {
 		NewListCommand(),
 		NewWaitCommand(),
 		NewNamespaceCommand(),
+		NewUninstallCommand(),
 	)
 
 	RootCommand.PersistentFlags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into")
