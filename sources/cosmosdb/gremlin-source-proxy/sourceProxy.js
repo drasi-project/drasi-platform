@@ -55,7 +55,7 @@ async function main() {
           // console.debug('node:', JSON.stringify(node));
           const n = {
             id: node.id,
-            label: node.label,
+            labels: [node.label],
             properties: {}
           };
           if (node.properties) {

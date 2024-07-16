@@ -65,7 +65,7 @@ struct BootstrapEvents {
 #[derive(Deserialize)]
 struct BootstrapNode {
     id: String,
-    label: String,
+    labels: Vec<String>,
     properties: Map<String, Value>,
 }
 
@@ -73,7 +73,7 @@ struct BootstrapNode {
 #[serde(rename_all = "camelCase")]
 struct BootstrapRelation {
     id: String,
-    label: String,
+    labels: Vec<String>,
     properties: Map<String, Value>,
     start_id: String,
     end_id: String,
@@ -88,7 +88,11 @@ impl BootstrapEvents {
                 element: drasi_core::models::Element::Node {
                     metadata: ElementMetadata {
                         reference: ElementReference::new(source_id, &node.id),
-                        labels: Arc::from(vec![Arc::from(node.label)]),
+                        labels: Arc::from(
+                            Vec::from_iter(
+                                node.labels.iter().map(|l| Arc::from(l.as_str()))
+                            ).into_boxed_slice()
+                        ),
                         effective_from: 0,
                     },
                     properties: (&node.properties).into(),
@@ -101,7 +105,11 @@ impl BootstrapEvents {
                 element: drasi_core::models::Element::Relation {
                     metadata: ElementMetadata {
                         reference: ElementReference::new(source_id, &rel.id),
-                        labels: Arc::from(vec![Arc::from(rel.label)]),
+                        labels: Arc::from(
+                            Vec::from_iter(
+                                rel.labels.iter().map(|l| Arc::from(l.as_str()))
+                            ).into_boxed_slice()
+                        ),
                         effective_from: 0,
                     },
                     properties: (&rel.properties).into(),
