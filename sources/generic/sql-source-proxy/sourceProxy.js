@@ -47,7 +47,6 @@ async function main() {
 
       // Get Relations
       // TODO
-      console.info(`body: ${JSON.stringify(body)}`);
 
       console.info(`sourceProxy.main/acquire - queryId: ${input.queryId} - loaded nodes:${body.nodes.length}, relations:${body.rels.length}.`)
       res.status(200).json(body);
