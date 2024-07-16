@@ -79,7 +79,7 @@ async function main() {
           // console.debug('rel:', JSON.stringify(rel));
           const r = {
             id: rel.id,
-            label: rel.label,
+            labels: [rel.label],
             startId: rel.outV,
             startLabel: rel.outVLabel,
             endId: rel.inV,
