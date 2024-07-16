@@ -148,15 +148,15 @@ jobs:
           },
           { 
             label: 'Debezium Reactivator',
-            context: './sources/debezium/debezium-reactivator', 
-            file: './sources/debezium/debezium-reactivator/Dockerfile', 
+            context: './sources/relational/debezium-reactivator', 
+            file: './sources/relational/debezium-reactivator/Dockerfile', 
             name: 'source-debezium-reactivator', 
             platforms: 'linux/amd64,linux/arm64' 
           },
           { 
             label: 'SQL Proxy',
-            context: './sources/generic/sql-source-proxy', 
-            file: './sources/generic/sql-source-proxy/Dockerfile', 
+            context: './sources/relational/sql-proxy', 
+            file: './sources/relational/sql-proxy/Dockerfile', 
             name: 'source-sql-proxy', 
             platforms: 'linux/amd64' 
           },

@@ -1,5 +1,5 @@
 {
-  "name": "sql-source-proxy",
+  "name": "sql-proxy",
   "version": "1.0.0",
   "description": "",
   "main": "sourceProxy.js",
