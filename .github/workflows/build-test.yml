@@ -148,15 +148,15 @@ jobs:
           },
           { 
             label: 'Debezium Reactivator',
-            context: './sources/debezium/debezium-reactivator', 
-            file: './sources/debezium/debezium-reactivator/Dockerfile', 
+            context: './sources/relational/debezium-reactivator', 
+            file: './sources/relational/debezium-reactivator/Dockerfile', 
             name: 'source-debezium-reactivator', 
             platforms: 'linux/amd64,linux/arm64' 
           },
           { 
             label: 'SQL Proxy',
-            context: './sources/generic/sql-proxy', 
-            file: './sources/generic/sql-proxy/Dockerfile', 
+            context: './sources/relational/sql-proxy', 
+            file: './sources/relational/sql-proxy/Dockerfile', 
             name: 'source-sql-proxy', 
             platforms: 'linux/amd64' 
           },
@@ -204,29 +204,6 @@ jobs:
             file: './sources/eventhub/eventhub-proxy/Dockerfile', 
             name: 'source-eventhub-proxy', 
             platforms: 'linux/amd64,linux/arm64' 
-          },
-
-          { 
-            label: 'Kubernetes Reactivator',
-            context: './sources/kubernetes/kubernetes-reactivator', 
-            file: './sources/kubernetes/kubernetes-reactivator/Dockerfile', 
-            name: 'source-kubernetes-reactivator', 
-            platforms: 'linux/amd64,linux/arm64' 
-          },
-          { 
-            label: 'Passthru Proxy',
-            context: './sources/kubernetes/passthru-proxy', 
-            file: './sources/kubernetes/passthru-proxy/Dockerfile', 
-            name: 'source-passthru-proxy', 
-            platforms: 'linux/amd64,linux/arm64' 
-          },
-
-          { 
-            label: 'OpenTelemetry Reactivator',
-            context: './sources/open-telemetry/otel-reactivator', 
-            file: './sources/open-telemetry/otel-reactivator/Dockerfile', 
-            name: 'source-otel-reactivator', 
-            platforms: 'linux/amd64' 
           }
         ]
 
@@ -274,8 +251,8 @@ jobs:
           },
           { 
             label: 'Dataverse',
-            context: './reactions/dataverse/dataverse-reaction', 
-            file: './reactions/dataverse/dataverse-reaction/Dockerfile', 
+            context: './reactions/power-platform/dataverse/dataverse-reaction', 
+            file: './reactions/power-platform/dataverse/dataverse-reaction/Dockerfile', 
             name: 'reaction-dataverse', 
             platforms: 'linux/amd64'
           },
@@ -288,15 +265,15 @@ jobs:
           },
           { 
             label: 'Debug',
-            context: './reactions/debug/debug-reaction', 
-            file: './reactions/debug/debug-reaction/Dockerfile', 
+            context: './reactions/platform/debug-reaction', 
+            file: './reactions/platform/debug-reaction/Dockerfile', 
             name: 'reaction-debug', 
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'EventGrid',
-            context: './reactions/eventgrid/eventgrid-reaction', 
-            file: './reactions/eventgrid/eventgrid-reaction/Dockerfile', 
+            context: './reactions/azure/eventgrid-reaction', 
+            file: './reactions/azure/eventgrid-reaction/Dockerfile', 
             name: 'reaction-eventgrid', 
             platforms: 'linux/amd64'
           },
@@ -309,22 +286,22 @@ jobs:
           },
           { 
             label: 'Result',
-            context: './reactions/result/result-reaction', 
-            file: './reactions/result/result-reaction/Dockerfile', 
+            context: './reactions/platform/result-reaction', 
+            file: './reactions/platform/result-reaction/Dockerfile', 
             name: 'reaction-result', 
             platforms: 'linux/amd64'
           },
           { 
             label: 'StorageQueue',
-            context: './reactions/storagequeue/storagequeue-reaction', 
-            file: './reactions/storagequeue/storagequeue-reaction/Dockerfile', 
+            context: './reactions/azure/storagequeue-reaction', 
+            file: './reactions/azure/storagequeue-reaction/Dockerfile', 
             name: 'reaction-storagequeue', 
             platforms: 'linux/amd64'
           },
           { 
             label: 'StoredProc',
-            context: './reactions/storedproc/storedproc-reaction', 
-            file: './reactions/storedproc/storedproc-reaction/Dockerfile', 
+            context: './reactions/sql/storedproc-reaction', 
+            file: './reactions/sql/storedproc-reaction/Dockerfile', 
             name: 'reaction-storedproc', 
             platforms: 'linux/amd64'
           }
@@ -505,9 +482,6 @@ jobs:
             "source-sql-proxy"
             "source-cosmosdb-reactivator"
             "source-gremlin-proxy"
-            "source-kubernetes-reactivator"
-            "source-passthru-proxy"
-            "source-otel-reactivator"                
             "source-eventhub-reactivator"
             "source-eventhub-proxy"
             "source-dataverse-reactivator"

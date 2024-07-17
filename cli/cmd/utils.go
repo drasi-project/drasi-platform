@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"os/user"
@@ -12,6 +13,9 @@ import (
 
 	"drasi.io/cli/api"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type ClusterConfig struct {
@@ -108,4 +112,38 @@ func readConfig() ClusterConfig {
 	var cfg ClusterConfig
 	json.Unmarshal(data, &cfg)
 	return cfg
+}
+
+// Retrieve the name of all namespaces that have the label
+// "drasi.io/namespace": "true"
+func listNamespaces() ([]string, error) {
+	configLoadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{}
+
+	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoadingRules, configOverrides)
+
+	restConfig, err := config.ClientConfig()
+
+	if err != nil {
+		return nil, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	namespaces, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "drasi.io/namespace=true",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var nsList []string
+	for _, ns := range namespaces.Items {
+		nsList = append(nsList, ns.Name)
+	}
+
+	return nsList, nil
 }
