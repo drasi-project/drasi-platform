@@ -55,7 +55,7 @@ async function main() {
           // console.debug('node:', JSON.stringify(node));
           const n = {
             id: node.id,
-            label: node.label,
+            labels: [node.label],
             properties: {}
           };
           if (node.properties) {
@@ -79,7 +79,7 @@ async function main() {
           // console.debug('rel:', JSON.stringify(rel));
           const r = {
             id: rel.id,
-            label: rel.label,
+            labels: [rel.label],
             startId: rel.outV,
             startLabel: rel.outVLabel,
             endId: rel.inV,

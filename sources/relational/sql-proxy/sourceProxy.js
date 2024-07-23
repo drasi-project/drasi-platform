@@ -72,7 +72,7 @@ async function main() {
 function mapRowToNode(row, label, idPrefix, idField) {
   return {
     id: sanitizeNodeId(idPrefix + ":" + row[idField]),
-    label: label,
+    labels: [label],
     properties: row
   };
 }

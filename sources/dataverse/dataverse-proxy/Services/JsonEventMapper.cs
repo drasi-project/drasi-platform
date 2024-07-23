@@ -16,7 +16,6 @@ namespace Proxy.Services
                 case ChangeType.NewOrUpdated:
                     var upsert = (NewOrUpdatedItem)rawEvent;
                     data.Id = upsert.NewOrUpdatedEntity.Id.ToString();
-                    data.Label = upsert.NewOrUpdatedEntity.LogicalName;
                     data.Labels = [upsert.NewOrUpdatedEntity.LogicalName];
 
                     var props = new JsonObject();
@@ -30,7 +29,6 @@ namespace Proxy.Services
                 case ChangeType.RemoveOrDeleted:
                     var delete = (RemovedOrDeletedItem)rawEvent;
                     data.Id = delete.RemovedItem.Id.ToString();
-                    data.Label = delete.RemovedItem.LogicalName;
                     data.Labels = [delete.RemovedItem.LogicalName];
                     break;
             }
