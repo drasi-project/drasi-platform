@@ -21,7 +21,6 @@ namespace Proxy.Services
                 data.Id = $"{rawEvent.Partition.EventHubName}-{rawEvent.Partition.PartitionId}-{rawEvent.Data.SequenceNumber}";
             }
             data.Labels = [rawEvent.Partition.EventHubName];
-            data.Label = rawEvent.Partition.EventHubName;
             data.Properties = JsonDocument.Parse(rawEvent.Data.EventBody);
 
             return Task.FromResult(data);
