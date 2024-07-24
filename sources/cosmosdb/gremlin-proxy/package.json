@@ -1,5 +1,5 @@
 {
-  "name": "gremlin-source-proxy",
+  "name": "gremlin-proxy",
   "version": "1.0.0",
   "description": "",
   "main": "sourceProxy.js",

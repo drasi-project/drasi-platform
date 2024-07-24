@@ -5,8 +5,8 @@ RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get c
 WORKDIR /usr/src
 COPY ./infrastructure ./infrastructure
 
-RUN cargo new source/change-dispatcher
-WORKDIR /usr/src/source/change-dispatcher
+RUN cargo new source/shared/change-dispatcher
+WORKDIR /usr/src/source/shared/change-dispatcher
 COPY ./sources/shared/change-dispatcher/Cargo.toml . 
 RUN cargo fetch
 COPY ./sources/shared/change-dispatcher .

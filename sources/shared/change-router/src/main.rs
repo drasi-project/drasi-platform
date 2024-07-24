@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use change_service_config::ChangeServiceConfig;
+use change_router_config::ChangeRouterConfig;
 use log::{debug, info};
 use serde_json::{json, Value};
 use subscribers::Subscriber;
@@ -17,7 +17,7 @@ use axum::{
 use drasi_comms_abstractions::comms::{Headers, Publisher};
 use drasi_comms_dapr::comms::DaprHttpPublisher;
 
-mod change_service_config;
+mod change_router_config;
 mod subscriber_map;
 mod subscribers;
 
@@ -25,7 +25,7 @@ mod subscribers;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting Source Change Service");
 
-    let config = ChangeServiceConfig::from_env();
+    let config = ChangeRouterConfig::from_env();
 
     let node_subscriber = Subscriber::new();
     let rel_subscriber = Subscriber::new();
@@ -130,12 +130,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct AppState {
     node_subscriber: Subscriber,
     rel_subscriber: Subscriber,
-    config: ChangeServiceConfig,
+    config: ChangeRouterConfig,
     publisher: DaprHttpPublisher,
 }
 
 async fn subscribe() -> impl IntoResponse {
-    let config = ChangeServiceConfig::from_env();
+    let config = ChangeRouterConfig::from_env();
     // just do a json that is a list of subscriptions
     let subscriptions = vec![json! {
         {
@@ -188,7 +188,7 @@ async fn receive(
 async fn process_changes(
     publisher: &DaprHttpPublisher,
     changes: Value,
-    config: ChangeServiceConfig,
+    config: ChangeRouterConfig,
     node_subscriber: &Subscriber,
     rel_subscriber: &Subscriber,
     traceparent: String,

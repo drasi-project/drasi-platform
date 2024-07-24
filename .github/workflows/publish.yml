@@ -39,7 +39,7 @@ jobs:
                 "api"
                 "kubernetes-provider"
                 
-                "source-change-svc"
+                "source-change-router"
                 "source-change-dispatcher"
                 "source-query-api"
                 
@@ -86,7 +86,7 @@ jobs:
           - "query-container-view-svc"
           - "api"
           - "kubernetes-provider"
-          - "source-change-svc"
+          - "source-change-router"
           - "source-change-dispatcher"
           - "source-query-api"
           - "source-debezium-reactivator"

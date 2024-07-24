@@ -9,7 +9,7 @@ const images = [
   //"drasi-project/source-kubernetes-reactivator",
 
   "drasi-project/source-change-dispatcher",
-  "drasi-project/source-change-svc",
+  "drasi-project/source-change-router",
   "drasi-project/source-query-api",
   //"drasi-project/source-gremlin-proxy",
   "drasi-project/source-sql-proxy",

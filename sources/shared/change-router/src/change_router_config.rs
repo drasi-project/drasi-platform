@@ -3,7 +3,7 @@ use std::env;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
-pub struct ChangeServiceConfig {
+pub struct ChangeRouterConfig {
     pub source_id: String,
     pub subscriber_store: String,
     pub pubsub_name: String,
@@ -12,8 +12,8 @@ pub struct ChangeServiceConfig {
     pub app_port: String,
 }
 
-impl ChangeServiceConfig {
-    pub fn from_env() -> ChangeServiceConfig {
+impl ChangeRouterConfig {
+    pub fn from_env() -> ChangeRouterConfig {
         let source_id = env::var("SOURCE_ID").expect("SOURCE_ID must be set");
         let subscriber_store =
             env::var("SUBSCRIBER_STORE").unwrap_or_else(|_| "rg-state".to_string()); //drasi-state?
