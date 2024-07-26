@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using eventgrid_reactor.Services;
+using eventgrid_reaction.Services;
 using Azure.Messaging.EventGrid;
 using Azure;
 using Azure.Messaging;
 using System.Text.Json;
-using eventgrid_reactor.Models;
+using eventgrid_reaction.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = BuildConfiguration();

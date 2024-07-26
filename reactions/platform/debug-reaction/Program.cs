@@ -1,7 +1,7 @@
 using Dapr;
 using Dapr.Actors.Client;
 using Dapr.Client;
-using debug_reactor.Services;
+using debug_reaction.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;

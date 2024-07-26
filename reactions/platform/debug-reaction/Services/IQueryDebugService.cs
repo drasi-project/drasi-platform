@@ -1,7 +1,7 @@
-﻿using debug_reactor.Models;
+﻿using debug_reaction.Models;
 using System.Text.Json;
 
-namespace debug_reactor.Services
+namespace debug_reaction.Services
 {
     public interface IQueryDebugService : IHostedService
     {

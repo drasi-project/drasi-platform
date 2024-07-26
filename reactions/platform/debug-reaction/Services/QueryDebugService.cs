@@ -2,11 +2,11 @@
 using Dapr.Actors;
 using Dapr.Actors.Client;
 using Dapr.Client;
-using debug_reactor.Models;
+using debug_reaction.Models;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-namespace debug_reactor.Services
+namespace debug_reaction.Services
 {
     public class QueryDebugService : BackgroundService, IQueryDebugService
     {

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace eventgrid_reactor.Models
+namespace eventgrid_reaction.Models
 {
     public class ChangeNotification
     {
