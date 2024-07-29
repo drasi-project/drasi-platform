@@ -70,7 +70,7 @@ if (deletedResultCommand !== '') {
 }
 
 async function main() {
-  console.info(`Starting StoredProc Reactor`);  
+  console.info(`Starting StoredProc Reaction`);  
 
   let queryIds = readdirSync(configDirectory);
   const daprServer = new DaprServer("127.0.0.1",80);
@@ -82,7 +82,7 @@ async function main() {
     await daprServer.pubsub.subscribe(pubsubName, queryId + "-results", processEvents);
   }
 
-  console.info(`StoredProc Reactor started`);  
+  console.info(`StoredProc Reaction started`);  
   await daprServer.start();
 }
 

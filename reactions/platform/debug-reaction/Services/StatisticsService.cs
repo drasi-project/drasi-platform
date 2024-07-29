@@ -2,12 +2,12 @@
 using ChartJs.Blazor.Common.Time;
 using ChartJs.Blazor.LineChart;
 using ChartJs.Blazor.Util;
-using debug_reaction.Models;
+using DebugReaction.Models;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Reactive.Subjects;
 
-namespace debug_reaction.Services
+namespace DebugReaction.Services
 {
     public class StatisticsService : IStatisticsService
     {

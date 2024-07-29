@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using Newtonsoft.Json.Linq;
 
-namespace signalr_reaction.Services
+namespace SignalrReaction.Services
 {
     public interface IResultViewClient
     {

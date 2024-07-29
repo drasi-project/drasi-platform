@@ -8,7 +8,7 @@
     }
   },
   "profiles": {
-    "signalr_reaction": {
+    "SignalrReaction": {
       "commandName": "Project",
       "launchBrowser": true,
       "applicationUrl": "http://localhost:5177",

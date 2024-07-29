@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using System.Runtime.CompilerServices;
 
-namespace signalr_reaction.Services
+namespace SignalrReaction.Services
 {
     public class ResultViewClient : IResultViewClient
     {

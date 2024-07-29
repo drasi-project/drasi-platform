@@ -1,7 +1,7 @@
 using System;
 using System.Text.Json;
 
-namespace result_reaction.Services
+namespace ResultReaction.Services
 {
     public interface IResultViewClient
     {

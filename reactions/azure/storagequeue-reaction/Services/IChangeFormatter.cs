@@ -1,8 +1,8 @@
-﻿using storage_queue_reactor.Models;
+﻿using StorageQueueReaction.Models;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
 
-namespace storage_queue_reactor.Services
+namespace StorageQueueReaction.Services
 {
     public interface IChangeFormatter
     {

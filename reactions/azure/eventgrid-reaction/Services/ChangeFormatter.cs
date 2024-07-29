@@ -1,8 +1,8 @@
 ﻿
-using eventgrid_reaction.Models;
+using EventgridReaction.Models;
 using System.Text.Json;
 
-namespace eventgrid_reaction.Services
+namespace EventgridReaction.Services
 {
     public class ChangeFormatter : IChangeFormatter
     {

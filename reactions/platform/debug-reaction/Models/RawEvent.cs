@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace debug_reaction.Models
+namespace DebugReaction.Models
 {
     public class RawEvent
     {
