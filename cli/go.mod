@@ -1,6 +1,6 @@
 module drasi.io/cli
 
-go 1.21.12
+go 1.21
 
 toolchain go1.22.5
 
