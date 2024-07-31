@@ -15,6 +15,7 @@ env:
 jobs:
   build-cli:
     runs-on: ubuntu-latest
+    if: github.repository == 'drasi-project/drasi-platform'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,6 +46,7 @@ jobs:
           path: cli/bin
     
   publish_CLI:
+    if: github.repository == 'drasi-project/drasi-platform'
     needs: build-cli
     runs-on: ubuntu-latest
     name: Publish ${{ matrix.os }}_${{ matrix.arch }} binaries
@@ -85,6 +87,7 @@ jobs:
           path: ${{ env.RELEASE_PATH}}
 
   vscode_extension:
+    if: github.repository == 'drasi-project/drasi-platform'
     name: Build and publish the VSCode vscode_extension
     runs-on: ubuntu-latest
     environment: 
@@ -110,6 +113,7 @@ jobs:
           path: ${{ env.RELEASE_PATH}}
 
   release:
+    if: github.repository == 'drasi-project/drasi-platform'
     permissions: write-all
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
