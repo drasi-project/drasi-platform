@@ -1,8 +1,8 @@
-﻿using eventgrid_reactor.Models;
+﻿using EventgridReaction.Models;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
 
-namespace eventgrid_reactor.Services
+namespace EventgridReaction.Services
 {
     public interface IChangeFormatter
     {

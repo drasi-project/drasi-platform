@@ -6,7 +6,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
-namespace result_reactor.Services
+namespace ResultReaction.Services
 {
     public class ResultViewClient : IResultViewClient
     {

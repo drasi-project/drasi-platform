@@ -1,7 +1,7 @@
 ﻿using ChartJs.Blazor.Common.Time;
 using System.Reactive.Subjects;
 
-namespace debug_reactor.Models
+namespace DebugReaction.Models
 {
     public class TimePointCollection
     {

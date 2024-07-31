@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-namespace debug_reactor.Models
+namespace DebugReaction.Models
 {
     public class QueryResult : INotifyPropertyChanged
     {

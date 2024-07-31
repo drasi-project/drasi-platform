@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace storage_queue_reactor.Models
+namespace StorageQueueReaction.Models
 {
     public class ChangeNotification
     {

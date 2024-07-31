@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json.Linq;
 
-namespace signalr_reactor.Services
+namespace SignalrReaction.Services
 {
     public class QueryHub : Hub
     {
