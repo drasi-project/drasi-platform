@@ -20,6 +20,3 @@ To manually recreate a clean test cluster and not run any tests run the followin
 node recreate-test-cluster.js
 ```
 
-## Known issues
-
-- Sometimes Kafka fails to initialize properly
