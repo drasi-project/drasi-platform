@@ -16,28 +16,22 @@ env:
   RELEASE_PATH: ./release
 
 jobs:
-
   validate:
     runs-on: ubuntu-latest
     steps:
       - name: Validate Branch
         run: |
-          echo ${{ github.ref_name }}
-          echo ${{ github.ref }}
-          echo ${{ github.ref_type }}
-          echo ${{ github.head_ref }}
-
           if [[ "${{ github.ref_name }}" =~ ^(release)/ ]]; then
             echo "Branch has the correct prefix."
           else
             echo "Branch does not have the correct prefix. Exiting..."
             exit 1
           fi
-          
 
   publish-ghcr:
     permissions: write-all
     runs-on: ubuntu-latest
+    needs: validate
     steps:
 
       - name: Log in to GitHub Container Registry
@@ -93,6 +87,7 @@ jobs:
 
   publish-acr:
     runs-on: ubuntu-latest
+    needs: validate
     environment: 
       name: github-actions
     strategy:
@@ -124,7 +119,6 @@ jobs:
           - "reaction-storagequeue"
           - "reaction-storedproc"
     steps:
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -154,6 +148,7 @@ jobs:
   
   build-cli:
     runs-on: ubuntu-latest
+    needs: validate
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -248,14 +243,16 @@ jobs:
         with:
           name: drasi_vscode_extension
           path: ${{ env.RELEASE_PATH}}
-        
-    
+   
   release:
     permissions: write-all
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    name: Github release
+    name: Draft Release
     needs:
+      - validate
+      - publish-ghcr
+      - publish-acr
       - package-cli      
       - vscode-extension
     runs-on: ubuntu-latest
