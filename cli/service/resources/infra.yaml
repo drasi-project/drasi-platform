@@ -233,6 +233,9 @@ spec:
         command:
           - "/otelcontribcol"
           - "--config=/conf/otel-collector-config.yaml"
+          - "--feature-gates=-component.UseLocalHostAsDefaultHost" 
+            # https://github.com/open-telemetry/opentelemetry-collector/releases/tag/v0.104.0
+            # Need to disable this feature gate so that the otlpreceiver uses 0.0.0.0 instead of localhost
         resources:
           limits:
             cpu: 500m

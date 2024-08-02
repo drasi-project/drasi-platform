@@ -2,7 +2,13 @@
   "name": "drasi",
   "displayName": "drasi",
   "description": "",
+  "publisher": "drasi-project",
   "version": "0.0.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drasi-project/drasi-platform.git"
+  },
+  "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.75.0"
   },
