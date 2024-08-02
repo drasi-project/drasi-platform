@@ -182,6 +182,48 @@ jobs:
         with:
           name: cli
           path: cli/bin
+
+  package-cli:
+    needs: build-cli
+    runs-on: ubuntu-latest
+    name: Publish ${{ matrix.os }}_${{ matrix.arch }} binaries
+    environment: 
+      name: github-actions
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: arm64
+          - os: linux
+            arch: x64
+          - os: darwin
+            arch: arm64
+          - os: darwin
+            arch: x64
+          - os: windows
+            arch: x64
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: cli
+      - name: Copy cli binaries to release (non-windows)
+        if: matrix.os != 'windows'
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/cli/${{ matrix.os }}-${{ matrix.arch }}/
+          cp -r ${{ matrix.os }}-${{ matrix.arch }}/drasi ${{ env.RELEASE_PATH}}/drasi-${{ matrix.os }}-${{ matrix.arch }}
+      - name: Copy cli binaries to release (non-windows)
+        if: matrix.os == 'windows'
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/cli/${{ matrix.os }}-${{ matrix.arch }}/
+          cp -r ${{ matrix.os }}-${{ matrix.arch }}/drasi.exe ${{ env.RELEASE_PATH}}/drasi-${{ matrix.os }}-${{ matrix.arch }}.exe
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        with:
+          name: drasi_${{ matrix.os }}_${{ matrix.arch }}
+          path: ${{ env.RELEASE_PATH}}
+
+        
     
   release:
     permissions: write-all
@@ -189,7 +231,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     name: Github release
     needs:
-      - build-cli      
+      - package-cli      
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -199,6 +241,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ${{ env.RELEASE_PATH }}
+          merge-multiple: true
 
       - name: Github release
         run: |
