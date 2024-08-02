@@ -189,9 +189,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     name: Github release
     needs:
-      - build-cli
-      - publish-ghcr
-      - publish-acr
+      - build-cli      
     runs-on: ubuntu-latest
     steps:
       - name: Download release
