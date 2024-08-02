@@ -223,6 +223,31 @@ jobs:
           name: drasi_${{ matrix.os }}_${{ matrix.arch }}
           path: ${{ env.RELEASE_PATH}}
 
+  vscode-extension:
+    name: Build and publish the VSCode vscode_extension
+    runs-on: ubuntu-latest
+    environment: 
+      name: github-actions
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Building the extension
+        run: |
+          cd dev-tools/vscode/drasi
+          npm install -g @vscode/vsce 
+          npm install
+          npm version ${{ inputs.tag }}
+          vsce package
+      - name: Copy the extension to release
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/vscode-extension/
+          cp dev-tools/vscode/drasi/drasi-*.vsix ${{ env.RELEASE_PATH}}
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        with:
+          name: drasi_vscode_extension
+          path: ${{ env.RELEASE_PATH}}
         
     
   release:
@@ -237,11 +262,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      - name: Download release
+      - name: Download CLI release
         uses: actions/download-artifact@v4
         with:
-          path: ${{ env.RELEASE_PATH }}
+          pattern: drasi_*
           merge-multiple: true
+          path: ${{ env.RELEASE_PATH }}
+
+      - name: Download vscode release
+        uses: actions/download-artifact@v4
+        with:
+          name: drasi_vscode_extension
+          merge-multiple: true
+          path: ${{ env.RELEASE_PATH }}
 
       - name: Github release
         run: |
