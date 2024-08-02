@@ -1,6 +1,8 @@
 package main
 
-import "drasi.io/cli/cmd"
+import (
+	"drasi.io/cli/cmd"
+)
 
 func main() {
 	cmd.RootCommand.Execute()

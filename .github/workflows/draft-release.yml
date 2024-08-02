@@ -1,24 +1,41 @@
-name: Publish
+name: Draft Release
 
 on:
-    workflow_dispatch:
-      inputs:
-        tag:
-          description: 'Tag to publish'
-          required: true
-          default: 'latest'
-        acr_name:
-          description: 'Registry name'
-          required: false
-          default: 'drasi'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version Tag'
+        required: true        
 
 permissions:
   id-token: write # Required for requesting the JWT
   contents: read  # Required for actions/checkout
   packages: read
 
+env:
+  RELEASE_PATH: ./release
+
 jobs:
-  publish:
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Branch
+        run: |
+          echo ${{ github.ref_name }}
+          echo ${{ github.ref }}
+          echo ${{ github.ref_type }}
+          echo ${{ github.head_ref }}
+
+          if [[ "${{ github.ref_name }}" =~ ^(release)/ ]]; then
+            echo "Branch has the correct prefix."
+          else
+            echo "Branch does not have the correct prefix. Exiting..."
+            exit 1
+          fi
+          
+
+  publish-ghcr:
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
@@ -67,14 +84,14 @@ jobs:
                 REPO=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
 
                 docker pull $REPO:${{ github.sha }}
-                docker tag $REPO:${{ github.sha }} $REPO:${{ github.event.inputs.tag }}
-                docker push $REPO:${{ github.event.inputs.tag }}
+                docker tag $REPO:${{ github.sha }} $REPO:${{ inputs.tag }}
+                docker push $REPO:${{ inputs.tag }}
             done
     
       - name: Logout from GitHub Container Registry
         run: docker logout ghcr.io
 
-  publish_ACR:
+  publish-acr:
     runs-on: ubuntu-latest
     environment: 
       name: github-actions
@@ -107,6 +124,7 @@ jobs:
           - "reaction-storagequeue"
           - "reaction-storedproc"
     steps:
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -118,7 +136,7 @@ jobs:
           REPO=ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
 
           docker pull $REPO:${{ github.sha }}
-          docker tag $REPO:${{ github.sha }} ${{ github.event.inputs.acr_name}}.azurecr.io/drasi-project/${{ matrix.image }}:${{ github.event.inputs.tag }}
+          docker tag $REPO:${{ github.sha }} drasi.azurecr.io/drasi-project/${{ matrix.image }}:${{ inputs.tag }}
           docker logout
       
       - name: Login to Azure
@@ -130,5 +148,82 @@ jobs:
 
       - name: Push to ACR
         run: |
-          az acr login --name ${{ github.event.inputs.acr_name}}
-          docker push ${{ github.event.inputs.acr_name}}.azurecr.io/drasi-project/${{ matrix.image }}:${{ github.event.inputs.tag }}
+          az acr login --name drasi
+          docker push drasi.azurecr.io/drasi-project/${{ matrix.image }}:${{ inputs.tag }}
+
+  
+  build-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Build
+        working-directory: cli
+        run: make VERSION='${{ inputs.tag }}'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli
+          path: ${{ env.RELEASE_PATH}}
+    
+  
+  vscode-extension:
+    name: Build and publish the VSCode vscode_extension
+    runs-on: ubuntu-latest    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Building the extension
+        run: |
+          cd dev-tools/vscode/drasi
+          npm install -g @vscode/vsce 
+          npm install
+          vsce package
+      - name: Copy the extension to release
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/vscode-extension/
+          cp dev-tools/vscode/drasi/drasi-0.0.3.vsix ${{ env.RELEASE_PATH}}/drasi-0.0.3.vsix
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode_extension
+          path: ${{ env.RELEASE_PATH}}          
+
+  release:
+    permissions: write-all
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    name: Github release
+    needs:
+      - vscode-extension
+      - build-cli
+      - publish-ghcr
+      - publish-acr
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ env.RELEASE_PATH }}
+
+      - name: Github release
+        run: |
+          gh release create ${{ inputs.tag }} ${{ env.RELEASE_PATH }}/* --draft --title ${{ inputs.tag }}
