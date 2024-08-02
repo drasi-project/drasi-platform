@@ -219,8 +219,9 @@ jobs:
           path: ${{ env.RELEASE_PATH}}
 
   vscode-extension:
-    name: Build and publish the VSCode vscode_extension
+    name: Build and publish the VSCode extension
     runs-on: ubuntu-latest
+    needs: validate
     environment: 
       name: github-actions
     steps:
