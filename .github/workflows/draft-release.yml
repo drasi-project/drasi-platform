@@ -257,6 +257,7 @@ jobs:
     name: Github release
     needs:
       - package-cli      
+      - vscode-extension
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
