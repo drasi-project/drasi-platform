@@ -277,4 +277,4 @@ jobs:
 
       - name: Draft Release
         run: |
-          gh release create ${{ inputs.tag }} ${{ env.RELEASE_PATH }}/* --draft --title ${{ inputs.tag }} --target ${{ github.ref_name }}
+          gh release create ${{ inputs.tag }} ${{ env.RELEASE_PATH }}/* --draft --title ${{ inputs.tag }} --target ${{ github.ref_name }} --generate-notes 
