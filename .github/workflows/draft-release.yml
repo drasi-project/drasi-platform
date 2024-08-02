@@ -275,6 +275,6 @@ jobs:
           merge-multiple: true
           path: ${{ env.RELEASE_PATH }}
 
-      - name: Github release
+      - name: Draft Release
         run: |
-          gh release create ${{ inputs.tag }} ${{ env.RELEASE_PATH }}/* --draft --title ${{ inputs.tag }}
+          gh release create ${{ inputs.tag }} ${{ env.RELEASE_PATH }}/* --draft --title ${{ inputs.tag }} --target ${{ github.ref_name }}
