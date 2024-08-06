@@ -13,22 +13,7 @@ VERSION ?= latest
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-.PHONY: all
-all: build
-
-.PHONY: fmt
-fmt: ## Run go fmt against code.
-	go fmt ./...
-
-.PHONY: vet
-vet: ## Run go vet against code.
-	go vet ./...
-
-##@ Build
-
-.PHONY: build
-build: fmt vet
-	go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/drasi main.go
+DRASI_LOCATION ?= /usr/local/bin/drasi
 
 .PHONY: all
 all: fmt vet
@@ -38,3 +23,20 @@ all: fmt vet
 	GOOS=darwin GOARCH=amd64 go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/darwin-x64/drasi main.go
 	GOOS=darwin GOARCH=arm64 go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/darwin-arm64/drasi main.go
 	
+.PHONY: fmt
+fmt:
+	go fmt ./...
+
+.PHONY: vet
+vet:
+	go vet ./...
+
+.PHONY: build
+build: fmt vet
+	go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/drasi main.go
+
+.PHONY: install
+install: build ## Installs a local build for development
+	@echo "Installing Drasi"
+	cp ./bin/drasi $(DRASI_LOCATION)
+
