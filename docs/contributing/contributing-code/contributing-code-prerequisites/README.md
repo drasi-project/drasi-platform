@@ -88,7 +88,7 @@ Alternatively, you can choose whichever editor you are most comfortable for work
 
 ### Drasi CLI
 
-The Drasi CLI tool will be required in your development workflow to manage a Drasi instance that you may want to test against. You can either [build it from source](../../../cli/) or download a pre-built binary.
+The Drasi CLI tool will be required in your development workflow to manage a Drasi instance that you may want to test against. You can either [build it from source](../../../../cli/) or download a pre-built binary.
 
 Download the CLI for your platform, and add it to your system path:
 - [MacOS arm64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-darwin-arm64)
