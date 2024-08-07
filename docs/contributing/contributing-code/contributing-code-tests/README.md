@@ -28,7 +28,7 @@ Unit tests should run with only the [basic prerequisites](../contributing-code-p
 
 ## Functional tests
 
-In the [e2e tests folder](../../../e2e-tests/) we hold tests for end to end scenarios. These tests will spin up a new Kind cluster named `drasi-test`, install a clean instance of Drasi inside it and deploy any additional resources needed per scenario. For example, the `simple-scenario` tests will also deploy a PostgreSQL instance and populate it with data, deploy a Drasi Source, Continuous Query and Reaction, and then proceed to manipulate the PostgreSQL data and watch for the changes flowing from the Reaction to make test assertions against. Once it is complete, it does not tear down the Kind cluster by default, to allow you to inspect the state of things.
+In the [e2e tests folder](../../../../e2e-tests/) we hold tests for end to end scenarios. These tests will spin up a new Kind cluster named `drasi-test`, install a clean instance of Drasi inside it and deploy any additional resources needed per scenario. For example, the `simple-scenario` tests will also deploy a PostgreSQL instance and populate it with data, deploy a Drasi Source, Continuous Query and Reaction, and then proceed to manipulate the PostgreSQL data and watch for the changes flowing from the Reaction to make test assertions against. Once it is complete, it does not tear down the Kind cluster by default, to allow you to inspect the state of things.
 
 These test are built with the Jest framework and can be run using the command:
 
