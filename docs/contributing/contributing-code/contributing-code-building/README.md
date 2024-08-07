@@ -7,7 +7,7 @@ Drasi uses several Makefile to build the repository and automate most common rep
 
 ### CLI
 
-The CLI tool will be required in your development workflow to manage a Drasi instance that you may want to test against. You can either [build it from source](../../../cli/) or [download a pre-built binary](https://github.com/drasi-project/drasi-platform/releases).
+The CLI tool will be required in your development workflow to manage a Drasi instance that you may want to test against. You can either [build it from source](../../../../cli/) or [download a pre-built binary](https://github.com/drasi-project/drasi-platform/releases).
 
 ### Services
 
@@ -43,22 +43,22 @@ The control plane consists of
 - The Management API, which is the backend with which the CLI communicates.
 - The Resource Provider, which is responsible for managing all the resources (Sources, Reactions & Continuous Queries) within the Drasi instance.
 
-The [Control Planes folder](../../../control-planes/) contains a Makefile for building these container images.
+The [Control Planes folder](../../../../control-planes/) contains a Makefile for building these container images.
 
 
 #### Query Container
 
 The Query Container consists of the various services that host continuous queries.  These are all distributed as container images.
 
-The [Query Container folder](../../../query-container/) contains a Makefile for building these container images.
+The [Query Container folder](../../../../query-container/) contains a Makefile for building these container images.
 
 #### Sources
 
-The [Sources folder](../../../sources/) contains a Makefile for building the container images of all the Sources that ship with Drasi.
+The [Sources folder](../../../../sources/) contains a Makefile for building the container images of all the Sources that ship with Drasi.
 
 #### Reactions
 
-The [Reactions folder](../../../reactions/) contains a Makefile for building the container images of all the Reactions that ship with Drasi.
+The [Reactions folder](../../../../reactions/) contains a Makefile for building the container images of all the Reactions that ship with Drasi.
 
 
 
