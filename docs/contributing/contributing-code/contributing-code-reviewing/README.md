@@ -141,7 +141,7 @@ As a Maintainer, you are responsible for the long-term maintenance and stewardsh
 
 ### Code of conduct enforcement
 
-We encourage anyone to report a [code of conduct](../../../CODE_OF_CONDUCT.md) violation if they see one occur. Any code of conduct violation should be reported as per instructions in the link above.
+We encourage anyone to report a [code of conduct](../../../../CODE_OF_CONDUCT.md) violation if they see one occur. Any code of conduct violation should be reported as per instructions in the link above.
 
 It is **explicitly** a responsibility of approvers and maintainers to report a violation if they suspect one. If a code of conduct violation occurs in a pull-request, follow the instructions [here](https://docs.github.com/en/communities/moderating-comments-and-conversations/managing-disruptive-comments) to minimize the comment and report the violation.
 
