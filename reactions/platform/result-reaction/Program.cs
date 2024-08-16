@@ -4,7 +4,7 @@ using Dapr.Client;
 using Microsoft.AspNetCore.Components;
 using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
-using result_reactor.Services;
+using ResultReaction.Services;
 using System.Text.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using YamlDotNet.Serialization;
 using YamlDotNet.Core.Events;
-using Reactor.Models;
+using DataverseReaction.Models;
 using Microsoft.PowerPlatform.Dataverse.Client;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,7 +35,7 @@ foreach (var qpath in Directory.GetFiles(configDirectory))
 
 var uri = new Uri(endpoint);
 var serviceClient = new ServiceClient(uri, clientId, secret, false);
-var actionExecutor = new Reactor.ActionExecutor(serviceClient);
+var actionExecutor = new DataverseReaction.ActionExecutor(serviceClient);
 
 builder.Services.AddDaprClient();
 

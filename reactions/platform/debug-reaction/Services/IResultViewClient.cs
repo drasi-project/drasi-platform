@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text.Json;
 
-namespace debug_reactor.Services
+namespace DebugReaction.Services
 {
     public interface IResultViewClient
     {

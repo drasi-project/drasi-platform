@@ -1,12 +1,18 @@
 name: Build and Test
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
+      - release/*
+    tags:
+      - v*
   pull_request:
     branches:
       - main
+      - feature/*
+      - release/*
 
 permissions:
   contents: read

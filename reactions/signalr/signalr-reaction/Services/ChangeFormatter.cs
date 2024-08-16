@@ -2,7 +2,7 @@
 using System.Text.Json.Nodes;
 using Newtonsoft.Json.Linq;
 
-namespace signalr_reactor.Services
+namespace SignalrReaction.Services
 {
     public class ChangeFormatter : IChangeFormatter
     {

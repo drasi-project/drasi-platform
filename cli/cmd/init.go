@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"drasi.io/cli/config"
 	"drasi.io/cli/service"
 	"github.com/spf13/cobra"
 )
@@ -19,8 +20,8 @@ func NewInitCommand() *cobra.Command {
 			var installer *service.Installer
 			results := make(chan service.StatusUpdate)
 			local := false
-			registry := "drasi.azurecr.io"
-			version := "latest"
+			var registry string
+			var version string
 
 			var err error
 
@@ -61,6 +62,7 @@ func NewInitCommand() *cobra.Command {
 				return err
 			}
 
+			fmt.Println("Installing Drasi with version " + version + " from registry " + registry)
 			go installer.Install(local, registry, version, results, namespace)
 
 			for r := range results {
@@ -72,8 +74,8 @@ func NewInitCommand() *cobra.Command {
 	}
 
 	initCommand.Flags().Bool("local", false, "Do not use a container registry, only locally available images")
-	initCommand.Flags().String("registry", "ghcr.io", "Container registry to pull images from")
-	initCommand.Flags().String("version", "latest", "Container image version tag")
+	initCommand.Flags().String("registry", config.Registry, "Container registry to pull images from")
+	initCommand.Flags().String("version", config.Version, "Container image version tag")
 	initCommand.Flags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into")
 	initCommand.Flags().String("dapr-runtime-version", "1.10.0", "Dapr runtime version to install")
 	initCommand.Flags().String("dapr-sidecar-version", "1.9.0", "Dapr sidecar (daprd) version to install")

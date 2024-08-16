@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Azure.SignalR;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
-using signalr_reactor.Services;
+using SignalrReaction.Services;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 
 var builder = WebApplication.CreateBuilder(args);
