@@ -1,9 +1,11 @@
 use std::{
+    collections::HashMap,
     error::Error,
     fmt::{Display, Formatter},
     sync::{Arc, RwLock},
 };
 
+use drasi_core::models::{QueryJoin, SourceMiddlewareConfig};
 use serde::{Deserialize, Serialize};
 use tokio::sync::watch;
 
@@ -119,4 +121,32 @@ impl Error for QueryError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         None
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct QuerySourceElement {
+    pub source_label: String,
+    pub partition_key: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct QuerySubscription {
+    pub nodes: Vec<QuerySourceElement>,
+    pub relations: Vec<QuerySourceElement>,
+    pub pipeline: Vec<Arc<str>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct QueryConfig {
+    pub mode: String,
+    pub query: String,
+    pub sources: QuerySources,
+    pub storage_profile: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct QuerySources {
+    pub subscriptions: HashMap<String, QuerySubscription>,
+    pub joins: Vec<QueryJoin>,
+    pub middleware: Vec<SourceMiddlewareConfig>,
 }

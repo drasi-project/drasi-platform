@@ -1,8 +1,8 @@
 use super::models::*;
 use crate::domain::models::{
     ConfigValue, Endpoint, EndpointSetting, InlineValue, QueryContainerSpec, QueryContainerStatus,
-    QueryJoin, QueryJoinKey, QuerySourceLabel, QuerySources, QuerySpec, QueryStatus,
-    QuerySubscription, ReactionProviderSpec, ReactionSpec, ReactionStatus, Resource,
+    QueryJoin, QueryJoinKey, QueryPartitionStatus, QuerySourceLabel, QuerySources, QuerySpec,
+    QueryStatus, QuerySubscription, ReactionProviderSpec, ReactionSpec, ReactionStatus, Resource,
     ResourceProvider, RetentionPolicy, Service, SourceMiddlewareConfig, SourceProviderSpec,
     SourceSpec, SourceStatus, StorageSpec, ViewSpec,
 };
@@ -42,6 +42,15 @@ impl From<ReactionStatus> for ReactionStatusDto {
 impl From<QueryStatus> for QueryStatusDto {
     fn from(status: QueryStatus) -> Self {
         QueryStatusDto {
+            partitions: status.partitions.into_iter().map(|v| v.into()).collect(),
+        }
+    }
+}
+
+impl From<QueryPartitionStatus> for QueryPartitionStatusDto {
+    fn from(status: QueryPartitionStatus) -> Self {
+        QueryPartitionStatusDto {
+            partition: status.partition,
             host_name: status.host_name,
             status: status.status,
             container: status.container,
@@ -537,6 +546,7 @@ impl Into<QuerySpec> for QuerySpecDto {
             sources: self.sources.into(),
             storage_profile: self.storage_profile,
             view: self.view.unwrap_or_default().into(),
+            partition_count: self.partition_count,
         }
     }
 }
@@ -550,6 +560,7 @@ impl From<QuerySpec> for QuerySpecDto {
             sources: spec.sources.into(),
             storage_profile: spec.storage_profile,
             view: Some(spec.view.into()),
+            partition_count: spec.partition_count,
         }
     }
 }
@@ -645,6 +656,7 @@ impl Into<QuerySourceLabel> for QuerySourceLabelDto {
     fn into(self) -> QuerySourceLabel {
         QuerySourceLabel {
             source_label: self.source_label,
+            partition_key: self.partition_key,
         }
     }
 }
@@ -653,6 +665,7 @@ impl From<QuerySourceLabel> for QuerySourceLabelDto {
     fn from(label: QuerySourceLabel) -> Self {
         QuerySourceLabelDto {
             source_label: label.source_label,
+            partition_key: label.partition_key,
         }
     }
 }

@@ -152,6 +152,7 @@ pub struct ReactionStatusDto {
 #[serde(rename_all = "camelCase")]
 pub struct QuerySourceLabelDto {
     pub source_label: String,
+    pub partition_key: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -187,6 +188,7 @@ pub struct QuerySpecDto {
     pub sources: QuerySourcesDto,
     pub storage_profile: Option<String>,
     pub view: Option<ViewSpecDto>,
+    pub partition_count: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -210,6 +212,13 @@ pub struct QuerySourcesDto {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryStatusDto {
+    pub partitions: Vec<QueryPartitionStatusDto>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryPartitionStatusDto {
+    pub partition: Option<u64>,
     pub host_name: String,
     pub status: String,
     pub container: String,

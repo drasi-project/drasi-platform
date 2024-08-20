@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use super::models::*;
 
 impl Into<resource_provider_api::models::ConfigValue> for ConfigValue {
@@ -225,6 +227,7 @@ impl Into<resource_provider_api::models::QuerySourceLabel> for QuerySourceLabel 
     fn into(self) -> resource_provider_api::models::QuerySourceLabel {
         resource_provider_api::models::QuerySourceLabel {
             source_label: self.source_label,
+            partition_key: self.partition_key,
         }
     }
 }
@@ -278,17 +281,117 @@ impl Into<resource_provider_api::models::SourceMiddlewareConfig> for SourceMiddl
     }
 }
 
-impl Into<resource_provider_api::models::QuerySpec> for QuerySpec {
-    fn into(self) -> resource_provider_api::models::QuerySpec {
+pub trait ToQueryPartitions {
+    fn to_query_partitions(
+        &self,
+        query_id: &str,
+    ) -> BTreeMap<String, resource_provider_api::models::QuerySpec>;
+    fn to_query_partition_ids(&self, query_id: &str) -> Vec<String>;
+    fn into_single_partition(self) -> resource_provider_api::models::QuerySpec;
+}
+
+impl ToQueryPartitions for QuerySpec {
+    fn to_query_partitions(
+        &self,
+        query_id: &str,
+    ) -> BTreeMap<String, resource_provider_api::models::QuerySpec> {
+        let mut result = BTreeMap::new();
+
+        match self.partition_count {
+            Some(partition_count) => {
+                for partition_id in 0..partition_count {
+                    result.insert(
+                        format!("{}-{}", query_id, partition_id),
+                        resource_provider_api::models::QuerySpec {
+                            mode: self.mode.clone().into(),
+                            query: self.query.clone(),
+                            sources: self.sources.clone().into(),
+                            storage_profile: self.storage_profile.clone(),
+                            view: self.view.clone().into(),
+                            partition: Some(resource_provider_api::models::QueryPartitionSpec {
+                                id: partition_id as u64,
+                                count: partition_count as u64,
+                                result_stream: query_id.to_string(),
+                            }),
+                        },
+                    );
+                }
+            }
+            None => {
+                result.insert(
+                    query_id.to_string(),
+                    resource_provider_api::models::QuerySpec {
+                        mode: self.mode.clone().into(),
+                        query: self.query.clone(),
+                        sources: self.sources.clone().into(),
+                        storage_profile: self.storage_profile.clone(),
+                        view: self.view.clone().into(),
+                        partition: None,
+                    },
+                );
+            }
+        }
+
+        result
+    }
+
+    fn to_query_partition_ids(&self, query_id: &str) -> Vec<String> {
+        match self.partition_count {
+            Some(partition_count) => (0..partition_count)
+                .map(|partition_id| format!("{}-{}", query_id, partition_id))
+                .collect(),
+            None => vec![query_id.to_string()],
+        }
+    }
+
+    fn into_single_partition(self) -> resource_provider_api::models::QuerySpec {
         resource_provider_api::models::QuerySpec {
             mode: self.mode.into(),
             query: self.query,
             sources: self.sources.into(),
             storage_profile: self.storage_profile,
             view: self.view.into(),
+            partition: None,
         }
     }
 }
+
+// impl Into<BTreeMap<String, resource_provider_api::models::QuerySpec>> for QuerySpec {
+//     fn into(self) -> resource_provider_api::models::QuerySpec {
+//         let result = BTreeMap::new();
+
+//         match self.partition_count {
+//             Some(partition_count) => {
+//                 for partition_id in 0..partition_count {
+//                     result.insert(format!(""),resource_provider_api::models::QuerySpec {
+//                         mode: self.mode.into(),
+//                         query: self.query,
+//                         sources: self.sources.into(),
+//                         storage_profile: self.storage_profile,
+//                         view: self.view.into(),
+//                         partition: Some(resource_provider_api::models::QueryPartitionSpec {
+//                             id: partition_id,
+//                             count: partition_count,
+//                             result_stream: self.,
+//                         })
+//                     });
+//                 }
+//             }
+//             None => {
+//                 result.push(resource_provider_api::models::QuerySpec {
+//                     mode: self.mode.into(),
+//                     query: self.query,
+//                     sources: self.sources.into(),
+//                     storage_profile: self.storage_profile,
+//                     view: self.view.into(),
+//                     partition: None,
+//                 });
+//             }
+//         }
+
+//         result
+//     }
+// }
 
 impl Into<resource_provider_api::models::SourceStatus> for SourceStatus {
     fn into(self) -> resource_provider_api::models::SourceStatus {
@@ -362,24 +465,19 @@ impl Into<SourceProviderStatus> for resource_provider_api::models::SourceProvide
     }
 }
 
-impl Into<resource_provider_api::models::QueryStatus> for QueryStatus {
-    fn into(self) -> resource_provider_api::models::QueryStatus {
-        resource_provider_api::models::QueryStatus {
-            host_name: self.host_name,
-            status: self.status.into(),
-            container: self.container.into(),
-            error_message: self.error_message,
-        }
-    }
-}
-
-impl Into<QueryStatus> for resource_provider_api::models::QueryStatus {
+impl Into<QueryStatus> for &[resource_provider_api::models::QueryStatus] {
     fn into(self) -> QueryStatus {
         QueryStatus {
-            host_name: self.host_name,
-            status: self.status.into(),
-            container: self.container.into(),
-            error_message: self.error_message,
+            partitions: self
+                .iter()
+                .map(|v| QueryPartitionStatus {
+                    partition: v.partition,
+                    host_name: v.host_name.clone(),
+                    status: v.status.clone().into(),
+                    container: v.container.clone().into(),
+                    error_message: v.error_message.clone(),
+                })
+                .collect(),
         }
     }
 }

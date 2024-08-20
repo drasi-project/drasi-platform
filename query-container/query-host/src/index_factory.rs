@@ -171,7 +171,7 @@ impl IndexFactory {
     pub async fn build(
         &self,
         store: &Option<String>,
-        query_id: &str,        
+        query_id: &str,
     ) -> Result<IndexSet, IndexError> {
         let store = match store {
             Some(store) => store,
@@ -205,8 +205,7 @@ impl IndexFactory {
                 cache_size,
             } => {
                 let element_index =
-                    GarnetElementIndex::connect(query_id, connection_string)
-                        .await?;
+                    GarnetElementIndex::connect(query_id, connection_string).await?;
 
                 let element_index = Arc::new(element_index);
                 let result_index = GarnetResultIndex::connect(query_id, connection_string).await?;
@@ -255,8 +254,7 @@ impl IndexFactory {
                     archive_enabled: *enable_archive,
                     direct_io: *direct_io,
                 };
-                let element_index =
-                    RocksDbElementIndex::new(query_id, "/data", options)?;
+                let element_index = RocksDbElementIndex::new(query_id, "/data", options)?;
                 let element_index = Arc::new(element_index);
 
                 let result_index = RocksDbResultIndex::new(query_id, "/data")?;

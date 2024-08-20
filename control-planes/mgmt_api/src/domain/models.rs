@@ -114,6 +114,7 @@ pub struct ReactionProviderStatus {
 #[serde(rename_all = "camelCase")]
 pub struct QuerySourceLabel {
     pub source_label: String,
+    pub partition_key: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -148,6 +149,7 @@ pub struct QuerySpec {
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
+    pub partition_count: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -171,6 +173,13 @@ pub struct QuerySources {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryStatus {
+    pub partitions: Vec<QueryPartitionStatus>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryPartitionStatus {
+    pub partition: Option<u64>,
     pub host_name: String,
     pub status: String,
     pub container: String,
@@ -261,5 +270,7 @@ pub enum DomainError {
     QueryContainerOffline,
 
     #[error("Internal: {inner}")]
-    Internal { inner: Box<dyn std::error::Error> },
+    Internal {
+        inner: Box<dyn std::error::Error + Send + Sync>,
+    },
 }

@@ -6,7 +6,10 @@ use futures_util::{Stream, StreamExt};
 use resource_provider_api::models::QueryStatus;
 use serde_json::{Map, Value};
 
-use crate::domain::result_service::api::{ControlSignal, ResultEvent};
+use crate::domain::{
+    mappings::ToQueryPartitions,
+    result_service::api::{ControlSignal, ResultEvent},
+};
 
 use super::{
     models::{DomainError, QuerySpec},
@@ -39,7 +42,7 @@ impl DebugService {
             resource_provider_api::models::QuerySpec,
         > {
             id: temp_id.clone(),
-            spec: spec.clone().into(),
+            spec: spec.clone().into_single_partition(),
         };
 
         let _: () = match mut_dapr

@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fmt::{Display, Formatter},
     sync::Arc,
 };
@@ -21,6 +22,7 @@ pub struct QueryRequest {
 #[serde(rename_all = "camelCase")]
 pub struct QuerySourceLabel {
     pub source_label: String,
+    pub partition_key: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -70,6 +72,15 @@ pub struct QuerySpec {
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
+    pub partition: Option<QueryPartitionSpec>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryPartitionSpec {
+    pub id: u64,
+    pub count: u64,
+    pub result_stream: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -114,6 +125,7 @@ pub struct VoidResponse {}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryStatus {
+    pub partition: Option<u64>,
     pub host_name: String,
     pub status: String,
     pub container: String,
@@ -124,40 +136,40 @@ pub struct QueryStatus {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ChangeEvent {
-    id: String,
-    source_id: String,
-    time: ChangeEventTime,
+    pub id: String,
+    pub source_id: String,
+    pub time: ChangeEventTime,
 
-    queries: Vec<String>,
+    pub queries: Vec<String>,
 
     #[serde(rename = "type")]
-    op: ChangeType,
+    pub op: ChangeType,
 
-    element_type: Option<ElementType>,
+    pub element_type: Option<ElementType>,
 
-    before: Option<ChangePayload>,
-    after: Option<ChangePayload>,
+    pub before: Option<ChangePayload>,
+    pub after: Option<ChangePayload>,
 
-    future_due_time: Option<u64>,
-    future_signature: Option<u64>,
+    pub future_due_time: Option<u64>,
+    pub future_signature: Option<u64>,
 
-    metadata: Option<Map<String, Value>>,
+    pub metadata: Option<Map<String, Value>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ChangeEventTime {
+pub struct ChangeEventTime {
     seq: u64,
     ms: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct ChangePayload {
-    id: Option<String>,
-    labels: Option<Vec<String>>,
-    properties: Option<Map<String, Value>>,
-    start_id: Option<String>,
-    end_id: Option<String>,
+pub struct ChangePayload {
+    pub id: Option<String>,
+    pub labels: Option<HashSet<String>>,
+    pub properties: Option<Map<String, Value>>,
+    pub start_id: Option<String>,
+    pub end_id: Option<String>,
 }
 
 impl ChangePayload {
@@ -210,7 +222,7 @@ impl ChangePayload {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-enum ChangeType {
+pub enum ChangeType {
     #[serde(rename = "i")]
     Insert,
     #[serde(rename = "u")]
@@ -222,7 +234,7 @@ enum ChangeType {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-enum ElementType {
+pub enum ElementType {
     #[serde(rename = "node")]
     Node,
     #[serde(rename = "rel")]
@@ -361,6 +373,7 @@ pub enum ResultEvent {
 #[serde(rename_all = "camelCase")]
 pub struct ResultChangeEvent {
     query_id: String,
+    partition: u64,
     sequence: u64,
     source_time_ms: u64,
     added_results: Vec<Map<String, Value>>,
@@ -373,6 +386,7 @@ pub struct ResultChangeEvent {
 #[serde(rename_all = "camelCase")]
 pub struct ResultControlEvent {
     query_id: String,
+    partition: u64,
     sequence: u64,
     source_time_ms: u64,
     metadata: Option<Map<String, Value>>,
@@ -390,6 +404,7 @@ impl ResultEvent {
     #[tracing::instrument(skip_all)]
     pub fn from_query_results(
         query_id: &str,
+        partition: u64,
         data: Vec<QueryPartEvaluationContext>,
         sequence: u64,
         source_time_ms: u64,
@@ -435,6 +450,7 @@ impl ResultEvent {
 
         ResultEvent::Change(ResultChangeEvent {
             query_id: query_id.to_string(),
+            partition,
             sequence,
             source_time_ms,
             added_results,
@@ -446,12 +462,14 @@ impl ResultEvent {
 
     pub fn from_control_signal(
         query_id: &str,
+        partition: u64,
         sequence: u64,
         source_time_ms: u64,
         control_signal: ControlSignal,
     ) -> Self {
         ResultEvent::Control(ResultControlEvent {
             query_id: query_id.to_string(),
+            partition,
             sequence,
             source_time_ms,
             metadata: None,
@@ -484,15 +502,14 @@ impl Display for ApiError {
 impl std::error::Error for ApiError {}
 
 mod mappings {
+    use crate::{api, models};
     use std::sync::Arc;
-
-    use crate::api;
-    use drasi_core::models;
 
     impl Into<models::QuerySourceElement> for api::QuerySourceLabel {
         fn into(self) -> models::QuerySourceElement {
             models::QuerySourceElement {
                 source_label: self.source_label,
+                partition_key: self.partition_key,
             }
         }
     }
@@ -500,7 +517,6 @@ mod mappings {
     impl Into<models::QuerySubscription> for api::QuerySubscription {
         fn into(self) -> models::QuerySubscription {
             models::QuerySubscription {
-                id: Arc::from(self.id),
                 nodes: self.nodes.into_iter().map(|v| v.into()).collect(),
                 relations: self.relations.into_iter().map(|v| v.into()).collect(),
                 pipeline: self.pipeline.into_iter().map(Arc::from).collect(),
@@ -508,18 +524,18 @@ mod mappings {
         }
     }
 
-    impl Into<models::QueryJoinKey> for api::QueryJoinKey {
-        fn into(self) -> models::QueryJoinKey {
-            models::QueryJoinKey {
+    impl Into<drasi_core::models::QueryJoinKey> for api::QueryJoinKey {
+        fn into(self) -> drasi_core::models::QueryJoinKey {
+            drasi_core::models::QueryJoinKey {
                 label: self.label,
                 property: self.property,
             }
         }
     }
 
-    impl Into<models::QueryJoin> for api::QueryJoin {
-        fn into(self) -> models::QueryJoin {
-            models::QueryJoin {
+    impl Into<drasi_core::models::QueryJoin> for api::QueryJoin {
+        fn into(self) -> drasi_core::models::QueryJoin {
+            drasi_core::models::QueryJoin {
                 id: self.id,
                 keys: self.keys.into_iter().map(|v| v.into()).collect(),
             }
@@ -529,7 +545,11 @@ mod mappings {
     impl Into<models::QuerySources> for api::QuerySources {
         fn into(self) -> models::QuerySources {
             models::QuerySources {
-                subscriptions: self.subscriptions.into_iter().map(|v| v.into()).collect(),
+                subscriptions: self
+                    .subscriptions
+                    .into_iter()
+                    .map(|v| (v.id.clone(), v.into()))
+                    .collect(),
                 joins: self.joins.into_iter().map(|v| v.into()).collect(),
                 middleware: self.middleware.into_iter().map(|v| v.into()).collect(),
             }
@@ -547,9 +567,9 @@ mod mappings {
         }
     }
 
-    impl Into<models::SourceMiddlewareConfig> for api::SourceMiddlewareConfig {
-        fn into(self) -> models::SourceMiddlewareConfig {
-            models::SourceMiddlewareConfig {
+    impl Into<drasi_core::models::SourceMiddlewareConfig> for api::SourceMiddlewareConfig {
+        fn into(self) -> drasi_core::models::SourceMiddlewareConfig {
+            drasi_core::models::SourceMiddlewareConfig {
                 kind: Arc::from(self.kind),
                 name: Arc::from(self.name),
                 config: self.config,

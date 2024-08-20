@@ -249,7 +249,16 @@ impl QueryActor {
     pub async fn get_status(&self) -> Json<QueryStatus> {
         log::info!("Query get status - {}", self.query_id);
 
+        let partition = match self.config.get().await {
+            Some(c) => match c.partition {
+                Some(p) => Some(p.id),
+                None => None,
+            },
+            None => None,
+        };
+
         Json(QueryStatus {
+            partition,
             host_name: gethostname().to_str().unwrap_or_default().to_string(),
             status: self.lifecycle.get_state().to_string(),
             container: self.query_container_id.to_string(),

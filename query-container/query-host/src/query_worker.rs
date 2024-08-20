@@ -1,6 +1,7 @@
 use dapr::client::TonicClient;
 use drasi_query_ast::ast::Query;
 use std::{
+    collections::HashMap,
     error::Error,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -9,7 +10,6 @@ use std::{
 use drasi_core::{
     interface::{ElementIndex, ResultIndex, ResultSequence},
     middleware::MiddlewareTypeRegistry,
-    models,
     query::{ContinuousQuery, QueryBuilder},
 };
 use opentelemetry::{propagation::TextMapPropagator, KeyValue};
@@ -28,14 +28,14 @@ use tracing::{instrument, Instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
-    api,
-    api::{ChangeEvent, ControlSignal, ResultEvent},
+    api::{self, ChangeEvent, ControlSignal, ResultEvent},
     change_stream::{
         self, redis_change_stream::RedisChangeStream, Message, SequentialChangeStream,
     },
     future_consumer::FutureConsumer,
     index_factory::IndexFactory,
-    models::{ChangeStreamConfig, QueryError, QueryLifecycle, QueryState},
+    models::{self, ChangeStreamConfig, QueryError, QueryLifecycle, QueryState, QuerySubscription},
+    partition_selector::PartitionSelector,
     result_publisher::ResultPublisher,
     source_client::SourceClient,
 };
@@ -78,6 +78,19 @@ impl QueryWorker {
             let topic = format!("{}-publish", query_container_id);
 
             let view_spec = config.view.clone();
+
+            let result_stream_name = query_id.to_string();
+
+            let partition_id = match &config.partition {
+                Some(p) => p.id,
+                None => 0,
+            };
+
+            let partition_count = match &config.partition {
+                Some(p) => p.count,
+                None => 1,
+            };
+
             let config: models::QueryConfig = config.into();
             let mut modified_config = config.clone();
 
@@ -86,10 +99,7 @@ impl QueryWorker {
             builder = builder.with_joins(config.sources.joins.clone());
 
             let index_set = match index_factory
-                .build(
-                    &modified_config.storage_profile,
-                    &query_id,
-                )
+                .build(&modified_config.storage_profile, &query_id)
                 .await
             {
                 Ok(ei) => ei,
@@ -115,13 +125,13 @@ impl QueryWorker {
                 builder = builder.with_source_middleware(Arc::new(mw));
             }
 
-            for subscription in &modified_config.sources.subscriptions {
+            for (source_id, subscription) in &modified_config.sources.subscriptions {
                 let pipeline = subscription
                     .pipeline
                     .iter()
                     .map(|s| s.to_string())
                     .collect();
-                builder = builder.with_source_pipeline(subscription.id.to_string(), &pipeline);
+                builder = builder.with_source_pipeline(source_id.to_string(), &pipeline);
             }
 
             let continuous_query = builder.build().await;
@@ -145,7 +155,7 @@ impl QueryWorker {
             if let Err(err) = configure_result_view(
                 dapr_client.clone(),
                 query_container_id.as_ref(),
-                query_id.as_ref(),
+                &result_stream_name.as_ref(),
                 &view_spec,
             )
             .await
@@ -196,6 +206,9 @@ impl QueryWorker {
                         &publisher,
                         element_index.clone(),
                         result_index.clone(),
+                        partition_id,
+                        partition_count,
+                        &result_stream_name,
                     )
                     .await
                     {
@@ -235,7 +248,7 @@ impl QueryWorker {
 
             let msg_latency = meter
                 .f64_histogram("drasi.query-host.msg_latency")
-                .with_description("Latency of messge processing")
+                .with_description("Latency of message processing")
                 .with_unit(opentelemetry::metrics::Unit::new("ms"))
                 .init();
 
@@ -243,9 +256,10 @@ impl QueryWorker {
 
             match publisher
                 .publish(
-                    &query_id,
+                    &result_stream_name,
                     ResultEvent::from_control_signal(
                         query_id.as_ref(),
+                        partition_id,
                         sequence_manager.increment("control"),
                         SystemTime::now()
                             .duration_since(UNIX_EPOCH)
@@ -276,9 +290,10 @@ impl QueryWorker {
                                     _ = archive_index.clear().await;
                                     _ = change_stream.unsubscribe().await;
                                     match publisher.publish(
-                                        &query_id,
+                                        &result_stream_name,
                                         ResultEvent::from_control_signal(
                                             query_id.as_ref(),
+                                            partition_id,
                                             sequence_manager.increment("control"),
                                             SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
                                             ControlSignal::QueryDeleted)
@@ -288,7 +303,7 @@ impl QueryWorker {
                                             log::error!("Error publishing delete signal: {}", err);
                                         },
                                     };
-                                    _ = deprovision_result_view(dapr_client.clone(), query_container_id.as_ref(), query_id.as_ref(), &view_spec).await;
+                                    _ = deprovision_result_view(dapr_client.clone(), query_container_id.as_ref(), result_stream_name.as_ref(), &view_spec).await;
                                     break;
                                 },
                                 Some(Command::Pause) => {
@@ -314,8 +329,7 @@ impl QueryWorker {
                                 match msg {
                                     None => continue,
                                     Some(evt) => {
-                                        if !evt.data.has_query(query_id.as_ref()) {
-                                            log::info!("skipping message for another query");
+                                        if skip_message(&evt, &query_id, &config.sources.subscriptions, partition_id, partition_count) {
                                             if let Err(err) = change_stream.ack(&evt.id).await {
                                                 log::error!("Error acknowledging message: {}", err);
                                             }
@@ -329,7 +343,7 @@ impl QueryWorker {
                                         span.set_attribute("query_id", query_id.clone());
 
                                         let evt_id = &evt.id.clone();
-                                        let process_future = process_change(&query_id, &continuous_query, &mut sequence_manager, &publisher, evt)
+                                        let process_future = process_change(&query_id, partition_id, result_stream_name.as_str(), &continuous_query, &mut sequence_manager, &publisher, evt)
                                             .instrument(span);
 
                                         match process_future.await {
@@ -361,9 +375,10 @@ impl QueryWorker {
 
             match publisher
                 .publish(
-                    &query_id,
+                    &result_stream_name,
                     ResultEvent::from_control_signal(
                         query_id.as_ref(),
+                        partition_id,
                         sequence_manager.increment("control"),
                         SystemTime::now()
                             .duration_since(UNIX_EPOCH)
@@ -436,6 +451,8 @@ impl QueryWorker {
 
 async fn process_change(
     query_id: &str,
+    partition_id: u64,
+    result_stream_name: &str,
     continuous_query: &ContinuousQuery,
     seq_manager: &mut SequenceManager,
     publisher: &ResultPublisher,
@@ -447,7 +464,7 @@ async fn process_change(
     let timestamp = evt.data.get_timestamp();
     let mut metadata = evt.data.get_metadata();
     let source_change_id = evt.id.clone();
-    let source_change: models::SourceChange = match evt.data.try_into() {
+    let source_change: drasi_core::models::SourceChange = match evt.data.try_into() {
         Ok(sc) => sc,
         Err(err) => {
             log::error!("Error converting event to source change: {}", err);
@@ -502,10 +519,16 @@ async fn process_change(
         };
 
         let seq = seq_manager.increment(&source_change_id);
-        let output =
-            ResultEvent::from_query_results(&query_id, changes, seq, timestamp, Some(metadata));
+        let output = ResultEvent::from_query_results(
+            &query_id,
+            partition_id,
+            changes,
+            seq,
+            timestamp,
+            Some(metadata),
+        );
 
-        match publisher.publish(&query_id, output).await {
+        match publisher.publish(result_stream_name, output).await {
             Ok(_) => log::info!("Published result"),
             Err(err) => {
                 log::error!("Error publishing result: {}", err);
@@ -528,12 +551,16 @@ async fn bootstrap(
     publisher: &ResultPublisher,
     element_index: Arc<dyn ElementIndex>,
     result_index: Arc<dyn ResultIndex>,
+    partition_id: u64,
+    partition_count: u64,
+    result_stream_name: &str,
 ) -> Result<(), QueryError> {
     match publisher
         .publish(
-            &query_id,
+            result_stream_name,
             ResultEvent::from_control_signal(
                 query_id,
+                partition_id,
                 seq_manager.increment("control"),
                 SystemTime::now()
                     .duration_since(UNIX_EPOCH)
@@ -554,9 +581,16 @@ async fn bootstrap(
     _ = element_index.clear().await;
     _ = result_index.clear().await;
 
-    for source in &config.sources.subscriptions {
+    for (source_id, source) in &config.sources.subscriptions {
         let mut initial_data = match source_client
-            .subscribe(query_container_id, query_id, source)
+            .subscribe(
+                query_container_id,
+                query_id,
+                source_id,
+                source,
+                partition_id,
+                partition_count,
+            )
             .await
         {
             Ok(r) => r,
@@ -568,6 +602,7 @@ async fn bootstrap(
 
         for change in initial_data.drain(..) {
             let timestamp = change.get_transaction_time();
+
             let change_results = match query.process_source_change(change).await {
                 Ok(r) => r,
                 Err(e) => {
@@ -577,9 +612,15 @@ async fn bootstrap(
             };
 
             let seq = seq_manager.increment("bootstrap");
-            let output =
-                ResultEvent::from_query_results(&query_id, change_results, seq, timestamp, None);
-            match publisher.publish(&query_id, output).await {
+            let output = ResultEvent::from_query_results(
+                &query_id,
+                partition_id,
+                change_results,
+                seq,
+                timestamp,
+                None,
+            );
+            match publisher.publish(result_stream_name, output).await {
                 Ok(_) => log::info!("Published result"),
                 Err(err) => {
                     log::error!("Error publishing result: {}", err);
@@ -591,9 +632,10 @@ async fn bootstrap(
 
     match publisher
         .publish(
-            &query_id,
+            result_stream_name,
             ResultEvent::from_control_signal(
                 query_id,
+                partition_id,
                 seq_manager.increment("control"),
                 SystemTime::now()
                     .duration_since(UNIX_EPOCH)
@@ -615,7 +657,7 @@ async fn bootstrap(
 }
 
 fn fill_default_source_labels(spec: &mut models::QueryConfig, ast: &Query) {
-    for source in &mut spec.sources.subscriptions {
+    for (source_id, source) in &mut spec.sources.subscriptions {
         if source.nodes.is_empty() && source.relations.is_empty() {
             for ph in &ast.parts {
                 for mc in &ph.match_clauses {
@@ -635,6 +677,7 @@ fn merge_query_source_labels(spec: &mut Vec<models::QuerySourceElement>, labels:
         if !spec.iter().any(|s| s.source_label == *label) {
             spec.push(models::QuerySourceElement {
                 source_label: label.to_string(),
+                partition_key: None,
             });
         }
     }
@@ -643,7 +686,7 @@ fn merge_query_source_labels(spec: &mut Vec<models::QuerySourceElement>, labels:
 async fn configure_result_view(
     dapr_client: dapr::Client<TonicClient>,
     query_container: &str,
-    query_id: &str,
+    result_stream_name: &str,
     view_spec: &api::ViewSpec,
 ) -> Result<(), QueryError> {
     if !view_spec.enabled {
@@ -655,7 +698,7 @@ async fn configure_result_view(
     let _: () = match mut_dapr
         .invoke_actor(
             format!("{}.View", query_container),
-            query_id.to_string(),
+            result_stream_name.to_string(),
             "configure",
             view_spec,
             None,
@@ -675,7 +718,7 @@ async fn configure_result_view(
 async fn deprovision_result_view(
     dapr_client: dapr::Client<TonicClient>,
     query_container: &str,
-    query_id: &str,
+    result_stream_name: &str,
     view_spec: &api::ViewSpec,
 ) -> Result<(), QueryError> {
     if !view_spec.enabled {
@@ -687,7 +730,7 @@ async fn deprovision_result_view(
     let _: () = match mut_dapr
         .invoke_actor(
             format!("{}.View", query_container),
-            query_id.to_string(),
+            result_stream_name.to_string(),
             "deprovision",
             (),
             None,
@@ -749,4 +792,28 @@ impl SequenceManager {
         _ = self.tx.send_replace(self.value.clone());
         self.value.sequence
     }
+}
+
+fn skip_message(
+    msg: &Message<ChangeEvent>,
+    query_id: &str,
+    subscriptions: &HashMap<String, QuerySubscription>,
+    partition_id: u64,
+    partition_count: u64,
+) -> bool {
+    if !msg.data.has_query(query_id) {
+        log::info!("skipping message for another query");
+        return true;
+    }
+    let source_id = &msg.data.source_id;
+    let subscription = match subscriptions.get(source_id) {
+        Some(sub) => sub,
+        None => {
+            log::info!("skipping message for unknown source");
+            return true;
+        }
+    };
+
+    !msg.data
+        .include_in_partition(subscription, partition_id, partition_count)
 }

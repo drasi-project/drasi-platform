@@ -1,10 +1,13 @@
 use std::{error::Error, sync::Arc};
 
-use drasi_core::models::{
-    ElementMetadata, ElementReference, QuerySubscription, SourceChange,
-};
+use drasi_core::models::{ElementMetadata, ElementReference, SourceChange};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
+
+use crate::{
+    models::QuerySubscription,
+    partition_selector::{self, PartitionSelector},
+};
 
 #[derive(Debug)]
 pub struct SourceClient {
@@ -26,9 +29,12 @@ impl SourceClient {
         &self,
         query_container_id: &str,
         query_id: &str,
+        source_id: &str,
         subscription: &QuerySubscription,
+        partition_id: u64,
+        partition_count: u64,
     ) -> Result<Vec<SourceChange>, Box<dyn Error>> {
-        let app_id = format!("{}-query-api", subscription.id);
+        let app_id = format!("{}-query-api", source_id);
         let data = json!({
             "queryNodeId": query_container_id,
             "queryId": query_id,
@@ -49,7 +55,14 @@ impl SourceClient {
         match response {
             Ok(response) => {
                 let data: BootstrapEvents = response.json().await?;
-                Ok(data.into_source_changes(subscription.id.as_ref()))
+                Ok(
+                    data.into_source_changes(
+                        source_id,
+                        subscription,
+                        partition_id,
+                        partition_count,
+                    ),
+                )
             }
             Err(e) => Err(Box::new(e)),
         }
@@ -80,18 +93,26 @@ struct BootstrapRelation {
 }
 
 impl BootstrapEvents {
-    fn into_source_changes(self, source_id: &str) -> Vec<SourceChange> {
+    fn into_source_changes(
+        self,
+        source_id: &str,
+        subscription: &QuerySubscription,
+        partition_id: u64,
+        partition_count: u64,
+    ) -> Vec<SourceChange> {
         let mut changes = Vec::new();
 
         for node in self.nodes {
+            if !node.include_in_partition(subscription, partition_id, partition_count) {
+                continue;
+            }
             changes.push(SourceChange::Insert {
                 element: drasi_core::models::Element::Node {
                     metadata: ElementMetadata {
                         reference: ElementReference::new(source_id, &node.id),
                         labels: Arc::from(
-                            Vec::from_iter(
-                                node.labels.iter().map(|l| Arc::from(l.as_str()))
-                            ).into_boxed_slice()
+                            Vec::from_iter(node.labels.iter().map(|l| Arc::from(l.as_str())))
+                                .into_boxed_slice(),
                         ),
                         effective_from: 0,
                     },
@@ -101,14 +122,16 @@ impl BootstrapEvents {
         }
 
         for rel in self.rels {
+            if !rel.include_in_partition(subscription, partition_id, partition_count) {
+                continue;
+            }
             changes.push(SourceChange::Insert {
                 element: drasi_core::models::Element::Relation {
                     metadata: ElementMetadata {
                         reference: ElementReference::new(source_id, &rel.id),
                         labels: Arc::from(
-                            Vec::from_iter(
-                                rel.labels.iter().map(|l| Arc::from(l.as_str()))
-                            ).into_boxed_slice()
+                            Vec::from_iter(rel.labels.iter().map(|l| Arc::from(l.as_str())))
+                                .into_boxed_slice(),
                         ),
                         effective_from: 0,
                     },
@@ -120,5 +143,67 @@ impl BootstrapEvents {
         }
 
         changes
+    }
+}
+
+impl PartitionSelector for BootstrapNode {
+    fn include_in_partition(
+        &self,
+        subscription: &QuerySubscription,
+        partition_id: u64,
+        partition_count: u64,
+    ) -> bool {
+        for subscription_node in &subscription.nodes {
+            if self.labels.contains(&subscription_node.source_label) {
+                match &subscription_node.partition_key {
+                    Some(partition_key) => {
+                        match self.properties.get(partition_key) {
+                            Some(value) => {}
+                            None => return true,
+                        }
+                        if let Some(value) = self.properties.get(partition_key) {
+                            let value_partition_id =
+                                partition_selector::bucket_value(value, partition_count);
+                            if value_partition_id == partition_id {
+                                return true;
+                            }
+                        }
+                    }
+                    None => return true,
+                }
+            }
+        }
+        false
+    }
+}
+
+impl PartitionSelector for BootstrapRelation {
+    fn include_in_partition(
+        &self,
+        subscription: &QuerySubscription,
+        partition_id: u64,
+        partition_count: u64,
+    ) -> bool {
+        for subscription_node in &subscription.relations {
+            if self.labels.contains(&subscription_node.source_label) {
+                match &subscription_node.partition_key {
+                    Some(partition_key) => {
+                        match self.properties.get(partition_key) {
+                            Some(value) => {}
+                            None => return true,
+                        }
+                        if let Some(value) = self.properties.get(partition_key) {
+                            let value_partition_id =
+                                partition_selector::bucket_value(value, partition_count);
+                            if value_partition_id == partition_id {
+                                return true;
+                            }
+                        }
+                    }
+                    None => return true,
+                }
+            }
+        }
+        false
     }
 }

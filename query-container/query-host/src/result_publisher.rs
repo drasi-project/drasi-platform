@@ -25,8 +25,12 @@ impl ResultPublisher {
     }
 
     #[tracing::instrument(skip(self, data), err)]
-    pub async fn publish(&self, query_id: &str, data: ResultEvent) -> Result<(), Box<dyn Error>> {
-        let topic = format!("{}-results", query_id);
+    pub async fn publish(
+        &self,
+        result_stream_name: &str,
+        data: ResultEvent,
+    ) -> Result<(), Box<dyn Error>> {
+        let topic = format!("{}-results", result_stream_name);
         log::info!("Publishing {:#?}", data);
 
         let mut request = self

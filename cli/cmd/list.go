@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strings"
 
 	"drasi.io/cli/api"
 	"drasi.io/cli/service"
@@ -70,7 +71,15 @@ Example:
 					for k := 0; k < len(itemStatus); k++ {
 						statusFieldName := itemStatus[k].String()
 						statusFields[statusFieldName] = nil
-						item[statusFieldName] = fmt.Sprintf("%v", reflect.ValueOf(result[i].Status).MapIndex(itemStatus[k]).Elem())
+						val := reflect.ValueOf(result[i].Status).MapIndex(itemStatus[k])
+
+						switch val.Elem().Kind() {
+						case reflect.Slice:
+							item[statusFieldName] = buildSubTable(val.Elem())
+						default:
+							item[statusFieldName] = fmt.Sprintf("%v", val.Elem())
+
+						}
 					}
 				}
 				items = append(items, item)
@@ -101,4 +110,70 @@ Example:
 	}
 
 	return listCommand
+}
+
+func buildSubTable(data reflect.Value) string {
+
+	var fields = make(map[string]any)
+	var items []map[string]string
+
+	if data.Kind() != reflect.Slice {
+		return ""
+	}
+
+	for i := 0; i < data.Len(); i++ {
+
+		if data.Index(i).Elem().Kind() != reflect.Map {
+			continue
+		}
+
+		item := make(map[string]string)
+
+		fieldNames := data.Index(i).Elem().MapKeys()
+		for k := 0; k < len(fieldNames); k++ {
+			fieldName := fieldNames[k].String()
+			fields[fieldName] = nil
+			val := data.Index(i).Elem().MapIndex(fieldNames[k])
+			switch val.Elem().Kind() {
+			case reflect.Slice:
+				item[fieldName] = buildSubTable(val.Elem())
+			default:
+				switch val.Elem().Kind() {
+				case reflect.String:
+					item[fieldName] = fmt.Sprintf("%v", reflect.ValueOf(val.Elem()))
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					item[fieldName] = fmt.Sprintf("%d", val.Elem().Int())
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+					item[fieldName] = fmt.Sprintf("%d", val.Elem().Uint())
+				case reflect.Float32, reflect.Float64:
+					item[fieldName] = fmt.Sprintf("%g", val.Elem().Float())
+				case reflect.Bool:
+					item[fieldName] = fmt.Sprintf("%t", val.Elem().Bool())
+				}
+
+			}
+		}
+		items = append(items, item)
+	}
+	tableString := &strings.Builder{}
+	table := tablewriter.NewWriter(tableString)
+	headers := []string{}
+	for col := range fields {
+		headers = append(headers, col)
+	}
+	sort.Strings(headers)
+	table.SetHeader(headers)
+
+	for _, item := range items {
+		var row []string
+		for _, col := range headers {
+			row = append(row, item[col])
+		}
+		table.Append(row)
+	}
+
+	table.SetBorder(false)
+	table.Render()
+
+	return tableString.String()
 }

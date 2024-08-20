@@ -200,6 +200,7 @@ pub enum EndpointSetting {
 #[serde(rename_all = "camelCase")]
 pub struct QuerySourceLabel {
     pub source_label: String,
+    pub partition_key: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -249,6 +250,15 @@ pub struct QuerySpec {
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
+    pub partition: Option<QueryPartitionSpec>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryPartitionSpec {
+    pub id: u64,
+    pub count: u64,
+    pub result_stream: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -264,6 +274,7 @@ pub struct QuerySources {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryStatus {
+    pub partition: Option<u64>,
     pub host_name: String,
     pub status: String,
     pub container: String,

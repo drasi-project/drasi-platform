@@ -25,6 +25,7 @@ mod change_stream;
 mod future_consumer;
 mod index_factory;
 mod models;
+mod partition_selector;
 mod query_actor;
 mod query_worker;
 mod result_publisher;
