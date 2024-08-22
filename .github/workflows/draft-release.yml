@@ -1,0 +1,280 @@
+name: Draft Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version Tag'
+        required: true        
+
+permissions:
+  id-token: write # Required for requesting the JWT
+  contents: read  # Required for actions/checkout
+  packages: read
+
+env:
+  RELEASE_PATH: ./release
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Branch
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^(release)/ ]]; then
+            echo "Branch has the correct prefix."
+          else
+            echo "Branch does not have the correct prefix. Exiting..."
+            exit 1
+          fi
+
+  publish-ghcr:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag and push Docker images
+        run: |
+            IMAGE_NAMES=(
+                "query-container-query-host"
+                "query-container-publish-api"
+                "query-container-view-svc"
+                "api"
+                "kubernetes-provider"
+                
+                "source-change-router"
+                "source-change-dispatcher"
+                "source-query-api"
+                
+                "source-debezium-reactivator"
+                "source-sql-proxy"
+                "source-cosmosdb-reactivator"
+                "source-gremlin-proxy"      
+                "source-eventhub-reactivator"
+                "source-eventhub-proxy"
+                "source-dataverse-reactivator"
+                "source-dataverse-proxy"
+
+                "reaction-signalr"
+                "reaction-dataverse"
+                "reaction-debezium"
+                "reaction-debug"
+                "reaction-eventgrid"
+                "reaction-gremlin"
+                "reaction-result"
+                "reaction-storagequeue"
+                "reaction-storedproc"
+            )
+
+            for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
+                REPO=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+
+                docker pull $REPO:${{ github.sha }}
+                docker tag $REPO:${{ github.sha }} $REPO:${{ inputs.tag }}
+                docker push $REPO:${{ inputs.tag }}
+            done
+    
+      - name: Logout from GitHub Container Registry
+        run: docker logout ghcr.io
+
+  publish-acr:
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: 
+      name: github-actions
+    strategy:
+      matrix:
+        image:
+          - "query-container-query-host"
+          - "query-container-publish-api"
+          - "query-container-view-svc"
+          - "api"
+          - "kubernetes-provider"
+          - "source-change-router"
+          - "source-change-dispatcher"
+          - "source-query-api"
+          - "source-debezium-reactivator"
+          - "source-sql-proxy"
+          - "source-cosmosdb-reactivator"
+          - "source-gremlin-proxy"
+          - "source-eventhub-reactivator"
+          - "source-eventhub-proxy"
+          - "source-dataverse-reactivator"
+          - "source-dataverse-proxy"
+          - "reaction-signalr"
+          - "reaction-dataverse"
+          - "reaction-debezium"
+          - "reaction-debug"
+          - "reaction-eventgrid"
+          - "reaction-gremlin"
+          - "reaction-result"
+          - "reaction-storagequeue"
+          - "reaction-storedproc"
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull from ghcr
+        run: |
+          REPO=ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+
+          docker pull $REPO:${{ github.sha }}
+          docker tag $REPO:${{ github.sha }} drasi.azurecr.io/drasi-project/${{ matrix.image }}:${{ inputs.tag }}
+          docker logout
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Push to ACR
+        run: |
+          az acr login --name drasi
+          docker push drasi.azurecr.io/drasi-project/${{ matrix.image }}:${{ inputs.tag }}
+
+  
+  build-cli:
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Build
+        working-directory: cli
+        run: make VERSION='${{ inputs.tag }}'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli
+          path: cli/bin
+
+  package-cli:
+    needs: build-cli
+    runs-on: ubuntu-latest
+    name: Publish ${{ matrix.os }}_${{ matrix.arch }} binaries
+    environment: 
+      name: github-actions
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: arm64
+          - os: linux
+            arch: x64
+          - os: darwin
+            arch: arm64
+          - os: darwin
+            arch: x64
+          - os: windows
+            arch: x64
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: cli
+      - name: Copy cli binaries to release (non-windows)
+        if: matrix.os != 'windows'
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/cli/${{ matrix.os }}-${{ matrix.arch }}/
+          cp -r ${{ matrix.os }}-${{ matrix.arch }}/drasi ${{ env.RELEASE_PATH}}/drasi-${{ matrix.os }}-${{ matrix.arch }}
+      - name: Copy cli binaries to release (non-windows)
+        if: matrix.os == 'windows'
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/cli/${{ matrix.os }}-${{ matrix.arch }}/
+          cp -r ${{ matrix.os }}-${{ matrix.arch }}/drasi.exe ${{ env.RELEASE_PATH}}/drasi-${{ matrix.os }}-${{ matrix.arch }}.exe
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        with:
+          name: drasi_${{ matrix.os }}_${{ matrix.arch }}
+          path: ${{ env.RELEASE_PATH}}
+
+  vscode-extension:
+    name: Build and publish the VSCode extension
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: 
+      name: github-actions
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Building the extension
+        run: |
+          cd dev-tools/vscode/drasi
+          npm install -g @vscode/vsce 
+          npm install
+          npm version ${{ inputs.tag }}
+          vsce package
+      - name: Copy the extension to release
+        run: |
+          mkdir -p ${{ env.RELEASE_PATH}}/vscode-extension/
+          cp dev-tools/vscode/drasi/drasi-*.vsix ${{ env.RELEASE_PATH}}
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        with:
+          name: drasi_vscode_extension
+          path: ${{ env.RELEASE_PATH}}
+   
+  release:
+    permissions: write-all
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    name: Draft Release
+    needs:
+      - validate
+      - publish-ghcr
+      - publish-acr
+      - package-cli      
+      - vscode-extension
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download CLI release
+        uses: actions/download-artifact@v4
+        with:
+          pattern: drasi_*
+          merge-multiple: true
+          path: ${{ env.RELEASE_PATH }}
+
+      - name: Download vscode release
+        uses: actions/download-artifact@v4
+        with:
+          name: drasi_vscode_extension
+          merge-multiple: true
+          path: ${{ env.RELEASE_PATH }}
+
+      - name: Draft Release
+        run: |
+          gh release create ${{ inputs.tag }} ${{ env.RELEASE_PATH }}/* --draft --title ${{ inputs.tag }} --target ${{ github.ref_name }} --generate-notes 
