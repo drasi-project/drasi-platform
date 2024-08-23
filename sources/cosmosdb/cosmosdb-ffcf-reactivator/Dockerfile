@@ -9,7 +9,7 @@ COPY . ./
 RUN dotnet publish -o out
 
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/runtime:6.0
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/runtime@sha256:437cda84bdce26ce074d88b63abeec567c7226d73e8b911605077468e1d5c8d5
 
 WORKDIR /app
 COPY --from=build-env /app/out .
