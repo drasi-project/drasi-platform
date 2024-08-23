@@ -1,34 +1,33 @@
-use super::{ResourceDomainService, ResourceDomainServiceImpl};
+use super::{ExtensibleResourceDomainServiceImpl, ExtensibleSpecValidator, ResourceDomainService};
 use crate::{
     domain::models::{
-        ConfigValue, DomainError, Endpoint, EndpointSetting, InlineValue, Service, SourceSpec,
-        SourceStatus,
+        ConfigValue, DomainError, Endpoint, EndpointSetting, InlineValue, ReactionSpec,
+        ReactionStatus, Service,
     },
-    persistence::SourceRepository,
-    SpecValidator,
+    persistence::ReactionRepository,
 };
+
+use async_trait::async_trait;
 use dapr::client::TonicClient;
 use jsonschema::JSONSchema;
 use serde_json::Value;
 use std::collections::HashMap;
-
-use async_trait::async_trait;
-pub type SourceDomainService = dyn ResourceDomainService<SourceSpec, SourceStatus>;
-pub type SourceDomainServiceImpl = ResourceDomainServiceImpl<
-    SourceSpec,
-    SourceStatus,
-    resource_provider_api::models::SourceSpec,
-    resource_provider_api::models::SourceStatus,
+pub type ReactionDomainService = dyn ResourceDomainService<ReactionSpec, ReactionStatus>;
+pub type ReactionDomainServiceImpl = ExtensibleResourceDomainServiceImpl<
+    ReactionSpec,
+    ReactionStatus,
+    resource_provider_api::models::ReactionSpec,
+    resource_provider_api::models::ReactionStatus,
 >;
 
-impl SourceDomainServiceImpl {
-    pub fn new(dapr_client: dapr::Client<TonicClient>, repo: Box<SourceRepository>) -> Self {
-        SourceDomainServiceImpl {
+impl ReactionDomainServiceImpl {
+    pub fn new(dapr_client: dapr::Client<TonicClient>, repo: Box<ReactionRepository>) -> Self {
+        ReactionDomainServiceImpl {
             dapr_client,
             repo: repo,
-            actor_type: |_spec| "SourceResource".to_string(),
+            actor_type: |_spec| "ReactionResource".to_string(),
             ready_check: |status| status.available,
-            validators: vec![Box::new(SourceSpecValidator {})],
+            validators: vec![Box::new(ReactionSpecValidator {})],
             retrieve_current_kind: |spec| Some(spec.kind.clone()),
             populate_default_values: |properties, schema_data| {
                 populate_default_values(properties, schema_data)
@@ -41,19 +40,21 @@ impl SourceDomainServiceImpl {
     }
 }
 
-struct SourceSpecValidator {}
+struct ReactionSpecValidator {}
 
 #[async_trait]
-impl SpecValidator<SourceSpec> for SourceSpecValidator {
-    // Validate the `config_schema` and `services.service.config_schema` sections
-    async fn validate(&self, spec: &SourceSpec, schema: &Option<Value>) -> Result<(), DomainError> {
-        let kind = spec.kind.clone();
+impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
+    async fn validate(
+        &self,
+        spec: &ReactionSpec,
+        schema: &Option<serde_json::Value>,
+    ) -> Result<(), DomainError> {
         let schema = match schema {
             Some(schema) => schema,
             None => {
                 return Err(DomainError::Invalid {
-                    message: format!("Schema for kind {} not found", kind),
-                });
+                    message: format!("Schema not found"),
+                })
             }
         };
 
@@ -78,45 +79,42 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
             let mut new_spec_properties = serde_json::Map::new();
             for (key, value) in source_properties {
                 let value = match value {
-                    Some(value) => match value {
-                        ConfigValue::Inline { value } => match value {
-                            InlineValue::String { value } => serde_json::Value::String(value),
-                            InlineValue::Integer { value } => {
-                                serde_json::Value::Number(serde_json::Number::from(value))
-                            }
-                            InlineValue::Boolean { value } => serde_json::Value::Bool(value),
-                            InlineValue::List { value } => {
-                                let mut new_sequence = Vec::new();
-                                for val in value {
-                                    let val = match val {
-                                        ConfigValue::Secret { name, key: _ } => {
-                                            serde_json::Value::String(name)
+                    ConfigValue::Inline { value } => match value {
+                        InlineValue::String { value } => serde_json::Value::String(value),
+                        InlineValue::Integer { value } => {
+                            serde_json::Value::Number(serde_json::Number::from(value))
+                        }
+                        InlineValue::Boolean { value } => serde_json::Value::Bool(value),
+                        InlineValue::List { value } => {
+                            let mut new_sequence = Vec::new();
+                            for val in value {
+                                let val = match val {
+                                    ConfigValue::Secret { name, key: _ } => {
+                                        serde_json::Value::String(name)
+                                    }
+                                    ConfigValue::Inline { value } => match value {
+                                        InlineValue::String { value } => {
+                                            serde_json::Value::String(value)
                                         }
-                                        ConfigValue::Inline { value } => match value {
-                                            InlineValue::String { value } => {
-                                                serde_json::Value::String(value)
-                                            }
-                                            InlineValue::Integer { value } => {
-                                                serde_json::Value::Number(serde_json::Number::from(
-                                                    value,
-                                                ))
-                                            }
-                                            InlineValue::Boolean { value } => {
-                                                serde_json::Value::Bool(value)
-                                            }
-                                            InlineValue::List { value } => {
-                                                serde_json::Value::Array(Vec::new())
-                                            }
-                                        },
-                                    };
-                                    new_sequence.push(val);
-                                }
-                                serde_json::Value::Array(new_sequence)
+                                        InlineValue::Integer { value } => {
+                                            serde_json::Value::Number(serde_json::Number::from(
+                                                value,
+                                            ))
+                                        }
+                                        InlineValue::Boolean { value } => {
+                                            serde_json::Value::Bool(value)
+                                        }
+                                        InlineValue::List { value } => {
+                                            serde_json::Value::Array(Vec::new())
+                                        }
+                                    },
+                                };
+                                new_sequence.push(val);
                             }
-                        },
-                        ConfigValue::Secret { name, key: _ } => serde_json::Value::String(name),
+                            serde_json::Value::Array(new_sequence)
+                        }
                     },
-                    None => serde_json::Value::Null,
+                    ConfigValue::Secret { name, key: _ } => serde_json::Value::String(name),
                 };
                 new_spec_properties.insert(key, value);
             }
@@ -157,7 +155,10 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
                 continue;
             }
 
-            let service_config_schema = service_config_schema.unwrap();
+            let service_config_schema = match service_config_schema {
+                Some(service_config_schema) => service_config_schema,
+                None => continue,
+            };
 
             let validation = JSONSchema::compile(service_config_schema).unwrap();
 
@@ -223,7 +224,7 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
                     println!("Instance path: {}", error.instance_path);
                     return Err(DomainError::Invalid {
                         message: format!(
-                            "Invalid source spec: {}; error path: {}",
+                            "Invalid reaction spec: {}; error path: {}",
                             error, error.instance_path
                         ),
                     });
@@ -235,14 +236,14 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
 }
 
 fn populate_default_values(
-    source: &SourceSpec,
+    source: &ReactionSpec,
     schema_json: Value,
-) -> Result<SourceSpec, DomainError> {
+) -> Result<ReactionSpec, DomainError> {
     let mut properties = match source.properties {
         Some(ref properties) => properties.clone(),
         None => HashMap::new(),
     };
-    // Retrieve the 'properties' field from the schema
+
     if let Some(schema_properties) = schema_json.get("config_schema") {
         let schema_properties = schema_properties.as_object().unwrap();
 
@@ -296,7 +297,7 @@ fn populate_default_values(
                     }
                     _ => continue,
                 };
-                properties.insert(key.clone(), Some(default_value));
+                properties.insert(key.clone(), default_value);
             }
         }
     }
@@ -306,7 +307,6 @@ fn populate_default_values(
         None => HashMap::new(),
     };
 
-    // Traverse through the services and populate the default values
     if let Some(schema_services) = schema_json.get("services") {
         let schema_services = schema_services.as_object().unwrap();
         for (service_name, service_config) in schema_services {
@@ -414,29 +414,38 @@ fn populate_default_values(
                                     },
                                 },
                                 Value::Bool(b) => ConfigValue::Inline {
-                                    value: InlineValue::String {
-                                        value: b.to_string(),
-                                    },
+                                    value: InlineValue::Boolean { value: *b },
                                 },
                                 Value::Number(n) => ConfigValue::Inline {
-                                    value: InlineValue::String {
-                                        value: n.as_i64().unwrap().to_string(),
+                                    value: InlineValue::Integer {
+                                        value: n.as_i64().unwrap(),
                                     },
                                 },
                                 Value::Array(a) => {
                                     let mut new_sequence = Vec::new();
                                     for val in a {
                                         let val = match val {
-                                            Value::String(s) => s.to_string(),
-                                            Value::Bool(b) => b.to_string(),
-                                            Value::Number(n) => n.as_i64().unwrap().to_string(),
+                                            Value::String(s) => ConfigValue::Inline {
+                                                value: InlineValue::String {
+                                                    value: s.to_string(),
+                                                },
+                                            },
+                                            Value::Bool(b) => ConfigValue::Inline {
+                                                value: InlineValue::Boolean { value: *b },
+                                            },
+                                            Value::Number(n) => ConfigValue::Inline {
+                                                value: InlineValue::Integer {
+                                                    value: n.as_i64().unwrap(),
+                                                },
+                                            },
                                             _ => continue,
                                         };
                                         new_sequence.push(val);
                                     }
-                                    let list = new_sequence.join(",");
                                     ConfigValue::Inline {
-                                        value: InlineValue::String { value: list },
+                                        value: InlineValue::List {
+                                            value: new_sequence,
+                                        },
                                     }
                                 }
                                 _ => continue,
@@ -448,8 +457,6 @@ fn populate_default_values(
                 }
                 None => None,
             };
-
-            println!("service_properties: {:?}", service_properties);
 
             let endpoints = match service_config_map.get("endpoints") {
                 Some(endpoints) => {
@@ -537,14 +544,15 @@ fn populate_default_values(
                 dapr: dapr,
                 properties: service_properties,
             };
-
             services.insert(service_name.clone(), Some(new_service));
         }
     }
 
-    Ok(SourceSpec {
+    Ok(ReactionSpec {
         kind: source.kind.clone(),
-        properties: Some(properties),
+        tag: source.tag.clone(),
         services: Some(services),
+        properties: Some(properties),
+        queries: source.queries.clone(),
     })
 }
