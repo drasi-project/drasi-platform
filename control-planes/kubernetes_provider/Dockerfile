@@ -12,7 +12,7 @@ RUN cargo fetch
 COPY ./kubernetes_provider .
 RUN cargo install --force --path .
 
-FROM gcr.io/distroless/cc@sha256:55a5e011b2c4246b4c51e01fcc2b452d151e03df052e357465f0392fcd59fddf
+FROM gcr.io/distroless/cc-debian11@sha256:55a5e011b2c4246b4c51e01fcc2b452d151e03df052e357465f0392fcd59fddf
 # gcr.io/distroless/cc-debian11
 COPY --from=builder /usr/local/cargo/bin/kubernetes_provider /usr/local/bin/kubernetes_provider
 CMD ["kubernetes_provider"]
