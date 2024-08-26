@@ -47,15 +47,25 @@ Using Homebrew:
 brew install make
 ```
 
-### Enable Git Hooks
+### Repo Setup
 
-We use pre-commit hooks to catch some issues early, enable the local git hooks using the following commands
+1. Fork the repo
+1. Clone the repo
+    ```
+    git clone <your fork>
+    ```
+1. Initialize and update submodules (This is how the Query Host consumes `drasi-core`)
+     ```
+     git submodule init
+     git submodule update
+     ```
+1. Enable Git Hooks
+    We use pre-commit hooks to catch some issues early, enable the local git hooks using the following commands
 
-```
-chmod +x .githooks/pre-commit
-git config core.hooksPath .githooks
-```
-
+    ```
+    chmod +x .githooks/pre-commit
+    git config core.hooksPath .githooks
+    ```
 ### Additional tools
 
 The following tools are required depending on the task at hand.
