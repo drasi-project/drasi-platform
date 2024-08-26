@@ -7,8 +7,8 @@ COPY . .
 WORKDIR /usr/src
 RUN cargo install --path .
 
-FROM gcr.io/distroless/cc@sha256:3b75fdd33932d16e53a461277becf57c4f815c6cee5f6bc8f52457c095e004c8
-# gcr.io/distroless/cc 
+FROM gcr.io/distroless/cc@sha256:55a5e011b2c4246b4c51e01fcc2b452d151e03df052e357465f0392fcd59fddf
+# gcr.io/distroless/cc-debian11
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
 CMD ["query-host"]
