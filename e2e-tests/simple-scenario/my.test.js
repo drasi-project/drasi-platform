@@ -14,8 +14,8 @@ let dbPortForward = new PortForward("postgres", 5432);
 let dbClient = new pg.Client({
   database: "test-db",
   host: "127.0.0.1",
-  user: "test",
-  password: "test",
+  user: "MyUser",
+  password: "MyPassword",
 });
 
 beforeAll(async () => {

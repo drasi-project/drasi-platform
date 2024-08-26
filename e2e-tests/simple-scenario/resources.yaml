@@ -24,8 +24,8 @@ metadata:
     app: postgres
 data:
   POSTGRES_DB: test-db
-  POSTGRES_USER: test
-  POSTGRES_PASSWORD: test
+  POSTGRES_USER: MyUser
+  POSTGRES_PASSWORD: MyPassword
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -79,8 +79,8 @@ spec:
   properties:
     host: postgres.default.svc.cluster.local
     port: 5432
-    user: test
-    password: test
+    user: MyUser
+    password: MyPassword
     database: test-db
     ssl: false
     tables:
