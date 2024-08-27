@@ -24,7 +24,7 @@ metadata:
     app: postgres
 data:
   POSTGRES_DB: test-db
-  POSTGRES_USER: MyUser
+  POSTGRES_USER: SampleToken
   POSTGRES_PASSWORD: MyPassword
 ---
 apiVersion: apps/v1
@@ -79,7 +79,7 @@ spec:
   properties:
     host: postgres.default.svc.cluster.local
     port: 5432
-    user: MyUser
+    user: SampleToken
     password: MyPassword
     database: test-db
     ssl: false
