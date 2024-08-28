@@ -16,10 +16,12 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build-query-container:
+    permissions:
+      packages: write
+      contents: read
     runs-on: ubuntu-latest
 
     steps:
@@ -82,7 +84,9 @@ jobs:
 
   build-control-plane:
     runs-on: ubuntu-latest
-
+    permissions:
+      packages: write
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -128,6 +132,9 @@ jobs:
 
   build-sources:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
     strategy:
       matrix:
         component: [
@@ -244,6 +251,9 @@ jobs:
           push: true
 
   build-reactions:
+    permissions:
+      packages: write
+      contents: read
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -343,6 +353,9 @@ jobs:
           push: true
 
   build-cli:
+    permissions:
+      packages: write
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -374,6 +387,9 @@ jobs:
           path: cli/bin
 
   e2e-tests:
+    permissions:
+      packages: write
+      contents: read
     runs-on: e2e-tester
     needs: 
       - build-query-container
@@ -453,6 +469,9 @@ jobs:
         run: npm test
 
   cleanup:
+    permissions:
+      packages: write
+      contents: read
     runs-on: ubuntu-latest
     if: failure()
     needs: 

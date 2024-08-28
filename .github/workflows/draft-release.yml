@@ -29,7 +29,9 @@ jobs:
           fi
 
   publish-ghcr:
-    permissions: write-all
+    permissions:
+      packages: write
+      contents: read
     runs-on: ubuntu-latest
     needs: validate
     steps:
