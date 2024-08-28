@@ -246,7 +246,9 @@ jobs:
           path: ${{ env.RELEASE_PATH}}
    
   release:
-    permissions: write-all
+    permissions:
+      contents: write
+      packages: read  
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     name: Draft Release
