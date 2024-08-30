@@ -11,7 +11,11 @@ impl Into<HttpResponse> for DomainError {
             DomainError::Invalid { message } => HttpResponse::BadRequest().body(message),
             DomainError::QueryContainerOffline => {
                 HttpResponse::ServiceUnavailable().body("Query container is offline")
-            }
+            },
+            DomainError::UndefinedSetting { message } => {
+                HttpResponse::BadRequest().body(message)
+            },
+            DomainError::InvalidSpec { message } => HttpResponse::BadRequest().body(message),
             _ => HttpResponse::InternalServerError().body("Internal server error"),
         }
     }

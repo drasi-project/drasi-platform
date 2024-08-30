@@ -262,4 +262,14 @@ pub enum DomainError {
 
     #[error("Internal: {inner}")]
     Internal { inner: Box<dyn std::error::Error> },
+
+    #[error("UndefinedSetting: {message}")]
+    UndefinedSetting {
+        message: String,
+    },
+
+    #[error("InvalidSpec: {message}")]
+    InvalidSpec {
+        message: String,
+    },
 }

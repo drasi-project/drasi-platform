@@ -51,7 +51,7 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
         let schema = match schema {
             Some(schema) => schema,
             None => {
-                return Err(DomainError::Invalid {
+                return Err(DomainError::InvalidSpec {
                     message: format!("Schema for kind {} not found", kind),
                 });
             }
@@ -65,8 +65,8 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
         let schema_services = match schema.get("services") {
             Some(service) => service,
             None => {
-                return Err(DomainError::Invalid {
-                    message: format!("Invalid source schema"),
+                return Err(DomainError::InvalidSpec {
+                    message: format!("unable to retrieve the services for kind {}", kind),
                 })
             }
         };
@@ -128,7 +128,7 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
                 for error in errors {
                     println!("Validation error: {}", error);
                     println!("Instance path: {}", error.instance_path);
-                    return Err(DomainError::Invalid {
+                    return Err(DomainError::InvalidSpec {
                         message: format!(
                             "Invalid source spec: {}; error path: {}",
                             error, error.instance_path
@@ -138,15 +138,32 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
             }
         }
 
-        let schema_services = schema_services.as_object().unwrap();
+        let schema_services = match schema_services.as_object() {
+            Some(services) => services,
+            None => {
+                return Err(DomainError::InvalidSpec {
+                    message: format!("Invalid source schema"),
+                })
+            }
+        };
+        let defined_services: Vec<String> = schema_services.keys().map(|s| s.clone()).collect();
         let services = match spec.services.clone() {
             Some(services) => services,
             None => {
-                return Err(DomainError::Invalid {
+                return Err(DomainError::InvalidSpec {
                     message: format!("Services not defined"),
                 })
             }
         };
+        // Check if the services defined in the source spec are defined in the schema
+        for (service_name, service_settings) in &services {
+            if !defined_services.contains(&service_name) {
+                println!("Service {} not defined in the schema", service_name);
+                return Err(DomainError::UndefinedSetting {
+                    message: format!("Service {} not defined in the schema", service_name),
+                });
+            }
+        }
         for (service_name, service_properties) in schema_services {
             let service_config_schema = match service_properties.get("config_schema") {
                 Some(service_config_schema) => Some(service_config_schema),
@@ -219,9 +236,7 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
 
             if let Err(errors) = result {
                 for error in errors {
-                    println!("Validation error: {}", error);
-                    println!("Instance path: {}", error.instance_path);
-                    return Err(DomainError::Invalid {
+                    return Err(DomainError::InvalidSpec {
                         message: format!(
                             "Invalid source spec: {}; error path: {}",
                             error, error.instance_path
@@ -309,10 +324,12 @@ fn populate_default_values(
     // Traverse through the services and populate the default values
     if let Some(schema_services) = schema_json.get("services") {
         let schema_services = schema_services.as_object().unwrap();
+        // Traverse through all of the services that are defined in the schema
         for (service_name, service_config) in schema_services {
             let service_config_map = service_config.as_object().unwrap();
 
-            // if service is none, then create a new service
+            // check to see if this service is defined in the source spec (yaml file)
+            
             let curr_service = match services.get(service_name) {
                 Some(service) => match service {
                     Some(service) => service.clone(),
@@ -323,7 +340,7 @@ fn populate_default_values(
                         dapr: None,
                         properties: None,
                     },
-                },
+                }
                 _ => Service {
                     replica: None,
                     image: None,
@@ -477,20 +494,20 @@ fn populate_default_values(
                                         ConfigValue::Inline { value } => match value {
                                             InlineValue::String { value } => value.clone(),
                                             InlineValue::Integer { value } => value.to_string(),
-                                            _ => return Err(DomainError::Invalid {
-                                                message: format!("Invalid endpoint value"),
+                                            _ => return Err(DomainError::InvalidSpec {
+                                                message: format!("Invalid endpoint value; expected string or integer"),
                                             }),
                                         }
-                                        _ => return Err(DomainError::Invalid {
-                                            message: format!("Invalid endpoint value"),
+                                        _ => return Err(DomainError::InvalidSpec {
+                                            message: format!("Invalid endpoint value; expected string or integere"),
                                         }),
                                     },
-                                    None => return Err(DomainError::Invalid {
+                                    None => return Err(DomainError::InvalidSpec {
                                         message: format!("Unable to retrieve the target port; {} is not defined", target),
                                     }),
                                 }
                             },
-                            None => return Err(DomainError::Invalid {
+                            None => return Err(DomainError::InvalidSpec {
                                 message: format!("Unable to retrieve the target port as the properties are not defined"),
                             }),
                         };
@@ -501,8 +518,8 @@ fn populate_default_values(
                                     "internal" => EndpointSetting::Internal,
                                     "external" => EndpointSetting::External,
                                     _ => {
-                                        return Err(DomainError::Invalid {
-                                            message: format!("Invalid endpoint setting"),
+                                        return Err(DomainError::InvalidSpec {
+                                            message: format!("Invalid endpoint setting; expected \'internal\' or \'external\'"),
                                         })
                                     }
                                 }
@@ -517,15 +534,18 @@ fn populate_default_values(
                 None => None,
             };
 
+            // retrieve the image value from the schema
             let image = match service_config_map.get("image") {
                 Some(image) => match image {
                     Value::String(s) => Some(s.clone()),
                     Value::Number(s) => Some(s.to_string()),
-                    _ => None,
+                    _ => return Err (DomainError::InvalidSpec {
+                        message: format!("Invalid image value"),
+                    }),
                 },
                 None => {
-                    return Err(DomainError::Invalid {
-                        message: format!("Image not defined"),
+                    return Err(DomainError::InvalidSpec {
+                        message: format!("Image not defined for service {}", service_name),
                     })
                 }
             };

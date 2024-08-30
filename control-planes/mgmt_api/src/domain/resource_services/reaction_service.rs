@@ -54,8 +54,8 @@ impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
         let schema = match schema {
             Some(schema) => schema,
             None => {
-                return Err(DomainError::Invalid {
-                    message: format!("Schema not found"),
+                return Err(DomainError::InvalidSpec {
+                    message: format!("Reaction kind {} not found", kind),
                 })
             }
         };
@@ -70,8 +70,8 @@ impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
         let schema_services = match schema.get("services") {
             Some(service) => service,
             None => {
-                return Err(DomainError::Invalid {
-                    message: format!("Invalid source schema"),
+                return Err(DomainError::InvalidSpec {
+                    message: format!("Invalid reaction schema"),
                 })
             }
         };
@@ -128,11 +128,9 @@ impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
 
             if let Err(errors) = result {
                 for error in errors {
-                    println!("Validation error: {}", error);
-                    println!("Instance path: {}", error.instance_path);
-                    return Err(DomainError::Invalid {
+                    return Err(DomainError::InvalidSpec {
                         message: format!(
-                            "Invalid source spec: {}; error path: {}",
+                            "Invalid reaction spec: {}; error path: {}",
                             error, error.instance_path
                         ),
                     });
@@ -144,8 +142,8 @@ impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
         let services = match spec.services.clone() {
             Some(services) => services,
             None => {
-                return Err(DomainError::Invalid {
-                    message: format!("Services not defined"),
+                return Err(DomainError::InvalidSpec {
+                    message: format!("reaction service are not defined for reaction {}", kind),
                 })
             }
         };
@@ -224,9 +222,7 @@ impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
 
             if let Err(errors) = result {
                 for error in errors {
-                    println!("Validation error: {}", error);
-                    println!("Instance path: {}", error.instance_path);
-                    return Err(DomainError::Invalid {
+                    return Err(DomainError::InvalidSpec {
                         message: format!(
                             "Invalid reaction spec: {}; error path: {}",
                             error, error.instance_path
@@ -313,6 +309,14 @@ fn populate_default_values(
 
     if let Some(schema_services) = schema_json.get("services") {
         let schema_services = schema_services.as_object().unwrap();
+        let defined_services: Vec<String> = schema_services.keys().map(|s| s.clone()).collect();
+        for (service_name, service_settings) in &services {
+            if !defined_services.contains(&service_name) {
+                return Err(DomainError::UndefinedSetting {
+                    message: format!("Service {} not defined in the schema", service_name),
+                });
+            }
+        }
         for (service_name, service_config) in schema_services {
             let service_config_map = service_config.as_object().unwrap();
 
@@ -488,21 +492,21 @@ fn populate_default_values(
                                         ConfigValue::Inline { value } => match value {
                                             InlineValue::String { value } => value.clone(),
                                             InlineValue::Integer { value } => value.to_string(),
-                                            _ => return Err(DomainError::Invalid {
-                                                message: format!("Invalid endpoint value"),
+                                            _ => return Err(DomainError::InvalidSpec {
+                                                message: format!("Invalid endpoint value; endpoint target must be a string or integer"),
                                             }),
                                         }
-                                        _ => return Err(DomainError::Invalid {
-                                            message: format!("Invalid endpoint value"),
+                                        _ => return Err(DomainError::InvalidSpec {
+                                            message: format!("Invalid endpoint value; endpoint target must be a string or integer"),
                                         }),
                                     },
-                                    None => return Err(DomainError::Invalid {
+                                    None => return Err(DomainError::InvalidSpec {
                                         message: format!("Unable to retrieve the target port; {} is not defined", target),
                                     }),
                                 }
                             },
-                            None => return Err(DomainError::Invalid {
-                                message: format!("Unable to retrieve the target port as the properties are not defined"),
+                            None => return Err(DomainError::InvalidSpec {
+                                message: format!("target port is not defined"),
                             }),
                         };
 
@@ -512,8 +516,8 @@ fn populate_default_values(
                                     "internal" => EndpointSetting::Internal,
                                     "external" => EndpointSetting::External,
                                     _ => {
-                                        return Err(DomainError::Invalid {
-                                            message: format!("Invalid endpoint setting"),
+                                        return Err(DomainError::InvalidSpec {
+                                            message: format!("Invalid endpoint setting; endpoint setting must be either internal or external"),
                                         })
                                     }
                                 }
@@ -532,10 +536,12 @@ fn populate_default_values(
                 Some(image) => match image {
                     Value::String(s) => Some(s.clone()),
                     Value::Number(s) => Some(s.to_string()),
-                    _ => None,
+                    _ => return Err(DomainError::InvalidSpec {
+                        message: format!("Invalid image value"),
+                    }),
                 },
                 None => {
-                    return Err(DomainError::Invalid {
+                    return Err(DomainError::InvalidSpec {
                         message: format!("Image not defined"),
                     })
                 }
@@ -550,6 +556,10 @@ fn populate_default_values(
             };
             services.insert(service_name.clone(), Some(new_service));
         }
+    } else {
+        return Err(DomainError::InvalidSpec {
+            message: format!("Invalid reaction schema"),
+        });
     }
 
     Ok(ReactionSpec {
