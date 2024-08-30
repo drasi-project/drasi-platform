@@ -313,7 +313,7 @@ fn populate_default_values(
         for (service_name, service_settings) in &services {
             if !defined_services.contains(&service_name) {
                 return Err(DomainError::UndefinedSetting {
-                    message: format!("Service {} not defined in the schema", service_name),
+                    message: format!("Service {} is not defined in the schema", service_name),
                 });
             }
         }
