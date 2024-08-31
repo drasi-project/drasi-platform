@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"drasi.io/cli/api"
@@ -22,6 +23,10 @@ func NewDeleteCommand() *cobra.Command {
 				return err
 			}
 
+			if len(*manifests) == 0 {
+				return errors.New("no manifests found. Did you forget to specify the '-f' flag")
+			}
+
 			var namespace string
 			if namespace, err = cmd.Flags().GetString("namespace"); err != nil {
 				return err
@@ -32,7 +37,10 @@ func NewDeleteCommand() *cobra.Command {
 				namespace = cfg.DrasiNamespace
 			}
 
-			client := service.MakeApiClient(namespace)
+			client, err := service.MakeApiClient(namespace)
+			if err != nil {
+				return err
+			}
 			defer client.Close()
 			results := make(chan service.StatusUpdate)
 			go client.Delete(manifests, results)

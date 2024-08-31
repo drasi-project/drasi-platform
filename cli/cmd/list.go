@@ -52,7 +52,10 @@ Example:
 				namespace = cfg.DrasiNamespace
 			}
 
-			client := service.MakeApiClient(namespace)
+			client, err := service.MakeApiClient(namespace)
+			if err != nil {
+				return err
+			}
 			defer client.Close()
 
 			if result, err = client.ListResources(args[0]); err != nil {

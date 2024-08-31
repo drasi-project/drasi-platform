@@ -1,14 +1,14 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
 
 	"drasi.io/cli/api"
 	"drasi.io/cli/service"
 	"github.com/spf13/cobra"
 )
 
-func NewWaitCommand() *cobra.Command {
+func NewWaitCommand(output *os.File) *cobra.Command {
 	var waitCommand = &cobra.Command{
 		Use:   "wait (-f [files] | KIND NAME)",
 		Short: "Wait for resources to be ready",
@@ -37,13 +37,13 @@ func NewWaitCommand() *cobra.Command {
 				namespace = cfg.DrasiNamespace
 			}
 
-			client := service.MakeApiClient(namespace)
-			defer client.Close()
-			results := make(chan service.StatusUpdate)
-			go client.ReadyWait(manifests, timeout, results)
-			for r := range results {
-				fmt.Println(r.Subject + ": " + r.Message)
+			client, err := service.MakeApiClient(namespace)
+			if err != nil {
+				return err
 			}
+			defer client.Close()
+
+			client.ReadyWait(manifests, timeout, output)
 
 			return nil
 		},

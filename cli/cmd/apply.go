@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"drasi.io/cli/api"
 	"drasi.io/cli/service"
 	"github.com/spf13/cobra"
 )
 
-func NewApplyCommand() *cobra.Command {
+func NewApplyCommand(output *os.File) *cobra.Command {
 	var applyCommand = &cobra.Command{
 		Use:   "apply -f [files]",
 		Short: "Apply resources",
@@ -19,7 +20,13 @@ func NewApplyCommand() *cobra.Command {
 			var manifests *[]api.Manifest
 
 			if manifests, err = loadManifests(cmd, args); err != nil {
-				return err
+				output.WriteString(fmt.Sprintf("Error reading manifest: %v\n", err.Error()))
+				return nil
+			}
+
+			if len(*manifests) == 0 {
+				output.WriteString(fmt.Sprintf("no manifests found. Did you forget to specify the '-f' flag\n"))
+				return nil
 			}
 
 			var namespace string
@@ -33,13 +40,13 @@ func NewApplyCommand() *cobra.Command {
 				namespace = cfg.DrasiNamespace
 			}
 
-			client := service.MakeApiClient(namespace)
-			defer client.Close()
-			results := make(chan service.StatusUpdate)
-			go client.Apply(manifests, results)
-			for r := range results {
-				fmt.Println(r.Subject + ": " + r.Message)
+			client, err := service.MakeApiClient(namespace)
+			if err != nil {
+				return err
 			}
+			defer client.Close()
+
+			client.Apply(manifests, output)
 
 			return nil
 		},

@@ -2,18 +2,20 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var RootCommand = &cobra.Command{Use: "drasi"}
 
 func init() {
+
 	RootCommand.AddCommand(
-		NewInitCommand(),
-		NewApplyCommand(),
+		NewInitCommand(os.Stdout),
+		NewApplyCommand(os.Stdout),
 		NewDeleteCommand(),
 		NewDescribeCommand(),
 		NewListCommand(),
-		NewWaitCommand(),
+		NewWaitCommand(os.Stdout),
 		NewNamespaceCommand(),
 		NewUninstallCommand(),
 		NewVersionCommand(),

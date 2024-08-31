@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"drasi.io/cli/config"
 	"drasi.io/cli/service"
@@ -10,7 +11,7 @@ import (
 
 var Namespace string
 
-func NewInitCommand() *cobra.Command {
+func NewInitCommand(output *os.File) *cobra.Command {
 	var initCommand = &cobra.Command{
 		Use:   "init",
 		Short: "Install Drasi",
@@ -18,7 +19,6 @@ func NewInitCommand() *cobra.Command {
 		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var installer *service.Installer
-			results := make(chan service.StatusUpdate)
 			local := false
 			var registry string
 			var version string
@@ -62,12 +62,8 @@ func NewInitCommand() *cobra.Command {
 				return err
 			}
 
-			fmt.Println("Installing Drasi with version " + version + " from registry " + registry)
-			go installer.Install(local, registry, version, results, namespace)
-
-			for r := range results {
-				fmt.Println(r.Subject + ": " + r.Message)
-			}
+			output.WriteString(fmt.Sprintf("Installing Drasi with version %s from registry %s\n", version, registry))
+			installer.Install(local, registry, version, output, namespace)
 
 			return nil
 		},
