@@ -16,6 +16,7 @@ impl Into<HttpResponse> for DomainError {
                 HttpResponse::BadRequest().body(message)
             },
             DomainError::InvalidSpec { message } => HttpResponse::BadRequest().body(message),
+            DomainError::JsonParseError { kind }=> HttpResponse::BadRequest().body("Invalid JSON for kind: ".to_string() + &kind),
             _ => HttpResponse::InternalServerError().body("Internal server error"),
         }
     }

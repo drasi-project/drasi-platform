@@ -196,7 +196,7 @@ where
         Ok(Resource {
             id: id.to_string(),
             spec: spec,
-            status: {
+            status: { 
                 let mut mut_dapr = self.dapr_client.clone();
                 let status: Option<TApiStatus> = match mut_dapr
                     .invoke_actor(actor_type, id.to_string(), "getStatus", (), None)
@@ -296,7 +296,14 @@ fn add_kind_field_to_schema(schema: Value) -> Result<Value, DomainError> {
     let kind_property = serde_json::json!({
         "type": "string"
     });
-    let mut schema = schema.as_object().unwrap().clone();
+    let mut schema = match schema.as_object() {
+        Some(s) => s.clone(),
+        None => {
+            return Err(DomainError::Invalid {
+                message: "Invalid schema".to_string(),
+            })
+        }
+    };
     schema.insert("kind".to_string(), kind_property);
     Ok(Value::Object(schema))
 }

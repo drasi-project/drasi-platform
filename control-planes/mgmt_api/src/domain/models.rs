@@ -203,7 +203,7 @@ pub struct Service {
     pub replica: Option<String>,
     pub image: Option<String>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
-    pub endpoints: Option<HashMap<String, Endpoint>>, // HashMap <String., ServiceSpec?>?
+    pub endpoints: Option<HashMap<String, Endpoint>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
 }
 
@@ -271,5 +271,10 @@ pub enum DomainError {
     #[error("InvalidSpec: {message}")]
     InvalidSpec {
         message: String,
+    },
+
+    #[error("JsonParseError")]
+    JsonParseError {
+        kind: String,
     },
 }
