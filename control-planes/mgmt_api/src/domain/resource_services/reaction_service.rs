@@ -75,7 +75,6 @@ impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
                 })
             }
         };
-
         if let Some(config_schema) = config_schema {
             let validation = match JSONSchema::compile(config_schema) {
                 Ok(validation) => validation,
@@ -165,6 +164,22 @@ impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
                 })
             }
         };
+        let services = match spec.services.clone() {
+            Some(services) => services,
+            None => {
+                return Err(DomainError::InvalidSpec {
+                    message: format!("Services not defined"),
+                })
+            }
+        };
+        let defined_services: Vec<String> = schema_services.keys().map(|s| s.clone()).collect();
+        for (service_name, _service_settings) in &services {
+            if !defined_services.contains(&service_name) {
+                return Err(DomainError::UndefinedSetting {
+                    message: format!("Service {} is not defined in the schema", service_name),
+                });
+            }
+        }
         let services = match spec.services.clone() {
             Some(services) => services,
             None => {
@@ -376,14 +391,7 @@ fn populate_default_values(
                 })
             }
         };
-        let defined_services: Vec<String> = schema_services.keys().map(|s| s.clone()).collect();
-        for (service_name, service_settings) in &services {
-            if !defined_services.contains(&service_name) {
-                return Err(DomainError::UndefinedSetting {
-                    message: format!("Service {} is not defined in the schema", service_name),
-                });
-            }
-        }
+        
         for (service_name, service_config) in schema_services {
             let service_config_map = match service_config.as_object() {
                 Some(properties) => properties,

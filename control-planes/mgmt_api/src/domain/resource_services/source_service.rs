@@ -177,7 +177,6 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
         // Check if the services defined in the source spec are defined in the schema
         for (service_name, service_settings) in &services {
             if !defined_services.contains(&service_name) {
-                println!("Service {} is not defined in the schema", service_name);
                 return Err(DomainError::UndefinedSetting {
                     message: format!("Service {} is not defined in the schema", service_name),
                 });
@@ -271,7 +270,7 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
             let json_data_properties =
                 match serde_json::to_value(curr_service_config_schema_json_value) {
                     Ok(json_data_properties) => json_data_properties,
-                    Err(e) => {
+                    Err(_e) => {
                         return Err(DomainError::JsonParseError {
                             kind: kind.clone(),
                         })

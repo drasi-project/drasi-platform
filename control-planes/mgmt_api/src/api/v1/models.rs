@@ -288,7 +288,7 @@ impl<'de> Visitor<'de> for StringOrConfig {
     type Value = ConfigValueDto;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("string or map or bool")
+        formatter.write_str("string, integer, boolean, list, or map")
     }
 
     fn visit_str<E>(self, value: &str) -> Result<ConfigValueDto, E>
