@@ -72,8 +72,20 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
         };
 
         if let Some(config_schema) = config_schema {
-            let validation = JSONSchema::compile(config_schema).unwrap();
-            let source_properties = spec.properties.clone().unwrap();
+            let validation = match JSONSchema::compile(config_schema) {
+                Ok(validation) => validation,
+                Err(e) => {
+                    return Err(DomainError::InvalidSpec {
+                        message: format!("Invalid source config schema"),
+                    });
+                }
+            };
+            let source_properties = match spec.properties {
+                Some(ref properties) => properties.clone(),
+                None => return Err(DomainError::InvalidSpec {
+                    message: format!("properties are not defined for source {}", kind),
+                }),
+            };
 
             let mut new_spec_properties = serde_json::Map::new();
             for (key, value) in source_properties {
@@ -121,7 +133,14 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
                 new_spec_properties.insert(key, value);
             }
 
-            let json_data_properties = serde_json::to_value(new_spec_properties).unwrap();
+            let json_data_properties = match serde_json::to_value(new_spec_properties) {
+                Ok(json_data_properties) => json_data_properties,
+                Err(e) => {
+                    return Err(DomainError::JsonParseError {
+                        kind: kind.clone(),
+                    })
+                }
+            };
             let result = validation.validate(&json_data_properties);
 
             if let Err(errors) = result {
@@ -174,13 +193,32 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
                 continue;
             }
 
-            let service_config_schema = service_config_schema.unwrap();
+            let service_config_schema = match service_config_schema {
+                Some(service_config_schema) => service_config_schema,
+                None => {
+                    return Err(DomainError::InvalidSpec {
+                        message: format!("Invalid service config schema for service {}", service_name),
+                    });
+                }
+            };
 
-            let validation = JSONSchema::compile(service_config_schema).unwrap();
+            let validation = match JSONSchema::compile(service_config_schema) {
+                Ok(validation) => validation,
+                Err(e) => {
+                    return Err(DomainError::InvalidSpec {
+                        message: format!("Invalid service config schema for service {}", service_name),
+                    });
+                }
+            };
 
             let curr_service_config_schema = match services.get(service_name) {
                 Some(service) => match service {
-                    Some(service) => service.properties.clone().unwrap(),
+                    Some(service) => match &service.properties {
+                        Some(properties) => properties.clone(),
+                        None => return Err(DomainError::InvalidSpec {
+                            message: format!("Invalid service properties for service {}", service_name),
+                        }),
+                    },
                     None => HashMap::new(),
                 },
                 None => HashMap::new(),
@@ -231,7 +269,14 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
             }
 
             let json_data_properties =
-                serde_json::to_value(curr_service_config_schema_json_value).unwrap();
+                match serde_json::to_value(curr_service_config_schema_json_value) {
+                    Ok(json_data_properties) => json_data_properties,
+                    Err(e) => {
+                        return Err(DomainError::JsonParseError {
+                            kind: kind.clone(),
+                        })
+                    }
+                };
             let result = validation.validate(&json_data_properties);
 
             if let Err(errors) = result {
@@ -259,7 +304,14 @@ fn populate_default_values(
     };
     // Retrieve the 'properties' field from the schema
     if let Some(schema_properties) = schema_json.get("config_schema") {
-        let schema_properties = schema_properties.as_object().unwrap();
+        let schema_properties = match schema_properties.as_object() {
+            Some(properties) => properties,
+            None => {
+                return Err(DomainError::JsonParseError {
+                    kind: source.kind.clone(),
+                })
+            }
+        };
 
         // for each property in the schema, if it's not in the source spec, add it
         for (key, value) in schema_properties {
@@ -279,7 +331,12 @@ fn populate_default_values(
                     },
                     Value::Number(n) => ConfigValue::Inline {
                         value: InlineValue::Integer {
-                            value: n.as_i64().unwrap(),
+                            value: match n.as_i64() {
+                                Some(n) => n,
+                                None => return Err(DomainError::InvalidSpec {
+                                    message: format!("expected a valid integer"),
+                                }),
+                            }
                         },
                     },
                     Value::Array(a) => {
@@ -296,7 +353,12 @@ fn populate_default_values(
                                 },
                                 Value::Number(n) => ConfigValue::Inline {
                                     value: InlineValue::Integer {
-                                        value: n.as_i64().unwrap(),
+                                        value: match n.as_i64() {
+                                            Some(n) => n,
+                                            None => return Err(DomainError::InvalidSpec {
+                                                message: format!("expected a valid integer"),
+                                            }),
+                                        }
                                     },
                                 },
                                 _ => continue,
@@ -323,10 +385,24 @@ fn populate_default_values(
 
     // Traverse through the services and populate the default values
     if let Some(schema_services) = schema_json.get("services") {
-        let schema_services = schema_services.as_object().unwrap();
+        let schema_services = match schema_services.as_object() {
+            Some(services) => services,
+            None => {
+                return Err(DomainError::JsonParseError {
+                    kind: source.kind.clone(),
+                })
+            }
+        };
         // Traverse through all of the services that are defined in the schema
         for (service_name, service_config) in schema_services {
-            let service_config_map = service_config.as_object().unwrap();
+            let service_config_map = match service_config.as_object() {
+                Some(service_config) => service_config,
+                None => {
+                    return Err(DomainError::JsonParseError {
+                        kind: source.kind.clone(),
+                    })
+                }
+            };
 
             // check to see if this service is defined in the source spec (yaml file)
             
@@ -370,7 +446,12 @@ fn populate_default_values(
                                     },
                                     Value::Number(n) => ConfigValue::Inline {
                                         value: InlineValue::String {
-                                            value: n.as_i64().unwrap().to_string(),
+                                            value: match n.as_i64() {
+                                                Some(n) => n.to_string(),
+                                                None => return Err(DomainError::InvalidSpec {
+                                                    message: format!("Invalid dapr value"),
+                                                }),
+                                            },
                                         },
                                     },
                                     Value::Array(a) => {
@@ -379,7 +460,12 @@ fn populate_default_values(
                                             let val = match val {
                                                 Value::String(s) => s.to_string(),
                                                 Value::Bool(b) => b.to_string(),
-                                                Value::Number(n) => n.as_i64().unwrap().to_string(),
+                                                Value::Number(n) => match n.as_i64() {
+                                                    Some(n) => n.to_string(),
+                                                    None => return Err(DomainError::InvalidSpec {
+                                                        message: format!("Invalid dapr value"),
+                                                    }),
+                                                },
                                                 _ => continue,
                                             };
                                             new_sequence.push(val);
@@ -417,7 +503,21 @@ fn populate_default_values(
                         Some(properties) => properties,
                         None => HashMap::new(),
                     };
-                    let properties = properties.get("properties").unwrap().as_object().unwrap();
+                    let properties = match properties.get("properties") {
+                        Some(properties) => match properties.as_object() {
+                            Some(properties) => properties,
+                            None => {
+                                return Err(DomainError::JsonParseError {
+                                    kind: service_name.clone(),
+                                })
+                            }
+                        },
+                        None => {
+                            return Err(DomainError::InvalidSpec {
+                                message: format!("Unable to retrieve the service properties for {}", service_name),
+                            })
+                        }
+                    };
                     for (key, value) in properties {
                         if !curr_service_properties.contains_key(key) {
                             let default_value = match value.get("default") {
@@ -437,7 +537,12 @@ fn populate_default_values(
                                 },
                                 Value::Number(n) => ConfigValue::Inline {
                                     value: InlineValue::String {
-                                        value: n.as_i64().unwrap().to_string(),
+                                        value: match n.as_i64() {
+                                            Some(n) => n.to_string(),
+                                            None => return Err(DomainError::InvalidSpec {
+                                                message: format!("expected a valid integer"),
+                                            }),
+                                        },
                                     },
                                 },
                                 Value::Array(a) => {
@@ -446,7 +551,12 @@ fn populate_default_values(
                                         let val = match val {
                                             Value::String(s) => s.to_string(),
                                             Value::Bool(b) => b.to_string(),
-                                            Value::Number(n) => n.as_i64().unwrap().to_string(),
+                                            Value::Number(n) => match n.as_i64() {
+                                                Some(n) => n.to_string(),
+                                                None => return Err(DomainError::InvalidSpec {
+                                                    message: format!("expected a valid integer"),
+                                                }),
+                                            },
                                             _ => continue,
                                         };
                                         new_sequence.push(val);
@@ -471,21 +581,37 @@ fn populate_default_values(
             let endpoints = match service_config_map.get("endpoints") {
                 Some(endpoints) => {
                     let mut result = HashMap::new();
-                    let endpoints = endpoints.as_object().unwrap();
+                    let endpoints = match endpoints.as_object() {
+                        Some(endpoints) => endpoints,
+                        None => {
+                            return Err(DomainError::JsonParseError {
+                                kind: service_name.clone(),
+                            })
+                        }
+                    };
                     for (endpoint_name, endpoint_config) in endpoints {
-                        let endpoints_properties = endpoint_config.as_object().unwrap();
-                        let setting = endpoints_properties
-                            .get("setting")
-                            .unwrap()
-                            .as_str()
-                            .unwrap()
-                            .to_string();
-                        let target = endpoints_properties
-                            .get("target")
-                            .unwrap()
-                            .as_str()
-                            .unwrap()
-                            .to_string();
+                        let endpoints_properties = match endpoint_config.as_object() {
+                            Some(properties) => properties,
+                            None => {
+                                return Err(DomainError::JsonParseError {
+                                    kind: service_name.clone(),
+                                })
+                            }
+                        };
+                        let setting = match endpoints_properties
+                            .get("setting") {
+                                Some(setting) => setting.as_str().unwrap().to_string(),
+                                None => return Err(DomainError::InvalidSpec {
+                                    message: format!("Invalid endpoint setting"),
+                                }),
+                            };
+                        let target = match endpoints_properties
+                            .get("target") {
+                                Some(target) => target.as_str().unwrap().to_string(),
+                                None => return Err(DomainError::InvalidSpec {
+                                    message: format!("Invalid endpoint target"),
+                                }),
+                            };
                         let target = target.trim_start_matches("$").to_string();
                         let target_port_value = match service_properties {
                             Some(ref properties) => {
