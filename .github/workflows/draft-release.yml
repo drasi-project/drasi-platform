@@ -29,7 +29,9 @@ jobs:
           fi
 
   publish-ghcr:
-    permissions: write-all
+    permissions:
+      packages: write
+      contents: read
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -246,7 +248,9 @@ jobs:
           path: ${{ env.RELEASE_PATH}}
    
   release:
-    permissions: write-all
+    permissions:
+      contents: write
+      packages: read  
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     name: Draft Release
