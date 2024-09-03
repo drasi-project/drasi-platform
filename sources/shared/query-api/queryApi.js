@@ -8,7 +8,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const createError = require('http-errors');
 
-const pubSubName = process.env["PUBSUB"] ?? "rg-pubsub";
+const pubSubName = process.env["PUBSUB"] ?? "drasi-pubsub";
 const port = parseInt(process.env["PORT"] ?? "4001");
 const sourceId = process.env["SOURCE_ID"];
 

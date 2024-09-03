@@ -16,7 +16,7 @@ var configuration = BuildConfiguration();
 
 var eventGridUri = configuration.GetValue<string>("EventGridUri");
 var eventGridKey = configuration.GetValue<string>("EventGridKey");
-var pubsubName = configuration.GetValue<string>("PubsubName", "rg-pubsub");
+var pubsubName = configuration.GetValue<string>("PubsubName", "drasi-pubsub");
 var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
 
 var publisherClient = new EventGridPublisherClient(new Uri(eventGridUri), new AzureKeyCredential(eventGridKey));

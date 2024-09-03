@@ -4,7 +4,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
 // Standard configuration settings to integrate with Reactive Graph.
-const pubsubName = process.env["PUBSUB"] ?? "rg-pubsub";
+const pubsubName = process.env["PUBSUB"] ?? "drasi-pubsub";
 const configDirectory = process.env["QueryConfigPath"] ?? "/etc/queries";
 
 const databaseHostname = process.env["DatabaseHostname"];

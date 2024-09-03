@@ -125,8 +125,8 @@ func (t *Installer) installInfrastructure(statusUpdates chan StatusUpdate) {
 		Success: true,
 	}
 
-	t.waitForStatefulset("app=rg-redis", statusUpdates)
-	t.waitForStatefulset("app=rg-mongo", statusUpdates)
+	t.waitForStatefulset("app=drasi-redis", statusUpdates)
+	t.waitForStatefulset("app=drasi-mongo", statusUpdates)
 }
 
 func (t *Installer) installControlPlane(localMode bool, acr string, version string, statusUpdates chan StatusUpdate) {

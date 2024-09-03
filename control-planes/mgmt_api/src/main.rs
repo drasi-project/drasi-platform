@@ -29,9 +29,9 @@ async fn main() -> Result<(), std::io::Error> {
     let dapr_port: u16 = std::env::var("DAPR_GRPC_PORT").unwrap().parse().unwrap();
     let dapr_addr = format!("https://127.0.0.1:{}", dapr_port);
 
-    let mongo_uri = std::env::var("MONGO_URI").unwrap_or("mongodb://rg-mongo:27017".to_string());
+    let mongo_uri = std::env::var("MONGO_URI").unwrap_or("mongodb://drasi-mongo:27017".to_string());
     let mongo_db = std::env::var("MONGO_DB").unwrap_or("api".to_string());
-    let redis_url = std::env::var("REDIS_URL").unwrap_or("redis://rg-redis:6379".to_string());
+    let redis_url = std::env::var("REDIS_URL").unwrap_or("redis://drasi-redis:6379".to_string());
 
     // Introduce delay so that dapr grpc port is assigned before app tries to connect
     std::thread::sleep(std::time::Duration::new(5, 0));

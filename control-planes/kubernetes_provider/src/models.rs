@@ -57,7 +57,7 @@ impl RuntimeConfig {
         let pub_sub_config = vec![
             EnvVar {
                 name: "redisHost".to_string(),
-                value: Some("rg-redis:6379".to_string()),
+                value: Some("drasi-redis:6379".to_string()),
                 value_from: None,
             },
             EnvVar {

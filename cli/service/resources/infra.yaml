@@ -1,36 +1,36 @@
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
-  name: rg-infrastructure
+  name: drasi-infrastructure
 value: 1000
 globalDefault: false
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: rg-redis
+  name: drasi-redis
 spec:
   ports:
     - port: 6379
       targetPort: 6379
       name: redis
   selector:
-    app: rg-redis
+    app: drasi-redis
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: rg-redis
+  name: drasi-redis
 spec:
-  serviceName: rg-redis
+  serviceName: drasi-redis
   replicas: 1
   selector:
     matchLabels:
-      app: rg-redis
+      app: drasi-redis
   template:
     metadata:
       labels:
-        app: rg-redis
+        app: drasi-redis
     spec:
       containers:
         - name: redis
@@ -60,25 +60,25 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rg-mongo
+  name: drasi-mongo
 spec:
   ports:
   - port: 27017
     targetPort: 27017
     name: mongo
   selector:
-    app: rg-mongo
+    app: drasi-mongo
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: rg-mongo-init
+  name: drasi-mongo-init
 data:
   rs-init.js: >
     rs.initiate({
       _id: "rs0",
       members: [
-        { _id: 0, host: "rg-mongo-0.rg-mongo:27017" }
+        { _id: 0, host: "drasi-mongo-0.drasi-mongo:27017" }
       ]
     })
 ---
@@ -86,24 +86,24 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   labels:
-    app: rg-mongo
-  name: rg-mongo
+    app: drasi-mongo
+  name: drasi-mongo
 spec:
-  serviceName: rg-mongo
+  serviceName: drasi-mongo
   replicas: 1
   selector:
     matchLabels:
-      app: rg-mongo
+      app: drasi-mongo
   template:
     metadata:
       labels:
-        app: rg-mongo
+        app: drasi-mongo
     spec:
-      priorityClassName: rg-infrastructure
+      priorityClassName: drasi-infrastructure
       hostAliases:
       - ip: 127.0.0.1
         hostnames:          
-          - rg-mongo-0.rg-mongo # hack to trick mongo flawed validation, will break if we scale beyond 1 instance of this stateful set. Create a separate stateful set if we want secondary instances.
+          - drasi-mongo-0.drasi-mongo # hack to trick mongo flawed validation, will break if we scale beyond 1 instance of this stateful set. Create a separate stateful set if we want secondary instances.
       containers:
       - image: mongo:6
         name: mongo
@@ -125,7 +125,7 @@ spec:
       volumes:
         - name: init
           configMap:
-            name: rg-mongo-init
+            name: drasi-mongo-init
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -287,13 +287,13 @@ spec:
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: rg-state
+  name: drasi-state
 spec:
   type: state.mongodb
   version: v1
   metadata:
     - name: host
-      value: rg-mongo:27017
+      value: drasi-mongo:27017
     - name: username
       value:
     - name: password
@@ -304,13 +304,13 @@ spec:
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: rg-pubsub
+  name: drasi-pubsub
 spec:
   type: pubsub.redis
   version: v1
   metadata:
     - name: redisHost
-      value: "rg-redis:6379"
+      value: "drasi-redis:6379"
     - name: concurrency
       value: "1"
     - name: queueDepth

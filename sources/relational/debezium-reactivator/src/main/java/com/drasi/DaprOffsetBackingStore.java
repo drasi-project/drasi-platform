@@ -35,7 +35,7 @@ public class DaprOffsetBackingStore extends MemoryOffsetBackingStore {
     @Override
     public void configure(WorkerConfig config) {
         super.configure(config);
-        stateStore = "rg-state"; //config.getString("offset.storage.dapr.statestore");
+        stateStore = "drasi-state"; //config.getString("offset.storage.dapr.statestore");
     }
 
     @Override
