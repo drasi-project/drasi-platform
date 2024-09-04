@@ -83,7 +83,7 @@ async Task ProcessEvent(HttpContext context)
             results.AddRange(changeFormatter.FormatUpdate(queryId, evt.GetProperty("updatedResults").EnumerateArray()));
             results.AddRange(changeFormatter.FormatDelete(queryId, evt.GetProperty("deletedResults").EnumerateArray()));
 
-            var resp = await client.SendEventsAsync(results.Select(r => new CloudEvent(queryId, "ReactiveGraph.ChangeEvent", r)));
+            var resp = await client.SendEventsAsync(results.Select(r => new CloudEvent(queryId, "Drasi.ChangeEvent", r)));
             if (resp.IsError)
             {
                 throw new Exception(resp.Content.ToString());

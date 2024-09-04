@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # usage: ./remote-build.sh <acr> <tag>
-# example: ./remote-build.sh reactivegraphtest latest
+# example: ./remote-build.sh drasitest latest
 
 az acr login --name $1
 

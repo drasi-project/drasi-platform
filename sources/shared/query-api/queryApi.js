@@ -20,6 +20,7 @@ async function main() {
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
 
+  console.log('pubsubName:', pubSubName);
   // Query Subscription
   app.post('/subscription', async (req, res, next) => {
     try {
@@ -30,7 +31,7 @@ async function main() {
         op: "i",
         ts_ms: Date.now(),
         payload: {
-          source: { db: "ReactiveGraph", table: "SourceSubscription" },
+          source: { db: "Drasi", table: "SourceSubscription" },
           before: null,
           after: {
             queryId: subscriptionInput.queryId,
