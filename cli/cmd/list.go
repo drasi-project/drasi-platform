@@ -54,7 +54,8 @@ Example:
 
 			client, err := service.MakeApiClient(namespace)
 			if err != nil {
-				return err
+				fmt.Println("Error: " + err.Error())
+				return nil
 			}
 			defer client.Close()
 

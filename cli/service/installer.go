@@ -5,7 +5,6 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"github.com/briandowns/spinner"
 	"io"
 	"os"
 	"path/filepath"
@@ -85,7 +84,7 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, output *os.File, namespace string) error {
+func (t *Installer) Install(localMode bool, acr string, version string, output TaskUI, namespace string) error {
 	daprInstalled, err := t.checkDaprInstallation(output)
 	if err != nil {
 		return err
@@ -123,7 +122,7 @@ func (t *Installer) Install(localMode bool, acr string, version string, output *
 	return nil
 }
 
-func (t *Installer) installInfrastructure(output *os.File) error {
+func (t *Installer) installInfrastructure(output TaskUI) error {
 	if _, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "dapr-system", metav1.GetOptions{}); err != nil {
 		return errors.New("dapr not installed")
 	}
@@ -140,17 +139,12 @@ func (t *Installer) installInfrastructure(output *os.File) error {
 		return err
 	}
 
-	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond, spinner.WithWriterFile(output))
-	spin.Suffix = "Deploying Infrastructure..."
-	spin.Start()
+	output.AddTask("Infrastructure", "Deploying infrastructure...")
 
 	if err = t.applyManifests(infraManifests); err != nil {
-		spin.FinalMSG = "Error deploying infrastructure\n"
-		spin.Stop()
+		output.FailTask("Infrastructure", "Error deploying infrastructure")
 		return err
 	}
-	spin.FinalMSG = "Infrastructure deployed\n"
-	spin.Stop()
 
 	if err = t.waitForStatefulset("app=rg-redis", output); err != nil {
 		return err
@@ -160,10 +154,12 @@ func (t *Installer) installInfrastructure(output *os.File) error {
 		return err
 	}
 
+	output.SucceedTask("Infrastructure", "Infrastructure deployed")
+
 	return nil
 }
 
-func (t *Installer) installControlPlane(localMode bool, acr string, version string, output *os.File) error {
+func (t *Installer) installControlPlane(localMode bool, acr string, version string, output TaskUI) error {
 	var err error
 	var raw []byte
 	var svcAcctManifests []*unstructured.Unstructured
@@ -177,13 +173,10 @@ func (t *Installer) installControlPlane(localMode bool, acr string, version stri
 		return err
 	}
 
-	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond, spinner.WithWriterFile(output))
-	spin.Suffix = "Installing Control Plane..."
-	spin.Start()
-	defer spin.Stop()
+	output.AddTask("Control-Plane", "Installing control plane...")
 
 	if err = t.applyManifests(svcAcctManifests); err != nil {
-		spin.FinalMSG = "Error creating service account\n"
+		output.FailTask("Control-Plane", "Error creating service account")
 		return err
 	}
 
@@ -209,12 +202,9 @@ func (t *Installer) installControlPlane(localMode bool, acr string, version stri
 	}
 
 	if err = t.applyManifests(apiManifests); err != nil {
-		spin.FinalMSG = "Error installing control plane\n"
+		output.FailTask("Control-Plane", "Error installing control plane")
 		return err
 	}
-
-	spin.FinalMSG = "Control plane deployed\n"
-	spin.Stop()
 
 	if err = t.waitForDeployment("drasi/infra=api", output); err != nil {
 		return err
@@ -226,7 +216,7 @@ func (t *Installer) installControlPlane(localMode bool, acr string, version stri
 
 	time.Sleep(time.Second * 3)
 
-	output.WriteString("Control plane is online\n")
+	output.SucceedTask("Control-Plane", "Control plane is online")
 
 	return nil
 }
@@ -289,7 +279,7 @@ func (t *Installer) applyManifests(infraManifests []*unstructured.Unstructured) 
 	return nil
 }
 
-func (t *Installer) installQueryContainer(output *os.File, namespace string) error {
+func (t *Installer) installQueryContainer(output TaskUI, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -304,7 +294,7 @@ func (t *Installer) installQueryContainer(output *os.File, namespace string) err
 		return err
 	}
 
-	output.WriteString("Deploying Query Container...\n")
+	output.AddTask("Query-Container", "Creating query container...")
 
 	var clusterConfig ClusterConfig
 	clusterConfig.DrasiNamespace = namespace
@@ -318,12 +308,12 @@ func (t *Installer) installQueryContainer(output *os.File, namespace string) err
 
 	drasiClient.Apply(manifests, output)
 	drasiClient.ReadyWait(manifests, 120, output)
-	output.WriteString("Query Container deployed\n")
+	output.SucceedTask("Query-Container", "Query container created")
 
 	return nil
 }
 
-func (t *Installer) applyDefaultSourceProvider(output *os.File, namespace string) error {
+func (t *Installer) applyDefaultSourceProvider(output TaskUI, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -338,7 +328,7 @@ func (t *Installer) applyDefaultSourceProvider(output *os.File, namespace string
 		return err
 	}
 
-	output.WriteString("Creating default source providers...\n")
+	output.AddTask("Default-Source-Providers", "Creating default source providers...")
 
 	var clusterConfig ClusterConfig
 	clusterConfig.DrasiNamespace = namespace
@@ -346,16 +336,19 @@ func (t *Installer) applyDefaultSourceProvider(output *os.File, namespace string
 	saveConfig(clusterConfig)
 	drasiClient, err := MakeApiClient(namespace)
 	if err != nil {
+		output.FailTask("Default-Source-Providers", fmt.Sprintf("Error creating default source providers: %v", err.Error()))
 		return err
 	}
 	defer drasiClient.Close()
 
-	drasiClient.Apply(manifests, os.Stdout)
+	drasiClient.Apply(manifests, output)
+
+	output.SucceedTask("Default-Source-Providers", "Default source providers created")
 
 	return nil
 }
 
-func (t *Installer) applyDefaultReactionProvider(output *os.File, namespace string) error {
+func (t *Installer) applyDefaultReactionProvider(output TaskUI, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -370,7 +363,7 @@ func (t *Installer) applyDefaultReactionProvider(output *os.File, namespace stri
 		return err
 	}
 
-	output.WriteString("Creating default reaction providers...\n")
+	output.AddTask("Default-Reaction-Providers", "Creating default reaction providers...")
 
 	var clusterConfig ClusterConfig
 	clusterConfig.DrasiNamespace = namespace
@@ -378,11 +371,14 @@ func (t *Installer) applyDefaultReactionProvider(output *os.File, namespace stri
 	saveConfig(clusterConfig)
 	drasiClient, err := MakeApiClient(namespace)
 	if err != nil {
+		output.FailTask("Default-Reaction-Providers", fmt.Sprintf("Error creating default reaction providers: %v", err.Error()))
 		return err
 	}
 	defer drasiClient.Close()
 
-	drasiClient.Apply(manifests, os.Stdout)
+	drasiClient.Apply(manifests, output)
+
+	output.SucceedTask("Default-Reaction-Providers", "Default reaction providers created")
 
 	return nil
 }
@@ -450,16 +446,12 @@ func findGVR(gvk *schema.GroupVersionKind, cfg *rest.Config) (*meta.RESTMapping,
 	return mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 }
 
-func (t *Installer) waitForStatefulset(selector string, output *os.File) error {
+func (t *Installer) waitForStatefulset(selector string, output TaskUI) error {
 	var timeout int64 = 120
 	var resourceWatch watch.Interface
 	var err error
 
-	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond, spinner.WithWriterFile(output))
-	spin.Suffix = fmt.Sprintf("Waiting for %s to be ready", selector)
-	spin.FinalMSG = fmt.Sprintf("Timed out waiting for %s\n", selector)
-	spin.Start()
-	defer spin.Stop()
+	output.AddTask("Wait-"+selector, fmt.Sprintf("Waiting for %s to be ready", selector))
 
 	resourceWatch, err = t.kubeClient.AppsV1().StatefulSets(t.kubeNamespace).Watch(context.TODO(), metav1.ListOptions{
 		LabelSelector:  selector,
@@ -468,7 +460,7 @@ func (t *Installer) waitForStatefulset(selector string, output *os.File) error {
 	})
 
 	if err != nil {
-		spin.FinalMSG = fmt.Sprintf("Error waiting for %s: %v\n", selector, err.Error())
+		output.FailTask("Wait-"+selector, fmt.Sprintf("Error waiting for %s: %v", selector, err.Error()))
 		return err
 	}
 
@@ -478,23 +470,21 @@ func (t *Installer) waitForStatefulset(selector string, output *os.File) error {
 			continue
 		}
 		if ss.Status.ReadyReplicas > 0 {
-			spin.FinalMSG = fmt.Sprintf("%s is ready\n", selector)
+			output.SucceedTask("Wait-"+selector, fmt.Sprintf("%s is ready", selector))
 			resourceWatch.Stop()
+			return nil
 		}
 	}
+	output.FailTask("Wait-"+selector, fmt.Sprintf("Timed out waiting for %s", selector))
 	return nil
 }
 
-func (t *Installer) waitForDeployment(selector string, output *os.File) error {
+func (t *Installer) waitForDeployment(selector string, output TaskUI) error {
 	var timeout int64 = 90
 	var resourceWatch watch.Interface
 	var err error
 
-	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond, spinner.WithWriterFile(output))
-	spin.Suffix = fmt.Sprintf("Waiting for %s to be ready", selector)
-	spin.FinalMSG = fmt.Sprintf("Timed out waiting for %s\n", selector)
-	spin.Start()
-	defer spin.Stop()
+	output.AddTask("Wait-"+selector, fmt.Sprintf("Waiting for %s to be ready", selector))
 
 	resourceWatch, err = t.kubeClient.AppsV1().Deployments(t.kubeNamespace).Watch(context.TODO(), metav1.ListOptions{
 		LabelSelector:  selector,
@@ -503,7 +493,7 @@ func (t *Installer) waitForDeployment(selector string, output *os.File) error {
 	})
 
 	if err != nil {
-		spin.FinalMSG = fmt.Sprintf("Error waiting for %s: %v\n", selector, err.Error())
+		output.FailTask("Wait-"+selector, fmt.Sprintf("Error waiting for %s: %v", selector, err.Error()))
 		return err
 	}
 
@@ -513,18 +503,17 @@ func (t *Installer) waitForDeployment(selector string, output *os.File) error {
 			continue
 		}
 		if ss.Status.AvailableReplicas > 0 {
-			spin.FinalMSG = fmt.Sprintf("%s is ready\n", selector)
+			output.SucceedTask("Wait-"+selector, fmt.Sprintf("%s is ready", selector))
 			resourceWatch.Stop()
+			return nil
 		}
 	}
+	output.FailTask("Wait-"+selector, fmt.Sprintf("Timed out waiting for %s", selector))
 	return nil
 }
 
-func (t *Installer) installDapr(output *os.File) error {
-	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond, spinner.WithWriterFile(output))
-	spin.Suffix = "Installing Dapr..."
-	spin.Start()
-	defer spin.Stop()
+func (t *Installer) installDapr(output TaskUI) error {
+	output.AddTask("Dapr-Install", "Installing Dapr...")
 
 	ns := "dapr-system"
 	flags := genericclioptions.ConfigFlags{
@@ -535,7 +524,7 @@ func (t *Installer) installDapr(output *os.File) error {
 
 	err := helmConfig.Init(&flags, "dapr-system", "secret", func(format string, v ...any) {})
 	if err != nil {
-		spin.FinalMSG = fmt.Sprintf("Error intalling Dapr: %v\n", err.Error())
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
 		return err
 	}
 
@@ -553,7 +542,7 @@ func (t *Installer) installDapr(output *os.File) error {
 
 	dir, err := os.MkdirTemp("", "drasi")
 	if err != nil {
-		spin.FinalMSG = fmt.Sprintf("Error intalling Dapr: %v\n", err.Error())
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
 		return err
 	}
 	defer os.RemoveAll(dir)
@@ -562,18 +551,18 @@ func (t *Installer) installDapr(output *os.File) error {
 
 	_, err = pull.Run("dapr")
 	if err != nil {
-		spin.FinalMSG = fmt.Sprintf("Error intalling Dapr: %v\n", err.Error())
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
 		return err
 	}
 	file, err := os.ReadDir(dir)
 	if err != nil {
-		spin.FinalMSG = fmt.Sprintf("Error intalling Dapr: %v\n", err.Error())
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
 		return err
 	}
 	dirPath := filepath.Join(dir, file[0].Name())
 	helmChart, err := loader.Load(dirPath)
 	if err != nil {
-		spin.FinalMSG = fmt.Sprintf("Error intalling Dapr: %v\n", err.Error())
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
 		return err
 	}
 
@@ -590,19 +579,16 @@ func (t *Installer) installDapr(output *os.File) error {
 	}
 	_, err = installClient.Run(helmChart, helmChart.Values)
 	if err != nil {
-		spin.FinalMSG = fmt.Sprintf("Error intalling Dapr: %v\n", err.Error())
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
 		return err
 	}
-	spin.FinalMSG = "Dapr installed\n"
+	output.SucceedTask("Dapr-Install", "Dapr installed successfully")
 
 	return nil
 }
 
-func (t *Installer) checkDaprInstallation(output *os.File) (bool, error) {
-	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond, spinner.WithWriterFile(output))
-	spin.Suffix = "Checking for Dapr..."
-	spin.Start()
-	defer spin.Stop()
+func (t *Installer) checkDaprInstallation(output TaskUI) (bool, error) {
+	output.AddTask("Dapr-Check", "Checking for Dapr...")
 
 	podsClient := t.kubeClient.CoreV1().Pods("dapr-system")
 
@@ -610,10 +596,17 @@ func (t *Installer) checkDaprInstallation(output *os.File) (bool, error) {
 		LabelSelector: "app.kubernetes.io/name=dapr",
 	})
 	if err != nil {
+		output.FailTask("Dapr-Check", fmt.Sprintf("Error checking for Dapr: %v", err.Error()))
 		return false, err
 	}
 
-	return len(pods.Items) > 0, nil
+	if len(pods.Items) > 0 {
+		output.SucceedTask("Dapr-Check", "Dapr already installed")
+		return true, nil
+	} else {
+		output.SucceedTask("Dapr-Check", "Dapr not installed")
+		return false, nil
+	}
 }
 
 func CreateNamespace(config *rest.Config, namespace string) error {
@@ -629,12 +622,10 @@ func CreateNamespace(config *rest.Config, namespace string) error {
 	}
 	for _, ns := range list.Items {
 		if ns.Name == namespace {
-			fmt.Printf("Found namesepace %s \n", namespace)
 			return nil
 		}
 	}
 
-	fmt.Printf("Namespace %s does not exist, creating it...\n", namespace)
 	newNamespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -649,6 +640,5 @@ func CreateNamespace(config *rest.Config, namespace string) error {
 		return err
 	}
 
-	fmt.Printf("Namespace %s created.\n", namespace)
 	return nil
 }

@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"drasi.io/cli/api"
-	"github.com/briandowns/spinner"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -149,12 +148,10 @@ func (t *apiClient) getApiPodName() (string, error) {
 	return "", errors.New("drasi API not available")
 }
 
-func (t *apiClient) Apply(manifests *[]api.Manifest, output *os.File) {
+func (t *apiClient) Apply(manifests *[]api.Manifest, output TaskUI) {
 	for _, mf := range *manifests {
-		spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond, spinner.WithWriterFile(output))
 		subject := "Apply " + mf.Kind + "/" + mf.Name
-		spin.Suffix = subject
-		spin.Start()
+		output.AddTask(subject, subject)
 
 		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name)
 
@@ -163,15 +160,13 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output *os.File) {
 		}
 		data, err := json.Marshal(mf.Spec)
 		if err != nil {
-			spin.FinalMSG = fmt.Sprintf("Error: %v: %v\n", subject, err.Error())
-			spin.Stop()
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
 			continue
 		}
 
 		req, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(data))
 		if err != nil {
-			spin.FinalMSG = fmt.Sprintf("Error: %v: %v\n", subject, err.Error())
-			spin.Stop()
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
 			continue
 		}
 
@@ -182,8 +177,7 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output *os.File) {
 
 		resp, err := t.client.Do(req)
 		if err != nil {
-			spin.FinalMSG = fmt.Sprintf("Error: %v: %v\n", subject, err.Error())
-			spin.Stop()
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
 			continue
 		}
 
@@ -194,20 +188,18 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output *os.File) {
 				msg += string(b)
 			}
 
-			spin.FinalMSG = fmt.Sprintf("Error: %v: %v\n", subject, msg)
-			spin.Stop()
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, msg))
 			continue
 		}
 
-		spin.FinalMSG = fmt.Sprintf("Success: %v\n", subject)
-		spin.Stop()
+		output.SucceedTask(subject, fmt.Sprintf("%v applied", subject))
 	}
 }
 
-func (t *apiClient) Delete(manifests *[]api.Manifest, result chan StatusUpdate) {
-
+func (t *apiClient) Delete(manifests *[]api.Manifest, output TaskUI) {
 	for _, mf := range *manifests {
 		subject := "Delete " + mf.Kind + "/" + mf.Name
+		output.AddTask(subject, subject)
 
 		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name)
 
@@ -216,43 +208,25 @@ func (t *apiClient) Delete(manifests *[]api.Manifest, result chan StatusUpdate) 
 		}
 		req, err := http.NewRequest(http.MethodDelete, url, bytes.NewReader([]byte{}))
 		if err != nil {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: err.Error(),
-				Success: false,
-			}
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
 			continue
 		}
 
 		resp, err := t.client.Do(req)
 		if err != nil {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: err.Error(),
-				Success: false,
-			}
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
 			continue
 		}
 
 		// Successful deletion should return 204 No Content
 		if resp.StatusCode != http.StatusNoContent {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: resp.Status,
-				Success: false,
-			}
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, resp.Status))
 			continue
 		}
 
-		result <- StatusUpdate{
-			Subject: subject,
-			Message: "Deletion successful",
-			Success: true,
-		}
-
+		output.SucceedTask(subject, fmt.Sprintf("%v deleted", subject))
 	}
 
-	close(result)
 }
 
 func (t *apiClient) GetResource(kind string, name string) (*api.Resource, error) {
@@ -309,7 +283,7 @@ func (t *apiClient) ListResources(kind string) ([]api.Resource, error) {
 	return result, err
 }
 
-func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output *os.File) {
+func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output TaskUI) {
 	oldTimeout := t.client.Timeout
 	t.client.Timeout = time.Second * time.Duration(timeout+1)
 	defer func() { t.client.Timeout = oldTimeout }()
@@ -317,28 +291,28 @@ func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output *
 	for _, mf := range *manifests {
 		subject := "Wait " + mf.Kind + "/" + mf.Name
 
-		output.WriteString(fmt.Sprintf("Waiting for %v/%v to come online\n", mf.Kind, mf.Name))
+		output.AddTask(subject, fmt.Sprintf("Waiting for %v/%v to come online", mf.Kind, mf.Name))
 
 		url := fmt.Sprintf("%v/%v/%v/%v/ready-wait?timeout=%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name, timeout)
 
 		req, err := http.NewRequest(http.MethodGet, url, bytes.NewReader([]byte{}))
 		if err != nil {
-			output.WriteString(fmt.Sprintf("Error: %v: %v\n", subject, err.Error()))
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
 			continue
 		}
 
 		resp, err := t.client.Do(req)
 		if err != nil {
-			output.WriteString(fmt.Sprintf("Error: %v: %v\n", subject, err.Error()))
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
 			continue
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			output.WriteString(fmt.Sprintf("Error: %v: %v\n", subject, resp.Status))
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, resp.Status))
 			continue
 		}
 
-		output.WriteString(fmt.Sprintf("%v online\n", subject))
+		output.SucceedTask(subject, fmt.Sprintf("%v online", subject))
 	}
 }
 

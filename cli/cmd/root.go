@@ -2,24 +2,24 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"os"
 )
 
-var RootCommand = &cobra.Command{Use: "drasi"}
+func MakeRootCommand() *cobra.Command {
+	var rootCommand = &cobra.Command{Use: "drasi"}
 
-func init() {
-
-	RootCommand.AddCommand(
-		NewInitCommand(os.Stdout),
-		NewApplyCommand(os.Stdout),
+	rootCommand.AddCommand(
+		NewInitCommand(),
+		NewApplyCommand(),
 		NewDeleteCommand(),
 		NewDescribeCommand(),
 		NewListCommand(),
-		NewWaitCommand(os.Stdout),
+		NewWaitCommand(),
 		NewNamespaceCommand(),
 		NewUninstallCommand(),
 		NewVersionCommand(),
 	)
 
-	RootCommand.PersistentFlags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into")
+	rootCommand.PersistentFlags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into")
+
+	return rootCommand
 }

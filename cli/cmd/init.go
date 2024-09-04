@@ -1,17 +1,15 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"drasi.io/cli/config"
 	"drasi.io/cli/service"
+	"fmt"
 	"github.com/spf13/cobra"
 )
 
 var Namespace string
 
-func NewInitCommand(output *os.File) *cobra.Command {
+func NewInitCommand() *cobra.Command {
 	var initCommand = &cobra.Command{
 		Use:   "init",
 		Short: "Install Drasi",
@@ -59,11 +57,19 @@ func NewInitCommand(output *os.File) *cobra.Command {
 			saveConfig(clusterConfig)
 
 			if installer, err = service.MakeInstaller(namespace); err != nil {
-				return err
+				fmt.Println(err.Error())
+				return nil
 			}
 
-			output.WriteString(fmt.Sprintf("Installing Drasi with version %s from registry %s\n", version, registry))
-			installer.Install(local, registry, version, output, namespace)
+			fmt.Printf("Installing Drasi with version %s from registry %s\n", version, registry)
+			p, output := service.NewTaskOutput()
+			defer p.Wait()
+			defer output.Quit()
+
+			if err := installer.Install(local, registry, version, &output, namespace); err != nil {
+				output.Error(fmt.Sprintf("Error installing Drasi: %v\n", err))
+				return nil
+			}
 
 			return nil
 		},
