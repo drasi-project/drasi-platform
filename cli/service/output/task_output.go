@@ -19,7 +19,7 @@ func NewTaskOutput() (*tea.Program, TaskOutput) {
 	go func() {
 		_, e := p.Run()
 		if e != nil {
-			panic(e)
+			fmt.Println("Error: " + e.Error())
 		}
 	}()
 	return p, &m
