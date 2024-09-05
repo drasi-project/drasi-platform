@@ -5,7 +5,7 @@ import (
 )
 
 func MakeRootCommand() *cobra.Command {
-	var rootCommand = &cobra.Command{Use: "drasi"}
+	var rootCommand = &cobra.Command{Use: "drasi", SilenceUsage: true}
 
 	rootCommand.AddCommand(
 		NewInitCommand(),
