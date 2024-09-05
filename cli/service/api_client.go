@@ -148,7 +148,7 @@ func (t *apiClient) getApiPodName() (string, error) {
 	return "", errors.New("drasi API not available")
 }
 
-func (t *apiClient) Apply(manifests *[]api.Manifest, output TaskUI) {
+func (t *apiClient) Apply(manifests *[]api.Manifest, output TaskOutput) {
 	for _, mf := range *manifests {
 		subject := "Apply " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
@@ -196,7 +196,7 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output TaskUI) {
 	}
 }
 
-func (t *apiClient) Delete(manifests *[]api.Manifest, output TaskUI) {
+func (t *apiClient) Delete(manifests *[]api.Manifest, output TaskOutput) {
 	for _, mf := range *manifests {
 		subject := "Delete " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
@@ -283,7 +283,7 @@ func (t *apiClient) ListResources(kind string) ([]api.Resource, error) {
 	return result, err
 }
 
-func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output TaskUI) {
+func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output TaskOutput) {
 	oldTimeout := t.client.Timeout
 	t.client.Timeout = time.Second * time.Duration(timeout+1)
 	defer func() { t.client.Timeout = oldTimeout }()

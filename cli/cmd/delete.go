@@ -48,7 +48,7 @@ func NewDeleteCommand() *cobra.Command {
 			defer p.Wait()
 			defer output.Quit()
 
-			client.Delete(manifests, &output)
+			client.Delete(manifests, output)
 
 			return nil
 		},

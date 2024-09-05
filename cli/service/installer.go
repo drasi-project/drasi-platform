@@ -84,7 +84,7 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, output TaskUI, namespace string) error {
+func (t *Installer) Install(localMode bool, acr string, version string, output TaskOutput, namespace string) error {
 	daprInstalled, err := t.checkDaprInstallation(output)
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func (t *Installer) Install(localMode bool, acr string, version string, output T
 	return nil
 }
 
-func (t *Installer) installInfrastructure(output TaskUI) error {
+func (t *Installer) installInfrastructure(output TaskOutput) error {
 	if _, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "dapr-system", metav1.GetOptions{}); err != nil {
 		return errors.New("dapr not installed")
 	}
@@ -145,12 +145,13 @@ func (t *Installer) installInfrastructure(output TaskUI) error {
 		output.FailTask("Infrastructure", "Error deploying infrastructure")
 		return err
 	}
+	subOutput := output.GetChildren("Infrastructure")
 
-	if err = t.waitForStatefulset("app=rg-redis", output); err != nil {
+	if err = t.waitForStatefulset("app=rg-redis", subOutput); err != nil {
 		return err
 	}
 
-	if err = t.waitForStatefulset("app=rg-mongo", output); err != nil {
+	if err = t.waitForStatefulset("app=rg-mongo", subOutput); err != nil {
 		return err
 	}
 
@@ -159,7 +160,7 @@ func (t *Installer) installInfrastructure(output TaskUI) error {
 	return nil
 }
 
-func (t *Installer) installControlPlane(localMode bool, acr string, version string, output TaskUI) error {
+func (t *Installer) installControlPlane(localMode bool, acr string, version string, output TaskOutput) error {
 	var err error
 	var raw []byte
 	var svcAcctManifests []*unstructured.Unstructured
@@ -174,6 +175,7 @@ func (t *Installer) installControlPlane(localMode bool, acr string, version stri
 	}
 
 	output.AddTask("Control-Plane", "Installing control plane...")
+	subOutput := output.GetChildren("Control-Plane")
 
 	if err = t.applyManifests(svcAcctManifests); err != nil {
 		output.FailTask("Control-Plane", "Error creating service account")
@@ -206,11 +208,11 @@ func (t *Installer) installControlPlane(localMode bool, acr string, version stri
 		return err
 	}
 
-	if err = t.waitForDeployment("drasi/infra=api", output); err != nil {
+	if err = t.waitForDeployment("drasi/infra=api", subOutput); err != nil {
 		return err
 	}
 
-	if err = t.waitForDeployment("drasi/infra=resource-provider", output); err != nil {
+	if err = t.waitForDeployment("drasi/infra=resource-provider", subOutput); err != nil {
 		return err
 	}
 
@@ -279,7 +281,7 @@ func (t *Installer) applyManifests(infraManifests []*unstructured.Unstructured) 
 	return nil
 }
 
-func (t *Installer) installQueryContainer(output TaskUI, namespace string) error {
+func (t *Installer) installQueryContainer(output TaskOutput, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -295,6 +297,7 @@ func (t *Installer) installQueryContainer(output TaskUI, namespace string) error
 	}
 
 	output.AddTask("Query-Container", "Creating query container...")
+	subOutput := output.GetChildren("Query-Container")
 
 	var clusterConfig ClusterConfig
 	clusterConfig.DrasiNamespace = namespace
@@ -306,14 +309,14 @@ func (t *Installer) installQueryContainer(output TaskUI, namespace string) error
 	}
 	defer drasiClient.Close()
 
-	drasiClient.Apply(manifests, output)
-	drasiClient.ReadyWait(manifests, 120, output)
+	drasiClient.Apply(manifests, subOutput)
+	drasiClient.ReadyWait(manifests, 120, subOutput)
 	output.SucceedTask("Query-Container", "Query container created")
 
 	return nil
 }
 
-func (t *Installer) applyDefaultSourceProvider(output TaskUI, namespace string) error {
+func (t *Installer) applyDefaultSourceProvider(output TaskOutput, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -329,6 +332,7 @@ func (t *Installer) applyDefaultSourceProvider(output TaskUI, namespace string) 
 	}
 
 	output.AddTask("Default-Source-Providers", "Creating default source providers...")
+	subOutput := output.GetChildren("Default-Source-Providers")
 
 	var clusterConfig ClusterConfig
 	clusterConfig.DrasiNamespace = namespace
@@ -341,14 +345,14 @@ func (t *Installer) applyDefaultSourceProvider(output TaskUI, namespace string) 
 	}
 	defer drasiClient.Close()
 
-	drasiClient.Apply(manifests, output)
+	drasiClient.Apply(manifests, subOutput)
 
 	output.SucceedTask("Default-Source-Providers", "Default source providers created")
 
 	return nil
 }
 
-func (t *Installer) applyDefaultReactionProvider(output TaskUI, namespace string) error {
+func (t *Installer) applyDefaultReactionProvider(output TaskOutput, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -364,6 +368,7 @@ func (t *Installer) applyDefaultReactionProvider(output TaskUI, namespace string
 	}
 
 	output.AddTask("Default-Reaction-Providers", "Creating default reaction providers...")
+	subOutput := output.GetChildren("Default-Reaction-Providers")
 
 	var clusterConfig ClusterConfig
 	clusterConfig.DrasiNamespace = namespace
@@ -376,7 +381,7 @@ func (t *Installer) applyDefaultReactionProvider(output TaskUI, namespace string
 	}
 	defer drasiClient.Close()
 
-	drasiClient.Apply(manifests, output)
+	drasiClient.Apply(manifests, subOutput)
 
 	output.SucceedTask("Default-Reaction-Providers", "Default reaction providers created")
 
@@ -446,7 +451,7 @@ func findGVR(gvk *schema.GroupVersionKind, cfg *rest.Config) (*meta.RESTMapping,
 	return mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 }
 
-func (t *Installer) waitForStatefulset(selector string, output TaskUI) error {
+func (t *Installer) waitForStatefulset(selector string, output TaskOutput) error {
 	var timeout int64 = 120
 	var resourceWatch watch.Interface
 	var err error
@@ -479,7 +484,7 @@ func (t *Installer) waitForStatefulset(selector string, output TaskUI) error {
 	return nil
 }
 
-func (t *Installer) waitForDeployment(selector string, output TaskUI) error {
+func (t *Installer) waitForDeployment(selector string, output TaskOutput) error {
 	var timeout int64 = 90
 	var resourceWatch watch.Interface
 	var err error
@@ -512,7 +517,7 @@ func (t *Installer) waitForDeployment(selector string, output TaskUI) error {
 	return nil
 }
 
-func (t *Installer) installDapr(output TaskUI) error {
+func (t *Installer) installDapr(output TaskOutput) error {
 	output.AddTask("Dapr-Install", "Installing Dapr...")
 
 	ns := "dapr-system"
@@ -587,7 +592,7 @@ func (t *Installer) installDapr(output TaskUI) error {
 	return nil
 }
 
-func (t *Installer) checkDaprInstallation(output TaskUI) (bool, error) {
+func (t *Installer) checkDaprInstallation(output TaskOutput) (bool, error) {
 	output.AddTask("Dapr-Check", "Checking for Dapr...")
 
 	podsClient := t.kubeClient.CoreV1().Pods("dapr-system")
@@ -601,10 +606,10 @@ func (t *Installer) checkDaprInstallation(output TaskUI) (bool, error) {
 	}
 
 	if len(pods.Items) > 0 {
-		output.SucceedTask("Dapr-Check", "Dapr already installed")
+		output.InfoTask("Dapr-Check", "Dapr already installed")
 		return true, nil
 	} else {
-		output.SucceedTask("Dapr-Check", "Dapr not installed")
+		output.InfoTask("Dapr-Check", "Dapr not installed")
 		return false, nil
 	}
 }

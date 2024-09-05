@@ -47,7 +47,7 @@ func NewWaitCommand() *cobra.Command {
 			defer p.Wait()
 			defer output.Quit()
 
-			client.ReadyWait(manifests, timeout, &output)
+			client.ReadyWait(manifests, timeout, output)
 
 			return nil
 		},

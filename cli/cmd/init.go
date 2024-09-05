@@ -66,7 +66,7 @@ func NewInitCommand() *cobra.Command {
 			defer p.Wait()
 			defer output.Quit()
 
-			if err := installer.Install(local, registry, version, &output, namespace); err != nil {
+			if err := installer.Install(local, registry, version, output, namespace); err != nil {
 				output.Error(fmt.Sprintf("Error installing Drasi: %v\n", err))
 				return nil
 			}

@@ -49,7 +49,7 @@ func NewApplyCommand() *cobra.Command {
 			defer p.Wait()
 			defer output.Quit()
 
-			client.Apply(manifests, &output)
+			client.Apply(manifests, output)
 
 			return nil
 		},
