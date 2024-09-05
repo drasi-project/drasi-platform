@@ -310,8 +310,12 @@ func (t *Installer) installQueryContainer(output output.TaskOutput, namespace st
 	}
 	defer drasiClient.Close()
 
-	drasiClient.Apply(manifests, subOutput)
-	drasiClient.ReadyWait(manifests, 120, subOutput)
+	if err := drasiClient.Apply(manifests, subOutput); err != nil {
+		return err
+	}
+	if err := drasiClient.ReadyWait(manifests, 120, subOutput); err != nil {
+		return err
+	}
 	output.SucceedTask("Query-Container", "Query container created")
 
 	return nil
@@ -346,7 +350,9 @@ func (t *Installer) applyDefaultSourceProvider(output output.TaskOutput, namespa
 	}
 	defer drasiClient.Close()
 
-	drasiClient.Apply(manifests, subOutput)
+	if err := drasiClient.Apply(manifests, subOutput); err != nil {
+		return err
+	}
 
 	output.SucceedTask("Default-Source-Providers", "Default source providers created")
 
@@ -382,7 +388,9 @@ func (t *Installer) applyDefaultReactionProvider(output output.TaskOutput, names
 	}
 	defer drasiClient.Close()
 
-	drasiClient.Apply(manifests, subOutput)
+	if err := drasiClient.Apply(manifests, subOutput); err != nil {
+		return err
+	}
 
 	output.SucceedTask("Default-Reaction-Providers", "Default reaction providers created")
 

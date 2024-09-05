@@ -4,7 +4,7 @@ import (
 	"drasi.io/cli/api"
 	"drasi.io/cli/service"
 	"drasi.io/cli/service/output"
-	"fmt"
+	"errors"
 	"github.com/spf13/cobra"
 )
 
@@ -19,13 +19,11 @@ func NewDeleteCommand() *cobra.Command {
 			var manifests *[]api.Manifest
 
 			if manifests, err = loadManifests(cmd, args); err != nil {
-				fmt.Printf("Error reading manifest: %v", err.Error())
-				return nil
+				return err
 			}
 
 			if len(*manifests) == 0 {
-				fmt.Printf("no manifests found. Did you forget to specify the '-f' flag")
-				return err
+				return errors.New("no manifests found. Did you forget to specify the '-f' flag")
 			}
 
 			var namespace string
@@ -40,8 +38,7 @@ func NewDeleteCommand() *cobra.Command {
 
 			client, err := service.MakeApiClient(namespace)
 			if err != nil {
-				fmt.Println("Error: " + err.Error())
-				return nil
+				return err
 			}
 			defer client.Close()
 
@@ -49,7 +46,10 @@ func NewDeleteCommand() *cobra.Command {
 			defer p.Wait()
 			defer output.Quit()
 
-			client.Delete(manifests, output)
+			err = client.Delete(manifests, output)
+			if err != nil {
+				return err
+			}
 
 			return nil
 		},

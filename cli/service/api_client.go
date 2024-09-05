@@ -149,7 +149,7 @@ func (t *apiClient) getApiPodName() (string, error) {
 	return "", errors.New("drasi API not available")
 }
 
-func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) {
+func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) error {
 	for _, mf := range *manifests {
 		subject := "Apply: " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
@@ -162,13 +162,13 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) {
 		data, err := json.Marshal(mf.Spec)
 		if err != nil {
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
-			continue
+			return err
 		}
 
 		req, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(data))
 		if err != nil {
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
-			continue
+			return err
 		}
 
 		req.Header.Set("Content-Type", "application/json")
@@ -179,25 +179,26 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) {
 		resp, err := t.client.Do(req)
 		if err != nil {
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
-			continue
+			return err
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			msg := resp.Status
 
 			if b, err := io.ReadAll(resp.Body); err == nil {
-				msg += string(b)
+				msg += ": " + string(b)
 			}
 
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, msg))
-			continue
+			return errors.New(msg)
 		}
 
 		output.SucceedTask(subject, fmt.Sprintf("%v: complete", subject))
 	}
+	return nil
 }
 
-func (t *apiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) {
+func (t *apiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) error {
 	for _, mf := range *manifests {
 		subject := "Delete: " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
@@ -210,24 +211,24 @@ func (t *apiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) 
 		req, err := http.NewRequest(http.MethodDelete, url, bytes.NewReader([]byte{}))
 		if err != nil {
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
-			continue
+			return err
 		}
 
 		resp, err := t.client.Do(req)
 		if err != nil {
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
-			continue
+			return err
 		}
 
 		// Successful deletion should return 204 No Content
 		if resp.StatusCode != http.StatusNoContent {
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, resp.Status))
-			continue
+			return errors.New(resp.Status)
 		}
 
 		output.SucceedTask(subject, fmt.Sprintf("%v: complete", subject))
 	}
-
+	return nil
 }
 
 func (t *apiClient) GetResource(kind string, name string) (*api.Resource, error) {
@@ -284,7 +285,7 @@ func (t *apiClient) ListResources(kind string) ([]api.Resource, error) {
 	return result, err
 }
 
-func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output output.TaskOutput) {
+func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output output.TaskOutput) error {
 	oldTimeout := t.client.Timeout
 	t.client.Timeout = time.Second * time.Duration(timeout+1)
 	defer func() { t.client.Timeout = oldTimeout }()
@@ -299,22 +300,23 @@ func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output o
 		req, err := http.NewRequest(http.MethodGet, url, bytes.NewReader([]byte{}))
 		if err != nil {
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
-			continue
+			return err
 		}
 
 		resp, err := t.client.Do(req)
 		if err != nil {
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
-			continue
+			return err
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, resp.Status))
-			continue
+			return errors.New(resp.Status)
 		}
 
 		output.SucceedTask(subject, fmt.Sprintf("%v online", subject))
 	}
+	return nil
 }
 
 func (t *apiClient) Close() {

@@ -58,8 +58,7 @@ func NewInitCommand() *cobra.Command {
 			saveConfig(clusterConfig)
 
 			if installer, err = service.MakeInstaller(namespace); err != nil {
-				fmt.Println(err.Error())
-				return nil
+				return err
 			}
 
 			fmt.Printf("Installing Drasi with version %s from registry %s\n", version, registry)
@@ -68,8 +67,7 @@ func NewInitCommand() *cobra.Command {
 			defer output.Quit()
 
 			if err := installer.Install(local, registry, version, output, namespace); err != nil {
-				output.Error(fmt.Sprintf("Error installing Drasi: %v\n", err))
-				return nil
+				return err
 			}
 
 			return nil

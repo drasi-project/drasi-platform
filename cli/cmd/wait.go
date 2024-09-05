@@ -4,7 +4,6 @@ import (
 	"drasi.io/cli/api"
 	"drasi.io/cli/service"
 	"drasi.io/cli/service/output"
-	"fmt"
 	"github.com/spf13/cobra"
 )
 
@@ -39,8 +38,7 @@ func NewWaitCommand() *cobra.Command {
 
 			client, err := service.MakeApiClient(namespace)
 			if err != nil {
-				fmt.Println(err.Error())
-				return nil
+				return err
 			}
 			defer client.Close()
 
@@ -48,7 +46,10 @@ func NewWaitCommand() *cobra.Command {
 			defer p.Wait()
 			defer output.Quit()
 
-			client.ReadyWait(manifests, timeout, output)
+			err = client.ReadyWait(manifests, timeout, output)
+			if err != nil {
+				return err
+			}
 
 			return nil
 		},
