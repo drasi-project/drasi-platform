@@ -1,4 +1,4 @@
-package service
+package output
 
 import (
 	"fmt"
@@ -8,17 +8,6 @@ import (
 	"strings"
 	"sync"
 )
-
-type TaskOutput interface {
-	AddTask(name, message string)
-	FailTask(name, message string)
-	SucceedTask(name, message string)
-	InfoTask(name, message string)
-	InfoMessage(message string)
-	Error(message string)
-	Quit()
-	GetChildren(name string) TaskOutput
-}
 
 func NewTaskOutput() (*tea.Program, TaskOutput) {
 	m := taskOutputBubbleTea{
@@ -34,49 +23,6 @@ func NewTaskOutput() (*tea.Program, TaskOutput) {
 		}
 	}()
 	return p, &m
-}
-
-type childTaskOutput struct {
-	parentName string
-	parent     TaskOutput
-	queue      chan interface{}
-}
-
-func (m childTaskOutput) AddTask(name, message string) {
-	m.queue <- taskAddedMsg{name, message, m.parentName}
-}
-
-func (m childTaskOutput) FailTask(name, message string) {
-	m.queue <- taskFailedMsg{name, message, m.parentName}
-}
-
-func (m childTaskOutput) SucceedTask(name, message string) {
-	m.queue <- taskSucceededMsg{name, message, m.parentName}
-}
-
-func (m childTaskOutput) InfoTask(name, message string) {
-	m.queue <- taskInfoMsg{name, message, m.parentName}
-}
-
-func (m childTaskOutput) InfoMessage(message string) {
-	m.queue <- infoMsg{message, m.parentName}
-}
-
-func (m childTaskOutput) Error(message string) {
-	m.queue <- errorMsg{message, m.parentName}
-}
-
-func (m childTaskOutput) Quit() {
-	m.parent.Quit()
-}
-
-func (m childTaskOutput) GetChildren(name string) TaskOutput {
-	r := childTaskOutput{
-		parentName: name,
-		parent:     m,
-		queue:      m.queue,
-	}
-	return r
 }
 
 type itemStatus = int
@@ -264,7 +210,7 @@ func (m taskOutputBubbleTea) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m taskOutputBubbleTea) View() string {
-	s := ""
+	var s strings.Builder
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -277,30 +223,30 @@ func (m taskOutputBubbleTea) View() string {
 			continue
 		}
 
-		s += m.buildItemView(item, 0)
+		s.WriteString(m.buildItemView(item, 0))
 	}
 
-	return s
+	return s.String()
 }
 
 func (m taskOutputBubbleTea) buildItemView(item *task, depth int) string {
-	s := ""
-	s += strings.Repeat("  ", depth)
+	var s strings.Builder
+	s.WriteString(strings.Repeat("  ", depth))
 	switch item.status {
 	case Busy:
-		s += fmt.Sprintf("%s %s\n", item.spinner.View(), item.message)
+		s.WriteString(fmt.Sprintf("%s %s\n", item.spinner.View(), item.message))
 	case Failed:
-		s += errorStyle("✗")
-		s += fmt.Sprintf(" %s\n", item.message)
+		s.WriteString(errorStyle("✗"))
+		s.WriteString(fmt.Sprintf(" %s\n", item.message))
 	case Success:
-		s += successStyle("✓")
-		s += fmt.Sprintf(" %s\n", item.message)
+		s.WriteString(successStyle("✓"))
+		s.WriteString(fmt.Sprintf(" %s\n", item.message))
 	case Info:
-		s += infoStyle("ℹ")
-		s += fmt.Sprintf(" %s\n", item.message)
+		s.WriteString(infoStyle("ℹ"))
+		s.WriteString(fmt.Sprintf(" %s\n", item.message))
 	case Error:
-		s += errorStyle("✗")
-		s += fmt.Sprintf(" %s\n", item.message)
+		s.WriteString(errorStyle("✗"))
+		s.WriteString(fmt.Sprintf(" %s\n", item.message))
 	}
 
 	for _, cid := range item.children {
@@ -308,8 +254,51 @@ func (m taskOutputBubbleTea) buildItemView(item *task, depth int) string {
 		if !exists {
 			continue
 		}
-		s += m.buildItemView(child, depth+1)
+		s.WriteString(m.buildItemView(child, depth+1))
 	}
 
-	return s
+	return s.String()
+}
+
+type childTaskOutput struct {
+	parentName string
+	parent     TaskOutput
+	queue      chan interface{}
+}
+
+func (m childTaskOutput) AddTask(name, message string) {
+	m.queue <- taskAddedMsg{name, message, m.parentName}
+}
+
+func (m childTaskOutput) FailTask(name, message string) {
+	m.parent.FailTask(name, message)
+}
+
+func (m childTaskOutput) SucceedTask(name, message string) {
+	m.parent.SucceedTask(name, message)
+}
+
+func (m childTaskOutput) InfoTask(name, message string) {
+	m.parent.InfoTask(name, message)
+}
+
+func (m childTaskOutput) InfoMessage(message string) {
+	m.queue <- infoMsg{message, m.parentName}
+}
+
+func (m childTaskOutput) Error(message string) {
+	m.queue <- errorMsg{message, m.parentName}
+}
+
+func (m childTaskOutput) Quit() {
+	m.parent.Quit()
+}
+
+func (m childTaskOutput) GetChildren(name string) TaskOutput {
+	r := childTaskOutput{
+		parentName: name,
+		parent:     m,
+		queue:      m.queue,
+	}
+	return r
 }

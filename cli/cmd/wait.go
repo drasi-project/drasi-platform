@@ -3,6 +3,7 @@ package cmd
 import (
 	"drasi.io/cli/api"
 	"drasi.io/cli/service"
+	"drasi.io/cli/service/output"
 	"fmt"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +44,7 @@ func NewWaitCommand() *cobra.Command {
 			}
 			defer client.Close()
 
-			p, output := service.NewTaskOutput()
+			p, output := output.NewTaskOutput()
 			defer p.Wait()
 			defer output.Quit()
 

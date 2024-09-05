@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"drasi.io/cli/service/output"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -148,9 +149,9 @@ func (t *apiClient) getApiPodName() (string, error) {
 	return "", errors.New("drasi API not available")
 }
 
-func (t *apiClient) Apply(manifests *[]api.Manifest, output TaskOutput) {
+func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) {
 	for _, mf := range *manifests {
-		subject := "Apply " + mf.Kind + "/" + mf.Name
+		subject := "Apply: " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
 
 		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name)
@@ -192,13 +193,13 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output TaskOutput) {
 			continue
 		}
 
-		output.SucceedTask(subject, fmt.Sprintf("%v applied", subject))
+		output.SucceedTask(subject, fmt.Sprintf("%v: complete", subject))
 	}
 }
 
-func (t *apiClient) Delete(manifests *[]api.Manifest, output TaskOutput) {
+func (t *apiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) {
 	for _, mf := range *manifests {
-		subject := "Delete " + mf.Kind + "/" + mf.Name
+		subject := "Delete: " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
 
 		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name)
@@ -224,7 +225,7 @@ func (t *apiClient) Delete(manifests *[]api.Manifest, output TaskOutput) {
 			continue
 		}
 
-		output.SucceedTask(subject, fmt.Sprintf("%v deleted", subject))
+		output.SucceedTask(subject, fmt.Sprintf("%v: complete", subject))
 	}
 
 }
@@ -283,7 +284,7 @@ func (t *apiClient) ListResources(kind string) ([]api.Resource, error) {
 	return result, err
 }
 
-func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output TaskOutput) {
+func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output output.TaskOutput) {
 	oldTimeout := t.client.Timeout
 	t.client.Timeout = time.Second * time.Duration(timeout+1)
 	defer func() { t.client.Timeout = oldTimeout }()

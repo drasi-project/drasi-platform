@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"drasi.io/cli/service/output"
 	"embed"
 	"errors"
 	"fmt"
@@ -84,7 +85,7 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, output TaskOutput, namespace string) error {
+func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string) error {
 	daprInstalled, err := t.checkDaprInstallation(output)
 	if err != nil {
 		return err
@@ -122,7 +123,7 @@ func (t *Installer) Install(localMode bool, acr string, version string, output T
 	return nil
 }
 
-func (t *Installer) installInfrastructure(output TaskOutput) error {
+func (t *Installer) installInfrastructure(output output.TaskOutput) error {
 	if _, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "dapr-system", metav1.GetOptions{}); err != nil {
 		return errors.New("dapr not installed")
 	}
@@ -160,7 +161,7 @@ func (t *Installer) installInfrastructure(output TaskOutput) error {
 	return nil
 }
 
-func (t *Installer) installControlPlane(localMode bool, acr string, version string, output TaskOutput) error {
+func (t *Installer) installControlPlane(localMode bool, acr string, version string, output output.TaskOutput) error {
 	var err error
 	var raw []byte
 	var svcAcctManifests []*unstructured.Unstructured
@@ -281,7 +282,7 @@ func (t *Installer) applyManifests(infraManifests []*unstructured.Unstructured) 
 	return nil
 }
 
-func (t *Installer) installQueryContainer(output TaskOutput, namespace string) error {
+func (t *Installer) installQueryContainer(output output.TaskOutput, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -316,7 +317,7 @@ func (t *Installer) installQueryContainer(output TaskOutput, namespace string) e
 	return nil
 }
 
-func (t *Installer) applyDefaultSourceProvider(output TaskOutput, namespace string) error {
+func (t *Installer) applyDefaultSourceProvider(output output.TaskOutput, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -352,7 +353,7 @@ func (t *Installer) applyDefaultSourceProvider(output TaskOutput, namespace stri
 	return nil
 }
 
-func (t *Installer) applyDefaultReactionProvider(output TaskOutput, namespace string) error {
+func (t *Installer) applyDefaultReactionProvider(output output.TaskOutput, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -451,12 +452,12 @@ func findGVR(gvk *schema.GroupVersionKind, cfg *rest.Config) (*meta.RESTMapping,
 	return mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 }
 
-func (t *Installer) waitForStatefulset(selector string, output TaskOutput) error {
+func (t *Installer) waitForStatefulset(selector string, output output.TaskOutput) error {
 	var timeout int64 = 120
 	var resourceWatch watch.Interface
 	var err error
 
-	output.AddTask("Wait-"+selector, fmt.Sprintf("Waiting for %s to be ready", selector))
+	output.AddTask("Wait-"+selector, fmt.Sprintf("Waiting for %s to come online", selector))
 
 	resourceWatch, err = t.kubeClient.AppsV1().StatefulSets(t.kubeNamespace).Watch(context.TODO(), metav1.ListOptions{
 		LabelSelector:  selector,
@@ -475,7 +476,7 @@ func (t *Installer) waitForStatefulset(selector string, output TaskOutput) error
 			continue
 		}
 		if ss.Status.ReadyReplicas > 0 {
-			output.SucceedTask("Wait-"+selector, fmt.Sprintf("%s is ready", selector))
+			output.SucceedTask("Wait-"+selector, fmt.Sprintf("%s is online", selector))
 			resourceWatch.Stop()
 			return nil
 		}
@@ -484,12 +485,12 @@ func (t *Installer) waitForStatefulset(selector string, output TaskOutput) error
 	return nil
 }
 
-func (t *Installer) waitForDeployment(selector string, output TaskOutput) error {
+func (t *Installer) waitForDeployment(selector string, output output.TaskOutput) error {
 	var timeout int64 = 90
 	var resourceWatch watch.Interface
 	var err error
 
-	output.AddTask("Wait-"+selector, fmt.Sprintf("Waiting for %s to be ready", selector))
+	output.AddTask("Wait-"+selector, fmt.Sprintf("Waiting for %s to come online", selector))
 
 	resourceWatch, err = t.kubeClient.AppsV1().Deployments(t.kubeNamespace).Watch(context.TODO(), metav1.ListOptions{
 		LabelSelector:  selector,
@@ -508,7 +509,7 @@ func (t *Installer) waitForDeployment(selector string, output TaskOutput) error 
 			continue
 		}
 		if ss.Status.AvailableReplicas > 0 {
-			output.SucceedTask("Wait-"+selector, fmt.Sprintf("%s is ready", selector))
+			output.SucceedTask("Wait-"+selector, fmt.Sprintf("%s is online", selector))
 			resourceWatch.Stop()
 			return nil
 		}
@@ -517,7 +518,7 @@ func (t *Installer) waitForDeployment(selector string, output TaskOutput) error 
 	return nil
 }
 
-func (t *Installer) installDapr(output TaskOutput) error {
+func (t *Installer) installDapr(output output.TaskOutput) error {
 	output.AddTask("Dapr-Install", "Installing Dapr...")
 
 	ns := "dapr-system"
@@ -592,7 +593,7 @@ func (t *Installer) installDapr(output TaskOutput) error {
 	return nil
 }
 
-func (t *Installer) checkDaprInstallation(output TaskOutput) (bool, error) {
+func (t *Installer) checkDaprInstallation(output output.TaskOutput) (bool, error) {
 	output.AddTask("Dapr-Check", "Checking for Dapr...")
 
 	podsClient := t.kubeClient.CoreV1().Pods("dapr-system")

@@ -3,6 +3,7 @@ package cmd
 import (
 	"drasi.io/cli/config"
 	"drasi.io/cli/service"
+	"drasi.io/cli/service/output"
 	"fmt"
 	"github.com/spf13/cobra"
 )
@@ -62,7 +63,7 @@ func NewInitCommand() *cobra.Command {
 			}
 
 			fmt.Printf("Installing Drasi with version %s from registry %s\n", version, registry)
-			p, output := service.NewTaskOutput()
+			p, output := output.NewTaskOutput()
 			defer p.Wait()
 			defer output.Quit()
 
