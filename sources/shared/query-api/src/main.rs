@@ -134,6 +134,7 @@ async fn handle_subscription(
 
     let control_event_json = serde_json::to_value(&control_event).unwrap();
     let headers = Headers::new(headers_map);
+    println!("control_event_json: {:?}", control_event_json);
     match publisher.publish(control_event_json, headers.clone()).await {
         Ok(_) => {
             debug!("Published the subscription event");

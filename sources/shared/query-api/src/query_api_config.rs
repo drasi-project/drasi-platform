@@ -13,7 +13,7 @@ impl QueryApiConfig {
         let app_port = env::var("APP_PORT").unwrap_or_else(|_| "4001".to_string());
         let source_id =
             env::var("SOURCE_ID").map_err(|_| "Missing SOURCE_ID environment variable")?;
-        let dapr_port = env::var("DAPR_PORT").unwrap_or_else(|_| "3500".to_string());
+        let dapr_port = env::var("DAPR_HTTP_PORT").unwrap_or_else(|_| "3500".to_string());
 
         Ok(Self {
             pubsub_name,
