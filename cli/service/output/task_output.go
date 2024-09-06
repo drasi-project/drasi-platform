@@ -9,22 +9,6 @@ import (
 	"sync"
 )
 
-func NewTaskOutput() (*tea.Program, TaskOutput) {
-	m := taskOutputBubbleTea{
-		lock:  &sync.RWMutex{},
-		tasks: make(map[string]*task),
-		queue: make(chan interface{}, 10),
-	}
-	p := tea.NewProgram(m)
-	go func() {
-		_, e := p.Run()
-		if e != nil {
-			fmt.Println("Error: " + e.Error())
-		}
-	}()
-	return p, &m
-}
-
 type itemStatus = int
 
 const (
@@ -85,10 +69,11 @@ type task struct {
 }
 
 type taskOutputBubbleTea struct {
-	lock  *sync.RWMutex
-	tasks map[string]*task
-	keys  []string
-	queue chan interface{}
+	lock    *sync.RWMutex
+	tasks   map[string]*task
+	keys    []string
+	queue   chan interface{}
+	program *tea.Program
 }
 
 func (m taskOutputBubbleTea) AddTask(name, message string) {
@@ -115,8 +100,9 @@ func (m taskOutputBubbleTea) Error(message string) {
 	m.queue <- errorMsg{message, ""}
 }
 
-func (m taskOutputBubbleTea) Quit() {
+func (m taskOutputBubbleTea) Close() {
 	m.queue <- tea.Quit()
+	m.program.Wait()
 }
 
 func (m taskOutputBubbleTea) GetChildren(name string) TaskOutput {
@@ -290,8 +276,8 @@ func (m childTaskOutput) Error(message string) {
 	m.queue <- errorMsg{message, m.parentName}
 }
 
-func (m childTaskOutput) Quit() {
-	m.parent.Quit()
+func (m childTaskOutput) Close() {
+	m.parent.Close()
 }
 
 func (m childTaskOutput) GetChildren(name string) TaskOutput {

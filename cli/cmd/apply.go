@@ -43,9 +43,8 @@ func NewApplyCommand() *cobra.Command {
 			}
 			defer client.Close()
 
-			p, output := output.NewTaskOutput()
-			defer p.Wait()
-			defer output.Quit()
+			output := output.NewTaskOutput()
+			defer output.Close()
 
 			err = client.Apply(manifests, output)
 			if err != nil {
