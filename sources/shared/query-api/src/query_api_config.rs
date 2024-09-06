@@ -9,7 +9,7 @@ pub struct QueryApiConfig {
 
 impl QueryApiConfig {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let pubsub_name = env::var("PUBSUB_NAME").unwrap_or_else(|_| "drasi-pubsub".to_string());
+        let pubsub_name = env::var("PUBSUB_NAME").unwrap_or_else(|_| "rg-pubsub".to_string()); //// Change to drasi-pubsub after merging PR #42
         let app_port = env::var("APP_PORT").unwrap_or_else(|_| "4001".to_string());
         let source_id =
             env::var("SOURCE_ID").map_err(|_| "Missing SOURCE_ID environment variable")?;

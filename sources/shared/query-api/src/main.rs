@@ -137,10 +137,10 @@ async fn handle_subscription(
     println!("control_event_json: {:?}", control_event_json);
     match publisher.publish(control_event_json, headers.clone()).await {
         Ok(_) => {
-            debug!("Published the subscription event");
+            println!("Published the subscription event");
         }
         Err(e) => {
-            debug!("Error publishing the subscription event: {:?}", e);
+            println!("Error publishing the subscription event: {:?}", e);
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     }
