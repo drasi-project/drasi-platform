@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use drasi_comms_abstractions::comms::{Headers, Invoker, Publisher};
 use serde_json::Value;
-
+use bytes::Bytes;
 pub struct DaprHttpPublisher {
     client: reqwest::Client,
     dapr_host: String,
@@ -71,7 +71,7 @@ impl Invoker for DaprHttpInvoker {
         app_id: String,
         method: String,
         headers: Headers,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<Bytes, Box<dyn std::error::Error>> {
         let url = format!("http://{}:{}/{}", self.dapr_host, self.dapr_port, method);
 
         let mut request_headers = reqwest::header::HeaderMap::new();
@@ -95,11 +95,9 @@ impl Invoker for DaprHttpInvoker {
             .headers(request_headers)
             .json(&data)
             .send()
-            .await;
+            .await?;
 
-        match response {
-            Ok(_) => Ok(()),
-            Err(e) => Err(Box::new(e)),
-        }
+        let response_bytes = response.bytes().await?;
+        Ok(response_bytes)
     }
 }
