@@ -1,4 +1,4 @@
-use super::{ResourceDomainService, ResourceDomainServiceImpl};
+use super::{ResourceDomainService, StandardResourceDomainServiceImpl};
 use crate::{
     domain::models::{QueryContainerSpec, QueryContainerStatus},
     persistence::QueryContainerRepository,
@@ -7,7 +7,7 @@ use dapr::client::TonicClient;
 
 pub type QueryContainerDomainService =
     dyn ResourceDomainService<QueryContainerSpec, QueryContainerStatus> + Send + Sync;
-pub type QueryContainerDomainServiceImpl = ResourceDomainServiceImpl<
+pub type QueryContainerDomainServiceImpl = StandardResourceDomainServiceImpl<
     QueryContainerSpec,
     QueryContainerStatus,
     resource_provider_api::models::QueryContainerSpec,
@@ -25,8 +25,6 @@ impl QueryContainerDomainServiceImpl {
             actor_type: |_spec| "QueryContainerResource".to_string(),
             ready_check: |status| status.available,
             validators: vec![],
-            retrieve_current_kind: |_spec| None,
-            populate_default_values: |properties, _| Ok(properties.clone()),
             _TSpec: std::marker::PhantomData,
             _TStatus: std::marker::PhantomData,
             _TApiSpec: std::marker::PhantomData,
