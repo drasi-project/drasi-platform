@@ -15,7 +15,6 @@ drasi-comms-abstractions = { path = "../../../infrastructure/comms-abstractions"
 drasi-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
 env_logger = { version = "0.11.2" } 
 futures = "0.3.30"
-json = "0.12.4"
 log = "0.4.20"
 proc-macro2 = "1.0.81"
 reqwest = "0.12.4"

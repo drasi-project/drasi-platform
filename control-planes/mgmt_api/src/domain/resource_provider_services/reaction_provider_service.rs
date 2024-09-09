@@ -1,8 +1,7 @@
-use super::{ResourceProviderDomainService, ResourceProviderDomainServiceImpl};
+use super::{ResourceProviderDomainService, ResourceProviderDomainServiceImpl, SchemaValidator};
 use crate::{
-    domain::models::{DomainError, ReactionProviderSpec, ReactionProviderStatus},
+    domain::models::{DomainError, ReactionProviderSpec},
     persistence::ReactionProviderRepository,
-    SpecValidator,
 };
 use dapr::client::TonicClient;
 
@@ -29,7 +28,7 @@ impl ReactionProviderDomainServiceImpl {
 struct ReactionProviderValidator {}
 
 #[async_trait]
-impl SpecValidator<ReactionProviderSpec> for ReactionProviderValidator {
+impl SchemaValidator for ReactionProviderValidator {
     async fn validate_schema(&self, schema: &Value) -> Result<(), DomainError> {
         let provider_schema_json = r#"{
             "type": "object",

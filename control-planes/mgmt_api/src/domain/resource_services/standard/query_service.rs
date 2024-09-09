@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use super::{
-    QueryContainerDomainService, ResourceDomainService, ResourceDomainServiceImpl, SpecValidator,
+    QueryContainerDomainService, ResourceDomainService, StandardResourceDomainServiceImpl,
+    StandardSpecValidator,
 };
 use crate::{
     domain::models::{DomainError, QuerySpec, QueryStatus},
@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use dapr::client::TonicClient;
 
 pub type QueryDomainService = dyn ResourceDomainService<QuerySpec, QueryStatus>;
-pub type QueryDomainServiceImpl = ResourceDomainServiceImpl<
+pub type QueryDomainServiceImpl = StandardResourceDomainServiceImpl<
     QuerySpec,
     QueryStatus,
     resource_provider_api::models::QuerySpec,
@@ -33,8 +33,6 @@ impl QueryDomainServiceImpl {
             validators: vec![Box::new(QuerySpecValidator {
                 query_container_service: container_service,
             })],
-            retrieve_current_kind: |_spec| None,
-            populate_default_values: |properties, _| Ok(properties.clone()),
             _TSpec: std::marker::PhantomData,
             _TStatus: std::marker::PhantomData,
             _TApiSpec: std::marker::PhantomData,
@@ -48,12 +46,8 @@ struct QuerySpecValidator {
 }
 
 #[async_trait]
-impl SpecValidator<QuerySpec> for QuerySpecValidator {
-    async fn validate(
-        &self,
-        spec: &QuerySpec,
-        _schema: &Option<serde_json::Value>,
-    ) -> Result<(), DomainError> {
+impl StandardSpecValidator<QuerySpec> for QuerySpecValidator {
+    async fn validate(&self, spec: &QuerySpec) -> Result<(), DomainError> {
         let qc = match self.query_container_service.get(&spec.container).await {
             Ok(qc) => qc,
             Err(e) => match e {
