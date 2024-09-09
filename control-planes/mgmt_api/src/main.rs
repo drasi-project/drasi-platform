@@ -1,4 +1,8 @@
 use actix_web::{middleware, web, App, HttpServer};
+use domain::resource_provider_services::{
+    ReactionProviderDomainService, ReactionProviderDomainServiceImpl, SourceProviderDomainService,
+    SourceProviderDomainServiceImpl,
+};
 use std::sync::Arc;
 
 use crate::{
@@ -7,11 +11,6 @@ use crate::{
         result_service::ResultService,
     },
     persistence::*,
-};
-
-use mongodb::{
-    bson::{self, doc, Document},
-    Collection,
 };
 
 mod api;

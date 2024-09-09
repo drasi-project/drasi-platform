@@ -1,8 +1,15 @@
 {
   "name": "drasi",
   "displayName": "drasi",
+  "publisher": "drasi",
   "description": "",
+  "publisher": "drasi-project",
   "version": "0.0.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drasi-project/drasi-platform.git"
+  },
+  "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -140,15 +147,16 @@
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
     "@vscode/test-electron": "^2.2.2",
-    "@vscode/vsce": "^2.17.0",
-    "eslint": "^8.33.0",
+    "@vscode/vsce": "^2.31.0",
+    "eslint": "^8.56.0",
     "glob": "^8.1.0",
     "mocha": "^10.1.0",
     "typescript": "^4.9.4"
   },
   "dependencies": {
     "ajv": "^8.12.0",
-    "axios": "^1.3.2",
+    "axios": "^1.7.2",
+    "braces": "^3.0.3",
     "js-yaml": "^4.1.0",
     "portfinder": "^1.0.32",
     "strip-ansi": "^7.0.1"
