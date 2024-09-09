@@ -41,9 +41,19 @@ bin/darwin-arm64/drasi
 
 ## Installing a local build
 
+
+### MacOS
+
 You can use the Makefile to install a local build of Drasi. By default this will install to `/usr/local/bin/drasi`. You may also need to specify `sudo` depending on the destination and its permissions.
 
 ```sh
 sudo make install
 ```
 
+### Windows
+
+You can use the Makefile to install a local build of Drasi. By default this will install to `Program Files\drasi`. You may also need to run the command in an elavated terminal.
+
+```sh
+make install
+```
