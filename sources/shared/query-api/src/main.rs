@@ -10,7 +10,7 @@ use chrono::Utc;
 use control_event::{AfterData, ControlEvent, Payload, Source, SubscriptionInput};
 use log::debug;
 use query_api_config::QueryApiConfig;
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -111,7 +111,6 @@ async fn handle_subscription(
             None
         }
     };
-
     let control_event = ControlEvent {
         op: "i".to_string(),
         ts_ms: Utc::now().timestamp_millis() as u64,
@@ -129,10 +128,12 @@ async fn handle_subscription(
             },
         },
     };
+    // control_event_vec.push(control_event);
 
     let publisher = &state.publisher;
 
-    let control_event_json = serde_json::to_value(&control_event).unwrap();
+    // let control_event_json = serde_json::to_value(&control_event_vec).unwrap();
+    let control_event_json = json!([control_event]);
     let headers = Headers::new(headers_map);
     println!("control_event_json: {:?}", control_event_json);
     match publisher.publish(control_event_json, headers.clone()).await {
