@@ -12,7 +12,6 @@ pub struct SubscriptionInput {
     pub rel_labels: Vec<String>,
 }
 
-// Define the control event structure for publishing
 #[derive(Serialize)]
 pub struct ControlEvent {
     pub op: String,

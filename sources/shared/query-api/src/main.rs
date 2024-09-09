@@ -32,7 +32,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Starting the query API server for the source: {}",
         &config.source_id
     );
-    println!("config : {:?}", config.clone());
 
     let dapr_port: u16 = match config.dapr_port.parse() {
         Ok(port) => port,
@@ -105,7 +104,13 @@ async fn handle_subscription(
 
     let mut headers_map = std::collections::HashMap::new();
     _ = match headers.get("traceparent") {
-        Some(tp) => headers_map.insert("traceparent".to_string(), tp.to_str().unwrap().to_string()),
+        Some(tp) => headers_map.insert("traceparent".to_string(), match tp.to_str() {
+            Ok(tp) => tp.to_string(),
+            Err(e) => {
+                println!("Error parsing the traceparent header: {:?}", e);
+                return StatusCode::BAD_REQUEST.into_response();
+            }
+        }),
         None => {
             // no traceparent header found
             None
@@ -116,7 +121,7 @@ async fn handle_subscription(
         ts_ms: Utc::now().timestamp_millis() as u64,
         payload: Payload {
             source: Source {
-                db: "ReactiveGraph".to_string(), // Change to Drasi after merging PR #42
+                db: "ReactiveGraph".to_string(), // TODO: Change to Drasi after merging PR #42
                 table: "SourceSubscription".to_string(),
             },
             before: None,
@@ -128,17 +133,12 @@ async fn handle_subscription(
             },
         },
     };
-    // control_event_vec.push(control_event);
-
     let publisher = &state.publisher;
-
-    // let control_event_json = serde_json::to_value(&control_event_vec).unwrap();
     let control_event_json = json!([control_event]);
     let headers = Headers::new(headers_map);
-    println!("control_event_json: {:?}", control_event_json);
     match publisher.publish(control_event_json, headers.clone()).await {
         Ok(_) => {
-            println!("Published the subscription event");
+            debug!("Published the subscription event");
         }
         Err(e) => {
             println!("Error publishing the subscription event: {:?}", e);
@@ -147,8 +147,20 @@ async fn handle_subscription(
     }
 
     // Query DB and send initial results to query node
-    let input_node_labels = serde_json::to_string(&subscription_input.node_labels).unwrap();
-    let input_rel_labels = serde_json::to_string(&subscription_input.rel_labels).unwrap();
+    let input_node_labels = match serde_json::to_string(&subscription_input.node_labels) {
+        Ok(labels) => labels,
+        Err(e) => {
+            println!("Error serializing the node labels: {:?}", e);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+    let input_rel_labels = match serde_json::to_string(&subscription_input.rel_labels) {
+        Ok(labels) => labels,
+        Err(e) => {
+            println!("Error serializing the rel labels: {:?}", e);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
 
     println!(
         "queryApi.main/subscription - queryId: {} - fetching nodeLabels:{}, relLabels:{}",
@@ -161,7 +173,13 @@ async fn handle_subscription(
         node_labels: subscription_input.node_labels.clone(),
         rel_labels: subscription_input.rel_labels.clone(),
     };
-    let subscription_data_json = serde_json::to_value(&subscription_data).unwrap();
+    let subscription_data_json = match serde_json::to_value(&subscription_data) {
+        Ok(json) => json,
+        Err(e) => {
+            println!("Error serializing the subscription data: {:?}", e);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
 
     let config = &state.config;
     let proxy_name = format!("{}-proxy", config.source_id);
