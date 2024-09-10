@@ -5,6 +5,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use tokio::sync::watch;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -86,16 +87,20 @@ pub struct ChangeStreamConfig {
     pub fetch_batch_size: usize,
 }
 
-#[derive(Debug)]
-pub enum QueryError {
-    AlreadyConfigured,
-    BootstrapFailure(Box<dyn Error>),
+#[derive(Error, Debug)]
+pub enum QueryError {    
+    #[error("Bootstrap failure: {0}")]    
+    BootstrapFailure(BootstrapError),
+
+    #[error("Parse error: {0}")]
     ParseError(Box<dyn Error>),
+
+    #[error("{0}")]
     Other(String),
 }
 
 impl QueryError {
-    pub fn bootstrap_failure(e: Box<dyn Error>) -> Self {
+    pub fn bootstrap_failure(e: BootstrapError) -> Self {
         QueryError::BootstrapFailure(e)
     }
 
@@ -104,19 +109,43 @@ impl QueryError {
     }
 }
 
-impl Display for QueryError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            QueryError::AlreadyConfigured => write!(f, "Query actor already configured"),
-            QueryError::BootstrapFailure(o) => o.fmt(f),
-            QueryError::ParseError(o) => o.fmt(f),
-            QueryError::Other(o) => write!(f, "{}", o),
-        }
-    }
+
+#[derive(Error, Debug)]
+pub enum BootstrapError {
+    #[error("Failed to fetch data from source '{source_id}': {inner}")]
+    FetchFailed {
+        source_id: String,
+        inner: Box<dyn Error>
+    },
+
+    #[error("Failed to process element '{element_id}' from source '{source_id}': {inner}")]
+    ProcessFailed {
+        source_id: String,
+        element_id: String,
+        inner: Box<dyn Error>
+    },
+
+    #[error("Failed to publish: {0}")]
+    PublishError(Box<dyn Error>),
+
+    #[error("{0}")]
+    Other(Box<dyn Error>),
 }
 
-impl Error for QueryError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        None
+impl BootstrapError {
+    pub fn fetch_failed(source_id: String, inner: Box<dyn Error>) -> Self {
+        BootstrapError::FetchFailed { source_id, inner }
+    }
+
+    pub fn process_failed(source_id: String, element_id: String, inner: Box<dyn Error>) -> Self {
+        BootstrapError::ProcessFailed { source_id, element_id, inner }
+    }
+
+    pub fn publish_error(inner: Box<dyn Error>) -> Self {
+        BootstrapError::PublishError(inner)
+    }
+
+    pub fn other(inner: Box<dyn Error>) -> Self {
+        BootstrapError::Other(inner)
     }
 }
