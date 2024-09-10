@@ -1,6 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, hash::{Hash, Hasher}};
 
 use either::Either;
+use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::api::{
     apps::v1::{
         Deployment, DeploymentSpec, DeploymentStatus, DeploymentStrategy, RollingUpdateDeployment,
@@ -15,7 +16,6 @@ use kube::{
     Api,
 };
 use serde::Serialize;
-use sha1::{Digest, Sha1};
 
 use crate::models::Component;
 
@@ -337,8 +337,8 @@ impl ResourceReconciler {
 
 fn calc_hash<T: Serialize>(obj: &T) -> String {
     let data = serde_json::to_vec(obj).unwrap();
-    let mut hasher = Sha1::new();
-    hasher.update(data);
-    let hsh = hasher.finalize();
+    let mut hash = SpookyHasher::default();
+    data.hash(&mut hash);    
+    let hsh = hash.finish();
     format!("{:02x}", hsh)
 }
