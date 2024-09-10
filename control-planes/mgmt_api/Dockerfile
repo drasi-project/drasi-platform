@@ -1,4 +1,4 @@
-FROM rust:1.77-bullseye as builder
+FROM rust:1.81-bullseye as builder
 RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
 WORKDIR /usr/src
 COPY ./resource_provider_api ./resource_provider_api
