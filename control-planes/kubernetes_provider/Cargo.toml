@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dapr = { git = "https://github.com/danielgerlag/rust-sdk.git", branch = "actors-refactor" }
+dapr = "=0.15.1"
+dapr-macros = { version = "=0.15.1", package = "dapr-macros" }
 resource_provider_api = { path = "../resource_provider_api" }
 env_logger = "0.10"
 log = "0.4"
@@ -20,7 +21,8 @@ either = "1.8.1"
 futures = "0.3"
 once_cell = "1.17.1"
 async-trait = "0.1.68"
-axum = "0.6.19"
+axum = { version = "0.7.5", features = ["macros"] }
 kube-derive = "0.87.1"
 schemars = "0.8.15"
+bytes = "1.7.1"
 

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 resource_provider_api = { path = "../resource_provider_api" }
-dapr = { git = "https://github.com/danielgerlag/rust-sdk.git", branch = "actors-refactor" }
+dapr = "=0.15.1"
 async-stream = "0.3.5"
 async-trait = "0.1"
 actix = "0.13"
