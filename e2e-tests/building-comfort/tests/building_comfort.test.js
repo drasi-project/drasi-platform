@@ -1,6 +1,9 @@
-const yaml = import('js-yaml');
+const yaml = require('js-yaml');
 const { expect }  = import('chai');
-
+const fs = require('fs');
+const deployResources = require("../fixtures/deploy-resources");
+const PortForward = require('../fixtures/port-forward');
+const SignalrFixture = require("../fixtures/signalr-fixture");
 
 let signalrFixture = new SignalrFixture(["building-comfort-level-calc","floor-comfort-level-calc", "room-comfort-level-calc"]);
 
