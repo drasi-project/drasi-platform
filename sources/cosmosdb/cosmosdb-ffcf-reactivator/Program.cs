@@ -211,7 +211,7 @@ namespace ChangeFeedSample
             {
                 throw new ArgumentNullException("Missing 'SourceConnectionString' setting in configuration.");
             }
-
+            Console.WriteLine($"Connecting to {configuration["accountEndpoint"]}...");
             return new CosmosClientBuilder(configuration["accountEndpoint"])
                 .Build();
         }

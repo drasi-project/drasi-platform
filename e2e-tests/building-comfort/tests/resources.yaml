@@ -1,0 +1,163 @@
+kind: Source
+apiVersion: v1
+name: facilities
+spec:
+  kind: CosmosGremlin
+  services:
+    reactivator:
+      properties:
+        partitionKey: name
+  properties:
+    accountEndpoint:
+      kind: Secret
+      name: comfy-creds
+      key: accountEndpoint # Supplied from Github Actions
+    database: Contoso
+    container: Facilities
+---
+# Calculates the comfort level of the building by taking 
+# the average of the comfort level of all floors
+kind: ContinuousQuery
+apiVersion: v1
+name: building-comfort-level-calc
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: facilities
+  query: > 
+    MATCH 
+      (r:Room)-[:PART_OF]->(f:Floor)-[:PART_OF]->(b:Building) 
+    WITH 
+      b,
+      floor( 50 + (r.temp - 72) + (r.humidity - 42) + CASE WHEN r.co2 > 500 THEN (r.co2 - 500) / 25 ELSE 0 END ) AS RoomComfortLevel
+    WITH 
+      b,
+      avg(RoomComfortLevel) AS FloorComfortLevel
+    WITH 
+      b, 
+      avg(FloorComfortLevel) AS ComfortLevel
+    RETURN 
+      elementId(b) AS BuildingId, 
+      ComfortLevel
+---
+# Calculates the comfort level of the floor by taking 
+# the average of the comfort level of all rooms
+kind: ContinuousQuery
+apiVersion: v1
+name: floor-comfort-level-calc
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: facilities
+  query: > 
+    MATCH 
+      (r:Room)-[:PART_OF]->(f:Floor) 
+    WITH
+      f, 
+      floor( 50 + (r.temp - 72) + (r.humidity - 42) + CASE WHEN r.co2 > 500 THEN (r.co2 - 500) / 25 ELSE 0 END ) AS RoomComfortLevel
+    WITH 
+      f, 
+      avg(RoomComfortLevel) AS ComfortLevel
+    RETURN 
+      elementId(f) AS FloorId, 
+      ComfortLevel
+---
+# Calculates the comfort level of a room
+kind: ContinuousQuery
+apiVersion: v1
+name: room-comfort-level-calc
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: facilities
+  query: > 
+    MATCH 
+      (r:Room) 
+    RETURN 
+      elementId(r) AS RoomId,
+      floor( 50 + (r.temp - 72) + (r.humidity - 42) + CASE WHEN r.co2 > 500 THEN (r.co2 - 500) / 25 ELSE 0 END ) AS ComfortLevel
+---
+# Calculates the comfort level of rooms.
+# Retrieves all rooms that have a comfort level below 40 or above 50.
+# Returns the room ID, room name, and comfort level of each room.
+kind: ContinuousQuery
+apiVersion: v1
+name: room-alert 
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: facilities
+  query: >
+    MATCH 
+      (r:Room) 
+    WITH 
+      elementId(r) AS RoomId,
+      r.name AS RoomName,
+      floor( 50 + (r.temp - 72) + (r.humidity - 42) + CASE WHEN r.co2 > 500 THEN (r.co2 - 500) / 25 ELSE 0 END ) AS ComfortLevel
+    WHERE ComfortLevel < 40 OR ComfortLevel > 50 
+    RETURN 
+      RoomId, RoomName, ComfortLevel
+---
+# Calculates the average comfort level of all rooms in a floor
+# Retrieves all floors that have a comfort level below 40 or above 50
+# Returns the floor ID, floor name and comfort level of each floor
+kind: ContinuousQuery
+apiVersion: v1
+name: floor-alert
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: facilities
+  query: >
+    MATCH 
+      (r:Room)-[:PART_OF]->(f:Floor) 
+    WITH
+      f, 
+      floor( 50 + (r.temp - 72) + (r.humidity - 42) + CASE WHEN r.co2 > 500 THEN (r.co2 - 500) / 25 ELSE 0 END ) AS RoomComfortLevel
+    WITH 
+      f, 
+      avg(RoomComfortLevel) AS ComfortLevel
+    WHERE 
+      ComfortLevel < 40 OR ComfortLevel > 50 
+    RETURN 
+      elementId(f) AS FloorId, 
+      f.name AS FloorName, 
+      ComfortLevel
+---
+# Calculates the average comfort level of all floors in a building
+# Returns the building ID, building Name and the comfort level if 
+# the comfort leve is outside the acceptable range of 40-50
+kind: ContinuousQuery
+apiVersion: v1
+name: building-alert
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: facilities
+  query: >
+    MATCH 
+      (r:Room)-[:PART_OF]->(f:Floor)-[:PART_OF]->(b:Building) 
+    WITH 
+      f, 
+      b,
+      floor( 50 + (r.temp - 72) + (r.humidity - 42) + CASE WHEN r.co2 > 500 THEN (r.co2 - 500) / 25 ELSE 0 END ) AS RoomComfortLevel
+    WITH 
+      f, 
+      b,
+      avg(RoomComfortLevel) AS FloorComfortLevel
+    WITH 
+      b, 
+      avg(FloorComfortLevel) AS ComfortLevel
+    WHERE 
+      ComfortLevel < 40 OR ComfortLevel > 50 
+    RETURN 
+      elementId(b) AS BuildingId, 
+      b.name AS BuildingName, 
+      ComfortLevel
+ 

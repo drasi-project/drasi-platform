@@ -452,6 +452,34 @@ jobs:
         working-directory: e2e-tests
         run: npm test
 
+  e2e-tests-building-comfort:
+    permissions:
+        packages: write
+        contents: read
+    name: Building Comfort E2E test
+    runs-on: windows-latest # for running the Cosmos DB emulator
+    needs: 
+      - build-query-container
+      - build-control-plane
+      - build-sources
+      - build-reactions
+      - build-cli
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v3
+      - name: Start Azure Cosmos DB emulator
+        run: |
+          Write-Host "Launching Cosmos DB Emulator"
+          Import-Module "$env:ProgramFiles\Azure Cosmos DB Emulator\PSModules\Microsoft.Azure.CosmosDB.Emulator"
+          Start-CosmosDbEmulator
+      - name: Install test runner
+        run: npm install --global mocha
+      - name: Run Node.js tests
+        run: |
+          cd e2e-tests/building-comfort
+          mocha tests/building_comfort.test.js
+    
+
   cleanup:
     runs-on: ubuntu-latest
     if: failure()

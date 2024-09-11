@@ -122,9 +122,11 @@ function parseCosmosparseCosmosConnectionString(connString) {
       case 'AccountEndpoint':
         accountEndpoint = val.replace("https://", "wss://");
         accountEndpoint = accountEndpoint.replace("documents.azure.com", "gremlin.cosmos.azure.com");
+        console.log(`sourceProxy.parseCosmosConnectionString - accountEndpoint:${accountEndpoint}`);
         break;
       case 'AccountKey':
         accountKey = val;
+        console.log(`sourceProxy.parseCosmosConnectionString - accountKey:${accountKey}`);
         break;
     }
   }
