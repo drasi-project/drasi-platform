@@ -474,6 +474,63 @@ jobs:
           Start-CosmosDbEmulator
       - name: Install test runner
         run: npm install --global mocha
+       - name: Download artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+
+      - name: Install Drasi CLI
+        run: |
+          chmod +x ./cli/linux-x64/drasi
+          sudo mv ./cli/linux-x64/drasi /usr/local/bin/drasi
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Download images
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-change-router:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-cosmosdb-reactivator:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/source-gremlin-proxy:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/reaction-signalr:${{ github.sha }}
+          
+          docker image list
+
+      - name: Tag images
+        run: |
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }} ${{ github.repository_owner }}/query-container-query-host
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }} ${{ github.repository_owner }}/query-container-publish-api
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }} ${{ github.repository_owner }}/query-container-view-svc
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }} ${{ github.repository_owner }}/api
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }} ${{ github.repository_owner }}/kubernetes-provider
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-router:${{ github.sha }} ${{ github.repository_owner }}/source-change-router
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }} ${{ github.repository_owner }}/source-change-dispatcher
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }} ${{ github.repository_owner }}/source-query-api
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-cosmosdb-reactivator:${{ github.sha }} ${{ github.repository_owner }}/source-cosmosdb-reactivator
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-gremlin-proxy:${{ github.sha }} ${{ github.repository_owner }}/source-gremlin-proxy
+          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/reaction-signalr:${{ github.sha }} ${{ github.repository_owner }}/reaction-signalr
+        
+        
+      - name: Install Kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.17.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Install Kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
       - name: Run Node.js tests
         run: |
           cd e2e-tests/building-comfort
