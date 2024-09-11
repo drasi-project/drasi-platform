@@ -4,10 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var RootCommand = &cobra.Command{Use: "drasi"}
+func MakeRootCommand() *cobra.Command {
+	var rootCommand = &cobra.Command{Use: "drasi", SilenceUsage: true}
 
-func init() {
-	RootCommand.AddCommand(
+	rootCommand.AddCommand(
 		NewInitCommand(),
 		NewApplyCommand(),
 		NewDeleteCommand(),
@@ -19,5 +19,7 @@ func init() {
 		NewVersionCommand(),
 	)
 
-	RootCommand.PersistentFlags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into")
+	rootCommand.PersistentFlags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into")
+
+	return rootCommand
 }
