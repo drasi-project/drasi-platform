@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::{error::{self, Error}, sync::Arc};
 
 use drasi_core::models::{
     ElementMetadata, ElementReference, QuerySubscription, SourceChange,
@@ -48,8 +48,15 @@ impl SourceClient {
 
         match response {
             Ok(response) => {
-                let data: BootstrapEvents = response.json().await?;
-                Ok(data.into_source_changes(subscription.id.as_ref()))
+                if response.status().is_success() {
+                    let data: BootstrapEvents = response.json().await?;
+                    Ok(data.into_source_changes(subscription.id.as_ref()))
+                } else {
+                    Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("{} {}", response.status(),response.text().await.unwrap_or_default()),
+                    )))
+                }
             }
             Err(e) => Err(Box::new(e)),
         }
