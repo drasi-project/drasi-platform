@@ -445,11 +445,11 @@ jobs:
           sudo mv ./kubectl /usr/local/bin/kubectl
 
       - name: npm install
-        working-directory: e2e-tests
+        working-directory: e2e-tests/simple-scenario
         run: npm install
 
       - name: Run e2e tests
-        working-directory: e2e-tests
+        working-directory: e2e-tests/simple-scenario
         run: npm test
 
   e2e-tests-building-comfort:
@@ -477,6 +477,7 @@ jobs:
       - name: Run Node.js tests
         run: |
           cd e2e-tests/building-comfort
+          npm install
           mocha tests/building_comfort.test.js
     
 
