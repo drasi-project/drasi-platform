@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"fmt"
-
 	"drasi.io/cli/api"
 	"drasi.io/cli/service"
+	"drasi.io/cli/service/output"
 	"github.com/spf13/cobra"
 )
 
@@ -37,12 +36,18 @@ func NewWaitCommand() *cobra.Command {
 				namespace = cfg.DrasiNamespace
 			}
 
-			client := service.MakeApiClient(namespace)
+			client, err := service.MakeApiClient(namespace)
+			if err != nil {
+				return err
+			}
 			defer client.Close()
-			results := make(chan service.StatusUpdate)
-			go client.ReadyWait(manifests, timeout, results)
-			for r := range results {
-				fmt.Println(r.Subject + ": " + r.Message)
+
+			output := output.NewTaskOutput()
+			defer output.Close()
+
+			err = client.ReadyWait(manifests, timeout, output)
+			if err != nil {
+				return err
 			}
 
 			return nil

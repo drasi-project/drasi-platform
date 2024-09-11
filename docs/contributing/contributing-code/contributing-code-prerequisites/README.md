@@ -6,7 +6,7 @@ Depending on the task you need to perform, you may need to install more tools, b
 
 ## Operating system
 
-We support developing on macOS, Linux and Windows with [WSL](https://docs.microsoft.com/windows/wsl/install).
+We support developing on macOS, Linux and Windows.
 
 ## Development environment
 
@@ -45,6 +45,14 @@ Using Homebrew:
 
 ```bash  
 brew install make
+```
+
+#### Windows
+
+Using Chocolatey
+
+```bash
+choco install make
 ```
 
 ### Enable Git Hooks

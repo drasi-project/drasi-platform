@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"fmt"
-
 	"drasi.io/cli/config"
 	"drasi.io/cli/service"
+	"drasi.io/cli/service/output"
+	"fmt"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,6 @@ func NewInitCommand() *cobra.Command {
 		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var installer *service.Installer
-			results := make(chan service.StatusUpdate)
 			local := false
 			var registry string
 			var version string
@@ -62,11 +61,12 @@ func NewInitCommand() *cobra.Command {
 				return err
 			}
 
-			fmt.Println("Installing Drasi with version " + version + " from registry " + registry)
-			go installer.Install(local, registry, version, results, namespace)
+			fmt.Printf("Installing Drasi with version %s from registry %s\n", version, registry)
+			output := output.NewTaskOutput()
+			defer output.Close()
 
-			for r := range results {
-				fmt.Println(r.Subject + ": " + r.Message)
+			if err := installer.Install(local, registry, version, output, namespace); err != nil {
+				return err
 			}
 
 			return nil
