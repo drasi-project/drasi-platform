@@ -403,8 +403,6 @@ jobs:
           
       - name: Download images
         run: |
-          & 'C:\Program Files\Docker\Docker\DockerCli.exe' -SwitchLinuxEngine
-          Start-Sleep -s 15
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }}
@@ -499,6 +497,8 @@ jobs:
         env:
           DOCKER_DEFAULT_PLATFORM: linux/amd64
         run: |
+          & 'C:\Program Files\Docker\Docker\DockerCli.exe' -SwitchLinuxEngine
+          Start-Sleep -s 15
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }}
