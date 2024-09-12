@@ -484,11 +484,7 @@ jobs:
 
       - name: Set up Docker for Linux containers
         run: |
-          wsl --set-default-version 2
-          wsl --install -d Ubuntu
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo service docker start
+          wsl --install
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
