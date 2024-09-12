@@ -21,6 +21,8 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: drasi-redis
+  labels:
+    app: drasi-redis
 spec:
   serviceName: drasi-redis
   replicas: 1

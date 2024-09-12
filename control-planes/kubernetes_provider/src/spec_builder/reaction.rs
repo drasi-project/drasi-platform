@@ -4,6 +4,7 @@ use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
     build_deployment_spec, SpecBuilder,
 };
+use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::{
     api::core::v1::{ConfigMap, EnvVar, ServicePort, ServiceSpec},
     apimachinery::pkg::util::intstr::IntOrString,
@@ -11,8 +12,7 @@ use k8s_openapi::{
 use kube::core::ObjectMeta;
 use resource_provider_api::models::{ConfigValue, EndpointSetting, ReactionSpec, ResourceRequest};
 use serde::Serialize;
-use sha1::{Digest, Sha1};
-use std::collections::{BTreeMap, HashMap};
+use std::{collections::{BTreeMap, HashMap}, hash::{Hash, Hasher}};
 
 pub struct ReactionSpecBuilder {}
 
@@ -179,8 +179,8 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 
 fn calc_hash<T: Serialize>(obj: &T) -> String {
     let data = serde_json::to_vec(obj).unwrap();
-    let mut hasher = Sha1::new();
-    hasher.update(data);
-    let hsh = hasher.finalize();
+    let mut hash = SpookyHasher::default();
+    data.hash(&mut hash);    
+    let hsh = hash.finish();
     format!("{:02x}", hsh)
 }
