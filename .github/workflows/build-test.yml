@@ -457,7 +457,7 @@ jobs:
         packages: write
         contents: read
     name: Building Comfort E2E test
-    runs-on: windows-latest # for running the Cosmos DB emulator
+    runs-on: e2e-runner-windows # for running the Cosmos DB emulator
     needs: 
       - build-query-container
       - build-control-plane
