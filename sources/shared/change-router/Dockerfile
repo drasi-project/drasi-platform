@@ -14,8 +14,7 @@ COPY ./sources/shared/change-router .
 RUN cargo install --force --path .
 
 
-FROM gcr.io/distroless/cc-debian11
-# FROM debian:latest
+FROM gcr.io/distroless/cc-debian11@sha256:55a5e011b2c4246b4c51e01fcc2b452d151e03df052e357465f0392fcd59fddf
 ENV RUST_BACKTRACE=1
 # RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/local/cargo/bin/change-router /usr/local/bin/change-router

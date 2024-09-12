@@ -7,7 +7,8 @@ COPY . .
 WORKDIR /usr/src
 RUN cargo install --force --path .
 
-FROM gcr.io/distroless/cc
+FROM gcr.io/distroless/cc@sha256:3b75fdd33932d16e53a461277becf57c4f815c6cee5f6bc8f52457c095e004c8
+# gcr.io/distroless/cc 
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/view-svc /usr/local/bin/view-svc
 CMD ["view-svc"]

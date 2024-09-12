@@ -20,6 +20,8 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
+  labels:
+    app: rg-redis
   name: rg-redis
 spec:
   serviceName: rg-redis

@@ -26,17 +26,17 @@ DRASI_LOCATION ?= $(if $(filter $(OS),Windows_NT),$(shell $$Env:ProgramFiles)\dr
 .PHONY: all
 all: fmt vet
 ifeq ($(IS_WINDOWS),true)
-	$$env:GOOS = "windows"; $$env:GOARCH = "amd64"; go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/windows-x64/drasi.exe main.go
-	$$env:GOOS = "linux"; $$env:GOARCH = "amd64"; go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/linux-x64/drasi main.go
-	$$env:GOOS = "linux"; $$env:GOARCH = "arm64"; go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/linux-arm64/drasi main.go
-	$$env:GOOS = "darwin"; $$env:GOARCH = "amd64"; go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/darwin-x64/drasi main.go
-	$$env:GOOS = "darwin"; $$env:GOARCH = "arm64"; go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/darwin-arm64/drasi main.go
+	$$env:GOOS = "windows"; $$env:GOARCH = "amd64"; go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/windows-x64/drasi.exe main.go
+	$$env:GOOS = "linux"; $$env:GOARCH = "amd64"; go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/linux-x64/drasi main.go
+	$$env:GOOS = "linux"; $$env:GOARCH = "arm64"; go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/linux-arm64/drasi main.go
+	$$env:GOOS = "darwin"; $$env:GOARCH = "amd64"; go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/darwin-x64/drasi main.go
+	$$env:GOOS = "darwin"; $$env:GOARCH = "arm64"; go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/darwin-arm64/drasi main.go
 else
-	GOOS=windows GOARCH=amd64 go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/windows-x64/drasi.exe main.go
-	GOOS=linux GOARCH=amd64 go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/linux-x64/drasi main.go
-	GOOS=linux GOARCH=arm64 go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/linux-arm64/drasi main.go
-	GOOS=darwin GOARCH=amd64 go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/darwin-x64/drasi main.go
-	GOOS=darwin GOARCH=arm64 go build -ldflags "-X drasi.io/cli/config.version=$(VERSION)" -o bin/darwin-arm64/drasi main.go
+	GOOS=windows GOARCH=amd64 go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/windows-x64/drasi.exe main.go
+	GOOS=linux GOARCH=amd64 go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/linux-x64/drasi main.go
+	GOOS=linux GOARCH=arm64 go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/linux-arm64/drasi main.go
+	GOOS=darwin GOARCH=amd64 go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/darwin-x64/drasi main.go
+	GOOS=darwin GOARCH=arm64 go build -ldflags "-X drasi.io/cli/config.Version=$(VERSION)" -o bin/darwin-arm64/drasi main.go
 endif
 	
 .PHONY: fmt
