@@ -477,10 +477,10 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
 
-      - name: Install Drasi CLI
+      - name: Add Drasi CLI to path
         run: |
-          icacls .\drasi-platform\cli\win-x64\drasi.exe /grant Everyone:F
-          Move-Item -Path cli\win-x64\drasi.exe -Destination "C:\Windows\System32\drasi.exe"
+          $env:Path += ";$PWD/cli/windows-x64"
+          drasi
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
