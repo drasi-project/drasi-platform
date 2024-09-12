@@ -479,8 +479,8 @@ jobs:
 
       - name: Install Drasi CLI
         run: |
-          chmod +x ./cli/windows-x64/drasi.exe
-          Move-Item -Path .\cli\win-x64\drasi.exe -Destination "C:\Windows\System32\drasi.exe"
+          icacls .\drasi-platform\cli\win-x64\drasi.exe /grant Everyone:F
+          Move-Item -Path cli\win-x64\drasi.exe -Destination "C:\Windows\System32\drasi.exe"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
