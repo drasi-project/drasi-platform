@@ -494,6 +494,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Download images
+        env:
+          DOCKER_DEFAULT_PLATFORM: linux/amd64
         run: |
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
