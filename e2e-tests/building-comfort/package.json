@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --detectOpenHandles",
+    "test:ci": "jest --reporters=default --reporters=jest-junit --detectOpenHandles"
   },
   "type": "commonjs",
   "keywords": [],
@@ -12,8 +13,10 @@
   "description": "",
   "dependencies": {
     "@microsoft/signalr": "^8.0.7",
-    "chai": "^5.1.1",
     "js-yaml": "^4.1.0",
     "portfinder": "^1.0.32"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }

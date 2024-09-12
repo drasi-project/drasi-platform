@@ -1,5 +1,4 @@
 const yaml = require('js-yaml');
-const { expect }  = import('chai');
 const fs = require('fs');
 const deployResources = require("../fixtures/deploy-resources");
 const PortForward = require('../fixtures/port-forward');
@@ -8,7 +7,7 @@ const SignalrFixture = require("../fixtures/signalr-fixture");
 let signalrFixture = new SignalrFixture(["building-comfort-level-calc","floor-comfort-level-calc", "room-comfort-level-calc"]);
 
 
-before(async function () {
+beforeAll(async function () {
   this.timeout(120000);
   const resources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
   await deployResources(resources);
@@ -18,26 +17,26 @@ before(async function () {
   await new Promise(r => setTimeout(r, 15000)); // reactivator is slow to startup
 });
 
-it('Initial floor data', async function () {
+test('Initial floor data', async function () {
   let initData = await signalrFixture.requestReload("floor-comfort-level-calc");
 
   expect(initData.length == 3).toBeTruthy();
 });
 
-it('Initial room data', async function () {
+test('Initial room data', async function () {
   let initData = await signalrFixture.requestReload("room-comfort-level-calc");
 
   expect(initData.length == 9).toBeTruthy();
 }); 
 
-it('Initial building data', async function () {
+test('Initial building data', async function () {
   let initData = await signalrFixture.requestReload("building-comfort-level-calc");
 
   expect(initData.length == 1).toBeTruthy();
 });
 
 
-after(
+afterAll(
   async () => {
     await signalrFixture.stop();
 
