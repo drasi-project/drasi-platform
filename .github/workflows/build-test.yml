@@ -482,7 +482,13 @@ jobs:
           $env:Path += ";$PWD/cli/windows-x64"
           drasi
 
-      - uses: Vampire/setup-wsl@v3
+      - name: Set up Docker for Linux containers
+        run: |
+          wsl --set-default-version 2
+          wsl --install -d Ubuntu
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          sudo service docker start
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
@@ -491,8 +497,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
-      - shell: wsl-bash {0}
-        name: Download images
+      - name: Download images
         run: |
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
           docker pull ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
