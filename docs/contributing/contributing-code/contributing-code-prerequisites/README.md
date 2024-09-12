@@ -6,7 +6,7 @@ Depending on the task you need to perform, you may need to install more tools, b
 
 ## Operating system
 
-We support developing on macOS, Linux and Windows with [WSL](https://docs.microsoft.com/windows/wsl/install).
+We support developing on macOS, Linux and Windows.
 
 ## Development environment
 
@@ -47,6 +47,14 @@ Using Homebrew:
 brew install make
 ```
 
+#### Windows
+
+Using Chocolatey
+
+```bash
+choco install make
+```
+
 ### Repo Setup
 
 1. Fork the repo
@@ -66,6 +74,16 @@ brew install make
     chmod +x .githooks/pre-commit
     git config core.hooksPath .githooks
     ```
+
+### Enable Git Hooks
+
+We use pre-commit hooks to catch some issues early, enable the local git hooks using the following commands
+
+```
+chmod +x .githooks/pre-commit
+git config core.hooksPath .githooks
+```
+
 ### Additional tools
 
 The following tools are required depending on the task at hand.

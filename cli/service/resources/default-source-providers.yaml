@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: SourceProvider
 name: PostgreSQL
-spec: 
+spec:
   services:
     proxy:
       image: source-sql-proxy

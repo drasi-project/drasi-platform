@@ -28,14 +28,13 @@ use tracing::{instrument, Instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
-    api,
-    api::{ChangeEvent, ControlSignal, ResultEvent},
+    api::{self, ChangeEvent, ControlSignal, ResultEvent},
     change_stream::{
         self, redis_change_stream::RedisChangeStream, Message, SequentialChangeStream,
     },
     future_consumer::FutureConsumer,
     index_factory::IndexFactory,
-    models::{ChangeStreamConfig, QueryError, QueryLifecycle, QueryState},
+    models::{BootstrapError, ChangeStreamConfig, QueryError, QueryLifecycle, QueryState},
     result_publisher::ResultPublisher,
     source_client::SourceClient,
 };
@@ -528,7 +527,7 @@ async fn bootstrap(
     publisher: &ResultPublisher,
     element_index: Arc<dyn ElementIndex>,
     result_index: Arc<dyn ResultIndex>,
-) -> Result<(), QueryError> {
+) -> Result<(), BootstrapError> {
     match publisher
         .publish(
             &query_id,
@@ -547,7 +546,7 @@ async fn bootstrap(
         Ok(_) => log::info!("Published start signal"),
         Err(err) => {
             log::error!("Error publishing start signal: {}", err);
-            return Err(QueryError::bootstrap_failure(err));
+            return Err(BootstrapError::publish_error(err));
         }
     };
 
@@ -561,18 +560,23 @@ async fn bootstrap(
         {
             Ok(r) => r,
             Err(e) => {
-                log::error!("Error subscribing to source: {}", e);
-                return Err(QueryError::bootstrap_failure(e));
+                log::error!("Error subscribing to source: {} {}", source.id, e);
+                return Err(BootstrapError::fetch_failed(source.id.to_string(), e));
             }
         };
 
         for change in initial_data.drain(..) {
             let timestamp = change.get_transaction_time();
-            let change_results = match query.process_source_change(change).await {
+            let element_id = change.get_reference().element_id.to_string();
+            let change_results = match query.process_source_change(change).await {                
                 Ok(r) => r,
                 Err(e) => {
                     log::error!("Error processing source change: {}", e);
-                    return Err(QueryError::bootstrap_failure(Box::new(e)));
+                    return Err(BootstrapError::process_failed(
+                        source.id.to_string(),
+                        element_id,
+                        Box::new(e),
+                    ));
                 }
             };
 
@@ -583,7 +587,7 @@ async fn bootstrap(
                 Ok(_) => log::info!("Published result"),
                 Err(err) => {
                     log::error!("Error publishing result: {}", err);
-                    return Err(QueryError::bootstrap_failure(err));
+                    return Err(BootstrapError::publish_error(err));
                 }
             };
         }
@@ -607,7 +611,7 @@ async fn bootstrap(
         Ok(_) => log::info!("Published complete signal"),
         Err(err) => {
             log::error!("Error publishing complete signal: {}", err);
-            return Err(QueryError::bootstrap_failure(err));
+            return Err(BootstrapError::publish_error(err));
         }
     };
 
