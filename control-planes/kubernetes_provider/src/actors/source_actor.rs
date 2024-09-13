@@ -4,8 +4,8 @@ use crate::{
 };
 use axum::{response::IntoResponse, Json};
 use dapr::{actor, server::actor::context_client::ActorContextClient};
-use resource_provider_api::models::{SourceProviderStatus, SourceSpec, SourceStatus};
-use std::{collections::HashMap, marker};
+use resource_provider_api::models::{SourceSpec, SourceStatus};
+use std::{collections::BTreeMap, marker};
 use tokio::sync::RwLock;
 
 use super::ResourceActor;
@@ -28,7 +28,7 @@ impl SourceActor {
             resource_type: "source".to_string(),
             runtime_config,
             spec_builder: Box::new(SourceSpecBuilder {}),
-            controllers: RwLock::new(Vec::new()),
+            controllers: RwLock::new(BTreeMap::new()),
             kube_config,
             _owns_tstatus: marker::PhantomData,
         }
@@ -38,7 +38,21 @@ impl SourceActor {
         let controllers = self.controllers.read().await;
         let available = controllers
             .iter()
-            .all(|c| c.status() == ReconcileStatus::Online);
-        Json(SourceStatus { available })
+            .all(|c| c.1.status() == ReconcileStatus::Online);
+
+        let mut messages = BTreeMap::new();
+        for (name, controller) in controllers.iter() {
+            match controller.status() {
+                ReconcileStatus::Unknown => messages.insert(name.clone(), "Unknown".to_string()),
+                ReconcileStatus::Offline(msg) => messages.insert(name.clone(), msg),
+                ReconcileStatus::Online => continue,
+            };
+        }
+        
+        Json(SourceStatus { 
+            available,
+            messages: Some(messages),
+
+        })
     }
 }

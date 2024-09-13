@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -16,4 +16,5 @@ pub struct ReactionSpecDto {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReactionStatusDto {
     pub available: bool,
+    pub messages: Option<BTreeMap<String, String>>,
 }

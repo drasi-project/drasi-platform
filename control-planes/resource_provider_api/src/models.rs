@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
@@ -93,6 +93,7 @@ pub struct SourceSpec {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SourceStatus {
     pub available: bool,
+    pub messages: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -125,6 +126,7 @@ pub struct QueryContainerSpec {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct QueryContainerStatus {
     pub available: bool,
+    pub messages: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -139,6 +141,7 @@ pub struct ReactionSpec {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReactionStatus {
     pub available: bool,
+    pub messages: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::{collections::HashMap, hash::Hash, pin::Pin};
+use std::{
+    collections::{BTreeMap, HashMap},
+    hash::Hash,
+    pin::Pin,
+};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -58,6 +62,7 @@ pub struct SourceSpec {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SourceStatus {
     pub available: bool,
+    pub messages: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -89,6 +94,7 @@ pub struct QueryContainerSpec {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QueryContainerStatus {
     pub available: bool,
+    pub messages: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -103,6 +109,7 @@ pub struct ReactionSpec {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReactionStatus {
     pub available: bool,
+    pub messages: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

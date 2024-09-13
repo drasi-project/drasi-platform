@@ -290,26 +290,11 @@ impl Into<resource_provider_api::models::QuerySpec> for QuerySpec {
     }
 }
 
-impl Into<resource_provider_api::models::SourceStatus> for SourceStatus {
-    fn into(self) -> resource_provider_api::models::SourceStatus {
-        resource_provider_api::models::SourceStatus {
-            available: self.available.into(),
-        }
-    }
-}
-
 impl Into<SourceStatus> for resource_provider_api::models::SourceStatus {
     fn into(self) -> SourceStatus {
         SourceStatus {
             available: self.available.into(),
-        }
-    }
-}
-
-impl Into<resource_provider_api::models::QueryContainerStatus> for QueryContainerStatus {
-    fn into(self) -> resource_provider_api::models::QueryContainerStatus {
-        resource_provider_api::models::QueryContainerStatus {
-            available: self.available.into(),
+            messages: self.messages,
         }
     }
 }
@@ -318,14 +303,7 @@ impl Into<QueryContainerStatus> for resource_provider_api::models::QueryContaine
     fn into(self) -> QueryContainerStatus {
         QueryContainerStatus {
             available: self.available.into(),
-        }
-    }
-}
-
-impl Into<resource_provider_api::models::ReactionStatus> for ReactionStatus {
-    fn into(self) -> resource_provider_api::models::ReactionStatus {
-        resource_provider_api::models::ReactionStatus {
-            available: self.available.into(),
+            messages: self.messages,
         }
     }
 }
@@ -334,6 +312,7 @@ impl Into<ReactionStatus> for resource_provider_api::models::ReactionStatus {
     fn into(self) -> ReactionStatus {
         ReactionStatus {
             available: self.available.into(),
+            messages: self.messages,
         }
     }
 }
