@@ -1,11 +1,10 @@
-use super::{ResourceDomainService, ResourceDomainServiceImpl};
+use super::{ExtensibleResourceDomainServiceImpl, ExtensibleSpecValidator, ResourceDomainService};
 use crate::{
     domain::models::{
         ConfigValue, DomainError, Endpoint, EndpointSetting, InlineValue, Service, SourceSpec,
         SourceStatus,
     },
     persistence::SourceRepository,
-    SpecValidator,
 };
 use dapr::client::TonicClient;
 use jsonschema::JSONSchema;
@@ -14,7 +13,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 pub type SourceDomainService = dyn ResourceDomainService<SourceSpec, SourceStatus>;
-pub type SourceDomainServiceImpl = ResourceDomainServiceImpl<
+pub type SourceDomainServiceImpl = ExtensibleResourceDomainServiceImpl<
     SourceSpec,
     SourceStatus,
     resource_provider_api::models::SourceSpec,
@@ -44,7 +43,7 @@ impl SourceDomainServiceImpl {
 struct SourceSpecValidator {}
 
 #[async_trait]
-impl SpecValidator<SourceSpec> for SourceSpecValidator {
+impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
     // Validate the `config_schema` and `services.service.config_schema` sections
     async fn validate(&self, spec: &SourceSpec, schema: &Option<Value>) -> Result<(), DomainError> {
         let kind = spec.kind.clone();

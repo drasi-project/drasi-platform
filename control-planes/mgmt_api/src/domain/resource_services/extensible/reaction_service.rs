@@ -1,11 +1,10 @@
-use super::{ResourceDomainService, ResourceDomainServiceImpl};
+use super::{ExtensibleResourceDomainServiceImpl, ExtensibleSpecValidator, ResourceDomainService};
 use crate::{
     domain::models::{
         ConfigValue, DomainError, Endpoint, EndpointSetting, InlineValue, ReactionSpec,
         ReactionStatus, Service,
     },
     persistence::ReactionRepository,
-    SpecValidator,
 };
 
 use async_trait::async_trait;
@@ -14,7 +13,7 @@ use jsonschema::JSONSchema;
 use serde_json::Value;
 use std::collections::HashMap;
 pub type ReactionDomainService = dyn ResourceDomainService<ReactionSpec, ReactionStatus>;
-pub type ReactionDomainServiceImpl = ResourceDomainServiceImpl<
+pub type ReactionDomainServiceImpl = ExtensibleResourceDomainServiceImpl<
     ReactionSpec,
     ReactionStatus,
     resource_provider_api::models::ReactionSpec,
@@ -44,23 +43,20 @@ impl ReactionDomainServiceImpl {
 struct ReactionSpecValidator {}
 
 #[async_trait]
-impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
+impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
     async fn validate(
         &self,
         spec: &ReactionSpec,
         schema: &Option<serde_json::Value>,
     ) -> Result<(), DomainError> {
-        let kind = spec.kind.clone();
         let schema = match schema {
             Some(schema) => schema,
             None => {
                 return Err(DomainError::InvalidSpec {
-                    message: format!("Reaction kind {} not found", kind),
+                    message: format!("Reaction kind {} not found", spec.kind.clone()),
                 })
             }
         };
-
-        println!("spec: {:?}", spec);
 
         let config_schema = match schema.get("config_schema") {
             Some(config_schema) => Some(config_schema),
@@ -87,7 +83,7 @@ impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
             let source_properties = match spec.properties {
                 Some(ref properties) => properties.clone(),
                 None => return Err(DomainError::InvalidSpec {
-                    message: format!("properties are not defined for reaction {}", kind),
+                    message: format!("properties are not defined for reaction {}", spec.kind.clone()),
                 }),
             };
 
@@ -184,7 +180,7 @@ impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
             Some(services) => services,
             None => {
                 return Err(DomainError::InvalidSpec {
-                    message: format!("reaction service are not defined for reaction {}", kind),
+                    message: format!("reaction service are not defined for reaction {}", spec.kind.clone()),
                 })
             }
         };

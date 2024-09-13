@@ -1,8 +1,7 @@
-use super::{ResourceProviderDomainService, ResourceProviderDomainServiceImpl};
+use super::{ResourceProviderDomainService, ResourceProviderDomainServiceImpl, SchemaValidator};
 use crate::{
     domain::models::{DomainError, SourceProviderSpec},
     persistence::SourceProviderRepository,
-    SpecValidator,
 };
 use dapr::client::TonicClient;
 use serde_json::Value;
@@ -28,7 +27,7 @@ impl SourceProviderDomainServiceImpl {
 struct SourceProviderValidator {}
 
 #[async_trait]
-impl SpecValidator<SourceProviderSpec> for SourceProviderValidator {
+impl SchemaValidator for SourceProviderValidator {
     async fn validate_schema(&self, schema: &Value) -> Result<(), DomainError> {
         let provider_schema_json = r#"{
         "type": "object",
