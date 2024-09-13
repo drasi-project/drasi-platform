@@ -18,7 +18,7 @@ async fn main() {
     let query_container_id = std::env::var("QUERY_NODE_ID").unwrap();
     let redis_url = match std::env::var("REDIS_BROKER") {
         Ok(url) => url,
-        Err(_) => String::from("redis://rg-redis:6379"),
+        Err(_) => String::from("redis://drasi-redis:6379"),
     };
 
     log::info!(

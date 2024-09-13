@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = BuildConfiguration();
 
-var pubsubName = configuration.GetValue<string>("PubsubName", "rg-pubsub");
+var pubsubName = configuration.GetValue<string>("PubsubName", "drasi-pubsub");
 var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
 var queryContainerId = configuration.GetValue<string>("QueryContainer", "default");
 

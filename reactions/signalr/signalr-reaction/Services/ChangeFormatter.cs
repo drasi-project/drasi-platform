@@ -19,7 +19,7 @@ namespace SignalrReaction.Services
                 };
 
                 var source = new JObject();
-                source["db"] = "ReactiveGraph";
+                source["db"] = "Drasi";
                 source["table"] = queryId;
 
                 var payload = new JObject();
@@ -48,7 +48,7 @@ namespace SignalrReaction.Services
                 };
 
                 var source = new JObject();
-                source["db"] = "ReactiveGraph";
+                source["db"] = "Drasi";
                 source["table"] = queryId;
 
                 var payload = new JObject();
@@ -77,7 +77,7 @@ namespace SignalrReaction.Services
                 };
 
                 var source = new JObject();
-                source["db"] = "ReactiveGraph";
+                source["db"] = "Drasi";
                 source["table"] = queryId;
 
                 var payload = new JObject();
@@ -117,7 +117,7 @@ namespace SignalrReaction.Services
                     {
                         ["source"] = new JObject
                         {
-                            ["db"] = "ReactiveGraph",
+                            ["db"] = "Drasi",
                             ["table"] = queryId
                         },
                         ["before"] = null,
