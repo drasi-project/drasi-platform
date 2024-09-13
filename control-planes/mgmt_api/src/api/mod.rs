@@ -7,17 +7,17 @@ pub mod v1;
 impl Into<HttpResponse> for DomainError {
     fn into(self) -> HttpResponse {
         match self {
-            DomainError::NotFound => HttpResponse::NotFound().body(" Resource not found"),
-            DomainError::Invalid { message } => HttpResponse::BadRequest().body(" ".to_string() + &message),
+            DomainError::NotFound => HttpResponse::NotFound().body("Resource not found"),
+            DomainError::Invalid { message } => HttpResponse::BadRequest().body(message),
             DomainError::QueryContainerOffline => {
-                HttpResponse::ServiceUnavailable().body(" Query container is offline")
+                HttpResponse::ServiceUnavailable().body("Query container is offline")
             },
             DomainError::UndefinedSetting { message } => {
-                HttpResponse::BadRequest().body(" Undefined setting: ".to_string() + &message)
+                HttpResponse::BadRequest().body("Undefined setting: ".to_string() + &message)
             },
-            DomainError::InvalidSpec { message } => HttpResponse::BadRequest().body(" ".to_string() + &message),
-            DomainError::JsonParseError { message }=> HttpResponse::BadRequest().body(" ".to_string() + &message),
-            _ => HttpResponse::InternalServerError().body(" Internal server error"),
+            DomainError::InvalidSpec { message } => HttpResponse::BadRequest().body(message),
+            DomainError::JsonParseError { message }=> HttpResponse::BadRequest().body(message),
+            _ => HttpResponse::InternalServerError().body("Internal server error"),
         }
     }
 }
