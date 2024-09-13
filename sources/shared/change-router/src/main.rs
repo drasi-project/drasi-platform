@@ -196,18 +196,9 @@ async fn receive(
     let trace_parent = match headers.get("traceparent") {
         Some(trace_parent) => match trace_parent.to_str() {
             Ok(trace_parent) => trace_parent.to_string(),
-            Err(_e) => {
-                return (
-                    StatusCode::BAD_REQUEST,
-                    Json(json!({"error": "Invalid traceparent header"})),
-                );
-            }
+            Err(_e) => "".to_string(),
         }
-        None => {
-            return (StatusCode::BAD_REQUEST,
-                    Json(json!({"error": "Missing traceparent header"})));
-
-        }
+        None => "".to_string(),
     };
     let config = state.config.clone();
     let node_subscriber = &state.node_subscriber;
@@ -242,6 +233,9 @@ async fn process_changes(
     rel_subscriber: &Subscriber,
     traceparent: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    if !changes.is_array() {
+        return Err(Box::<dyn std::error::Error>::from("Changes must be an array"));
+    }
     if let Some(changes) = changes.as_array() {
         for change in changes {
             let change_router_start = chrono::Utc::now().timestamp_millis();
@@ -478,8 +472,6 @@ async fn process_changes(
                 }
             }
         }
-    } else {
-        return Err(Box::<dyn std::error::Error>::from("Expected changes to be an array"));
     }
     Ok(())
 }
