@@ -23,8 +23,8 @@ namespace ChangeFeedSample
             var sourceId = configuration["SOURCE_ID"];
             var changeEventSourceId = $"{databaseName}.{sourceContainerName}";
 
-            var stateStoreName = configuration["StateStore"] ?? "rg-state";
-            var pubSubName = configuration["PubSub"] ?? "rg-pubsub";
+            var stateStoreName = configuration["StateStore"] ?? "drasi-state";
+            var pubSubName = configuration["PubSub"] ?? "drasi-pubsub";
             var cursorKeyName = $"reactivator-cursor:{changeEventSourceId}";
 
             var daprClient = new DaprClientBuilder()

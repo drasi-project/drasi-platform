@@ -12,6 +12,7 @@ jobs:
   analysis:
     name: Scorecard analysis
     runs-on: ubuntu-latest
+    if: github.repository == 'drasi-project/drasi-platform'
     permissions:
       security-events: write
       id-token: write
