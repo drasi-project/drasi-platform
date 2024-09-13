@@ -137,7 +137,7 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
                 Ok(json_data_properties) => json_data_properties,
                 Err(e) => {
                     return Err(DomainError::JsonParseError {
-                        kind: kind.clone(),
+                        message: format!("Unable to parse the source properties for {}", kind),
                     })
                 }
             };
@@ -272,7 +272,7 @@ impl SpecValidator<SourceSpec> for SourceSpecValidator {
                     Ok(json_data_properties) => json_data_properties,
                     Err(_e) => {
                         return Err(DomainError::JsonParseError {
-                            kind: kind.clone(),
+                            message: format!("Unable to parse the service properties for {}", service_name),
                         })
                     }
                 };
@@ -307,7 +307,7 @@ fn populate_default_values(
             Some(properties) => properties,
             None => {
                 return Err(DomainError::JsonParseError {
-                    kind: source.kind.clone(),
+                    message: format!("Invalid properties for source {}", source.kind),
                 })
             }
         };
@@ -388,7 +388,7 @@ fn populate_default_values(
             Some(services) => services,
             None => {
                 return Err(DomainError::JsonParseError {
-                    kind: source.kind.clone(),
+                    message: format!("Invalid services for source {}", source.kind),
                 })
             }
         };
@@ -398,7 +398,7 @@ fn populate_default_values(
                 Some(service_config) => service_config,
                 None => {
                     return Err(DomainError::JsonParseError {
-                        kind: source.kind.clone(),
+                        message: format!("Invalid service config for service {}", service_name),
                     })
                 }
             };
@@ -507,7 +507,7 @@ fn populate_default_values(
                             Some(properties) => properties,
                             None => {
                                 return Err(DomainError::JsonParseError {
-                                    kind: service_name.clone(),
+                                    message: format!("Invalid properties for service {}", service_name),
                                 })
                             }
                         },
@@ -584,7 +584,7 @@ fn populate_default_values(
                         Some(endpoints) => endpoints,
                         None => {
                             return Err(DomainError::JsonParseError {
-                                kind: service_name.clone(),
+                                message: format!("Invalid endpoints for service {}", service_name),
                             })
                         }
                     };
@@ -593,7 +593,7 @@ fn populate_default_values(
                             Some(properties) => properties,
                             None => {
                                 return Err(DomainError::JsonParseError {
-                                    kind: service_name.clone(),
+                                    message: format!("Invalid endpoint properties for service {}", service_name),
                                 })
                             }
                         };

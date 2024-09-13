@@ -25,7 +25,7 @@ impl Into<resource_provider_api::models::ConfigValue> for ConfigValue {
                                 InlineValue::String { value } => value,
                                 InlineValue::Integer { value } => value.to_string(),
                                 InlineValue::Boolean { value } => value.to_string(),
-                                InlineValue::List { value } => "".to_string(),
+                                InlineValue::List { .. } => "".to_string(),
                             },
                             _ => "".to_string(),
                         })

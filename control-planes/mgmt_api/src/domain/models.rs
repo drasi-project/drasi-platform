@@ -275,6 +275,6 @@ pub enum DomainError {
 
     #[error("JsonParseError")]
     JsonParseError {
-        kind: String,
+        message: String,
     },
 }
