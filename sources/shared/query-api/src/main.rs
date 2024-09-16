@@ -7,7 +7,7 @@ use axum::{
     Router,
 };
 use chrono::Utc;
-use control_event::{AfterData, ControlEvent, Payload, Source, SubscriptionInput};
+use control_event::{SubscriptionData, ControlEvent, Payload, Source, SubscriptionInput};
 use log::debug;
 use query_api_config::QueryApiConfig;
 use serde_json::{Value, json};
@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             panic!("Error parsing the configuration: {:?}", e);
         }
     };
-    println!(
+    log::info!(
         "Starting the query API server for the source: {}",
         &config.source_id
     );
@@ -75,10 +75,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     match axum::serve(listener, app).await {
         Ok(_) => {
-            println!("Server started at: {}", &addr);
+            log::info!("Server started at: {}", &addr);
         }
         Err(e) => {
-            println!("Error starting the server: {:?}", e);
+            log::error!("Error starting the server: {:?}", e);
         }
     };
 
@@ -93,39 +93,35 @@ async fn handle_subscription(
     let subscription_input: SubscriptionInput = match serde_json::from_value(input) {
         Ok(subscription_input) => subscription_input,
         Err(e) => {
-            println!("Error parsing the subscription input: {:?}", e);
-            return StatusCode::BAD_REQUEST.into_response();
+            log::error!("Error parsing the subscription input: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error parsing the subscription input: {:?}", e)).into_response();
         }
     };
-    println!(
+    log::info!(
         "Creating new subscription for query_id: {}",
         subscription_input.query_id
     );
 
     let mut headers_map = std::collections::HashMap::new();
     _ = match headers.get("traceparent") {
-        Some(tp) => headers_map.insert("traceparent".to_string(), match tp.to_str() {
-            Ok(tp) => tp.to_string(),
-            Err(e) => {
-                println!("Error parsing the traceparent header: {:?}", e);
-                return StatusCode::BAD_REQUEST.into_response();
+        Some(tp) => match tp.to_str() {
+            Ok(tp) => {
+                headers_map.insert("traceparent".to_string(), tp.to_string());
             }
-        }),
-        None => {
-            // no traceparent header found
-            None
-        }
+            Err(e) => {} // 
+        },
+        None => {}
     };
     let control_event = ControlEvent {
         op: "i".to_string(),
         ts_ms: Utc::now().timestamp_millis() as u64,
         payload: Payload {
             source: Source {
-                db: "ReactiveGraph".to_string(), // TODO: Change to Drasi after merging PR #42
+                db: "Drasi".to_string(), 
                 table: "SourceSubscription".to_string(),
             },
             before: None,
-            after: AfterData {
+            after: SubscriptionData {
                 query_id: subscription_input.query_id.clone(),
                 query_node_id: subscription_input.query_node_id.clone(),
                 node_labels: subscription_input.node_labels.clone(),
@@ -141,8 +137,8 @@ async fn handle_subscription(
             debug!("Published the subscription event");
         }
         Err(e) => {
-            println!("Error publishing the subscription event: {:?}", e);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            log::error!("Error publishing the subscription event: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error publishing the subscription event: {:?}", e)).into_response();
         }
     }
 
@@ -150,24 +146,24 @@ async fn handle_subscription(
     let input_node_labels = match serde_json::to_string(&subscription_input.node_labels) {
         Ok(labels) => labels,
         Err(e) => {
-            println!("Error serializing the node labels: {:?}", e);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            log::error!("Error serializing the node labels: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error serializing the node labels: {:?}", e)).into_response();
         }
     };
     let input_rel_labels = match serde_json::to_string(&subscription_input.rel_labels) {
         Ok(labels) => labels,
         Err(e) => {
-            println!("Error serializing the rel labels: {:?}", e);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            log::error!("Error serializing the relationship labels: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error serializing the relationship labels: {:?}", e)).into_response();
         }
     };
 
-    println!(
+    log::info!(
         "queryApi.main/subscription - queryId: {} - fetching nodeLabels:{}, relLabels:{}",
         subscription_input.query_id, input_node_labels, input_rel_labels
     );
 
-    let subscription_data = AfterData {
+    let subscription_data = SubscriptionData {
         query_id: subscription_input.query_id.clone(),
         query_node_id: subscription_input.query_node_id.clone(),
         node_labels: subscription_input.node_labels.clone(),
@@ -176,8 +172,8 @@ async fn handle_subscription(
     let subscription_data_json = match serde_json::to_value(&subscription_data) {
         Ok(json) => json,
         Err(e) => {
-            println!("Error serializing the subscription data: {:?}", e);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            log::error!("Error serializing the subscription data: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error serializing the subscription data: {:?}", e)).into_response();
         }
     };
 
@@ -194,19 +190,21 @@ async fn handle_subscription(
         .await
     {
         Ok(response) => {
+            // if the response is successful
             response
         }
         Err(e) => {
-            println!("Error invoking the acquire method on the proxy: {:?}", e);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            log::error!("Error invoking the acquire method on the proxy: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error invoking the acquire method on the proxy: {:?}", e)).into_response();
         }
     };
 
-    let response_json: Value = match serde_json::from_slice(&response) {
+    //convert the response to JSON
+    let response_json: Value = match response.json().await {
         Ok(json) => json,
         Err(e) => {
-            println!("Error parsing the response from the proxy: {:?}", e);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            log::error!("Error parsing the response from the proxy: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error parsing the response from the proxy: {:?}", e)).into_response();
         }
     };
 

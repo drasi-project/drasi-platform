@@ -23,7 +23,7 @@ pub struct ControlEvent {
 pub struct Payload {
     pub source: Source,
     pub before: Option<()>,
-    pub after: AfterData,
+    pub after: SubscriptionData,
 }
 
 #[derive(Serialize)]
@@ -33,7 +33,7 @@ pub struct Source {
 }
 
 #[derive(Serialize)]
-pub struct AfterData {
+pub struct SubscriptionData {
     #[serde(rename = "queryId")]
     pub query_id: String,
     #[serde(rename = "queryNodeId")]
