@@ -28,7 +28,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: MONGO_URI
-          value: mongodb://rg-mongo:27017
+          value: mongodb://drasi-mongo:27017
         ports:
         - containerPort: 8080
           name: api

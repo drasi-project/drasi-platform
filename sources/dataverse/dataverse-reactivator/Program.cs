@@ -11,8 +11,8 @@ var config = new ConfigurationBuilder()
 var ev = Environment.GetEnvironmentVariables();
 
 var sourceId = config["SOURCE_ID"];
-var stateStoreName = config["StateStore"] ?? "rg-state";
-var pubSubName = config["PubSub"] ?? "rg-pubsub";
+var stateStoreName = config["StateStore"] ?? "drasi-state";
+var pubSubName = config["PubSub"] ?? "drasi-pubsub";
 var endpoint = config["endpoint"];
 var clientId = config["clientId"];
 var secret = config["secret"];

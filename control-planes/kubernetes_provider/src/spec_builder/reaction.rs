@@ -37,7 +37,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             },
         );
 
-        let pub_sub_name = format!("rg-pubsub-{}", source.id);
+        let pub_sub_name = format!("drasi-pubsub-{}", source.id);
         env.insert(
             "PubsubName".to_string(),
             ConfigValue::Inline {

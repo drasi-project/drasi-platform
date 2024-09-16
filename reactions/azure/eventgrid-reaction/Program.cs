@@ -16,7 +16,7 @@ var configuration = BuildConfiguration();
 
 var eventGridUri = configuration.GetValue<string>("EventGridUri");
 var eventGridKey = configuration.GetValue<string>("EventGridKey");
-var pubsubName = configuration.GetValue<string>("PubsubName", "rg-pubsub");
+var pubsubName = configuration.GetValue<string>("PubsubName", "drasi-pubsub");
 var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
 
 var publisherClient = new EventGridPublisherClient(new Uri(eventGridUri), new AzureKeyCredential(eventGridKey));
@@ -83,7 +83,7 @@ async Task ProcessEvent(HttpContext context)
             results.AddRange(changeFormatter.FormatUpdate(queryId, evt.GetProperty("updatedResults").EnumerateArray()));
             results.AddRange(changeFormatter.FormatDelete(queryId, evt.GetProperty("deletedResults").EnumerateArray()));
 
-            var resp = await client.SendEventsAsync(results.Select(r => new CloudEvent(queryId, "ReactiveGraph.ChangeEvent", r)));
+            var resp = await client.SendEventsAsync(results.Select(r => new CloudEvent(queryId, "Drasi.ChangeEvent", r)));
             if (resp.IsError)
             {
                 throw new Exception(resp.Content.ToString());
