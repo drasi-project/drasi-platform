@@ -3,12 +3,15 @@ package service
 import (
 	"bytes"
 	"embed"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"drasi.io/cli/service/output"
 
 	drasiapi "drasi.io/cli/api"
 	"golang.org/x/net/context"
@@ -63,10 +66,12 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	restConfig, err := config.ClientConfig()
 
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
-	CreateNamespace(restConfig, namespace)
+	if err = CreateNamespace(restConfig, namespace); err != nil {
+		return nil, err
+	}
 	Namespace = namespace
 	result.kubeNamespace = namespace
 
@@ -81,22 +86,47 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, statusUpdates chan StatusUpdate, namespace string) {
-	if !t.checkDaprInstallation() {
-		t.installDapr(statusUpdates)
+func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string) error {
+	daprInstalled, err := t.checkDaprInstallation(output)
+	if err != nil {
+		return err
 	}
-	t.createConfig(localMode, acr, version)
-	t.installInfrastructure(statusUpdates)
-	t.installControlPlane(localMode, acr, version, statusUpdates)
-	t.installQueryContainer(statusUpdates, namespace)
-	t.applyDefaultSourceProvider(statusUpdates, namespace)
-	t.applyDefaultReactionProvider(statusUpdates, namespace)
-	close(statusUpdates)
+	if !daprInstalled {
+		if err = t.installDapr(output); err != nil {
+			return err
+		}
+	}
+
+	if err = t.createConfig(localMode, acr, version); err != nil {
+		return err
+	}
+
+	if err = t.installInfrastructure(output); err != nil {
+		return err
+	}
+
+	if err = t.installControlPlane(localMode, acr, version, output); err != nil {
+		return err
+	}
+
+	if err = t.installQueryContainer(output, namespace); err != nil {
+		return err
+	}
+
+	if err = t.applyDefaultSourceProvider(output, namespace); err != nil {
+		return err
+	}
+
+	if err = t.applyDefaultReactionProvider(output, namespace); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (t *Installer) installInfrastructure(statusUpdates chan StatusUpdate) {
+func (t *Installer) installInfrastructure(output output.TaskOutput) error {
 	if _, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "dapr-system", metav1.GetOptions{}); err != nil {
-		panic("dapr not installed")
+		return errors.New("dapr not installed")
 	}
 
 	var err error
@@ -104,55 +134,58 @@ func (t *Installer) installInfrastructure(statusUpdates chan StatusUpdate) {
 	var infraManifests []*unstructured.Unstructured
 
 	if raw, err = resources.ReadFile("resources/infra.yaml"); err != nil {
-		panic(err)
+		return err
 	}
 
 	if infraManifests, err = readK8sManifests(raw); err != nil {
-		panic(err)
+		return err
 	}
 
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Deploying infrastructure",
-		Success: true,
+	output.AddTask("Infrastructure", "Deploying infrastructure...")
+
+	if err = t.applyManifests(infraManifests); err != nil {
+		output.FailTask("Infrastructure", "Error deploying infrastructure")
+		return err
+	}
+	subOutput := output.GetChildren("Infrastructure")
+
+	if err = t.waitForStatefulset("app=drasi-redis", subOutput); err != nil {
+		return err
 	}
 
-	t.applyManifests(err, infraManifests)
-
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Waiting for infrastructure to be ready",
-		Success: true,
+	if err = t.waitForStatefulset("app=drasi-mongo", subOutput); err != nil {
+		return err
 	}
 
-	t.waitForStatefulset("app=rg-redis", statusUpdates)
-	t.waitForStatefulset("app=rg-mongo", statusUpdates)
+	output.SucceedTask("Infrastructure", "Infrastructure deployed")
+
+	return nil
 }
 
-func (t *Installer) installControlPlane(localMode bool, acr string, version string, statusUpdates chan StatusUpdate) {
+func (t *Installer) installControlPlane(localMode bool, acr string, version string, output output.TaskOutput) error {
 	var err error
 	var raw []byte
 	var svcAcctManifests []*unstructured.Unstructured
 	var apiManifests []*unstructured.Unstructured
 
 	if raw, err = resources.ReadFile("resources/service-account.yaml"); err != nil {
-		panic(err)
+		return err
 	}
 
 	if svcAcctManifests, err = readK8sManifests(raw); err != nil {
-		panic(err)
+		return err
 	}
 
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Creating service account",
-		Success: true,
-	}
+	output.AddTask("Control-Plane", "Installing control plane...")
+	subOutput := output.GetChildren("Control-Plane")
 
-	t.applyManifests(err, svcAcctManifests)
+	if err = t.applyManifests(svcAcctManifests); err != nil {
+		output.FailTask("Control-Plane", "Error creating service account")
+		return err
+	}
 
 	if raw, err = resources.ReadFile("resources/control-plane.yaml"); err != nil {
-		panic(err)
+		return err
 	}
 
 	rawStr := strings.Replace(string(raw), "%TAG%", version, -1)
@@ -169,35 +202,30 @@ func (t *Installer) installControlPlane(localMode bool, acr string, version stri
 	raw = []byte(rawStr)
 
 	if apiManifests, err = readK8sManifests(raw); err != nil {
-		panic(err)
+		return err
 	}
 
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Installing control plane",
-		Success: true,
+	if err = t.applyManifests(apiManifests); err != nil {
+		output.FailTask("Control-Plane", "Error installing control plane")
+		return err
 	}
 
-	t.applyManifests(err, apiManifests)
-
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Waiting for control plane to be ready",
-		Success: true,
+	if err = t.waitForDeployment("drasi/infra=api", subOutput); err != nil {
+		return err
 	}
 
-	t.waitForDeployment("drasi/infra=api", statusUpdates)
-	t.waitForDeployment("drasi/infra=resource-provider", statusUpdates)
+	if err = t.waitForDeployment("drasi/infra=resource-provider", subOutput); err != nil {
+		return err
+	}
+
 	time.Sleep(time.Second * 3)
 
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "control plane is online",
-		Success: true,
-	}
+	output.SucceedTask("Control-Plane", "Control plane is online")
+
+	return nil
 }
 
-func (t *Installer) createConfig(localMode bool, acr string, version string) {
+func (t *Installer) createConfig(localMode bool, acr string, version string) error {
 
 	cfg := map[string]string{}
 
@@ -217,15 +245,18 @@ func (t *Installer) createConfig(localMode bool, acr string, version string) {
 	if _, err := t.kubeClient.CoreV1().ConfigMaps(t.kubeNamespace).Apply(context.TODO(), configMap, metav1.ApplyOptions{
 		FieldManager: "drasi-installer",
 	}); err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
-func (t *Installer) applyManifests(err error, infraManifests []*unstructured.Unstructured) {
+func (t *Installer) applyManifests(infraManifests []*unstructured.Unstructured) error {
 	var dynClient *dynamic.DynamicClient
+	var err error
 
 	if dynClient, err = dynamic.NewForConfig(t.kubeConfig); err != nil {
-		panic(err)
+		return err
 	}
 
 	for _, obj := range infraManifests {
@@ -246,119 +277,125 @@ func (t *Installer) applyManifests(err error, infraManifests []*unstructured.Uns
 		if _, err = client.Apply(context.TODO(), obj.GetName(), obj, metav1.ApplyOptions{
 			FieldManager: "drasi-installer",
 		}); err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (t *Installer) installQueryContainer(statusUpdates chan StatusUpdate, namespace string) {
+func (t *Installer) installQueryContainer(output output.TaskOutput, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
 	var qc []byte
 
 	if qc, err = resources.ReadFile("resources/default-container.yaml"); err != nil {
-		panic(err)
+		return err
 	}
 
 	manifests, err = drasiapi.ReadManifests(qc)
-
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Creating default query container",
-		Success: true,
+	if err != nil {
+		return err
 	}
+
+	output.AddTask("Query-Container", "Creating query container...")
+	subOutput := output.GetChildren("Query-Container")
 
 	var clusterConfig ClusterConfig
 	clusterConfig.DrasiNamespace = namespace
 
 	saveConfig(clusterConfig)
-	drasiClient := MakeApiClient(namespace)
+	drasiClient, err := MakeApiClient(namespace)
+	if err != nil {
+		return err
+	}
 	defer drasiClient.Close()
 
-	applyResults := make(chan StatusUpdate)
-
-	go drasiClient.Apply(manifests, applyResults)
-
-	for r := range applyResults {
-		statusUpdates <- r
+	if err := drasiClient.Apply(manifests, subOutput); err != nil {
+		return err
 	}
-
-	waitResults := make(chan StatusUpdate)
-
-	go drasiClient.ReadyWait(manifests, 120, waitResults)
-
-	for r := range waitResults {
-		statusUpdates <- r
+	if err := drasiClient.ReadyWait(manifests, 120, subOutput); err != nil {
+		return err
 	}
+	output.SucceedTask("Query-Container", "Query container created")
+
+	return nil
 }
 
-func (t *Installer) applyDefaultSourceProvider(statusUpdates chan StatusUpdate, namespace string) {
+func (t *Installer) applyDefaultSourceProvider(output output.TaskOutput, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
 	var qc []byte
 
 	if qc, err = resources.ReadFile("resources/default-source-providers.yaml"); err != nil {
-		panic(err)
+		return err
 	}
 
 	manifests, err = drasiapi.ReadManifests(qc)
-
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Creating default source providers",
-		Success: true,
+	if err != nil {
+		return err
 	}
+
+	output.AddTask("Default-Source-Providers", "Creating default source providers...")
+	subOutput := output.GetChildren("Default-Source-Providers")
 
 	var clusterConfig ClusterConfig
 	clusterConfig.DrasiNamespace = namespace
 
 	saveConfig(clusterConfig)
-	drasiClient := MakeApiClient(namespace)
+	drasiClient, err := MakeApiClient(namespace)
+	if err != nil {
+		output.FailTask("Default-Source-Providers", fmt.Sprintf("Error creating default source providers: %v", err.Error()))
+		return err
+	}
 	defer drasiClient.Close()
 
-	applyResults := make(chan StatusUpdate)
-
-	go drasiClient.Apply(manifests, applyResults)
-
-	for r := range applyResults {
-		statusUpdates <- r
+	if err := drasiClient.Apply(manifests, subOutput); err != nil {
+		return err
 	}
+
+	output.SucceedTask("Default-Source-Providers", "Default source providers created")
+
+	return nil
 }
 
-func (t *Installer) applyDefaultReactionProvider(statusUpdates chan StatusUpdate, namespace string) {
+func (t *Installer) applyDefaultReactionProvider(output output.TaskOutput, namespace string) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
 	var qc []byte
 
 	if qc, err = resources.ReadFile("resources/default-reaction-providers.yaml"); err != nil {
-		panic(err)
+		return err
 	}
 
 	manifests, err = drasiapi.ReadManifests(qc)
-
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Creating default reaction providers",
-		Success: true,
+	if err != nil {
+		return err
 	}
+
+	output.AddTask("Default-Reaction-Providers", "Creating default reaction providers...")
+	subOutput := output.GetChildren("Default-Reaction-Providers")
 
 	var clusterConfig ClusterConfig
 	clusterConfig.DrasiNamespace = namespace
 
 	saveConfig(clusterConfig)
-	drasiClient := MakeApiClient(namespace)
+	drasiClient, err := MakeApiClient(namespace)
+	if err != nil {
+		output.FailTask("Default-Reaction-Providers", fmt.Sprintf("Error creating default reaction providers: %v", err.Error()))
+		return err
+	}
 	defer drasiClient.Close()
 
-	applyResults := make(chan StatusUpdate)
-
-	go drasiClient.Apply(manifests, applyResults)
-
-	for r := range applyResults {
-		statusUpdates <- r
+	if err := drasiClient.Apply(manifests, subOutput); err != nil {
+		return err
 	}
+
+	output.SucceedTask("Default-Reaction-Providers", "Default reaction providers created")
+
+	return nil
 }
 
 func readK8sManifests(data []byte) ([]*unstructured.Unstructured, error) {
@@ -424,10 +461,12 @@ func findGVR(gvk *schema.GroupVersionKind, cfg *rest.Config) (*meta.RESTMapping,
 	return mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 }
 
-func (t *Installer) waitForStatefulset(selector string, statusChannel chan StatusUpdate) {
+func (t *Installer) waitForStatefulset(selector string, output output.TaskOutput) error {
 	var timeout int64 = 120
 	var resourceWatch watch.Interface
 	var err error
+
+	output.AddTask("Wait-"+selector, fmt.Sprintf("Waiting for %s to come online", selector))
 
 	resourceWatch, err = t.kubeClient.AppsV1().StatefulSets(t.kubeNamespace).Watch(context.TODO(), metav1.ListOptions{
 		LabelSelector:  selector,
@@ -436,7 +475,8 @@ func (t *Installer) waitForStatefulset(selector string, statusChannel chan Statu
 	})
 
 	if err != nil {
-		panic(err)
+		output.FailTask("Wait-"+selector, fmt.Sprintf("Error waiting for %s: %v", selector, err.Error()))
+		return err
 	}
 
 	for evt := range resourceWatch.ResultChan() {
@@ -445,20 +485,21 @@ func (t *Installer) waitForStatefulset(selector string, statusChannel chan Statu
 			continue
 		}
 		if ss.Status.ReadyReplicas > 0 {
-			statusChannel <- StatusUpdate{
-				Subject: "Install",
-				Message: ss.GetName() + " is ready",
-				Success: true,
-			}
+			output.SucceedTask("Wait-"+selector, fmt.Sprintf("%s is online", selector))
 			resourceWatch.Stop()
+			return nil
 		}
 	}
+	output.FailTask("Wait-"+selector, fmt.Sprintf("Timed out waiting for %s", selector))
+	return nil
 }
 
-func (t *Installer) waitForDeployment(selector string, statusChannel chan StatusUpdate) {
+func (t *Installer) waitForDeployment(selector string, output output.TaskOutput) error {
 	var timeout int64 = 90
 	var resourceWatch watch.Interface
 	var err error
+
+	output.AddTask("Wait-"+selector, fmt.Sprintf("Waiting for %s to come online", selector))
 
 	resourceWatch, err = t.kubeClient.AppsV1().Deployments(t.kubeNamespace).Watch(context.TODO(), metav1.ListOptions{
 		LabelSelector:  selector,
@@ -467,7 +508,8 @@ func (t *Installer) waitForDeployment(selector string, statusChannel chan Status
 	})
 
 	if err != nil {
-		panic(err)
+		output.FailTask("Wait-"+selector, fmt.Sprintf("Error waiting for %s: %v", selector, err.Error()))
+		return err
 	}
 
 	for evt := range resourceWatch.ResultChan() {
@@ -476,22 +518,18 @@ func (t *Installer) waitForDeployment(selector string, statusChannel chan Status
 			continue
 		}
 		if ss.Status.AvailableReplicas > 0 {
-			statusChannel <- StatusUpdate{
-				Subject: "Install",
-				Message: ss.GetName() + " is ready",
-				Success: true,
-			}
+			output.SucceedTask("Wait-"+selector, fmt.Sprintf("%s is online", selector))
 			resourceWatch.Stop()
+			return nil
 		}
 	}
+	output.FailTask("Wait-"+selector, fmt.Sprintf("Timed out waiting for %s", selector))
+	return nil
 }
 
-func (t *Installer) installDapr(statusUpdates chan StatusUpdate) {
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Installing Dapr",
-		Success: true,
-	}
+func (t *Installer) installDapr(output output.TaskOutput) error {
+	output.AddTask("Dapr-Install", "Installing Dapr...")
+
 	ns := "dapr-system"
 	flags := genericclioptions.ConfigFlags{
 		Namespace: &ns,
@@ -501,7 +539,8 @@ func (t *Installer) installDapr(statusUpdates chan StatusUpdate) {
 
 	err := helmConfig.Init(&flags, "dapr-system", "secret", func(format string, v ...any) {})
 	if err != nil {
-		panic(err)
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		return err
 	}
 
 	cfg := readConfig()
@@ -518,7 +557,8 @@ func (t *Installer) installDapr(statusUpdates chan StatusUpdate) {
 
 	dir, err := os.MkdirTemp("", "drasi")
 	if err != nil {
-		panic(err)
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		return err
 	}
 	defer os.RemoveAll(dir)
 
@@ -526,16 +566,19 @@ func (t *Installer) installDapr(statusUpdates chan StatusUpdate) {
 
 	_, err = pull.Run("dapr")
 	if err != nil {
-		panic(err)
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		return err
 	}
 	file, err := os.ReadDir(dir)
 	if err != nil {
-		panic(err)
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		return err
 	}
 	dirPath := filepath.Join(dir, file[0].Name())
 	helmChart, err := loader.Load(dirPath)
 	if err != nil {
-		panic(err)
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		return err
 	}
 
 	installClient := helm.NewInstall(&helmConfig)
@@ -551,27 +594,34 @@ func (t *Installer) installDapr(statusUpdates chan StatusUpdate) {
 	}
 	_, err = installClient.Run(helmChart, helmChart.Values)
 	if err != nil {
-		panic(err)
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		return err
 	}
+	output.SucceedTask("Dapr-Install", "Dapr installed successfully")
 
-	statusUpdates <- StatusUpdate{
-		Subject: "Install",
-		Message: "Dapr is ready",
-		Success: true,
-	}
+	return nil
 }
 
-func (t *Installer) checkDaprInstallation() bool {
+func (t *Installer) checkDaprInstallation(output output.TaskOutput) (bool, error) {
+	output.AddTask("Dapr-Check", "Checking for Dapr...")
+
 	podsClient := t.kubeClient.CoreV1().Pods("dapr-system")
 
 	pods, err := podsClient.List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "app.kubernetes.io/name=dapr",
 	})
 	if err != nil {
-		panic(err)
+		output.FailTask("Dapr-Check", fmt.Sprintf("Error checking for Dapr: %v", err.Error()))
+		return false, err
 	}
 
-	return len(pods.Items) > 0
+	if len(pods.Items) > 0 {
+		output.InfoTask("Dapr-Check", "Dapr already installed")
+		return true, nil
+	} else {
+		output.InfoTask("Dapr-Check", "Dapr not installed")
+		return false, nil
+	}
 }
 
 func CreateNamespace(config *rest.Config, namespace string) error {
@@ -587,12 +637,10 @@ func CreateNamespace(config *rest.Config, namespace string) error {
 	}
 	for _, ns := range list.Items {
 		if ns.Name == namespace {
-			fmt.Printf("Found namesepace %s \n", namespace)
 			return nil
 		}
 	}
 
-	fmt.Printf("Namespace %s does not exist, creating it...\n", namespace)
 	newNamespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -607,6 +655,5 @@ func CreateNamespace(config *rest.Config, namespace string) error {
 		return err
 	}
 
-	fmt.Printf("Namespace %s created.\n", namespace)
 	return nil
 }

@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"drasi.io/cli/service/output"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,19 +25,18 @@ import (
 	"k8s.io/client-go/transport/spdy"
 )
 
-func MakeApiClient(namespace string) *apiClient {
+func MakeApiClient(namespace string) (*apiClient, error) {
 	result := apiClient{
 		port:   9083,
 		stopCh: make(chan struct{}, 1),
 	}
-	// result.kubeNamespace = namespace
 	if err := result.init(namespace); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	err := result.createTunnel()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	result.prefix = fmt.Sprintf("http://localhost:%d", result.port)
@@ -44,7 +44,7 @@ func MakeApiClient(namespace string) *apiClient {
 		Timeout: 30 * time.Second,
 	}
 
-	return &result
+	return &result, nil
 }
 
 type apiClient struct {
@@ -66,7 +66,7 @@ func (t *apiClient) init(namespace string) error {
 	restConfig, err := config.ClientConfig()
 
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 	if namespace != "" {
 		t.kubeNamespace = namespace
@@ -89,7 +89,7 @@ func (t *apiClient) init(namespace string) error {
 func (t *apiClient) createTunnel() error {
 	podName, err := t.getApiPodName()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	namespace := t.kubeNamespace
@@ -101,7 +101,7 @@ func (t *apiClient) createTunnel() error {
 
 	transport, upgrader, err := spdy.RoundTripperFor(t.kubeConfig)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, proxyURL)
@@ -136,7 +136,7 @@ func (t *apiClient) getApiPodName() (string, error) {
 	namespace := t.kubeNamespace
 	ep, err := t.kubeClient.CoreV1().Endpoints(namespace).Get(context.TODO(), "drasi-api", v1.GetOptions{})
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	for _, subset := range ep.Subsets {
@@ -146,12 +146,13 @@ func (t *apiClient) getApiPodName() (string, error) {
 			}
 		}
 	}
-	return "", errors.New("API not found")
+	return "", errors.New("drasi API not available")
 }
 
-func (t *apiClient) Apply(manifests *[]api.Manifest, result chan StatusUpdate) {
+func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) error {
 	for _, mf := range *manifests {
-		subject := "Apply " + mf.Kind + "/" + mf.Name
+		subject := "Apply: " + mf.Kind + "/" + mf.Name
+		output.AddTask(subject, subject)
 
 		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name)
 
@@ -160,22 +161,14 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, result chan StatusUpdate) {
 		}
 		data, err := json.Marshal(mf.Spec)
 		if err != nil {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: err.Error(),
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
+			return err
 		}
 
 		req, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(data))
 		if err != nil {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: err.Error(),
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
+			return err
 		}
 
 		req.Header.Set("Content-Type", "application/json")
@@ -185,43 +178,30 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, result chan StatusUpdate) {
 
 		resp, err := t.client.Do(req)
 		if err != nil {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: err.Error(),
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
+			return err
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			msg := resp.Status
 
 			if b, err := io.ReadAll(resp.Body); err == nil {
-				msg += string(b)
+				msg += ": " + string(b)
 			}
 
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: msg,
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, msg))
+			return errors.New(msg)
 		}
 
-		result <- StatusUpdate{
-			Subject: subject,
-			Message: "Apply operation successful",
-			Success: true,
-		}
+		output.SucceedTask(subject, fmt.Sprintf("%v: complete", subject))
 	}
-
-	close(result)
+	return nil
 }
 
-func (t *apiClient) Delete(manifests *[]api.Manifest, result chan StatusUpdate) {
-
+func (t *apiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) error {
 	for _, mf := range *manifests {
-		subject := "Delete " + mf.Kind + "/" + mf.Name
+		subject := "Delete: " + mf.Kind + "/" + mf.Name
+		output.AddTask(subject, subject)
 
 		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name)
 
@@ -230,43 +210,25 @@ func (t *apiClient) Delete(manifests *[]api.Manifest, result chan StatusUpdate) 
 		}
 		req, err := http.NewRequest(http.MethodDelete, url, bytes.NewReader([]byte{}))
 		if err != nil {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: err.Error(),
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
+			return err
 		}
 
 		resp, err := t.client.Do(req)
 		if err != nil {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: err.Error(),
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
+			return err
 		}
 
 		// Successful deletion should return 204 No Content
 		if resp.StatusCode != http.StatusNoContent {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: resp.Status,
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, resp.Status))
+			return errors.New(resp.Status)
 		}
 
-		result <- StatusUpdate{
-			Subject: subject,
-			Message: "Deletion successful",
-			Success: true,
-		}
-
+		output.SucceedTask(subject, fmt.Sprintf("%v: complete", subject))
 	}
-
-	close(result)
+	return nil
 }
 
 func (t *apiClient) GetResource(kind string, name string) (*api.Resource, error) {
@@ -323,8 +285,7 @@ func (t *apiClient) ListResources(kind string) ([]api.Resource, error) {
 	return result, err
 }
 
-func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, result chan StatusUpdate) {
-
+func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output output.TaskOutput) error {
 	oldTimeout := t.client.Timeout
 	t.client.Timeout = time.Second * time.Duration(timeout+1)
 	defer func() { t.client.Timeout = oldTimeout }()
@@ -332,45 +293,30 @@ func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, result c
 	for _, mf := range *manifests {
 		subject := "Wait " + mf.Kind + "/" + mf.Name
 
+		output.AddTask(subject, fmt.Sprintf("Waiting for %v/%v to come online", mf.Kind, mf.Name))
+
 		url := fmt.Sprintf("%v/%v/%v/%v/ready-wait?timeout=%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name, timeout)
 
 		req, err := http.NewRequest(http.MethodGet, url, bytes.NewReader([]byte{}))
 		if err != nil {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: err.Error(),
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
+			return err
 		}
 
 		resp, err := t.client.Do(req)
 		if err != nil {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: err.Error(),
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, err.Error()))
+			return err
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			result <- StatusUpdate{
-				Subject: subject,
-				Message: resp.Status,
-				Success: false,
-			}
-			continue
+			output.FailTask(subject, fmt.Sprintf("Error: %v: %v", subject, resp.Status))
+			return errors.New(resp.Status)
 		}
 
-		result <- StatusUpdate{
-			Subject: subject,
-			Message: resp.Status,
-			Success: true,
-		}
+		output.SucceedTask(subject, fmt.Sprintf("%v online", subject))
 	}
-
-	close(result)
+	return nil
 }
 
 func (t *apiClient) Close() {

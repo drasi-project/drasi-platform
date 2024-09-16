@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stream_config = Arc::new(ChangeStreamConfig {
         redis_url: match env::var_os("REDIS_BROKER") {
             Some(val) => val.into_string().unwrap(),
-            None => "redis://rg-redis:6379".to_string(),
+            None => "redis://drasi-redis:6379".to_string(),
         },
         buffer_size: 20,
         fetch_batch_size: 5,

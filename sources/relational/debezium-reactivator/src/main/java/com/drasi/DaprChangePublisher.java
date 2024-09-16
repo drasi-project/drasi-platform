@@ -16,7 +16,7 @@ public class DaprChangePublisher implements ChangePublisher {
 
         this.pubsubName = System.getenv("PUBSUB");
         if (this.pubsubName == null)
-            this.pubsubName = "rg-pubsub";
+            this.pubsubName = "drasi-pubsub";
 
         client = new DaprClientBuilder().build();
     }
