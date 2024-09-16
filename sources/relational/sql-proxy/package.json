@@ -11,10 +11,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "body-parser": "^1.20.0",
+    "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
-    "express": "^4.19.2",
+    "express": "^4.21.0",
     "http-errors": "^2.0.0",
     "knex": "^2.4.0",
     "knex-schema-inspector": "^2.0.4",
