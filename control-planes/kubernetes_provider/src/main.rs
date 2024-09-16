@@ -42,14 +42,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kube_ver = kube_client.apiserver_version().await?;
     log::info!("kubernetes version: {:?}", kube_ver);
 
-    let dapr_port: u16 = std::env::var("DAPR_GRPC_PORT").unwrap().parse().unwrap();
-    let dapr_addr = format!("https://127.0.0.1:{}", dapr_port);
+    // let dapr_port: u16 = std::env::var("DAPR_GRPC_PORT").unwrap().parse().unwrap();
+    // let dapr_addr = format!("https://127.0.0.1:{}", dapr_port);
     // Introduce delay so that dapr grpc port is assigned before app tries to connect
     std::thread::sleep(std::time::Duration::new(3, 0));
 
-    let dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(dapr_addr)
+    let addr = "https://127.0.0.1".to_string();
+    let mut dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
         .await
-        .unwrap();
+        .expect("Unable to connect to Dapr");
 
     monitor::start_monitor(kube_client, dapr_client);
 
