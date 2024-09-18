@@ -210,7 +210,6 @@ async fn waits_for_new_messages() {
     assert_eq!(msg.data.data, 1);
 }
 
-
 #[tokio::test]
 async fn stops_buffering_on_drop() {
     let url = get_url();

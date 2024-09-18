@@ -270,26 +270,20 @@ where
                     trace_state: evt.extension("traceparent").map(|v| v.to_string()),
                     trace_parent: evt.extension("tracestate").map(|v| v.to_string()),
                 }),
-                Err(err) => {
-                    Err(ChangeStreamError::MessageError {
-                        id: message.id.clone(),
-                        error: format!("Failed to deserialize data: {:?}", err),
-                    })
-                }
-            },
-            _ => {
-                Err(ChangeStreamError::MessageError {
+                Err(err) => Err(ChangeStreamError::MessageError {
                     id: message.id.clone(),
-                    error: "Invalid data type".to_string(),
-                })
-            }
-        },
-        _ => {
-            Err(ChangeStreamError::MessageError {
+                    error: format!("Failed to deserialize data: {:?}", err),
+                }),
+            },
+            _ => Err(ChangeStreamError::MessageError {
                 id: message.id.clone(),
-                error: "Missing data".to_string(),
-            })
-        }
+                error: "Invalid data type".to_string(),
+            }),
+        },
+        _ => Err(ChangeStreamError::MessageError {
+            id: message.id.clone(),
+            error: "Missing data".to_string(),
+        }),
     }
 }
 
