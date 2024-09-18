@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used, clippy::print_stdout)]
 use cloudevents::event::{EventBuilder, EventBuilderV10};
 use std::{env, time::Duration};
 
@@ -24,7 +25,7 @@ fn get_url() -> String {
 #[tokio::test]
 async fn serves_messages_sequentially() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -82,7 +83,7 @@ async fn serves_messages_sequentially() {
 #[tokio::test]
 async fn buffers_messages() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -132,7 +133,7 @@ async fn buffers_messages() {
 #[tokio::test]
 async fn recovers_unack_messages() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -177,10 +178,11 @@ async fn recovers_unack_messages() {
     }
 }
 
+#[allow(clippy::unwrap_used)]
 #[tokio::test]
 async fn waits_for_new_messages() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -208,10 +210,11 @@ async fn waits_for_new_messages() {
     assert_eq!(msg.data.data, 1);
 }
 
+
 #[tokio::test]
 async fn stops_buffering_on_drop() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -249,7 +252,7 @@ async fn stops_buffering_on_drop() {
             .xadd(
                 &query_container_id,
                 "*",
-                &vec![("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {}}}", i))],
             )
             .await
             .unwrap();
