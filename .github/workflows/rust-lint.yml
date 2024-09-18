@@ -10,6 +10,9 @@ on:
 jobs:
   clippy_check:
     name: Cargo Clippy lint check
+    permissions:
+      packages: write
+      contents: read
     env:
       # Set RUSTFLAGS for Clippy linting
       # RUSTFLAGS: |
