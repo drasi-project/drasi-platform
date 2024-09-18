@@ -35,13 +35,9 @@ jobs:
             context: './sources/shared/change-dispatcher/'
           },
           {
-            label: 'Publish API',
-            context: './query-container/publish-api/'
-          },
-          {
-            label: 'View Service',
-            context: './query-container/view-svc/'
-          },
+            label: 'Query Container',
+            context: './query-container'
+          }
         ]
     steps:
       - uses: actions/checkout@v4
