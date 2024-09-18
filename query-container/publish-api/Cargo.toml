@@ -11,6 +11,6 @@ log = "0.4"
 tokio = { version = "1.6", features = ["full"] }
 futures = "0.3"
 async-trait = "0.1.68"
-axum = "0.6.19"
+axum = { version = "0.7.5", features = ["macros", "http1", "tokio"] }
 redis = { version = "0.23.0", features = ["tokio-comp"] }
 tracing-subscriber = "0.3.17"
