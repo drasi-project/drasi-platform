@@ -15,7 +15,6 @@ jobs:
       # RUSTFLAGS: |
       #   -Dwarnings                        # Treat warnings as errors
       #   -W clippy::print_stdout           # Warn on use of 'print' and 'println!'
-      #   -W clippy::unwrap_used            # Warn on use of '.unwrap()'
       #   -A unused                         # Allow unused code (false positive occurences in query-perf)
       #   -A clippy::module_inception       # Allow module inception (module with same name as the file)
       #   -A clippy::ptr_arg                # Allow passing references as function parameters
@@ -49,6 +48,7 @@ jobs:
       - name: Run Cargo Clippy for ${{ matrix.component.label }}
         run: |
           cd ${{ matrix.component.context }}
+          ls
           cargo clippy --all-targets --all-features
 
 
