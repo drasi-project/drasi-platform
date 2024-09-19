@@ -40,6 +40,14 @@ jobs:
           {
             label: 'Query Container',
             context: './query-container'
+          },
+          {
+            label: 'Kubernetes Provider',
+            context: './control-planes/kubernetes_provider'
+          },
+          {
+            label: 'Management API',
+            context: './control-planes/mgmt_api'
           }
         ]
     steps:
