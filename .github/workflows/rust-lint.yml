@@ -28,7 +28,8 @@ jobs:
         -A unused                         
         -A clippy::module_inception       
         -A clippy::ptr_arg                
-        -A clippy::type_complexity        
+        -A clippy::type_complexity      
+        --no-deps  
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -51,7 +52,6 @@ jobs:
       - name: Run Cargo Clippy for ${{ matrix.component.label }}
         run: |
           cd ${{ matrix.component.context }}
-          ls
           cargo clippy --all-targets --all-features
 
 
