@@ -15,7 +15,13 @@ mod publisher;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let query_container_id = std::env::var("QUERY_NODE_ID").unwrap();
+    let query_container_id = match std::env::var("QUERY_NODE_ID") {
+        Ok(id) => id,
+        Err(_) => {
+            log::error!("QUERY_NODE_ID not set");
+            std::process::exit(1);
+        }
+    };
     let redis_url = match std::env::var("REDIS_BROKER") {
         Ok(url) => url,
         Err(_) => String::from("redis://drasi-redis:6379"),
@@ -28,7 +34,13 @@ async fn main() {
 
     let topic = format!("{}-publish", query_container_id);
 
-    let publisher = Publisher::connect(&redis_url, topic).await.unwrap();
+    let publisher = match Publisher::connect(&redis_url, topic).await {
+        Ok(publisher) => publisher,
+        Err(e) => {
+            log::error!("Error connecting to the redis broker: {:?}", e);
+            std::process::exit(1);
+        }
+    };
 
     let shared_state = Arc::new(AppState { publisher });
 
@@ -42,14 +54,23 @@ async fn main() {
         .parse()
         .unwrap_or(4000);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
-
+    let addr = format!("0.0.0.0:{}", port);
     log::info!("Listening on {}", addr);
-
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = match tokio::net::TcpListener::bind(&addr).await {
+        Ok(listener) => listener,
+        Err(_e) => {
+            log::error!("Error binding to the address: {}", addr);
+            std::process::exit(1);
+        }
+    };
+    match axum::serve(listener, app).await {
+        Ok(_) => {
+            log::info!("Server started at: {}", &addr);
+        }
+        Err(e) => {
+            log::error!("Error starting the server: {:?}", e);
+        }
+    };
 }
 
 struct AppState {
@@ -62,12 +83,18 @@ async fn change(
     body: String,
 ) -> impl IntoResponse {
     let trace_state = match headers.get("tracestate") {
-        Some(trace_state) => Some(trace_state.to_str().unwrap().to_string()),
+        Some(trace_state) => match trace_state.to_str() {
+            Ok(ts) => Some(ts.to_string()),
+            Err(_) => None,
+        },
         None => None,
     };
 
     let trace_parent = match headers.get("traceparent") {
-        Some(trace_parent) => Some(trace_parent.to_str().unwrap().to_string()),
+        Some(trace_state) => match trace_state.to_str() {
+            Ok(ts) => Some(ts.to_string()),
+            Err(_) => None,
+        },
         None => None,
     };
 
@@ -95,12 +122,18 @@ async fn data(
     body: String,
 ) -> impl IntoResponse {
     let trace_state = match headers.get("tracestate") {
-        Some(trace_state) => Some(trace_state.to_str().unwrap().to_string()),
+        Some(trace_state) => match trace_state.to_str() {
+            Ok(ts) => Some(ts.to_string()),
+            Err(_) => None,
+        },
         None => None,
     };
 
     let trace_parent = match headers.get("traceparent") {
-        Some(trace_parent) => Some(trace_parent.to_str().unwrap().to_string()),
+        Some(trace_state) => match trace_state.to_str() {
+            Ok(ts) => Some(ts.to_string()),
+            Err(_) => None,
+        },
         None => None,
     };
 

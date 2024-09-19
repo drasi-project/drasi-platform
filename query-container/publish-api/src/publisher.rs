@@ -46,11 +46,15 @@ impl Publisher {
     ) -> Result<(), PublishError> {
         let mut connection = self.connection.clone();
         let mut items = Vec::with_capacity(4);
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis()
-            .to_string();
+        let now = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(now) => now.as_millis().to_string(),
+            Err(e) => {
+                return Err(PublishError::Other(format!(
+                    "Error getting current time: {}",
+                    e
+                )))
+            }
+        };
         items.push(("data", data));
         items.push(("enqueue_time", now));
         if let Some(trace_state) = trace_state {

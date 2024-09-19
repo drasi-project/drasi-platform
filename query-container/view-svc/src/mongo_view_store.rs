@@ -131,7 +131,7 @@ impl ViewStore for MongoViewStore {
     ) -> Result<(), ViewError> {
         let ret_policy = self.retention_policy.read().await;
         let policy = match ret_policy.get(query_id) {
-            Some(p) => p.clone(),
+            Some(p) => *p,
             None => return Err(ViewError::NotFound),
         };
         drop(ret_policy);
@@ -310,7 +310,7 @@ impl ViewStore for MongoViewStore {
     ) -> Result<ViewStream, ViewError> {
         let ret_policy = self.retention_policy.read().await;
         let policy = match ret_policy.get(query_id) {
-            Some(p) => p.clone(),
+            Some(p) => *p,
             None => return Err(ViewError::NotFound),
         };
         drop(ret_policy);

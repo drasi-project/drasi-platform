@@ -485,11 +485,11 @@ fn populate_default_values(
                                             InlineValue::String { value } => value.clone(),
                                             InlineValue::Integer { value } => value.to_string(),
                                             _ => return Err(DomainError::Invalid {
-                                                message: format!("Invalid endpoint value"),
+                                                message: "Invalid endpoint value".to_string(),
                                             }),
                                         }
                                         _ => return Err(DomainError::Invalid {
-                                            message: format!("Invalid endpoint value"),
+                                            message: "Invalid endpoint value".to_string(),
                                         }),
                                     },
                                     None => return Err(DomainError::Invalid {
