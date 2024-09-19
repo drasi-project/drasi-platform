@@ -100,17 +100,17 @@ impl ResourceReconciler {
         }
 
         // if servce exist, delete
-        for (service_name, _) in &self.spec.services {
+        for service_name in self.spec.services.keys() {
             let name = format!("{}-{}", self.spec.resource_id.clone(), service_name.clone());
             log::info!("Deprovisioning service {}", name);
             let pp = DeleteParams::default();
             _ = self.service_api.delete(&name, &pp).await?;
         }
 
-        for (config_name, _) in &self.spec.config_maps {
-            log::info!("Deprovisioning config map {}", config_name);
+        for config_name in self.spec.config_maps.keys() {
+            log::info!("Deprovisioning config map {}", config_name.clone());
             let pp = DeleteParams::default();
-            _ = self.cm_api.delete(&config_name, &pp).await?;
+            _ = self.cm_api.delete(config_name, &pp).await?;
         }
 
         Ok(())
@@ -137,7 +137,7 @@ impl ResourceReconciler {
                         }
                         log::info!("Creating component {}", name);
                         let pp = PostParams::default();
-                        _ = self.component_api.create(&pp, &pub_sub).await?;
+                        _ = self.component_api.create(&pp, pub_sub).await?;
                     }
                     _ => return Err(Box::new(e)),
                 },
@@ -157,20 +157,22 @@ impl ResourceReconciler {
         let mut annotations = BTreeMap::new();
         annotations.insert("drasi/spechash".to_string(), self.hash.clone());
 
-        let mut dep = Deployment::default();
-        dep.metadata = ObjectMeta {
-            name: Some(name.clone()),
-            labels: Some(self.labels.clone()),
-            annotations: Some(annotations),
+        let mut dep = Deployment {
+            metadata: ObjectMeta {
+                name: Some(name.clone()),
+                labels: Some(self.labels.clone()),
+                annotations: Some(annotations),
+                ..Default::default()
+            },
+            spec: Some(DeploymentSpec {
+                strategy: Some(DeploymentStrategy {
+                    type_: Some("RollingUpdate".to_string()),
+                    ..Default::default()
+                }),
+                ..self.spec.deployment.clone()
+            }),
             ..Default::default()
         };
-        dep.spec = Some(DeploymentSpec {
-            strategy: Some(DeploymentStrategy {
-                type_: Some("RollingUpdate".to_string()),
-                ..Default::default()
-            }),
-            ..self.spec.deployment.clone()
-        });
 
         match self.deployment_api.get(&name).await {
             Ok(current) => {
@@ -206,12 +208,12 @@ impl ResourceReconciler {
         log::info!("Reconciling config maps {}", self.spec.resource_id);
 
         for (name, cm) in &self.spec.config_maps {
-            match self.cm_api.get(&name).await {
+            match self.cm_api.get(name).await {
                 Ok(current) => {
                     if current.data != cm.data {
                         log::info!("Updating config map {}", name);
                         let pp = PostParams::default();
-                        self.cm_api.replace(&name, &pp, &cm).await?;
+                        self.cm_api.replace(name, &pp, cm).await?;
                     }
                 }
                 Err(e) => match e {
@@ -222,7 +224,7 @@ impl ResourceReconciler {
                         }
                         log::info!("Creating config map {}", name);
                         let pp = PostParams::default();
-                        self.cm_api.create(&pp, &cm).await?;
+                        self.cm_api.create(&pp, cm).await?;
                     }
                     _ => return Err(Box::new(e)),
                 },
@@ -250,14 +252,14 @@ impl ResourceReconciler {
                 ..Default::default()
             };
 
-            match self.service_api.get(&name).await {
+            match self.service_api.get(name).await {
                 Ok(current) => {
                     let current_hash =
                         current.metadata.annotations.unwrap()["drasi/spechash"].clone();
                     if current_hash != self.hash {
                         log::info!("Updating service {}", name);
                         let pp = PostParams::default();
-                        self.service_api.replace(&name, &pp, &svc).await?;
+                        self.service_api.replace(name, &pp, &svc).await?;
                     }
                 }
                 Err(e) => match e {

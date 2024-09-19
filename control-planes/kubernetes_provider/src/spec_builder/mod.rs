@@ -27,6 +27,7 @@ pub trait SpecBuilder<TSpec> {
     ) -> Vec<KubernetesSpec>;
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn build_deployment_spec(
     runtime_config: &RuntimeConfig,
     resource_type: &str,
@@ -123,7 +124,7 @@ pub fn build_deployment_spec(
 
     env.sort_by_key(|e| e.name.clone());
 
-    let result = DeploymentSpec {
+    DeploymentSpec {
         replicas: Some(replicas),
         selector: LabelSelector {
             match_labels: Some(labels.clone()),
@@ -155,9 +156,7 @@ pub fn build_deployment_spec(
             }),
         },
         ..Default::default()
-    };
-
-    result
+    }
 }
 
 fn map_env_vars(env_vars: BTreeMap<String, ConfigValue>) -> Vec<EnvVar> {

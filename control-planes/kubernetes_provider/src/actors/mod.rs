@@ -138,7 +138,7 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
             .await
         {
             Ok(result) => {
-                if result.data.len() == 0 {
+                if result.data.is_empty() {
                     log::debug!("No actor state found");
                     return Ok(Vec::new());
                 }
@@ -146,13 +146,13 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
                     Ok(specs) => Ok(specs),
                     Err(e) => {
                         log::error!("Failed to deserialize actor state: {}", e);
-                        return Err(ActorError::MethodError(Box::new(e)));
+                        Err(ActorError::MethodError(Box::new(e)))
                     }
                 }
             }
             Err(e) => {
                 log::error!("Failed to get actor state: {}", e);
-                return Err(ActorError::MethodError(Box::new(e)));
+                Err(ActorError::MethodError(Box::new(e)))
             }
         }
     }
