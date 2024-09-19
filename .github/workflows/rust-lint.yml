@@ -52,7 +52,7 @@ jobs:
       - name: Run Cargo Clippy for ${{ matrix.component.label }}
         run: |
           cd ${{ matrix.component.context }}
-          cargo clippy --no-deps
+          cargo clippy  --all-targets --all-features 
 
 
   # fmt_check:
