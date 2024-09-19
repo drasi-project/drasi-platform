@@ -3,7 +3,8 @@ use crate::{
     spec_builder::reaction::ReactionSpecBuilder,
 };
 use axum::{response::IntoResponse, Json};
-use dapr::{actor, server::actor::context_client::ActorContextClient};
+use dapr::{server::actor::context_client::ActorContextClient};
+use dapr_macros::actor;
 use resource_provider_api::models::{ReactionSpec, ReactionStatus};
 use std::{collections::BTreeMap, marker};
 use tokio::sync::RwLock;
@@ -33,6 +34,7 @@ impl ReactionActor {
             _owns_tstatus: marker::PhantomData,
         }
     }
+
 
     pub async fn get_status(&self) -> impl IntoResponse {
         let controllers = self.controllers.read().await;

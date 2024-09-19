@@ -20,7 +20,7 @@ namespace StorageQueueReaction.Services
                     {
                         Source = new ChangeSource()
                         {
-                            Db = "ReactiveGraph",
+                            Db = "Drasi",
                             Table = queryId
                         },
                         Before = null,
@@ -48,7 +48,7 @@ namespace StorageQueueReaction.Services
                     {
                         Source = new ChangeSource()
                         {
-                            Db = "ReactiveGraph",
+                            Db = "Drasi",
                             Table = queryId
                         },
                         Before = inputItem.GetProperty("before"),
@@ -76,7 +76,7 @@ namespace StorageQueueReaction.Services
                     {
                         Source = new ChangeSource()
                         {
-                            Db = "ReactiveGraph",
+                            Db = "Drasi",
                             Table = queryId
                         },
                         Before = inputItem,

@@ -204,7 +204,7 @@ async fn process_changes(
             );
             debug!("ChangeEvent: {}", change);
 
-            if change["payload"]["source"]["db"] == "ReactiveGraph" {
+            if change["payload"]["source"]["db"] == "Drasi" {
                 if change["payload"]["source"]["table"] == "SourceSubscription" {
                     if change["op"] == "i" {
                         info!(
