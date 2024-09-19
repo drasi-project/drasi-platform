@@ -501,7 +501,7 @@ fn populate_default_values(
                                     "external" => EndpointSetting::External,
                                     _ => {
                                         return Err(DomainError::Invalid {
-                                            message: format!("Invalid endpoint setting"),
+                                            message: "Invalid endpoint setting".to_string(),
                                         })
                                     }
                                 }
@@ -524,7 +524,7 @@ fn populate_default_values(
                 },
                 None => {
                     return Err(DomainError::Invalid {
-                        message: format!("Image not defined"),
+                        message: "Image not defined".to_string(),
                     })
                 }
             };
