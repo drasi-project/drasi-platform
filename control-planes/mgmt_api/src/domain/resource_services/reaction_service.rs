@@ -1,10 +1,11 @@
-use super::{ExtensibleResourceDomainServiceImpl, ExtensibleSpecValidator, ResourceDomainService};
+use super::{ResourceDomainService, ResourceDomainServiceImpl};
 use crate::{
     domain::models::{
         ConfigValue, DomainError, Endpoint, EndpointSetting, InlineValue, ReactionSpec,
         ReactionStatus, Service,
     },
     persistence::ReactionRepository,
+    SpecValidator,
 };
 
 use async_trait::async_trait;
@@ -13,7 +14,7 @@ use jsonschema::JSONSchema;
 use serde_json::Value;
 use std::collections::HashMap;
 pub type ReactionDomainService = dyn ResourceDomainService<ReactionSpec, ReactionStatus>;
-pub type ReactionDomainServiceImpl = ExtensibleResourceDomainServiceImpl<
+pub type ReactionDomainServiceImpl = ResourceDomainServiceImpl<
     ReactionSpec,
     ReactionStatus,
     resource_provider_api::models::ReactionSpec,
@@ -24,7 +25,7 @@ impl ReactionDomainServiceImpl {
     pub fn new(dapr_client: dapr::Client<TonicClient>, repo: Box<ReactionRepository>) -> Self {
         ReactionDomainServiceImpl {
             dapr_client,
-            repo,
+            repo: repo,
             actor_type: |_spec| "ReactionResource".to_string(),
             ready_check: |status| status.available,
             validators: vec![Box::new(ReactionSpecValidator {})],
@@ -43,12 +44,13 @@ impl ReactionDomainServiceImpl {
 struct ReactionSpecValidator {}
 
 #[async_trait]
-impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
+impl SpecValidator<ReactionSpec> for ReactionSpecValidator {
     async fn validate(
         &self,
         spec: &ReactionSpec,
         schema: &Option<serde_json::Value>,
     ) -> Result<(), DomainError> {
+        let kind = spec.kind.clone();
         let schema = match schema {
             Some(schema) => schema,
             None => {
@@ -58,7 +60,9 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             }
         };
 
-        let config_schema = schema.get("config_schema");
+        log::info!("spec: {:?}", spec);
+
+        let config_schema = schema.get("config_schema").map(|config_schema| config_schema);
 
         let schema_services = match schema.get("services") {
             Some(service) => service,
@@ -119,8 +123,8 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             let json_data_properties = serde_json::to_value(new_spec_properties).unwrap();
             let result = validation.validate(&json_data_properties);
 
-            if let Err(mut errors) = result {
-                if let Some(error) = errors.next() {
+            if let Err(errors) = result {
+                for error in errors {
                     log::info!("Validation error: {}", error);
                     log::info!("Instance path: {}", error.instance_path);
                     return Err(DomainError::Invalid {
@@ -143,7 +147,10 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             }
         };
         for (service_name, service_properties) in schema_services {
-            let service_config_schema = service_properties.get("config_schema");
+            let service_config_schema = match service_properties.get("config_schema") {
+                Some(service_config_schema) => Some(service_config_schema),
+                None => None,
+            };
 
             if service_config_schema.is_none() {
                 continue;
@@ -157,8 +164,11 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             let validation = JSONSchema::compile(service_config_schema).unwrap();
 
             let curr_service_config_schema = match services.get(service_name) {
-                Some(Some(service)) => service.properties.clone().unwrap(),
-                _ => HashMap::new(),
+                Some(service) => match service {
+                    Some(service) => service.properties.clone().unwrap(),
+                    None => HashMap::new(),
+                },
+                None => HashMap::new(),
             };
 
             let mut curr_service_config_schema_json_value = serde_json::Map::new();
@@ -209,8 +219,8 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                 serde_json::to_value(curr_service_config_schema_json_value).unwrap();
             let result = validation.validate(&json_data_properties);
 
-            if let Err(mut errors) = result {
-                if let Some(error) = errors.next() {
+            if let Err(errors) = result {
+                for error in errors {
                     log::info!("Validation error: {}", error);
                     log::info!("Instance path: {}", error.instance_path);
                     return Err(DomainError::Invalid {
@@ -305,7 +315,16 @@ fn populate_default_values(
 
             // if service is none, then create a new service
             let curr_service = match services.get(service_name) {
-                Some(Some(service)) => service.clone(),
+                Some(service) => match service {
+                    Some(service) => service.clone(),
+                    None => Service {
+                        replica: None,
+                        image: None,
+                        endpoints: None,
+                        dapr: None,
+                        properties: None,
+                    },
+                },
                 _ => Service {
                     replica: None,
                     image: None,
@@ -464,11 +483,11 @@ fn populate_default_values(
                                             InlineValue::String { value } => value.clone(),
                                             InlineValue::Integer { value } => value.to_string(),
                                             _ => return Err(DomainError::Invalid {
-                                                message: "Invalid endpoint value".to_string(),
+                                                message: format!("Invalid endpoint value"),
                                             }),
                                         }
                                         _ => return Err(DomainError::Invalid {
-                                            message: "Invalid endpoint value".to_string(),
+                                            message: format!("Invalid endpoint value"),
                                         }),
                                     },
                                     None => return Err(DomainError::Invalid {
@@ -477,7 +496,7 @@ fn populate_default_values(
                                 }
                             },
                             None => return Err(DomainError::Invalid {
-                                message: "Unable to retrieve the target port as the properties are not defined".to_string(),
+                                message: format!("Unable to retrieve the target port as the properties are not defined"),
                             }),
                         };
 
@@ -511,16 +530,16 @@ fn populate_default_values(
                 },
                 None => {
                     return Err(DomainError::Invalid {
-                        message: "Image not defined".to_string(),
+                        message: format!("Image not defined"),
                     })
                 }
             };
 
             let new_service = Service {
-                replica,
-                image,
-                endpoints,
-                dapr,
+                replica: replica,
+                image: image,
+                endpoints: endpoints,
+                dapr: dapr,
                 properties: service_properties,
             };
             services.insert(service_name.clone(), Some(new_service));

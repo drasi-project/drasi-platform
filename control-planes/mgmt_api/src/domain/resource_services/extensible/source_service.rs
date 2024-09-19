@@ -24,7 +24,7 @@ impl SourceDomainServiceImpl {
     pub fn new(dapr_client: dapr::Client<TonicClient>, repo: Box<SourceRepository>) -> Self {
         SourceDomainServiceImpl {
             dapr_client,
-            repo: repo,
+            repo,
             actor_type: |_spec| "SourceResource".to_string(),
             ready_check: |status| status.available,
             validators: vec![Box::new(SourceSpecValidator {})],
@@ -32,10 +32,10 @@ impl SourceDomainServiceImpl {
             populate_default_values: |properties, schema_data| {
                 populate_default_values(properties, schema_data)
             },
-            _TSpec: std::marker::PhantomData,
-            _TStatus: std::marker::PhantomData,
-            _TApiSpec: std::marker::PhantomData,
-            _TApiStatus: std::marker::PhantomData,
+            _tspec: std::marker::PhantomData,
+            _tstatus: std::marker::PhantomData,
+            _tapi_spec: std::marker::PhantomData,
+            _tapi_status: std::marker::PhantomData,
         }
     }
 }
@@ -56,16 +56,13 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
             }
         };
 
-        let config_schema = match schema.get("config_schema") {
-            Some(config_schema) => Some(config_schema),
-            None => None,
-        };
+        let config_schema = schema.get("config_schema");
 
         let schema_services = match schema.get("services") {
             Some(service) => service,
             None => {
                 return Err(DomainError::Invalid {
-                    message: format!("Invalid source schema"),
+                    message: "Invalid source schema".to_string(),
                 })
             }
         };
@@ -123,10 +120,10 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
             let json_data_properties = serde_json::to_value(new_spec_properties).unwrap();
             let result = validation.validate(&json_data_properties);
 
-            if let Err(errors) = result {
-                for error in errors {
-                    println!("Validation error: {}", error);
-                    println!("Instance path: {}", error.instance_path);
+            if let Err(mut errors) = result {
+                if let Some(error) = errors.next() {
+                    log::info!("Validation error: {}", error);
+                    log::info!("Instance path: {}", error.instance_path);
                     return Err(DomainError::Invalid {
                         message: format!(
                             "Invalid source spec: {}; error path: {}",
@@ -142,15 +139,12 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
             Some(services) => services,
             None => {
                 return Err(DomainError::Invalid {
-                    message: format!("Services not defined"),
+                    message: "Services not defined".to_string(),
                 })
             }
         };
         for (service_name, service_properties) in schema_services {
-            let service_config_schema = match service_properties.get("config_schema") {
-                Some(service_config_schema) => Some(service_config_schema),
-                None => None,
-            };
+            let service_config_schema = service_properties.get("config_schema");
 
             if service_config_schema.is_none() {
                 continue;
@@ -161,11 +155,8 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
             let validation = JSONSchema::compile(service_config_schema).unwrap();
 
             let curr_service_config_schema = match services.get(service_name) {
-                Some(service) => match service {
-                    Some(service) => service.properties.clone().unwrap(),
-                    None => HashMap::new(),
-                },
-                None => HashMap::new(),
+                Some(Some(service)) => service.properties.clone().unwrap(),
+                _ => HashMap::new(),
             };
 
             let mut curr_service_config_schema_json_value = serde_json::Map::new();
@@ -216,10 +207,10 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
                 serde_json::to_value(curr_service_config_schema_json_value).unwrap();
             let result = validation.validate(&json_data_properties);
 
-            if let Err(errors) = result {
-                for error in errors {
-                    println!("Validation error: {}", error);
-                    println!("Instance path: {}", error.instance_path);
+            if let Err(mut errors) = result {
+                if let Some(error) = errors.next() {
+                    log::info!("Validation error: {}", error);
+                    log::info!("Instance path: {}", error.instance_path);
                     return Err(DomainError::Invalid {
                         message: format!(
                             "Invalid source spec: {}; error path: {}",
@@ -313,16 +304,7 @@ fn populate_default_values(
 
             // if service is none, then create a new service
             let curr_service = match services.get(service_name) {
-                Some(service) => match service {
-                    Some(service) => service.clone(),
-                    None => Service {
-                        replica: None,
-                        image: None,
-                        endpoints: None,
-                        dapr: None,
-                        properties: None,
-                    },
-                },
+                Some(Some(service)) => service.clone(),
                 _ => Service {
                     replica: None,
                     image: None,
@@ -395,10 +377,7 @@ fn populate_default_values(
 
             let service_properties = match service_config_map.get("config_schema") {
                 Some(properties) => {
-                    let mut curr_service_properties = match curr_service.properties {
-                        Some(properties) => properties,
-                        None => HashMap::new(),
-                    };
+                    let mut curr_service_properties = curr_service.properties.unwrap_or_default();
                     let properties = properties.get("properties").unwrap().as_object().unwrap();
                     for (key, value) in properties {
                         if !curr_service_properties.contains_key(key) {
@@ -448,7 +427,7 @@ fn populate_default_values(
                 None => None,
             };
 
-            println!("service_properties: {:?}", service_properties);
+            log::info!("service_properties: {:?}", service_properties);
 
             let endpoints = match service_config_map.get("endpoints") {
                 Some(endpoints) => {
@@ -490,7 +469,7 @@ fn populate_default_values(
                                 }
                             },
                             None => return Err(DomainError::Invalid {
-                                message: format!("Unable to retrieve the target port as the properties are not defined"),
+                                message: "Unable to retrieve the target port as the properties are not defined".to_string(),
                             }),
                         };
 
@@ -530,10 +509,10 @@ fn populate_default_values(
             };
 
             let new_service = Service {
-                replica: replica,
-                image: image,
-                endpoints: endpoints,
-                dapr: dapr,
+                replica,
+                image,
+                endpoints,
+                dapr,
                 properties: service_properties,
             };
 

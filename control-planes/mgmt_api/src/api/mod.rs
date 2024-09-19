@@ -4,9 +4,9 @@ use crate::domain::models::DomainError;
 
 pub mod v1;
 
-impl Into<HttpResponse> for DomainError {
-    fn into(self) -> HttpResponse {
-        match self {
+impl From<DomainError> for HttpResponse {
+    fn from(error: DomainError) -> Self {
+        match error {
             DomainError::NotFound => HttpResponse::NotFound().body("Resource not found"),
             DomainError::Invalid { message } => HttpResponse::BadRequest().body(message),
             DomainError::QueryContainerOffline => {

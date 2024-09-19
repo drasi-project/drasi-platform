@@ -6,15 +6,14 @@ use super::{
     EndpointDto, EndpointSettingDto, ReactionProviderSpecDto, ResourceProviderDto, ServiceDto,
     SourceProviderSpecDto,
 };
-
-impl<Tspec, TspecDto> Into<ResourceProvider<Tspec>> for ResourceProviderDto<TspecDto>
+impl<TSpec, TSpecDto> From<ResourceProviderDto<TSpecDto>> for ResourceProvider<TSpec>
 where
-    TspecDto: Into<Tspec>,
+    TSpecDto: Into<TSpec>,
 {
-    fn into(self) -> ResourceProvider<Tspec> {
+    fn from(val: ResourceProviderDto<TSpecDto>) -> Self {
         ResourceProvider {
-            id: self.id,
-            spec: self.spec.into(),
+            id: val.id,
+            spec: val.spec.into(),
         }
     }
 }
@@ -31,39 +30,24 @@ where
     }
 }
 
-impl Into<Service> for ServiceDto {
-    fn into(self) -> Service {
+impl From<ServiceDto> for Service {
+    fn from(service: ServiceDto) -> Self {
         Service {
-            replica: self.replica,
-            image: self.image,
-            endpoints: match self.endpoints {
-                Some(endpoints) => {
-                    Some(endpoints.into_iter().map(|(k, v)| (k, v.into())).collect())
-                }
-                None => None,
-            },
-            dapr: match self.dapr {
-                Some(dapr) => Some(dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
-                None => None,
-            },
-            properties: match self.properties {
-                Some(properties) => Some(
-                    properties
-                        .into_iter()
-                        .map(|(k, v)| (k, v.unwrap_or_default().into()))
-                        .collect(),
-                ),
-                None => None,
-            },
+            replica: service.replica,
+            image: service.image,
+            endpoints: service.endpoints.map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            dapr: service.dapr.map(|dapr| dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            properties: service.properties.map(|properties| properties.into_iter().map(|(k, v)| (k, v.unwrap().into())).collect()),
         }
     }
 }
 
-impl Into<Endpoint> for EndpointDto {
-    fn into(self) -> Endpoint {
+
+impl From<EndpointDto> for Endpoint {
+    fn from(endpoint: EndpointDto) -> Self {
         Endpoint {
-            setting: self.setting.into(),
-            target: self.target,
+            setting: endpoint.setting.into(),
+            target: endpoint.target,
         }
     }
 }
@@ -86,9 +70,9 @@ impl From<EndpointSetting> for EndpointSettingDto {
     }
 }
 
-impl Into<EndpointSetting> for EndpointSettingDto {
-    fn into(self) -> EndpointSetting {
-        match self {
+impl From<EndpointSettingDto> for EndpointSetting {
+    fn from(setting: EndpointSettingDto) -> Self {
+        match setting {
             EndpointSettingDto::Internal => EndpointSetting::Internal,
             EndpointSettingDto::External => EndpointSetting::External,
         }
@@ -100,41 +84,24 @@ impl From<Service> for ServiceDto {
         ServiceDto {
             replica: service.replica,
             image: service.image,
-            endpoints: match service.endpoints {
-                Some(endpoints) => {
-                    Some(endpoints.into_iter().map(|(k, v)| (k, v.into())).collect())
-                }
-                None => None,
-            },
-            dapr: match service.dapr {
-                Some(dapr) => Some(dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
-                None => None,
-            },
-            properties: match service.properties {
-                Some(properties) => Some(
-                    properties
-                        .into_iter()
-                        .map(|(k, v)| (k, Some(v.into())))
-                        .collect(),
-                ),
-                None => None,
-            },
+            endpoints: service.endpoints.map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            dapr: service.dapr.map(|dapr| dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            properties: service.properties.map(|properties| properties
+                .into_iter()
+                .map(|(k, v)| (k, Some(v.into())))
+                .collect()),
         }
     }
 }
 
-impl Into<SourceProviderSpec> for SourceProviderSpecDto {
-    fn into(self) -> SourceProviderSpec {
+impl From<SourceProviderSpecDto> for SourceProviderSpec {
+    fn from(spec: SourceProviderSpecDto) -> Self {
         SourceProviderSpec {
-            services: self
+            services: spec
                 .services
                 .into_iter()
-                .map(|(k, v)| (k, v.into()))
                 .collect(),
-            config_schema: match self.config_schema {
-                Some(schema) => Some(schema),
-                None => None,
-            },
+            config_schema: spec.config_schema,
         }
     }
 }
@@ -145,28 +112,20 @@ impl From<SourceProviderSpec> for SourceProviderSpecDto {
             services: spec
                 .services
                 .into_iter()
-                .map(|(k, v)| (k, v.into()))
                 .collect(),
-            config_schema: match spec.config_schema {
-                Some(schema) => Some(schema),
-                None => None,
-            },
+            config_schema: spec.config_schema,
         }
     }
 }
 
-impl Into<ReactionProviderSpec> for ReactionProviderSpecDto {
-    fn into(self) -> ReactionProviderSpec {
+impl From<ReactionProviderSpecDto> for ReactionProviderSpec {
+    fn from(spec: ReactionProviderSpecDto) -> Self {
         ReactionProviderSpec {
-            services: self
+            services: spec
                 .services
                 .into_iter()
-                .map(|(k, v)| (k, v.into()))
                 .collect(),
-            config_schema: match self.config_schema {
-                Some(schema) => Some(schema),
-                None => None,
-            },
+            config_schema: spec.config_schema,
         }
     }
 }
@@ -177,12 +136,8 @@ impl From<ReactionProviderSpec> for ReactionProviderSpecDto {
             services: spec
                 .services
                 .into_iter()
-                .map(|(k, v)| (k, v.into()))
                 .collect(),
-            config_schema: match spec.config_schema {
-                Some(schema) => Some(schema),
-                None => None,
-            },
+            config_schema: spec.config_schema,
         }
     }
 }

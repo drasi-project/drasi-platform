@@ -78,11 +78,11 @@ macro_rules! v1_crud_api {
     async fn list_resources(svc: web::Data<$domain_service>) -> HttpResponse {
       log::debug!("list_resources");
 
-      println!("list_resources");
+      log::info!("list_resources");
       match svc.list().await {
         Ok(res) => {
           let result = res.into_iter().map(|r| ResourceDto::<$spec_dto, $status_dto>::from(r)).collect::<Vec<_>>();
-          println!("list_resources: {:?}", result);
+          log::info!("list_resources: {:?}", result);
           HttpResponse::Ok().json(result)
         },
         Err(e) => e.into()

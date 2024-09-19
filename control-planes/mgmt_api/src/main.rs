@@ -22,7 +22,7 @@ const VERSION: i32 = 11;
 
 #[actix_web::main]
 async fn main() -> Result<(), std::io::Error> {
-    println!("version: {}", VERSION);
+    log::info!("version: {}", VERSION);
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     let mongo_uri = std::env::var("MONGO_URI").unwrap_or("mongodb://rg-mongo:27017".to_string());

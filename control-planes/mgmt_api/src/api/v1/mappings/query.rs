@@ -20,15 +20,15 @@ impl From<QueryStatus> for QueryStatusDto {
     }
 }
 
-impl Into<QuerySpec> for QuerySpecDto {
-    fn into(self) -> QuerySpec {
+impl From<QuerySpecDto> for QuerySpec {
+    fn from(spec: QuerySpecDto) -> Self {
         QuerySpec {
-            container: self.container,
-            mode: self.mode,
-            query: self.query,
-            sources: self.sources.into(),
-            storage_profile: self.storage_profile,
-            view: self.view.unwrap_or_default().into(),
+            container: spec.container,
+            mode: spec.mode,
+            query: spec.query,
+            sources: spec.sources.into(),
+            storage_profile: spec.storage_profile,
+            view: spec.view.unwrap_or_default().into(),
         }
     }
 }
@@ -46,15 +46,19 @@ impl From<QuerySpec> for QuerySpecDto {
     }
 }
 
-impl Into<QuerySources> for QuerySourcesDto {
-    fn into(self) -> QuerySources {
+impl From<QuerySourcesDto> for QuerySources {
+    fn from(sources: QuerySourcesDto) -> Self {
         QuerySources {
-            subscriptions: self.subscriptions.into_iter().map(|v| v.into()).collect(),
-            joins: match self.joins {
+            subscriptions: sources
+                .subscriptions
+                .into_iter()
+                .map(|v| v.into())
+                .collect(),
+            joins: match sources.joins {
                 Some(joins) => joins.into_iter().map(|v| v.into()).collect(),
                 None => Vec::new(),
             },
-            middleware: match self.middleware {
+            middleware: match sources.middleware {
                 Some(middleware) => middleware.into_iter().map(|v| v.into()).collect(),
                 None => Vec::new(),
             },
@@ -76,25 +80,23 @@ impl From<QuerySources> for QuerySourcesDto {
     }
 }
 
-impl Into<QuerySubscription> for QuerySubscriptionDto {
-    fn into(self) -> QuerySubscription {
+impl From<QuerySubscriptionDto> for QuerySubscription {
+    fn from(subscription: QuerySubscriptionDto) -> Self {
         QuerySubscription {
-            id: self.id,
-            nodes: match self.nodes {
+            id: subscription.id,
+            nodes: match subscription.nodes {
                 Some(nodes) => nodes.into_iter().map(|v| v.into()).collect(),
                 None => Vec::new(),
             },
-            relations: match self.relations {
+            relations: match subscription.relations {
                 Some(relations) => relations.into_iter().map(|v| v.into()).collect(),
                 None => Vec::new(),
             },
-            pipeline: match self.pipeline {
-                Some(pipeline) => pipeline,
-                None => Vec::new(),
-            },
+            pipeline: subscription.pipeline.unwrap_or_default(),
         }
     }
 }
+
 
 impl From<QuerySubscription> for QuerySubscriptionDto {
     fn from(subscription: QuerySubscription) -> Self {
@@ -113,12 +115,12 @@ impl From<QuerySubscription> for QuerySubscriptionDto {
     }
 }
 
-impl Into<SourceMiddlewareConfig> for SourceMiddlewareConfigDto {
-    fn into(self) -> SourceMiddlewareConfig {
+impl From<SourceMiddlewareConfigDto> for SourceMiddlewareConfig {
+    fn from(config: SourceMiddlewareConfigDto) -> Self {
         SourceMiddlewareConfig {
-            kind: self.kind,
-            name: self.name,
-            config: self.config,
+            kind: config.kind,
+            name: config.name,
+            config: config.config,
         }
     }
 }
@@ -132,11 +134,10 @@ impl From<SourceMiddlewareConfig> for SourceMiddlewareConfigDto {
         }
     }
 }
-
-impl Into<QuerySourceLabel> for QuerySourceLabelDto {
-    fn into(self) -> QuerySourceLabel {
+impl From<QuerySourceLabelDto> for QuerySourceLabel {
+    fn from(label: QuerySourceLabelDto) -> Self {
         QuerySourceLabel {
-            source_label: self.source_label,
+            source_label: label.source_label,
         }
     }
 }
@@ -149,14 +150,15 @@ impl From<QuerySourceLabel> for QuerySourceLabelDto {
     }
 }
 
-impl Into<QueryJoin> for QueryJoinDto {
-    fn into(self) -> QueryJoin {
+impl From<QueryJoinDto> for QueryJoin {
+    fn from(join: QueryJoinDto) -> Self {
         QueryJoin {
-            id: self.id,
-            keys: self.keys.into_iter().map(|v| v.into()).collect(),
+            id: join.id,
+            keys: join.keys.into_iter().map(|v| v.into()).collect(),
         }
     }
 }
+
 
 impl From<QueryJoin> for QueryJoinDto {
     fn from(join: QueryJoin) -> Self {
@@ -167,14 +169,15 @@ impl From<QueryJoin> for QueryJoinDto {
     }
 }
 
-impl Into<QueryJoinKey> for QueryJoinKeyDto {
-    fn into(self) -> QueryJoinKey {
+impl From<QueryJoinKeyDto> for QueryJoinKey {
+    fn from(key: QueryJoinKeyDto) -> Self {
         QueryJoinKey {
-            label: self.label,
-            property: self.property,
+            label: key.label,
+            property: key.property,
         }
     }
 }
+
 
 impl From<QueryJoinKey> for QueryJoinKeyDto {
     fn from(key: QueryJoinKey) -> Self {
@@ -185,9 +188,9 @@ impl From<QueryJoinKey> for QueryJoinKeyDto {
     }
 }
 
-impl Into<RetentionPolicy> for RetentionPolicyDto {
-    fn into(self) -> RetentionPolicy {
-        match self {
+impl From<RetentionPolicyDto>  for RetentionPolicy {
+    fn from(policy: RetentionPolicyDto) -> Self {
+        match policy {
             RetentionPolicyDto::Latest => RetentionPolicy::Latest,
             RetentionPolicyDto::Expire { after_seconds } => {
                 RetentionPolicy::Expire { after_seconds }
@@ -197,11 +200,11 @@ impl Into<RetentionPolicy> for RetentionPolicyDto {
     }
 }
 
-impl Into<ViewSpec> for ViewSpecDto {
-    fn into(self) -> ViewSpec {
+impl From<ViewSpecDto> for ViewSpec {
+    fn from(spec: ViewSpecDto) -> Self {
         ViewSpec {
-            enabled: self.enabled,
-            retention_policy: self.retention_policy.into(),
+            enabled: spec.enabled,
+            retention_policy: spec.retention_policy.into(),
         }
     }
 }
