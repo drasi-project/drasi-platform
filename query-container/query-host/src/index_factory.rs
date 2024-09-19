@@ -292,3 +292,9 @@ impl IndexFactory {
         }
     }
 }
+
+impl Default for IndexFactory {
+    fn default() -> Self {
+        Self::new()
+    }
+}

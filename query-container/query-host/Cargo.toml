@@ -39,4 +39,3 @@ thiserror = "1.0.63"
 [dev-dependencies]
 mockall = "0.12"
 uuid = {version = "1.4.1", features = ["v4"]}
-
