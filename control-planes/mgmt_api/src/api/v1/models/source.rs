@@ -5,6 +5,7 @@ use super::ConfigValueDto;
 
 use super::ServiceDto;
 
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -18,4 +19,5 @@ pub struct SourceSpecDto {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SourceStatusDto {
     pub available: bool,
+    pub messages: Option<BTreeMap<String, String>>,
 }

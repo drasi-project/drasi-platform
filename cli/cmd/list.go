@@ -1,15 +1,15 @@
 package cmd
 
 import (
+	"drasi.io/cli/api"
+	"drasi.io/cli/service"
 	"fmt"
+	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cobra"
 	"os"
 	"reflect"
 	"sort"
-
-	"drasi.io/cli/api"
-	"drasi.io/cli/service"
-	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cobra"
+	"strings"
 )
 
 func NewListCommand() *cobra.Command {
@@ -74,7 +74,22 @@ Example:
 					for k := 0; k < len(itemStatus); k++ {
 						statusFieldName := itemStatus[k].String()
 						statusFields[statusFieldName] = nil
-						item[statusFieldName] = fmt.Sprintf("%v", reflect.ValueOf(result[i].Status).MapIndex(itemStatus[k]).Elem())
+						val := reflect.ValueOf(result[i].Status).MapIndex(itemStatus[k])
+
+						switch val.Elem().Kind() {
+						case reflect.Map:
+							var builder strings.Builder
+							iter := val.Elem().MapRange()
+							for iter.Next() {
+								builder.WriteString(iter.Key().String())
+								builder.WriteString(" - ")
+								builder.WriteString(iter.Value().Elem().String())
+								builder.WriteString("\n")
+							}
+							item[statusFieldName] = builder.String()
+						default:
+							item[statusFieldName] = fmt.Sprintf(" %v", val.Elem())
+						}
 					}
 				}
 				items = append(items, item)
