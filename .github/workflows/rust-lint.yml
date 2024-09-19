@@ -47,6 +47,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           submodules: true
+          fetch-depth: 0
           token: ${{ secrets.DRASI_CORE_PAT }}
       - name: Run Cargo Clippy for ${{ matrix.component.label }}
         run: |
