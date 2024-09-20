@@ -66,6 +66,8 @@ jobs:
           submodules_recursive: true # Fetches nested submodules
           fetch-depth: 0  
           token: ${{ secrets.DRASI_CORE_PAT }}
+      - name: Install protobuf-compiler
+        run: sudo apt-get install -y protobuf-compiler
       - name: Run Cargo Clippy for ${{ matrix.component.label }}
         run: |
           cd ${{ matrix.component.context }}
