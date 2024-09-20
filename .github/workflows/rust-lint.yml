@@ -48,14 +48,23 @@ jobs:
           {
             label: 'Management API',
             context: './control-planes/mgmt_api'
-          }
+          },
+          # {
+          #   label: 'Change router',
+          #   context: './sources/shared/change-router/'
+          # },
+          # {
+          #   label: 'Query API',
+          #   context: './sources/shared/query-api/'
+          # },
         ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          submodules: true
-          fetch-depth: 0
+          submodules: true          # Fetches all submodules
+          submodules_recursive: true # Fetches nested submodules
+          fetch-depth: 0  
           token: ${{ secrets.DRASI_CORE_PAT }}
       - name: Run Cargo Clippy for ${{ matrix.component.label }}
         run: |
