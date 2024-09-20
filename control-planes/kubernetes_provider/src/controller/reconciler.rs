@@ -92,7 +92,7 @@ impl ResourceReconciler {
                     };
 
                     let label_selector = deployment_labels
-                        .into_iter()
+                        .iter()
                         .map(|(k, v)| format!("{}={}", k, v))
                         .collect::<Vec<String>>()
                         .join(",");
@@ -115,27 +115,21 @@ impl ResourceReconciler {
                                         for container_status in container_statuses {
                                             match container_status.state {
                                                 Some(state) => {
-                                                    match state.terminated {
-                                                        Some(terminated) => {
-                                                            errors.push(format!(
-                                                                "{}: {} {}",
-                                                                container_status.name,
-                                                                terminated.reason.unwrap_or_default(),
-                                                                terminated.message.unwrap_or("Terminated".to_string())
-                                                            ));
-                                                        }
-                                                        None => {},
+                                                    if let Some(terminated) = state.terminated {
+                                                        errors.push(format!(
+                                                            "{}: {} {}",
+                                                            container_status.name,
+                                                            terminated.reason.unwrap_or_default(),
+                                                            terminated.message.unwrap_or("Terminated".to_string())
+                                                        ));
                                                     }
-                                                    match state.waiting {
-                                                        Some(waiting) => {
-                                                            errors.push(format!(
-                                                                "{}: waiting: {} {}",
-                                                                container_status.name,
-                                                                waiting.reason.unwrap_or_default(),
-                                                                waiting.message.unwrap_or_default()
-                                                            ));
-                                                        }
-                                                        None => {},
+                                                    if let Some(waiting) = state.waiting {
+                                                        errors.push(format!(
+                                                            "{}: waiting: {} {}",
+                                                            container_status.name,
+                                                            waiting.reason.unwrap_or_default(),
+                                                            waiting.message.unwrap_or_default()
+                                                        ));
                                                     }
                                                 }
                                                 None => continue,
