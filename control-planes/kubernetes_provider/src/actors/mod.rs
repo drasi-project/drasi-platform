@@ -5,16 +5,16 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use axum::{response::IntoResponse, Json};
 use dapr::server::{
     actor::{
         context_client::{ActorContextClient, ActorStateOperation},
-        Actor, ActorError,
+        Actor, ActorError,  axum::{response::IntoResponse, Json},
+
     },
     utils::DaprJson,
 };
 use resource_provider_api::models::ResourceRequest;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::marker;
 use tokio::sync::RwLock;
 
@@ -29,7 +29,7 @@ pub struct ResourceActor<TSpec, TStatus> {
     resource_type: String,
     runtime_config: RuntimeConfig,
     spec_builder: Box<dyn SpecBuilder<TSpec> + Send + Sync>,
-    controllers: RwLock<Vec<ResourceController>>,
+    controllers: RwLock<BTreeMap<String, ResourceController>>,
     kube_config: kube::Config,
     _owns_tstatus: marker::PhantomData<TStatus>,
 }
@@ -108,7 +108,7 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
 
         let controllers = self.controllers.read().await;
 
-        for controller in controllers.iter() {
+        for (_, controller) in controllers.iter() {
             controller.deprovision();
         }
 
@@ -162,7 +162,7 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
         let mut controllers = self.controllers.write().await;
         controllers.clear();
         for spec in specs {
-            controllers.push(ResourceController::start(self.kube_config.clone(), spec));
+            controllers.insert(spec.service_name.clone(), ResourceController::start(self.kube_config.clone(), spec));
         }
     }
 
@@ -172,7 +172,7 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
         let mut recievers = Vec::new();
 
         let controllers = self.controllers.read().await;
-        for controller in controllers.iter() {
+        for (_, controller) in controllers.iter() {
             recievers.push(controller.reconcile());
         }
 
@@ -185,7 +185,7 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
         let mut recievers = Vec::new();
 
         let controllers = self.controllers.read().await;
-        for controller in controllers.iter() {
+        for (_, controller) in controllers.iter() {
             recievers.push(controller.reconcile());
         }
 
