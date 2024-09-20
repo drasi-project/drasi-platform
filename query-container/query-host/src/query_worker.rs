@@ -86,10 +86,7 @@ impl QueryWorker {
             builder = builder.with_joins(config.sources.joins.clone());
 
             let index_set = match index_factory
-                .build(
-                    &modified_config.storage_profile,
-                    &query_id,
-                )
+                .build(&modified_config.storage_profile, &query_id)
                 .await
             {
                 Ok(ei) => ei,
@@ -466,20 +463,37 @@ async fn process_change(
     let process_end_time = SystemTime::now();
 
     if !changes.is_empty() {
-        if let Some(tracking) = metadata.entry("tracking".to_string())
-                                    .or_insert(Value::Object(Map::new()))
-                                    .as_object_mut() {
-                                        let dequeue_time = Number::from(dequeue_time.duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64);
-                                        let query_start_time = Number::from(process_start_time.duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64);
-                                        let query_end_time = Number::from(process_end_time.duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64);
+        if let Some(tracking) = metadata
+            .entry("tracking".to_string())
+            .or_insert(Value::Object(Map::new()))
+            .as_object_mut()
+        {
+            let dequeue_time = Number::from(
+                dequeue_time
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+            );
+            let query_start_time = Number::from(
+                process_start_time
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+            );
+            let query_end_time = Number::from(
+                process_end_time
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+            );
 
-                                        let mut qt = Map::new();
-                                        qt.insert("dequeue_ms".to_string(), Value::Number(dequeue_time));
-                                        qt.insert("queryStart_ms".to_string(), Value::Number(query_start_time));
-                                        qt.insert("queryEnd_ms".to_string(), Value::Number(query_end_time));
+            let mut qt = Map::new();
+            qt.insert("dequeue_ms".to_string(), Value::Number(dequeue_time));
+            qt.insert("queryStart_ms".to_string(), Value::Number(query_start_time));
+            qt.insert("queryEnd_ms".to_string(), Value::Number(query_end_time));
 
-                                        tracking.insert("query".to_string(), Value::Object(qt));
-                                    }
+            tracking.insert("query".to_string(), Value::Object(qt));
+        }
 
         let seq = seq_manager.increment(&source_change_id);
         let output =
@@ -550,7 +564,7 @@ async fn bootstrap(
         for change in initial_data.drain(..) {
             let timestamp = change.get_transaction_time();
             let element_id = change.get_reference().element_id.to_string();
-            let change_results = match query.process_source_change(change).await {                
+            let change_results = match query.process_source_change(change).await {
                 Ok(r) => r,
                 Err(e) => {
                     log::error!("Error processing source change: {}", e);

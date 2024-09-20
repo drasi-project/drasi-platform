@@ -533,7 +533,6 @@ mod mappings {
         }
     }
 
-
     impl From<api::QuerySpec> for models::QueryConfig {
         fn from(val: api::QuerySpec) -> Self {
             models::QueryConfig {
@@ -544,7 +543,6 @@ mod mappings {
             }
         }
     }
-
 
     impl From<api::SourceMiddlewareConfig> for models::SourceMiddlewareConfig {
         fn from(val: api::SourceMiddlewareConfig) -> Self {

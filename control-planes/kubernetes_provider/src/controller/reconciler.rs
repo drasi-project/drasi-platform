@@ -1,11 +1,12 @@
-use std::{collections::BTreeMap, hash::{Hash, Hasher}};
+use std::{
+    collections::BTreeMap,
+    hash::{Hash, Hasher},
+};
 
 use either::Either;
 use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::api::{
-    apps::v1::{
-        Deployment, DeploymentSpec, DeploymentStrategy,
-    },
+    apps::v1::{Deployment, DeploymentSpec, DeploymentStrategy},
     core::v1::{ConfigMap, PersistentVolumeClaim, Pod, Service},
 };
 use kube::{
@@ -74,21 +75,20 @@ impl ResourceReconciler {
         match &deployment.status {
             Some(status) => {
                 if status.available_replicas.unwrap_or(0) == 0 {
-                    
                     let spec = match &deployment.spec {
                         Some(spec) => spec,
                         None => {
                             self.status = ReconcileStatus::Offline("-".to_string());
                             return;
-                        },
+                        }
                     };
-                    
+
                     let deployment_labels = match &spec.selector.match_labels {
                         Some(labels) => labels,
                         None => {
                             self.status = ReconcileStatus::Offline("-".to_string());
                             return;
-                        },
+                        }
                     };
 
                     let label_selector = deployment_labels
@@ -96,56 +96,56 @@ impl ResourceReconciler {
                         .map(|(k, v)| format!("{}={}", k, v))
                         .collect::<Vec<String>>()
                         .join(",");
-                    
+
                     let lp = ListParams::default().labels(&label_selector);
                     let pod_list = match self.pod_api.list(&lp).await {
                         Ok(pod_list) => pod_list,
                         Err(_) => {
                             self.status = ReconcileStatus::Offline("-".to_string());
                             return;
-                        },
+                        }
                     };
 
                     let mut errors = Vec::new();
                     for pod in pod_list.items {
                         match pod.status {
-                            Some(pod_status) => {
-                                match pod_status.container_statuses {
-                                    Some(container_statuses) => {
-                                        for container_status in container_statuses {
-                                            match container_status.state {
-                                                Some(state) => {
-                                                    if let Some(terminated) = state.terminated {
-                                                        errors.push(format!(
-                                                            "{}: {} {}",
-                                                            container_status.name,
-                                                            terminated.reason.unwrap_or_default(),
-                                                            terminated.message.unwrap_or("Terminated".to_string())
-                                                        ));
-                                                    }
-                                                    if let Some(waiting) = state.waiting {
-                                                        errors.push(format!(
-                                                            "{}: waiting: {} {}",
-                                                            container_status.name,
-                                                            waiting.reason.unwrap_or_default(),
-                                                            waiting.message.unwrap_or_default()
-                                                        ));
-                                                    }
+                            Some(pod_status) => match pod_status.container_statuses {
+                                Some(container_statuses) => {
+                                    for container_status in container_statuses {
+                                        match container_status.state {
+                                            Some(state) => {
+                                                if let Some(terminated) = state.terminated {
+                                                    errors.push(format!(
+                                                        "{}: {} {}",
+                                                        container_status.name,
+                                                        terminated.reason.unwrap_or_default(),
+                                                        terminated
+                                                            .message
+                                                            .unwrap_or("Terminated".to_string())
+                                                    ));
                                                 }
-                                                None => continue,
+                                                if let Some(waiting) = state.waiting {
+                                                    errors.push(format!(
+                                                        "{}: waiting: {} {}",
+                                                        container_status.name,
+                                                        waiting.reason.unwrap_or_default(),
+                                                        waiting.message.unwrap_or_default()
+                                                    ));
+                                                }
                                             }
+                                            None => continue,
                                         }
                                     }
-                                    None => continue,
                                 }
-                            }
+                                None => continue,
+                            },
                             None => continue,
                         }
-                    }                    
-                    
+                    }
+
                     self.status = ReconcileStatus::Offline(errors.join("\n"));
                     return;
-                } 
+                }
 
                 self.status = ReconcileStatus::Online;
             }
@@ -410,7 +410,7 @@ impl ResourceReconciler {
 fn calc_hash<T: Serialize>(obj: &T) -> String {
     let data = serde_json::to_vec(obj).unwrap();
     let mut hash = SpookyHasher::default();
-    data.hash(&mut hash);    
+    data.hash(&mut hash);
     let hsh = hash.finish();
     format!("{:02x}", hsh)
 }

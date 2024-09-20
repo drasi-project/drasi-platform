@@ -10,9 +10,6 @@ on:
 jobs:
   clippy_check:
     name: Cargo Clippy lint check
-    permissions:
-      packages: write
-      contents: read
     env:
       # Set RUSTFLAGS for Clippy linting
       # RUSTFLAGS: |
@@ -49,11 +46,11 @@ jobs:
             label: 'Management API',
             context: './control-planes/mgmt_api'
           },
-          # {
+          # { Will enable after PR #43 gets merged
           #   label: 'Change router',
           #   context: './sources/shared/change-router/'
           # },
-          # {
+          # { Will enable after PR #45 gets merged
           #   label: 'Query API',
           #   context: './sources/shared/query-api/'
           # },
@@ -74,19 +71,47 @@ jobs:
           cargo clippy  --all-targets --all-features 
 
 
-  # fmt_check:
-  #   name: Format check
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-  #     - name: Install latest nightly
-  #       uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1.0.7
-  #       with:
-  #           toolchain: nightly
-  #           override: true
-
-  #     - name: Run Cargo fmt
-  #       run: |
-  #         rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
-  #         cargo fmt -- --check
+  fmt_check:
+    name: cargo format check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [
+          {
+            label: 'Change Dispatcher',
+            context: './sources/shared/change-dispatcher/'
+          },
+          {
+            label: 'Query Container',
+            context: './query-container'
+          },
+          {
+            label: 'Kubernetes Provider',
+            context: './control-planes/kubernetes_provider'
+          },
+          {
+            label: 'Management API',
+            context: './control-planes/mgmt_api'
+          },
+          # { Will enable after PR #43 gets merged
+          #   label: 'Change router',
+          #   context: './sources/shared/change-router/'
+          # },
+          # { Will enable after PR #45 gets merged
+          #   label: 'Query API',
+          #   context: './sources/shared/query-api/'
+          # },
+        ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1.0.7
+        with:
+            toolchain: nightly
+            override: true
+      - name: Run Cargo fmt
+        run: |
+          cd ${{ matrix.component.context }}
+          rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
+          cargo fmt -- --check

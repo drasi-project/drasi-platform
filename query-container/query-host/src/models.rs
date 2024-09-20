@@ -88,8 +88,8 @@ pub struct ChangeStreamConfig {
 }
 
 #[derive(Error, Debug)]
-pub enum QueryError {    
-    #[error("Bootstrap failure: {0}")]    
+pub enum QueryError {
+    #[error("Bootstrap failure: {0}")]
     BootstrapFailure(BootstrapError),
 
     #[error("Parse error: {0}")]
@@ -109,20 +109,19 @@ impl QueryError {
     }
 }
 
-
 #[derive(Error, Debug)]
 pub enum BootstrapError {
     #[error("Failed to fetch data from source '{source_id}': {inner}")]
     FetchFailed {
         source_id: String,
-        inner: Box<dyn Error>
+        inner: Box<dyn Error>,
     },
 
     #[error("Failed to process element '{element_id}' from source '{source_id}': {inner}")]
     ProcessFailed {
         source_id: String,
         element_id: String,
-        inner: Box<dyn Error>
+        inner: Box<dyn Error>,
     },
 
     #[error("Failed to publish: {0}")]
@@ -138,7 +137,11 @@ impl BootstrapError {
     }
 
     pub fn process_failed(source_id: String, element_id: String, inner: Box<dyn Error>) -> Self {
-        BootstrapError::ProcessFailed { source_id, element_id, inner }
+        BootstrapError::ProcessFailed {
+            source_id,
+            element_id,
+            inner,
+        }
     }
 
     pub fn publish_error(inner: Box<dyn Error>) -> Self {

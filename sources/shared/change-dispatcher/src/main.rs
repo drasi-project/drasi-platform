@@ -50,7 +50,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = match tokio::net::TcpListener::bind(&addr).await {
         Ok(listener) => listener,
         Err(_e) => {
-            return Err(Box::<dyn std::error::Error>::from("Error binding to the address"));
+            return Err(Box::<dyn std::error::Error>::from(
+                "Error binding to the address",
+            ));
         }
     };
     match axum::serve(listener, app).await {
@@ -91,25 +93,23 @@ async fn receive(
     let traceparent = match headers.get("traceparent") {
         Some(tp) => match tp.to_str() {
             Ok(tp) => tp.to_string(),
-            Err(_) => {
-                "".to_string()
-            }
+            Err(_) => "".to_string(),
         },
-        None => {
-            "".to_string()
-        }
+        None => "".to_string(),
     };
 
     let config = state.config.clone();
     let invoker = &state.invoker;
     let json_data = body["data"].clone();
     match process_changes(invoker, json_data, config, traceparent).await {
-        Ok(_) => {
-            StatusCode::OK.into_response()
-        }
+        Ok(_) => StatusCode::OK.into_response(),
         Err(e) => {
             log::error!("Error processing changes: {:?}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("Error processing changes: {:?}", e)).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error processing changes: {:?}", e),
+            )
+                .into_response()
         }
     }
 }
@@ -127,7 +127,10 @@ async fn process_changes(
                 change_event["id"],
                 match serde_json::to_string(&change_event["subscriptions"]) {
                     Ok(subs) => subs,
-                    Err(_) => return Err(Box::<dyn std::error::Error>::from("Error serializing subscriptions into a string")),
+                    Err(_) =>
+                        return Err(Box::<dyn std::error::Error>::from(
+                            "Error serializing subscriptions into a string"
+                        )),
                 }
             );
 
@@ -136,7 +139,9 @@ async fn process_changes(
                 match serde_json::to_value(chrono::Utc::now().timestamp_millis()) {
                     Ok(val) => val,
                     Err(_) => {
-                        return Err(Box::<dyn std::error::Error>::from("Error serializing timestamp into json value"));
+                        return Err(Box::<dyn std::error::Error>::from(
+                            "Error serializing timestamp into json value",
+                        ));
                     }
                 };
             dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ms"] =
@@ -150,7 +155,9 @@ async fn process_changes(
             let subscriptions = match change_event["subscriptions"].as_array() {
                 Some(subs) => subs.clone(),
                 None => {
-                    return Err(Box::<dyn std::error::Error>::from("Error getting subscriptions from change event"));
+                    return Err(Box::<dyn std::error::Error>::from(
+                        "Error getting subscriptions from change event",
+                    ));
                 }
             };
 
@@ -166,7 +173,9 @@ async fn process_changes(
                     match serde_json::to_value(chrono::Utc::now().timestamp_millis()) {
                         Ok(val) => val,
                         Err(_) => {
-                            return Err(Box::<dyn std::error::Error>::from("Error serializing timestamp into json value"));
+                            return Err(Box::<dyn std::error::Error>::from(
+                                "Error serializing timestamp into json value",
+                            ));
                         }
                     };
                 let queries: Vec<_> = subscriptions
@@ -177,7 +186,9 @@ async fn process_changes(
                 dispatch_event["queries"] = match serde_json::to_value(queries) {
                     Ok(val) => val,
                     Err(_) => {
-                        return Err(Box::<dyn std::error::Error>::from("Error serializing queries into json value"));
+                        return Err(Box::<dyn std::error::Error>::from(
+                            "Error serializing queries into json value",
+                        ));
                     }
                 };
 
@@ -193,12 +204,16 @@ async fn process_changes(
                         "change".to_string(),
                         headers,
                     )
-                    .await {
-                        Ok(_) => {},
-                        Err(e) => {
-                            return Err(Box::<dyn std::error::Error>::from(format!("Error invoking app: {}", e)));
-                        }
+                    .await
+                {
+                    Ok(_) => {}
+                    Err(e) => {
+                        return Err(Box::<dyn std::error::Error>::from(format!(
+                            "Error invoking app: {}",
+                            e
+                        )));
                     }
+                }
             }
         }
     }

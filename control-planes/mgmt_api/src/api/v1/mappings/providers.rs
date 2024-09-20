@@ -35,13 +35,21 @@ impl From<ServiceDto> for Service {
         Service {
             replica: service.replica,
             image: service.image,
-            endpoints: service.endpoints.map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            dapr: service.dapr.map(|dapr| dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            properties: service.properties.map(|properties| properties.into_iter().map(|(k, v)| (k, v.unwrap().into())).collect()),
+            endpoints: service
+                .endpoints
+                .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            dapr: service
+                .dapr
+                .map(|dapr| dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            properties: service.properties.map(|properties| {
+                properties
+                    .into_iter()
+                    .map(|(k, v)| (k, v.unwrap().into()))
+                    .collect()
+            }),
         }
     }
 }
-
 
 impl From<EndpointDto> for Endpoint {
     fn from(endpoint: EndpointDto) -> Self {
@@ -84,12 +92,18 @@ impl From<Service> for ServiceDto {
         ServiceDto {
             replica: service.replica,
             image: service.image,
-            endpoints: service.endpoints.map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            dapr: service.dapr.map(|dapr| dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            properties: service.properties.map(|properties| properties
-                .into_iter()
-                .map(|(k, v)| (k, Some(v.into())))
-                .collect()),
+            endpoints: service
+                .endpoints
+                .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            dapr: service
+                .dapr
+                .map(|dapr| dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            properties: service.properties.map(|properties| {
+                properties
+                    .into_iter()
+                    .map(|(k, v)| (k, Some(v.into())))
+                    .collect()
+            }),
         }
     }
 }
@@ -97,10 +111,7 @@ impl From<Service> for ServiceDto {
 impl From<SourceProviderSpecDto> for SourceProviderSpec {
     fn from(spec: SourceProviderSpecDto) -> Self {
         SourceProviderSpec {
-            services: spec
-                .services
-                .into_iter()
-                .collect(),
+            services: spec.services.into_iter().collect(),
             config_schema: spec.config_schema,
         }
     }
@@ -109,10 +120,7 @@ impl From<SourceProviderSpecDto> for SourceProviderSpec {
 impl From<SourceProviderSpec> for SourceProviderSpecDto {
     fn from(spec: SourceProviderSpec) -> Self {
         SourceProviderSpecDto {
-            services: spec
-                .services
-                .into_iter()
-                .collect(),
+            services: spec.services.into_iter().collect(),
             config_schema: spec.config_schema,
         }
     }
@@ -121,10 +129,7 @@ impl From<SourceProviderSpec> for SourceProviderSpecDto {
 impl From<ReactionProviderSpecDto> for ReactionProviderSpec {
     fn from(spec: ReactionProviderSpecDto) -> Self {
         ReactionProviderSpec {
-            services: spec
-                .services
-                .into_iter()
-                .collect(),
+            services: spec.services.into_iter().collect(),
             config_schema: spec.config_schema,
         }
     }
@@ -133,10 +138,7 @@ impl From<ReactionProviderSpecDto> for ReactionProviderSpec {
 impl From<ReactionProviderSpec> for ReactionProviderSpecDto {
     fn from(spec: ReactionProviderSpec) -> Self {
         ReactionProviderSpecDto {
-            services: spec
-                .services
-                .into_iter()
-                .collect(),
+            services: spec.services.into_iter().collect(),
             config_schema: spec.config_schema,
         }
     }

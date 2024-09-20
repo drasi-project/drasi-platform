@@ -159,7 +159,9 @@ impl<'de> Visitor<'de> for StringOrConfig {
                     FakeConfigValueDto::Inline { value } => ConfigValueDto::Inline {
                         value: InlineValueDto::String { value },
                     },
-                    FakeConfigValueDto::Secret { name, key } => ConfigValueDto::Secret { name, key },
+                    FakeConfigValueDto::Secret { name, key } => {
+                        ConfigValueDto::Secret { name, key }
+                    }
                     FakeConfigValueDto::List { value } => ConfigValueDto::Inline {
                         value: InlineValueDto::List { value },
                     },

@@ -3,7 +3,7 @@ use crate::{
     spec_builder::query_container::QueryContainerSpecBuilder,
 };
 use axum::{response::IntoResponse, Json};
-use dapr::{server::actor::context_client::ActorContextClient};
+use dapr::server::actor::context_client::ActorContextClient;
 use dapr_macros::actor;
 use resource_provider_api::models::{QueryContainerSpec, QueryContainerStatus};
 use std::{collections::BTreeMap, marker};
@@ -49,12 +49,10 @@ impl QueryContainerActor {
                 ReconcileStatus::Online => continue,
             };
         }
-        
-        Json(QueryContainerStatus { 
+
+        Json(QueryContainerStatus {
             available,
             messages: Some(messages),
-
         })
     }
-    
 }

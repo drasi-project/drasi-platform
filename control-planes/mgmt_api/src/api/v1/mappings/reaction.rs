@@ -16,16 +16,21 @@ impl From<ReactionSpecDto> for ReactionSpec {
         ReactionSpec {
             kind: spec.kind,
             tag: spec.tag,
-            services: spec.services.map(|services| services
-                .into_iter()
-                .map(|(k,v)| {
-                    if let Some(v) = v {
-                        (k, Some(v.into()))
-                    } else {
-                        (k, None)
-                    }
-                }).collect()),
-            properties: spec.properties.map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            services: spec.services.map(|services| {
+                services
+                    .into_iter()
+                    .map(|(k, v)| {
+                        if let Some(v) = v {
+                            (k, Some(v.into()))
+                        } else {
+                            (k, None)
+                        }
+                    })
+                    .collect()
+            }),
+            properties: spec
+                .properties
+                .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
             queries: spec
                 .queries
                 .into_iter()
@@ -40,16 +45,21 @@ impl From<ReactionSpec> for ReactionSpecDto {
         ReactionSpecDto {
             kind: spec.kind,
             tag: spec.tag,
-            services: spec.services.map(|services| services
-                .into_iter()
-                .map(|(k,v)| {
-                    if let Some(v) = v {
-                        (k, Some(v.into()))
-                    } else {
-                        (k, None)
-                    }
-                }).collect()),
-            properties: spec.properties.map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            services: spec.services.map(|services| {
+                services
+                    .into_iter()
+                    .map(|(k, v)| {
+                        if let Some(v) = v {
+                            (k, Some(v.into()))
+                        } else {
+                            (k, None)
+                        }
+                    })
+                    .collect()
+            }),
+            properties: spec
+                .properties
+                .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
             queries: spec
                 .queries
                 .into_iter()

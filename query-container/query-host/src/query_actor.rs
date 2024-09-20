@@ -11,6 +11,7 @@ use crate::{
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use axum::{response::IntoResponse, Json};
+use dapr::client::TonicClient;
 use dapr::server::{
     actor::{
         context_client::{ActorContextClient, ActorStateOperation},
@@ -18,7 +19,6 @@ use dapr::server::{
     },
     utils::DaprJson,
 };
-use dapr::{client::TonicClient};
 use dapr_macros::actor;
 use drasi_core::middleware::MiddlewareTypeRegistry;
 use gethostname::gethostname;

@@ -46,12 +46,18 @@ impl From<SourceSpec> for resource_provider_api::models::SourceSpec {
     fn from(source_spec: SourceSpec) -> resource_provider_api::models::SourceSpec {
         resource_provider_api::models::SourceSpec {
             kind: source_spec.kind,
-            services: source_spec
-                .services
-                .map(|services| services.into_iter().map(|(k, v)| (k, v.unwrap().into())).collect()),
-            properties: source_spec
-                .properties
-                .map(|properties| properties.into_iter().map(|(k, v)| (k, v.unwrap().into())).collect()),
+            services: source_spec.services.map(|services| {
+                services
+                    .into_iter()
+                    .map(|(k, v)| (k, v.unwrap().into()))
+                    .collect()
+            }),
+            properties: source_spec.properties.map(|properties| {
+                properties
+                    .into_iter()
+                    .map(|(k, v)| (k, v.unwrap().into()))
+                    .collect()
+            }),
         }
     }
 }
@@ -83,7 +89,9 @@ impl From<StorageSpec> for resource_provider_api::models::StorageSpec {
 }
 
 impl From<QueryContainerSpec> for resource_provider_api::models::QueryContainerSpec {
-    fn from(query_container_spec: QueryContainerSpec) -> resource_provider_api::models::QueryContainerSpec {
+    fn from(
+        query_container_spec: QueryContainerSpec,
+    ) -> resource_provider_api::models::QueryContainerSpec {
         resource_provider_api::models::QueryContainerSpec {
             query_host_count: query_container_spec.query_host_count,
             storage: query_container_spec
@@ -106,13 +114,19 @@ impl From<ReactionSpec> for resource_provider_api::models::ReactionSpec {
         resource_provider_api::models::ReactionSpec {
             kind: reaction_spec.kind,
             tag: reaction_spec.tag,
-            services: reaction_spec.services.map(|services| services.into_iter().map(|(k, v)| (k, v.unwrap().into())).collect()),
-            properties: reaction_spec.properties.map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            services: reaction_spec.services.map(|services| {
+                services
+                    .into_iter()
+                    .map(|(k, v)| (k, v.unwrap().into()))
+                    .collect()
+            }),
+            properties: reaction_spec
+                .properties
+                .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
             queries: reaction_spec.queries,
         }
     }
 }
-
 
 impl From<resource_provider_api::models::ConfigValue> for ConfigValue {
     fn from(config_value: resource_provider_api::models::ConfigValue) -> ConfigValue {
@@ -136,7 +150,6 @@ impl From<Endpoint> for resource_provider_api::models::Endpoint {
     }
 }
 
-
 impl From<EndpointSetting> for resource_provider_api::models::EndpointSetting {
     fn from(endpoint_setting: EndpointSetting) -> resource_provider_api::models::EndpointSetting {
         match endpoint_setting {
@@ -154,14 +167,20 @@ impl From<Service> for resource_provider_api::models::Service {
             endpoints: service
                 .endpoints
                 .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            dapr: service.dapr.map(|dapr| dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            properties: service.properties.map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            dapr: service
+                .dapr
+                .map(|dapr| dapr.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            properties: service
+                .properties
+                .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
         }
     }
 }
 
 impl From<SourceProviderSpec> for resource_provider_api::models::SourceProviderSpec {
-    fn from(source_provider_spec: SourceProviderSpec) -> resource_provider_api::models::SourceProviderSpec {
+    fn from(
+        source_provider_spec: SourceProviderSpec,
+    ) -> resource_provider_api::models::SourceProviderSpec {
         resource_provider_api::models::SourceProviderSpec {
             services: source_provider_spec.services,
             config_schema: source_provider_spec.config_schema,
@@ -169,9 +188,10 @@ impl From<SourceProviderSpec> for resource_provider_api::models::SourceProviderS
     }
 }
 
-
 impl From<ReactionProviderSpec> for resource_provider_api::models::ReactionProviderSpec {
-    fn from(reaction_provider_spec: ReactionProviderSpec) -> resource_provider_api::models::ReactionProviderSpec {
+    fn from(
+        reaction_provider_spec: ReactionProviderSpec,
+    ) -> resource_provider_api::models::ReactionProviderSpec {
         resource_provider_api::models::ReactionProviderSpec {
             services: reaction_provider_spec.services,
             config_schema: reaction_provider_spec.config_schema,
@@ -180,7 +200,9 @@ impl From<ReactionProviderSpec> for resource_provider_api::models::ReactionProvi
 }
 
 impl From<QuerySourceLabel> for resource_provider_api::models::QuerySourceLabel {
-    fn from(query_source_label: QuerySourceLabel) -> resource_provider_api::models::QuerySourceLabel {
+    fn from(
+        query_source_label: QuerySourceLabel,
+    ) -> resource_provider_api::models::QuerySourceLabel {
         resource_provider_api::models::QuerySourceLabel {
             source_label: query_source_label.source_label,
         }
@@ -188,11 +210,21 @@ impl From<QuerySourceLabel> for resource_provider_api::models::QuerySourceLabel 
 }
 
 impl From<QuerySubscription> for resource_provider_api::models::QuerySubscription {
-    fn from(query_subscription: QuerySubscription) -> resource_provider_api::models::QuerySubscription {
+    fn from(
+        query_subscription: QuerySubscription,
+    ) -> resource_provider_api::models::QuerySubscription {
         resource_provider_api::models::QuerySubscription {
             id: query_subscription.id,
-            nodes: query_subscription.nodes.into_iter().map(|v| v.into()).collect(),
-            relations: query_subscription.relations.into_iter().map(|v| v.into()).collect(),
+            nodes: query_subscription
+                .nodes
+                .into_iter()
+                .map(|v| v.into())
+                .collect(),
+            relations: query_subscription
+                .relations
+                .into_iter()
+                .map(|v| v.into())
+                .collect(),
             pipeline: query_subscription.pipeline,
         }
     }
@@ -219,15 +251,25 @@ impl From<QueryJoin> for resource_provider_api::models::QueryJoin {
 impl From<QuerySources> for resource_provider_api::models::QuerySources {
     fn from(query_sources: QuerySources) -> resource_provider_api::models::QuerySources {
         resource_provider_api::models::QuerySources {
-            subscriptions: query_sources.subscriptions.into_iter().map(|v| v.into()).collect(),
+            subscriptions: query_sources
+                .subscriptions
+                .into_iter()
+                .map(|v| v.into())
+                .collect(),
             joins: query_sources.joins.into_iter().map(|v| v.into()).collect(),
-            middleware: query_sources.middleware.into_iter().map(|v| v.into()).collect(),
+            middleware: query_sources
+                .middleware
+                .into_iter()
+                .map(|v| v.into())
+                .collect(),
         }
     }
 }
 
 impl From<SourceMiddlewareConfig> for resource_provider_api::models::SourceMiddlewareConfig {
-    fn from(source_middleware_config: SourceMiddlewareConfig) -> resource_provider_api::models::SourceMiddlewareConfig {
+    fn from(
+        source_middleware_config: SourceMiddlewareConfig,
+    ) -> resource_provider_api::models::SourceMiddlewareConfig {
         resource_provider_api::models::SourceMiddlewareConfig {
             kind: source_middleware_config.kind,
             name: source_middleware_config.name,
@@ -267,7 +309,9 @@ impl From<resource_provider_api::models::SourceStatus> for SourceStatus {
 }
 
 impl From<QueryContainerStatus> for resource_provider_api::models::QueryContainerStatus {
-    fn from(query_container_status: QueryContainerStatus) -> resource_provider_api::models::QueryContainerStatus {
+    fn from(
+        query_container_status: QueryContainerStatus,
+    ) -> resource_provider_api::models::QueryContainerStatus {
         resource_provider_api::models::QueryContainerStatus {
             available: query_container_status.available,
             messages: query_container_status.messages,
@@ -276,7 +320,9 @@ impl From<QueryContainerStatus> for resource_provider_api::models::QueryContaine
 }
 
 impl From<resource_provider_api::models::QueryContainerStatus> for QueryContainerStatus {
-    fn from(query_container_status: resource_provider_api::models::QueryContainerStatus) -> QueryContainerStatus {
+    fn from(
+        query_container_status: resource_provider_api::models::QueryContainerStatus,
+    ) -> QueryContainerStatus {
         QueryContainerStatus {
             available: query_container_status.available,
             messages: query_container_status.messages,
@@ -303,7 +349,9 @@ impl From<resource_provider_api::models::ReactionStatus> for ReactionStatus {
 }
 
 impl From<SourceProviderStatus> for resource_provider_api::models::SourceProviderStatus {
-    fn from(source_provider_status: SourceProviderStatus) -> resource_provider_api::models::SourceProviderStatus {
+    fn from(
+        source_provider_status: SourceProviderStatus,
+    ) -> resource_provider_api::models::SourceProviderStatus {
         resource_provider_api::models::SourceProviderStatus {
             available: source_provider_status.available,
         }
@@ -311,7 +359,9 @@ impl From<SourceProviderStatus> for resource_provider_api::models::SourceProvide
 }
 
 impl From<resource_provider_api::models::ReactionProviderStatus> for ReactionProviderStatus {
-    fn from(reaction_provider_status: resource_provider_api::models::ReactionProviderStatus) -> ReactionProviderStatus {
+    fn from(
+        reaction_provider_status: resource_provider_api::models::ReactionProviderStatus,
+    ) -> ReactionProviderStatus {
         ReactionProviderStatus {
             available: reaction_provider_status.available,
         }
@@ -319,13 +369,14 @@ impl From<resource_provider_api::models::ReactionProviderStatus> for ReactionPro
 }
 
 impl From<resource_provider_api::models::SourceProviderStatus> for SourceProviderStatus {
-    fn from(source_provider_status: resource_provider_api::models::SourceProviderStatus) -> SourceProviderStatus {
+    fn from(
+        source_provider_status: resource_provider_api::models::SourceProviderStatus,
+    ) -> SourceProviderStatus {
         SourceProviderStatus {
             available: source_provider_status.available,
         }
     }
 }
-
 
 impl From<QueryStatus> for resource_provider_api::models::QueryStatus {
     fn from(query_status: QueryStatus) -> resource_provider_api::models::QueryStatus {
@@ -360,7 +411,6 @@ impl From<RetentionPolicy> for resource_provider_api::models::RetentionPolicy {
         }
     }
 }
-
 
 impl From<ViewSpec> for resource_provider_api::models::ViewSpec {
     fn from(view_spec: ViewSpec) -> resource_provider_api::models::ViewSpec {

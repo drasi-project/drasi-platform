@@ -12,7 +12,10 @@ use k8s_openapi::{
 use kube::core::ObjectMeta;
 use resource_provider_api::models::{ConfigValue, EndpointSetting, ReactionSpec, ResourceRequest};
 use serde::Serialize;
-use std::{collections::{BTreeMap, HashMap}, hash::{Hash, Hasher}};
+use std::{
+    collections::{BTreeMap, HashMap},
+    hash::{Hash, Hasher},
+};
 
 pub struct ReactionSpecBuilder {}
 
@@ -168,7 +171,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 fn calc_hash<T: Serialize>(obj: &T) -> String {
     let data = serde_json::to_vec(obj).unwrap();
     let mut hash = SpookyHasher::default();
-    data.hash(&mut hash);    
+    data.hash(&mut hash);
     let hsh = hash.finish();
     format!("{:02x}", hsh)
 }

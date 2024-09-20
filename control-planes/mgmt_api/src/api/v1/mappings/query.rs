@@ -97,7 +97,6 @@ impl From<QuerySubscriptionDto> for QuerySubscription {
     }
 }
 
-
 impl From<QuerySubscription> for QuerySubscriptionDto {
     fn from(subscription: QuerySubscription) -> Self {
         QuerySubscriptionDto {
@@ -159,7 +158,6 @@ impl From<QueryJoinDto> for QueryJoin {
     }
 }
 
-
 impl From<QueryJoin> for QueryJoinDto {
     fn from(join: QueryJoin) -> Self {
         QueryJoinDto {
@@ -178,7 +176,6 @@ impl From<QueryJoinKeyDto> for QueryJoinKey {
     }
 }
 
-
 impl From<QueryJoinKey> for QueryJoinKeyDto {
     fn from(key: QueryJoinKey) -> Self {
         QueryJoinKeyDto {
@@ -188,7 +185,7 @@ impl From<QueryJoinKey> for QueryJoinKeyDto {
     }
 }
 
-impl From<RetentionPolicyDto>  for RetentionPolicy {
+impl From<RetentionPolicyDto> for RetentionPolicy {
     fn from(policy: RetentionPolicyDto) -> Self {
         match policy {
             RetentionPolicyDto::Latest => RetentionPolicy::Latest,

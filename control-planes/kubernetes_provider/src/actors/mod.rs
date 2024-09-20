@@ -7,9 +7,9 @@ use crate::{
 use async_trait::async_trait;
 use dapr::server::{
     actor::{
+        axum::{response::IntoResponse, Json},
         context_client::{ActorContextClient, ActorStateOperation},
-        Actor, ActorError,  axum::{response::IntoResponse, Json},
-
+        Actor, ActorError,
     },
     utils::DaprJson,
 };
@@ -162,7 +162,10 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
         let mut controllers = self.controllers.write().await;
         controllers.clear();
         for spec in specs {
-            controllers.insert(spec.service_name.clone(), ResourceController::start(self.kube_config.clone(), spec));
+            controllers.insert(
+                spec.service_name.clone(),
+                ResourceController::start(self.kube_config.clone(), spec),
+            );
         }
     }
 

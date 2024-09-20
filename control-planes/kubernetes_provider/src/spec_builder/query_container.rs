@@ -80,8 +80,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
             },
         );
 
-
-        for (store_index, (name, storage_spec)) in source.spec.storage.into_iter().enumerate(){
+        for (store_index, (name, storage_spec)) in source.spec.storage.into_iter().enumerate() {
             env.insert(
                 format!("STORE_{}", store_index),
                 ConfigValue::Inline {

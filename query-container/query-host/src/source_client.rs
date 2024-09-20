@@ -1,8 +1,9 @@
-use std::{error::{self, Error}, sync::Arc};
-
-use drasi_core::models::{
-    ElementMetadata, ElementReference, QuerySubscription, SourceChange,
+use std::{
+    error::{self, Error},
+    sync::Arc,
 };
+
+use drasi_core::models::{ElementMetadata, ElementReference, QuerySubscription, SourceChange};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 
@@ -54,7 +55,11 @@ impl SourceClient {
                 } else {
                     Err(Box::new(std::io::Error::new(
                         std::io::ErrorKind::Other,
-                        format!("{} {}", response.status(),response.text().await.unwrap_or_default()),
+                        format!(
+                            "{} {}",
+                            response.status(),
+                            response.text().await.unwrap_or_default()
+                        ),
                     )))
                 }
             }
@@ -96,9 +101,8 @@ impl BootstrapEvents {
                     metadata: ElementMetadata {
                         reference: ElementReference::new(source_id, &node.id),
                         labels: Arc::from(
-                            Vec::from_iter(
-                                node.labels.iter().map(|l| Arc::from(l.as_str()))
-                            ).into_boxed_slice()
+                            Vec::from_iter(node.labels.iter().map(|l| Arc::from(l.as_str())))
+                                .into_boxed_slice(),
                         ),
                         effective_from: 0,
                     },
@@ -113,9 +117,8 @@ impl BootstrapEvents {
                     metadata: ElementMetadata {
                         reference: ElementReference::new(source_id, &rel.id),
                         labels: Arc::from(
-                            Vec::from_iter(
-                                rel.labels.iter().map(|l| Arc::from(l.as_str()))
-                            ).into_boxed_slice()
+                            Vec::from_iter(rel.labels.iter().map(|l| Arc::from(l.as_str())))
+                                .into_boxed_slice(),
                         ),
                         effective_from: 0,
                     },

@@ -75,7 +75,7 @@ impl From<QueryContainerSpecDto> for QueryContainerSpec {
             default_store: spec.default_store,
         }
     }
-}   
+}
 
 impl From<QueryContainerSpec> for QueryContainerSpecDto {
     fn from(spec: QueryContainerSpec) -> Self {

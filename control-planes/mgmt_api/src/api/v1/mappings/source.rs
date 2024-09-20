@@ -24,7 +24,7 @@ impl From<SourceSpecDto> for SourceSpec {
     fn from(spec: SourceSpecDto) -> Self {
         SourceSpec {
             kind: spec.kind,
-            services:  spec.services.map(|services| {
+            services: spec.services.map(|services| {
                 services
                     .into_iter()
                     .map(|(k, v)| (k, v.map(|v| v.into())))
