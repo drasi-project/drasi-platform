@@ -62,14 +62,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          # submodules: true          # Fetches all submodules
-          # submodules_recursive: true # Fetches nested submodules
+          submodules: true          # Fetches all submodules
+          submodules_recursive: true # Fetches nested submodules
           fetch-depth: 0  
-          # token: ${{ secrets.DRASI_CORE_PAT }}
-      - name: Update submodules to latest version
-        run: |
-          git submodule sync
-          git submodule update --init --recursive --remote
+          token: ${{ secrets.DRASI_CORE_PAT }}
       - name: Run Cargo Clippy for ${{ matrix.component.label }}
         run: |
           cd ${{ matrix.component.context }}
