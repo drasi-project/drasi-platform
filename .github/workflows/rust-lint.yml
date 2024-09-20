@@ -46,6 +46,10 @@ jobs:
             label: 'Management API',
             context: './control-planes/mgmt_api'
           },
+          {
+            label: 'Infrastructure',
+            context: './infrastructure'
+          }
           # { Will enable after PR #43 gets merged
           #   label: 'Change router',
           #   context: './sources/shared/change-router/'
@@ -91,6 +95,10 @@ jobs:
             label: 'Management API',
             context: './control-planes/mgmt_api'
           },
+          {
+            label: 'Infrastructure',
+            context: './infrastructure'
+          }
           # { Will enable after PR #43 gets merged
           #   label: 'Change router',
           #   context: './sources/shared/change-router/'
