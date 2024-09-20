@@ -6,6 +6,7 @@ impl From<SourceStatusDto> for SourceStatus {
     fn from(status: SourceStatusDto) -> Self {
         SourceStatus {
             available: status.available,
+            messages: status.messages,
         }
     }
 }
@@ -14,6 +15,7 @@ impl From<SourceStatus> for SourceStatusDto {
     fn from(status: SourceStatus) -> Self {
         SourceStatusDto {
             available: status.available,
+            messages: status.messages,
         }
     }
 }

@@ -6,6 +6,7 @@ impl From<QueryContainerStatus> for QueryContainerStatusDto {
     fn from(status: QueryContainerStatus) -> Self {
         QueryContainerStatusDto {
             available: status.available,
+            messages: status.messages,
         }
     }
 }

@@ -252,6 +252,7 @@ impl From<SourceStatus> for resource_provider_api::models::SourceStatus {
     fn from(source_status: SourceStatus) -> resource_provider_api::models::SourceStatus {
         resource_provider_api::models::SourceStatus {
             available: source_status.available,
+            messages: source_status.messages,
         }
     }
 }
@@ -260,6 +261,7 @@ impl From<resource_provider_api::models::SourceStatus> for SourceStatus {
     fn from(source_status: resource_provider_api::models::SourceStatus) -> SourceStatus {
         SourceStatus {
             available: source_status.available,
+            messages: source_status.messages,
         }
     }
 }
@@ -268,6 +270,7 @@ impl From<QueryContainerStatus> for resource_provider_api::models::QueryContaine
     fn from(query_container_status: QueryContainerStatus) -> resource_provider_api::models::QueryContainerStatus {
         resource_provider_api::models::QueryContainerStatus {
             available: query_container_status.available,
+            messages: query_container_status.messages,
         }
     }
 }
@@ -276,6 +279,7 @@ impl From<resource_provider_api::models::QueryContainerStatus> for QueryContaine
     fn from(query_container_status: resource_provider_api::models::QueryContainerStatus) -> QueryContainerStatus {
         QueryContainerStatus {
             available: query_container_status.available,
+            messages: query_container_status.messages,
         }
     }
 }
@@ -284,6 +288,7 @@ impl From<ReactionStatus> for resource_provider_api::models::ReactionStatus {
     fn from(reaction_status: ReactionStatus) -> resource_provider_api::models::ReactionStatus {
         resource_provider_api::models::ReactionStatus {
             available: reaction_status.available,
+            messages: reaction_status.messages,
         }
     }
 }
@@ -292,6 +297,7 @@ impl From<resource_provider_api::models::ReactionStatus> for ReactionStatus {
     fn from(reaction_status: resource_provider_api::models::ReactionStatus) -> ReactionStatus {
         ReactionStatus {
             available: reaction_status.available,
+            messages: reaction_status.messages,
         }
     }
 }

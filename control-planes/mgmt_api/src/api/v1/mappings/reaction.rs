@@ -6,6 +6,7 @@ impl From<ReactionStatus> for ReactionStatusDto {
     fn from(status: ReactionStatus) -> Self {
         ReactionStatusDto {
             available: status.available,
+            messages: status.messages,
         }
     }
 }

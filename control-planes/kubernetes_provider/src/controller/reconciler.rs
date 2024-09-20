@@ -4,15 +4,13 @@ use either::Either;
 use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::api::{
     apps::v1::{
-        Deployment, DeploymentSpec, DeploymentStatus, DeploymentStrategy, RollingUpdateDeployment,
+        Deployment, DeploymentSpec, DeploymentStrategy,
     },
-    core::v1::{ConfigMap, PersistentVolumeClaim, Service},
+    core::v1::{ConfigMap, PersistentVolumeClaim, Pod, Service},
 };
 use kube::{
-    api::{DeleteParams, Patch, PatchParams, PostParams},
-    config,
+    api::{DeleteParams, ListParams, Patch, PatchParams, PostParams},
     core::ObjectMeta,
-    runtime::wait::delete,
     Api,
 };
 use serde::Serialize;
@@ -26,6 +24,7 @@ pub struct ResourceReconciler {
     hash: String,
     component_api: Api<Component>,
     deployment_api: Api<Deployment>,
+    pod_api: Api<Pod>,
     cm_api: Api<ConfigMap>,
     pvc_api: Api<PersistentVolumeClaim>,
     service_api: Api<Service>,
@@ -36,7 +35,7 @@ pub struct ResourceReconciler {
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub enum ReconcileStatus {
     Unknown,
-    Offline,
+    Offline(String),
     Online,
 }
 
@@ -62,6 +61,7 @@ impl ResourceReconciler {
             spec,
             component_api: Api::default_namespaced(client.clone()),
             deployment_api: Api::default_namespaced(client.clone()),
+            pod_api: Api::default_namespaced(client.clone()),
             cm_api: Api::default_namespaced(client.clone()),
             pvc_api: Api::default_namespaced(client.clone()),
             service_api: Api::default_namespaced(client.clone()),
@@ -70,14 +70,90 @@ impl ResourceReconciler {
         }
     }
 
-    fn update_deployment_status(&mut self, status: Option<DeploymentStatus>) {
-        match status {
+    async fn update_deployment_status(&mut self, deployment: &Deployment) {
+        match &deployment.status {
             Some(status) => {
-                if status.available_replicas.unwrap_or(0) > 0 {
-                    self.status = ReconcileStatus::Online;
-                } else {
-                    self.status = ReconcileStatus::Offline;
-                }
+                if status.available_replicas.unwrap_or(0) == 0 {
+                    
+                    let spec = match &deployment.spec {
+                        Some(spec) => spec,
+                        None => {
+                            self.status = ReconcileStatus::Offline("-".to_string());
+                            return;
+                        },
+                    };
+                    
+                    let deployment_labels = match &spec.selector.match_labels {
+                        Some(labels) => labels,
+                        None => {
+                            self.status = ReconcileStatus::Offline("-".to_string());
+                            return;
+                        },
+                    };
+
+                    let label_selector = deployment_labels
+                        .into_iter()
+                        .map(|(k, v)| format!("{}={}", k, v))
+                        .collect::<Vec<String>>()
+                        .join(",");
+                    
+                    let lp = ListParams::default().labels(&label_selector);
+                    let pod_list = match self.pod_api.list(&lp).await {
+                        Ok(pod_list) => pod_list,
+                        Err(_) => {
+                            self.status = ReconcileStatus::Offline("-".to_string());
+                            return;
+                        },
+                    };
+
+                    let mut errors = Vec::new();
+                    for pod in pod_list.items {
+                        match pod.status {
+                            Some(pod_status) => {
+                                match pod_status.container_statuses {
+                                    Some(container_statuses) => {
+                                        for container_status in container_statuses {
+                                            match container_status.state {
+                                                Some(state) => {
+                                                    match state.terminated {
+                                                        Some(terminated) => {
+                                                            errors.push(format!(
+                                                                "{}: {} {}",
+                                                                container_status.name,
+                                                                terminated.reason.unwrap_or_default(),
+                                                                terminated.message.unwrap_or("Terminated".to_string())
+                                                            ));
+                                                        }
+                                                        None => {},
+                                                    }
+                                                    match state.waiting {
+                                                        Some(waiting) => {
+                                                            errors.push(format!(
+                                                                "{}: waiting: {} {}",
+                                                                container_status.name,
+                                                                waiting.reason.unwrap_or_default(),
+                                                                waiting.message.unwrap_or_default()
+                                                            ));
+                                                        }
+                                                        None => {},
+                                                    }
+                                                }
+                                                None => continue,
+                                            }
+                                        }
+                                    }
+                                    None => continue,
+                                }
+                            }
+                            None => continue,
+                        }
+                    }                    
+                    
+                    self.status = ReconcileStatus::Offline(errors.join("\n"));
+                    return;
+                } 
+
+                self.status = ReconcileStatus::Online;
             }
             None => self.status = ReconcileStatus::Unknown,
         }
@@ -93,7 +169,7 @@ impl ResourceReconciler {
         let pp = DeleteParams::default();
         match self.deployment_api.delete(&name, &pp).await {
             Ok(delete_result) => match delete_result {
-                Either::Left(dep) => self.update_deployment_status(dep.status),
+                Either::Left(dep) => self.update_deployment_status(&dep).await,
                 Either::Right(_) => {}
             },
             Err(err) => return Err(Box::new(err)),
@@ -176,14 +252,14 @@ impl ResourceReconciler {
 
         match self.deployment_api.get(&name).await {
             Ok(current) => {
-                self.update_deployment_status(current.status);
+                self.update_deployment_status(&current).await;
                 let current_hash = current.metadata.annotations.unwrap()["drasi/spechash"].clone();
                 if current_hash != self.hash {
                     log::info!("Updating deployment {}", name);
                     let pp = PatchParams::default();
                     let pat = Patch::Merge(&dep);
                     let update_result = self.deployment_api.patch(&name, &pp, &pat).await?;
-                    self.update_deployment_status(update_result.status);
+                    self.update_deployment_status(&update_result).await;
                 }
             }
             Err(e) => match e {
@@ -195,7 +271,7 @@ impl ResourceReconciler {
                     log::info!("Creating deployment {}", name);
                     let pp = PostParams::default();
                     let create_result = self.deployment_api.create(&pp, &dep).await?;
-                    self.update_deployment_status(create_result.status);
+                    self.update_deployment_status(&create_result).await;
                 }
                 _ => return Err(Box::new(e)),
             },

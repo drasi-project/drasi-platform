@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -38,4 +38,5 @@ pub struct QueryContainerSpecDto {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QueryContainerStatusDto {
     pub available: bool,
+    pub messages: Option<BTreeMap<String, String>>,
 }
