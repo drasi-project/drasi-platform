@@ -59,9 +59,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          submodules: true          # Fetches all submodules
-          submodules_recursive: true # Fetches nested submodules
-          fetch-depth: 0  
+          submodules: true          
           token: ${{ secrets.DRASI_CORE_PAT }}
       - name: Install protobuf-compiler
         run: sudo apt-get install -y protobuf-compiler
@@ -105,6 +103,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          submodules: true          
+          token: ${{ secrets.DRASI_CORE_PAT }}
       - name: Install latest nightly
         uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1.0.7
         with:
