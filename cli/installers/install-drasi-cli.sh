@@ -70,7 +70,7 @@ checkExistingInstallation() {
         echo "Drasi CLI is already installed in $DRASI_CLI_FILE"
         echo "Reinstalling Drasi CLI...\n"
     else
-        echo "Installing Drasi CLI...\n"
+        echo "Installing Drasi CLI..."
     fi
 }
 
@@ -120,7 +120,7 @@ downloadFile() {
 
 
 installFile() {
-    DRASI_CLI_ARTIFACT = "${DRASI_CLI_FILENAME}-${OS}-${ARCH}"
+    DRASI_CLI_ARTIFACT="${DRASI_CLI_FILENAME}-${OS}-${ARCH}"
     local tmp_root_Drasi_cli="$DRASI_TMP_ROOT/$DRASI_CLI_ARTIFACT"
 
     if [ ! -f "$tmp_root_Drasi_cli" ]; then
