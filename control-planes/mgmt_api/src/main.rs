@@ -25,7 +25,8 @@ async fn main() -> Result<(), std::io::Error> {
     println!("version: {}", VERSION);
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    let mongo_uri = std::env::var("MONGO_URI").unwrap_or("mongodb://rg-mongo:27017".to_string());
+    let mongo_uri = std::env::var("MONGO_URI").unwrap_or("mongodb://drasi-mongo:27017".to_string());
+
     let mongo_db = std::env::var("MONGO_DB").unwrap_or("api".to_string());
     let redis_url = std::env::var("REDIS_URL").unwrap_or("redis://drasi-redis:6379".to_string());
 
