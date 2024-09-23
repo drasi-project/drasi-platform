@@ -68,9 +68,9 @@ checkHttpRequestCLI() {
 checkExistingInstallation() {
     if [ -f "DRASI_CLI_FILE" ]; then
         echo "Drasi CLI is already installed in $DRASI_CLI_FILE"
-        echo "Reinstalling Drasi CLI...\n"
+        echo -e "Reinstalling Drasi CLI...\n"
     else
-        echo "Installing Drasi CLI..."
+        echo -e "Installing Drasi CLI...\n"
     fi
 }
 
@@ -184,7 +184,7 @@ checkExistingInstallation
 
 echo "Installing $ret_val Drasi CLI..."
 
-downloadFile
+downloadFile $ret_val
 installFile
 cleanup
 
