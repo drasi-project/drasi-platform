@@ -139,7 +139,7 @@ jobs:
       matrix:
         component: [
           { 
-            label: 'Change Service',
+            label: 'Change Router',
             context: '.', 
             file: './sources/shared/change-router/Dockerfile', 
             name: 'source-change-router', 
