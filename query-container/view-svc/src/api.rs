@@ -11,7 +11,7 @@ use axum::{
     routing::get,
     Router,
 };
-use axum_streams::StreamBodyAs;
+use axum_streams::*;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -126,12 +126,11 @@ pub async fn start_view_service(view_store: Arc<dyn ViewStore>, port: u16) {
         .route("/:query_id", get(view_stream))
         .with_state(view_store.clone());
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    // let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    let addr = format!("0.0.0.0:{}", port);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 async fn view_stream(

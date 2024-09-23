@@ -2,18 +2,11 @@ use crate::domain::models::{SourceSpec, SourceStatus};
 
 use super::{SourceSpecDto, SourceStatusDto};
 
-impl Into<SourceStatus> for SourceStatusDto {
-    fn into(self) -> SourceStatus {
-        SourceStatus {
-            available: self.available,
-        }
-    }
-}
-
 impl From<SourceStatus> for SourceStatusDto {
     fn from(status: SourceStatus) -> Self {
         SourceStatusDto {
             available: status.available,
+            messages: status.messages,
         }
     }
 }

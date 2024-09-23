@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dapr = { git = "https://github.com/danielgerlag/rust-sdk.git", branch = "actors-refactor" }
+dapr = "=0.15.1"
 env_logger = "0.10"
 log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
@@ -15,8 +15,8 @@ tokio = { version = "1.6", features = ["full"] }
 futures = "0.3"
 async-trait = "0.1.68"
 gethostname = "0.4.3"
-axum = "0.6.20"
-axum-streams = { version = "0.9.1", features=["json"] }
+axum = "0.7.5"
+axum-streams = { version = "0.18.1", features=["json"] }
 redis = { version = "0.23.0", features = ["tokio-comp"] }
 opentelemetry = {version = "0.20.0", features = ["rt-tokio"]}
 opentelemetry-otlp = {version = "0.13.0", features = ["trace", "metrics"]}

@@ -16,8 +16,8 @@ impl ChangeRouterConfig {
     pub fn from_env() -> ChangeRouterConfig {
         let source_id = env::var("SOURCE_ID").expect("SOURCE_ID must be set");
         let subscriber_store =
-            env::var("SUBSCRIBER_STORE").unwrap_or_else(|_| "rg-state".to_string()); //drasi-state?
-        let pubsub_name = env::var("PUBSUB_NAME").unwrap_or_else(|_| "rg-pubsub".to_string()); //drasi-pubsub?
+            env::var("SUBSCRIBER_STORE").unwrap_or_else(|_| "drasi-state".to_string()); //drasi-state?
+        let pubsub_name = env::var("PUBSUB_NAME").unwrap_or_else(|_| "drasi-pubsub".to_string()); //drasi-pubsub?
 
         let otel_endpoint =
             env::var("OTEL_ENDPOINT").unwrap_or_else(|_| "http://otel-collector:4318".to_string());

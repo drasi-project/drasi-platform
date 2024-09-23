@@ -25,19 +25,17 @@ async fn main() -> Result<(), std::io::Error> {
     println!("version: {}", VERSION);
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    let dapr_port: u16 = std::env::var("DAPR_GRPC_PORT").unwrap().parse().unwrap();
-    let dapr_addr = format!("https://127.0.0.1:{}", dapr_port);
-
     let mongo_uri = std::env::var("MONGO_URI").unwrap_or("mongodb://rg-mongo:27017".to_string());
     let mongo_db = std::env::var("MONGO_DB").unwrap_or("api".to_string());
-    let redis_url = std::env::var("REDIS_URL").unwrap_or("redis://rg-redis:6379".to_string());
+    let redis_url = std::env::var("REDIS_URL").unwrap_or("redis://drasi-redis:6379".to_string());
 
     // Introduce delay so that dapr grpc port is assigned before app tries to connect
     std::thread::sleep(std::time::Duration::new(5, 0));
 
-    let dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(dapr_addr)
+    let addr = "https://127.0.0.1".to_string();
+    let mut dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
         .await
-        .unwrap();
+        .expect("Unable to connect to Dapr");
     let mongo_client = mongodb::Client::with_uri_str(&mongo_uri).await.unwrap();
 
     log::info!("starting HTTP server at http://localhost:8080");

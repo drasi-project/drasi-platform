@@ -2,7 +2,6 @@ package service
 
 import (
 	"bytes"
-	"drasi.io/cli/service/output"
 	"embed"
 	"errors"
 	"fmt"
@@ -11,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"drasi.io/cli/service/output"
 
 	drasiapi "drasi.io/cli/api"
 	"golang.org/x/net/context"
@@ -148,11 +149,11 @@ func (t *Installer) installInfrastructure(output output.TaskOutput) error {
 	}
 	subOutput := output.GetChildren("Infrastructure")
 
-	if err = t.waitForStatefulset("app=rg-redis", subOutput); err != nil {
+	if err = t.waitForStatefulset("app=drasi-redis", subOutput); err != nil {
 		return err
 	}
 
-	if err = t.waitForStatefulset("app=rg-mongo", subOutput); err != nil {
+	if err = t.waitForStatefulset("app=drasi-mongo", subOutput); err != nil {
 		return err
 	}
 

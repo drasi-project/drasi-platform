@@ -16,7 +16,7 @@ var configuration = BuildConfiguration();
 
 string connectionString = configuration.GetValue<string>("StorageConnectionString");
 string queueName = configuration.GetValue<string>("QueueName");
-var pubsubName = configuration.GetValue<string>("PubsubName", "rg-pubsub");
+var pubsubName = configuration.GetValue<string>("PubsubName", "drasi-pubsub");
 var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
 
 
