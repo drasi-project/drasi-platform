@@ -99,6 +99,7 @@ downloadFile() {
 
     DRASI_CLI_ARTIFACT="${DRASI_CLI_FILENAME}-${OS}-${ARCH}"
 
+    echo "Downloading Drasi CLI from the release $RELEASE_TAG..."
     DOWNLOAD_BASE="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download"
     DOWNLOAD_URL="${DOWNLOAD_BASE}/${RELEASE_TAG}/${DRASI_CLI_ARTIFACT}"
 
