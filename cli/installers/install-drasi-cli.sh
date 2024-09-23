@@ -91,6 +91,7 @@ getLatestRelease() {
         latest_release=$(wget -q --header="Accept: application/json" -O - $cliReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
     fi
 
+    ret_val=$latest_release
 }
 
 
