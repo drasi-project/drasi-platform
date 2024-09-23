@@ -115,7 +115,7 @@ impl QueryWorker {
             }
 
             for subscription in &modified_config.sources.subscriptions {
-                let pipeline = subscription
+                let pipeline: Vec<String> = subscription
                     .pipeline
                     .iter()
                     .map(|s| s.to_string())
