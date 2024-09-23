@@ -55,18 +55,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => 3500,
     };
 
-    let dapr_grpc_port: u16 = std::env::var("DAPR_GRPC_PORT").unwrap().parse().unwrap();
-    let dapr_addr = format!("https://{}:{}", dapr_host, dapr_grpc_port);
-
     let pubsub = match env::var_os("PUBSUB") {
         Some(val) => val.into_string().unwrap(),
-        None => "rg-pubsub".to_string(),
+        None => "drasi-pubsub".to_string(),
     };
 
     let stream_config = Arc::new(ChangeStreamConfig {
         redis_url: match env::var_os("REDIS_BROKER") {
             Some(val) => val.into_string().unwrap(),
-            None => "redis://rg-redis:6379".to_string(),
+            None => "redis://drasi-redis:6379".to_string(),
         },
         buffer_size: 20,
         fetch_batch_size: 5,
@@ -86,9 +83,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         pubsub,
     ));
 
-    let dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(dapr_addr)
+    let addr = "https://127.0.0.1".to_string();
+    let mut dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
         .await
-        .unwrap();
+        .expect("Unable to connect to Dapr");
 
     let mut middleware_registry = MiddlewareTypeRegistry::new();
     middleware_registry.register(Arc::new(drasi_middleware::map::MapFactory::new()));

@@ -18,7 +18,8 @@ use dapr::server::{
     },
     utils::DaprJson,
 };
-use dapr::{actor, client::TonicClient};
+use dapr::{client::TonicClient};
+use dapr_macros::actor;
 use drasi_core::middleware::MiddlewareTypeRegistry;
 use gethostname::gethostname;
 use tokio::sync::RwLock;
