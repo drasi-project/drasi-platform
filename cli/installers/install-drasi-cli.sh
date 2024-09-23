@@ -83,7 +83,7 @@ cleanup() {
 getLatestRelease() {
     local cliReleaseUrl="https://api.github.com/repos/${GITHUB_ORG}/${GITHUB_REPO}/releases"
 
-    local latest_release = ""
+    local latest_release=""
 
     if [ "$DRASI_HTTP_REQUEST_CLI" == "curl" ]; then
         latest_release=$(curl -s $cliReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
@@ -172,7 +172,7 @@ if [ -z "$1"]; then
     echo "Getting the latest Drasi CLI..."
     getLatestRelease
 else
-    ret_val= $1
+    ret_val=$1
 fi 
 
 
