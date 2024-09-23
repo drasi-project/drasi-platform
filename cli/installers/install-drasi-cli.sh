@@ -87,7 +87,7 @@ getLatestRelease() {
 
     if [ "$DRASI_HTTP_REQUEST_CLI" == "curl" ]; then
         echo "Fetching latest release information from GitHub..." 
-        echo $(curl -s $cliReleaseUrl | grep \"tag_name\"  | grep -v rc )
+        echo $(curl -s $cliReleaseUrl | grep \"tag_name\" )
         latest_release=$(curl -s $cliReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
     else
         latest_release=$(wget -q --header="Accept: application/json" -O - $cliReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
