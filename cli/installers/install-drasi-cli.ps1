@@ -1,6 +1,6 @@
 param (
     [string]$Version,
-    [string]$DrasiRoot = "$env:LOCALAPPDATA\drasi"
+    [string]$DrasiRoot = "$env:ProgramFiles\drasi"
 )
 
 Write-Output ""
@@ -27,7 +27,7 @@ function GetVersionInfo {
         $release = $Releases | Where-Object { $_.tag_name -notlike "*rc*" } | Select-Object -First 1
     }
     else {
-        $release = $Releases | Where-Object { $_.tag_name -eq "v$Version" } | Select-Object -First 1
+        $release = $Releases | Where-Object { $_.tag_name -eq "$Version" } | Select-Object -First 1
     }
 
     return $release
@@ -130,7 +130,7 @@ if (!(Test-Path $DrasiCliFilePath -PathType Leaf)) {
 }
 
 # Version string
-Write-Output "drasi CLI version: $(&$DrasiCliFilePath version -o json | ConvertFrom-JSON | Select-Object -ExpandProperty version)"
+Write-Output "drasi CLI version: $($release.tag_name)"
 
 
 $UserPathEnvironmentVar = (Get-Item -Path HKCU:\Environment).GetValue(
