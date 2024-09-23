@@ -47,7 +47,6 @@ runAsRoot() {
     local CMD="$*"
 
     if [ $EUID -ne 0 -a $USE_SUDO = "true" ]; then
-        echo "Additional permissions needed. Please enter your sudo password..."
         CMD="sudo $CMD"
     fi
 
