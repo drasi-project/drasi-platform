@@ -132,7 +132,7 @@ installFile() {
     fi
 
     if [ -f "$DRASI_CLI_FILE" ]; then
-        rm "$DRASI_CLI_FILE"
+        runAsRoot rm "$DRASI_CLI_FILE"
     fi
 
     chmod a+x $tmp_root_Drasi_cli
