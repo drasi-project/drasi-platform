@@ -81,7 +81,7 @@ impl Invoker for DaprHttpInvoker {
         app_id: String,
         method: String,
         headers: Headers,
-    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    ) -> Result<bytes::Bytes, Box<dyn std::error::Error>> {
         let url = format!("http://{}:{}/{}", self.dapr_host, self.dapr_port, method);
 
         let mut request_headers = reqwest::header::HeaderMap::new();
@@ -110,7 +110,7 @@ impl Invoker for DaprHttpInvoker {
         match response {
             Ok(resp) => {
                 if resp.status().is_success() {
-                    Ok(resp.json().await?)
+                    Ok(resp.bytes().await?)
                 } else {
                     let error_message = format!(
                         "Service invocation request failed with status: {} and body: {}",

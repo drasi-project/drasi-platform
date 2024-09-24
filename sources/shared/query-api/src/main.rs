@@ -201,13 +201,21 @@ async fn handle_subscription(
         }
     };
 
+    // response is bytes, convert to json
+    let response_json: Value = match serde_json::from_slice(&response) {
+        Ok(json) => json,
+        Err(e) => {
+            log::error!("Error parsing the response from the proxy: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error parsing the response from the proxy: {:?}", e)).into_response();
+        }
+    };
 
     debug!(
         "queryApi.main/subscription - queryId: {} - response: {:?}",
-        subscription_input.query_id, response
+        subscription_input.query_id, response_json
     );
     // Return the response from the proxy
-    Json(response).into_response()
+    Json(response_json).into_response()
 }
 
 struct AppState {
