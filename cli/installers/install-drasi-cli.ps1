@@ -50,13 +50,6 @@ function GetWindowsAsset {
 }
 
 
-# if ($Env:GITHUB_USER) {
-#     $basicAuth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($Env:GITHUB_USER + ":" + $Env:GITHUB_TOKEN));
-#     $githubHeader = @{"Authorization" = "Basic $basicAuth" }
-# }
-# else {
-#     $githubHeader = @{}
-# }
 
 if ((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPass') {
     Write-Output "PowerShell requires an execution policy of 'RemoteSigned'."
@@ -105,7 +98,6 @@ try {
     $githubHeader = @{
         Accept = "application/octet-stream"
     }
-
     $oldProgressPreference = $ProgressPreference
     $ProgressPreference = "SilentlyContinue" # Do not show progress bar
     Invoke-WebRequest -Headers $githubHeader -Uri $exeFileUrl -OutFile $exeFilePath
