@@ -76,6 +76,7 @@ if (-Not (Test-Path $DrasiRoot -PathType Container)) {
         throw "Cannot create $DrasiRoot"
     }
 }
+
 $githubHeader = @{
     Accept = "application/json"
 }
