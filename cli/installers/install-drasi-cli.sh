@@ -46,6 +46,9 @@ verifySupported() {
 runAsRoot() {
     local CMD="$*"
 
+    # add some debug here 
+    echo "Running as root: $CMD"
+    echo "USE_SUDO: $USE_SUDO"
     if [ $EUID -ne 0 -a $USE_SUDO = "true" ]; then
         CMD="sudo $CMD"
     fi
