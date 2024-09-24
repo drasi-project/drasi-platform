@@ -25,7 +25,7 @@ impl Publisher for DaprHttpPublisher {
         &self,
         data: Value,
         headers: Headers,
-    ) -> Result<reqwest::Response, Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut request = self
             .client
             .post(format!(
@@ -43,7 +43,7 @@ impl Publisher for DaprHttpPublisher {
         match response {
             Ok(resp) => {
                 if resp.status().is_success() {
-                    Ok(resp)
+                    Ok(())
                 } else {
                     let error_message = format!(
                         "Dapr publish request failed with status: {} and body: {}",
@@ -81,7 +81,7 @@ impl Invoker for DaprHttpInvoker {
         app_id: String,
         method: String,
         headers: Headers,
-    ) -> Result<reqwest::Response, Box<dyn std::error::Error>> {
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let url = format!("http://{}:{}/{}", self.dapr_host, self.dapr_port, method);
 
         let mut request_headers = reqwest::header::HeaderMap::new();
@@ -110,7 +110,7 @@ impl Invoker for DaprHttpInvoker {
         match response {
             Ok(resp) => {
                 if resp.status().is_success() {
-                    Ok(resp)
+                    Ok(resp.json().await?)
                 } else {
                     let error_message = format!(
                         "Service invocation request failed with status: {} and body: {}",

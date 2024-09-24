@@ -108,9 +108,11 @@ async fn handle_subscription(
             Ok(tp) => {
                 headers_map.insert("traceparent".to_string(), tp.to_string());
             }
-            Err(e) => {} // 
+            Err(_e) => {} // 
         },
-        None => {}
+        None => {
+            log::warn!("No traceparent header found in the request");
+        }
     };
     let control_event = ControlEvent {
         op: "i".to_string(),
@@ -199,21 +201,13 @@ async fn handle_subscription(
         }
     };
 
-    //convert the response to JSON
-    let response_json: Value = match response.json().await {
-        Ok(json) => json,
-        Err(e) => {
-            log::error!("Error parsing the response from the proxy: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error parsing the response from the proxy: {:?}", e)).into_response();
-        }
-    };
 
     debug!(
         "queryApi.main/subscription - queryId: {} - response: {:?}",
-        subscription_input.query_id, response_json
+        subscription_input.query_id, response
     );
     // Return the response from the proxy
-    Json(response_json).into_response()
+    Json(response).into_response()
 }
 
 struct AppState {
