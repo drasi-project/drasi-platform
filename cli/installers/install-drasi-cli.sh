@@ -170,7 +170,7 @@ trap "fail_trap" EXIT
 getSystemInfo
 checkHttpRequestCLI
 
-if [ -z "$1"]; then
+if [ -z "$1" ]; then
     echo "Getting the latest Drasi CLI..."
     getLatestRelease
 else
