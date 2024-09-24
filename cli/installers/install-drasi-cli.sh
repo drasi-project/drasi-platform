@@ -46,9 +46,6 @@ verifySupported() {
 runAsRoot() {
     local CMD="$*"
 
-    # add some debug here 
-    echo "Running as root: $CMD"
-    echo "USE_SUDO: $USE_SUDO"
     if [ $EUID -ne 0 -a $USE_SUDO = "true" ]; then
         CMD="sudo $CMD"
     fi
@@ -68,6 +65,7 @@ checkHttpRequestCLI() {
 }
 
 checkExistingInstallation() {
+    echo "Checking for existing Drasi CLI installation... in $DRASI_CLI_FILE"
     if [ -f "DRASI_CLI_FILE" ]; then
         echo "Drasi CLI is already installed in $DRASI_CLI_FILE"
         echo -e "Reinstalling Drasi CLI...\n"
