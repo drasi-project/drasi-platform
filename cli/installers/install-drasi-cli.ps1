@@ -99,6 +99,7 @@ $assetName = $asset.name
 $exeFileUrl = $asset.url
 $exeFilePath = "${DrasiRoot}\${assetName}"
 
+Write-Output "path $exeFilePath"
 try {
     Write-Output "Downloading $exeFileUrl"
     githubHeader.Accept = "application/octet-stream"
