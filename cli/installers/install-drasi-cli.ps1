@@ -1,6 +1,6 @@
 param (
     [string]$Version,
-    [string]$DrasiRoot = "$env:ProgramFiles/drasi"
+    [string]$DrasiRoot = "$env:ProgramFiles\\drasi"
 )
 
 Write-Output ""
