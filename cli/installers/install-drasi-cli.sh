@@ -4,7 +4,6 @@
 GITHUB_ORG=drasi-project
 GITHUB_REPO=drasi-platform
 
-# HTTP request CLI
 DRASI_HTTP_REQUEST_CLI=curl
 
 # DRASI CLI filename
