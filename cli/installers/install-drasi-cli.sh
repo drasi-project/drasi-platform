@@ -4,7 +4,6 @@
 GITHUB_ORG=drasi-project
 GITHUB_REPO=drasi-platform
 
-# HTTP request CLI
 DRASI_HTTP_REQUEST_CLI=curl
 
 # DRASI CLI filename
@@ -65,7 +64,7 @@ checkHttpRequestCLI() {
 }
 
 checkExistingInstallation() {
-    if [ -f "DRASI_CLI_FILE" ]; then
+    if [ -f "$DRASI_CLI_FILE" ]; then
         echo "Drasi CLI is already installed in $DRASI_CLI_FILE"
         echo -e "Reinstalling Drasi CLI...\n"
     else
@@ -85,7 +84,7 @@ getLatestRelease() {
     local latest_release=""
 
     if [ "$DRASI_HTTP_REQUEST_CLI" == "curl" ]; then
-        latest_release=$(curl -s $cliReleaseUrl | grep -o '\"tag_name\":\s*\"[^\"]*\"' | sed -n 's/.*\"tag_name\":\s*\"\([^\"]*\)\".*/\1/p' | sort -V | tail -n 1)
+        latest_release=$(curl -s $cliReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
     else
         latest_release=$(wget -q --header="Accept: application/json" -O - $cliReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
     fi
@@ -131,7 +130,7 @@ installFile() {
     fi
 
     if [ -f "$DRASI_CLI_FILE" ]; then
-        rm "$DRASI_CLI_FILE"
+        runAsRoot rm "$DRASI_CLI_FILE"
     fi
 
     chmod a+x $tmp_root_Drasi_cli

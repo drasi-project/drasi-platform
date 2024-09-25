@@ -1,6 +1,6 @@
 param (
     [string]$Version,
-    [string]$DrasiRoot = "$env:LOCALAPPDATA\drasi"
+    [string]$DrasiRoot = "$env:ProgramFiles\drasi"
 )
 
 Write-Output ""
@@ -77,6 +77,9 @@ if (-Not (Test-Path $DrasiRoot -PathType Container)) {
     }
 }
 
+$githubHeader = @{
+    Accept = "application/json"
+}
 $releases = Invoke-RestMethod -Uri $GitHubReleaseJsonUrl -Headers $githubHeader -Method Get
 if ($releases.Count -eq 0) {
     throw "No releases from github.com/${GitHubOrg}/${GitHubRepo}"
