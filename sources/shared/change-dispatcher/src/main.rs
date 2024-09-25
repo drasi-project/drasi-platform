@@ -133,15 +133,21 @@ async fn process_changes(
                 let mut headers = HashMap::new();
                 headers.insert("traceparent".to_string(), traceparent.clone());
                 let headers = Headers::new(headers);
-                invoker
+                match invoker
                     .invoke(
                         dispatch_event.clone(),
                         app_id,
                         "change".to_string(),
                         headers,
                     )
-                    .await
-                    .unwrap();
+                    .await {
+                        Ok(_) => {
+
+                        },
+                        Err(e) => {
+                            info!("Error invoking the publish-api: {:?}", e);
+                        }
+                    }
             }
         }
     }

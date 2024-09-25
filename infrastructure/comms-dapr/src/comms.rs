@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use drasi_comms_abstractions::comms::{Headers, Invoker, Publisher};
 use serde_json::Value;
-
 pub struct DaprHttpPublisher {
     client: reqwest::Client,
     dapr_host: String,
@@ -42,7 +41,18 @@ impl Publisher for DaprHttpPublisher {
         let response = request.send().await;
 
         match response {
-            Ok(_) => Ok(()),
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    Ok(())
+                } else {
+                    let error_message = format!(
+                        "Dapr publish request failed with status: {} and body: {}",
+                        resp.status(),
+                        resp.text().await.unwrap_or_default()
+                    );
+                    Err(Box::from(error_message))
+                }
+            }
             Err(e) => Err(Box::new(e)),
         }
     }
@@ -71,7 +81,7 @@ impl Invoker for DaprHttpInvoker {
         app_id: String,
         method: String,
         headers: Headers,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<bytes::Bytes, Box<dyn std::error::Error>> {
         let url = format!("http://{}:{}/{}", self.dapr_host, self.dapr_port, method);
 
         let mut request_headers = reqwest::header::HeaderMap::new();
@@ -98,7 +108,18 @@ impl Invoker for DaprHttpInvoker {
             .await;
 
         match response {
-            Ok(_) => Ok(()),
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    Ok(resp.bytes().await?)
+                } else {
+                    let error_message = format!(
+                        "Service invocation request failed with status: {} and body: {}",
+                        resp.status(),
+                        resp.text().await.unwrap_or_default()
+                    );
+                    Err(Box::from(error_message))
+                }
+            }
             Err(e) => Err(Box::new(e)),
         }
     }

@@ -1,14 +1,21 @@
-FROM node@sha256:6239c8a63890ed145ae719574112bc2e37e839a56323bef8d292a579102cdfc2
-#node:18-alpine3.16
+FROM rust@sha256:fd45a543ed41160eae2ce9e749e5b3c972625b0778104e8962e9bfb113535301 as builder
+# rust:1.74
 
-WORKDIR /usr/src/app
+RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get clean
 
-COPY package*.json ./
+WORKDIR /usr/src
+COPY ./infrastructure ./infrastructure
 
-RUN npm install
+RUN cargo new source/shared/query-api
+WORKDIR /usr/src/source/shared/query-api
+COPY ./sources/shared/query-api/Cargo.toml . 
+RUN cargo fetch
+COPY ./sources/shared/query-api .
+RUN cargo install --force --path .
 
-RUN npm audit fix
-
-COPY . .
-
-CMD ["node", "queryApi.js"]
+    
+FROM  gcr.io/distroless/cc@sha256:b6e1e913f633495eeb80a41e03de1a41aa863e9b19902309b180ffdc4b99db2c
+ENV RUST_BACKTRACE=1
+COPY --from=builder /usr/local/cargo/bin/query-api /usr/local/bin/query-api
+# RUN apt-get update && apt install -y openssl
+CMD ["query-api"]

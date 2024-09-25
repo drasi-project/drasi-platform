@@ -26,7 +26,7 @@ pub trait Invoker {
         app_id: String,
         method: String,
         headers: Headers,
-    ) -> Result<(), Box<dyn std::error::Error>>;
+    ) -> Result<bytes::Bytes, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
