@@ -147,16 +147,20 @@ metadata:
     app: opentelemetry
     component: otel-collector-conf
 data:
+  # https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/security-best-practices.md#kubernetes
   otel-collector-config: |
     receivers:
       zipkin:
-        endpoint: 0.0.0.0:9411
+        endpoint: ${POD_IP}:9411
       otlp:
         protocols:
-          grpc:
+          grpc: 
+            endpoint: ${POD_IP}:4317
           http:
+            # endpoint: ${POD_IP}:4318
     extensions:
       health_check:
+        endpoint: ${POD_IP}:13133
       pprof:
         endpoint: :1888
       zpages:
@@ -169,7 +173,7 @@ data:
         tls:
           insecure: true 
       prometheus:
-        endpoint: "0.0.0.0:9090"
+        endpoint: ${POD_IP}:9090
         send_timestamps: true
         metric_expiration: 20m 
     service:
@@ -233,13 +237,15 @@ spec:
     spec:
       containers:
       - name: otel-collector
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
         image: otel/opentelemetry-collector-contrib-dev:latest
         command:
           - "/otelcontribcol"
           - "--config=/conf/otel-collector-config.yaml"
-          - "--feature-gates=-component.UseLocalHostAsDefaultHost" 
-            # https://github.com/open-telemetry/opentelemetry-collector/releases/tag/v0.104.0
-            # Need to disable this feature gate so that the otlpreceiver uses 0.0.0.0 instead of localhost
         resources:
           limits:
             cpu: 500m
