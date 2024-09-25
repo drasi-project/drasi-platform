@@ -6,7 +6,6 @@ param (
 Write-Output ""
 $ErrorActionPreference = 'stop'
 
-$DrasiRoot = $DrasiRoot -replace ' ', '` '
 
 $DrasiCliFileName = "drasi.exe"
 $DrasiCliFilePath = "${DrasiRoot}\${DrasiCliFileName}"
