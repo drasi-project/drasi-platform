@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drasi-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      drasi/infra: api
+  template:
+    metadata:
+      annotations:
+        dapr.io/app-id: api
+        dapr.io/config: dapr-config
+        dapr.io/app-port: "8080"
+        dapr.io/enabled: "true"
+        dapr.io/sidecar-image: "daprio/daprd:1.9.0"
+      labels:
+        drasi/infra: api
+    spec:
+      containers:
+      - name: drasi-api
+        image: reactive-graph/api
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: NAMESPACE
+          valueFrom:          
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MONGO_URI
+          value: mongodb://drasi-mongo:27017
+        ports:
+        - containerPort: 8080
+          name: api
+        resources:
+          limits:
+            cpu: 200m
+          requests:
+            cpu: 50m
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: FallbackToLogsOnError
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drasi-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: api
+  selector:
+    drasi/infra: api

@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-zookeeper
+spec:
+  clusterIP: None
+  ports:
+  - port: 2181
+    targetPort: 2181
+    name: zookeeper
+  selector:
+    app: test-zookeeper
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: test-zookeeper
+  name: test-zookeeper
+spec:
+  serviceName: test-zookeeper
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-zookeeper
+  template:
+    metadata:
+      labels:
+        app: test-zookeeper
+    spec:
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      containers:
+      - image: 'bitnami/zookeeper:3.8.0'
+        name: zookeeper
+        env:
+          - name: ALLOW_ANONYMOUS_LOGIN
+            value: 'yes'
+        ports:
+        - containerPort: 2181
+          name: zookeeper
+        volumeMounts:
+        - name: "zookeeper-data-dir"
+          mountPath: "/bitnami/zookeeper/data"
+          readOnly: false          
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "200m"
+  volumeClaimTemplates:
+    - metadata:
+        name: zookeeper-data-dir
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-kafka
+spec:
+  clusterIP: None
+  ports:
+  - port: 9092
+    targetPort: 9092
+    name: kafka
+    protocol: TCP
+  selector:
+    app: test-kafka
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: test-kafka
+  name: test-kafka
+spec:
+  serviceName: test-kafka
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-kafka
+  template:
+    metadata:
+      labels:
+        app: test-kafka
+    spec:
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      containers:
+      - image: 'bitnami/kafka:3.2.3'
+        name: kafka
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "350m"
+        env:
+          - name: KAFKA_BROKER_ID
+            value: '1'
+          - name: KAFKA_CFG_LISTENERS
+            value: 'PLAINTEXT://:9092'
+          - name: KAFKA_CFG_ADVERTISED_LISTENERS
+            value: 'PLAINTEXT://test-kafka:9092'
+          - name: KAFKA_CFG_ZOOKEEPER_CONNECT
+            value: 'test-zookeeper:2181'
+          - name: ALLOW_PLAINTEXT_LISTENER
+            value: 'yes'
+        volumeMounts:
+        - name: "kafka-data-dir"
+          mountPath: "/bitnami/kafka"
+          readOnly: false
+        ports:
+        - containerPort: 9092
+          name: kafka
+  volumeClaimTemplates:
+    - metadata:
+        name: kafka-data-dir
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi

@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drasi-resource-provider
+  labels:
+    drasi/infra: resource-provider
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      drasi/infra: resource-provider
+  template:
+    metadata:
+      annotations:
+        dapr.io/app-id: resource-provider
+        dapr.io/config: dapr-config
+        dapr.io/app-port: "8080"
+        dapr.io/enabled: "true"
+        dapr.io/sidecar-image: %DAPRD_VERSION%
+      labels:
+        drasi/infra: resource-provider
+    spec:
+      priorityClassName: drasi-infrastructure
+      serviceAccountName: drasi-resource-provider
+      containers:
+        - name: kubernetes-provider
+          imagePullPolicy: %IMAGE_PULL_POLICY%
+          image: %ACR%drasi-project/kubernetes-provider:%TAG%
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ACR
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: ACR
+                  optional: true
+            - name: IMAGE_VERSION_TAG
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: IMAGE_VERSION_TAG
+                  optional: true
+            - name: IMAGE_PULL_POLICY
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: IMAGE_PULL_POLICY
+                  optional: true
+            - name: DAPR_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: DAPR_CONFIG
+                  optional: true
+            - name: DAPR_SIDECAR
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: DAPR_SIDECAR
+                  optional: true
+          resources:
+            limits:
+              cpu: 200m
+            requests:
+              cpu: 50m
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: FallbackToLogsOnError
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drasi-api
+  labels:
+    drasi/infra: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      drasi/infra: api
+  template:
+    metadata:
+      annotations:
+        dapr.io/app-id: api
+        dapr.io/config: dapr-config
+        dapr.io/app-port: "8080"
+        dapr.io/enabled: "true"
+        dapr.io/sidecar-image: %DAPRD_VERSION%
+      labels:
+        drasi/infra: api
+    spec:
+      priorityClassName: drasi-infrastructure
+      containers:
+        - name: drasi-api
+          imagePullPolicy: %IMAGE_PULL_POLICY%
+          image: %ACR%drasi-project/api:%TAG%
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MONGO_URI
+              value: mongodb://drasi-mongo:27017
+          ports:
+            - containerPort: 8080
+              name: api
+          resources:
+            limits:
+              cpu: 200m
+            requests:
+              cpu: 50m
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: FallbackToLogsOnError
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drasi-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: api
+  selector:
+    drasi/infra: api

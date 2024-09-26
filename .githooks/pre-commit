@@ -1,0 +1,18 @@
+#!/bin/sh
+case ":${PATH}:" in
+    *:"$HOME/.cargo/bin":*)
+        ;;
+    *)
+        export PATH="$HOME/.cargo/bin:$PATH"
+        ;;
+esac
+
+echo "Running cargo fmt for query container..."
+cargo fmt  --manifest-path ./query-container/Cargo.toml --check
+
+echo "Running cargo fmt for control plane..."
+cargo fmt  --manifest-path ./control-planes/kubernetes_provider/Cargo.toml --check
+cargo fmt  --manifest-path ./control-planes/mgmt_api/Cargo.toml --check
+cargo fmt  --manifest-path ./control-planes/resource_provider_api/Cargo.toml --check
+
+cargo fmt  --manifest-path ./infrastructure/Cargo.toml --all --check

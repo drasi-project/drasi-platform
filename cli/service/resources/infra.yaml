@@ -1,0 +1,333 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: drasi-infrastructure
+  labels:
+    app: drasi-mongo
+value: 1000
+globalDefault: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drasi-redis
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+  selector:
+    app: drasi-redis
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: drasi-redis
+  labels:
+    app: drasi-redis
+spec:
+  serviceName: drasi-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drasi-redis
+  template:
+    metadata:
+      labels:
+        app: drasi-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command: ["redis-server"]
+          volumeMounts:
+            - name: data
+              mountPath: "/data"
+          resources:
+            limits:
+              cpu: 500m
+            requests:
+              cpu: 250m
+              memory: 512Mi
+          ports:
+            - containerPort: 6379
+              name: redis
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drasi-mongo
+spec:
+  ports:
+  - port: 27017
+    targetPort: 27017
+    name: mongo
+  selector:
+    app: drasi-mongo
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drasi-mongo-init
+data:
+  rs-init.js: >
+    rs.initiate({
+      _id: "rs0",
+      members: [
+        { _id: 0, host: "drasi-mongo-0.drasi-mongo:27017" }
+      ]
+    })
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: drasi-mongo
+  name: drasi-mongo
+spec:
+  serviceName: drasi-mongo
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drasi-mongo
+  template:
+    metadata:
+      labels:
+        app: drasi-mongo
+    spec:
+      priorityClassName: drasi-infrastructure
+      hostAliases:
+      - ip: 127.0.0.1
+        hostnames:          
+          - drasi-mongo-0.drasi-mongo # hack to trick mongo flawed validation, will break if we scale beyond 1 instance of this stateful set. Create a separate stateful set if we want secondary instances.
+      containers:
+      - image: mongo:6
+        name: mongo
+        args: ["--dbpath","/data/db", "--replSet", "rs0", "--bind_ip", "0.0.0.0"]
+        volumeMounts:
+        - name: data
+          mountPath: "/data/db"
+        - name: init
+          mountPath: "/docker-entrypoint-initdb.d"
+        ports:
+        - containerPort: 27017
+          name: mongo
+        resources:
+          limits:
+            cpu: 250m
+          requests:
+            cpu: 250m
+            memory: 512Mi
+      volumes:
+        - name: init
+          configMap:
+            name: drasi-mongo-init
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-conf
+  labels:
+    app: opentelemetry
+    component: otel-collector-conf
+data:
+  # https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/security-best-practices.md#kubernetes
+  otel-collector-config: |
+    receivers:
+      zipkin:
+        endpoint: ${POD_IP}:9411
+      otlp:
+        protocols:
+          grpc: 
+            endpoint: ${POD_IP}:4317
+          http:
+            # endpoint: ${POD_IP}:4318
+    extensions:
+      health_check:
+        endpoint: ${POD_IP}:13133
+      pprof:
+        endpoint: :1888
+      zpages:
+        endpoint: :55679
+    processors:
+      batch:
+    exporters:
+      zipkin:
+        endpoint: "http://zipkin:9411/api/v2/spans"
+        tls:
+          insecure: true 
+      prometheus:
+        endpoint: ${POD_IP}:9090
+        send_timestamps: true
+        metric_expiration: 20m 
+    service:
+      extensions: [pprof, zpages, health_check]
+      pipelines:
+        traces:
+          receivers: [zipkin,otlp]
+          exporters: [zipkin]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [prometheus]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  labels:
+    app: opentelemetry
+    component: otel-collector
+spec:
+  ports:
+  - name: zipkin
+    port: 9411
+    protocol: TCP
+    targetPort: 9411
+  - name: otlp-grpc
+    port: 4317
+    protocol: TCP
+    targetPort: 4317
+  - name: otlp-http
+    port: 4318
+    protocol: TCP
+    targetPort: 4318
+  - name: metrics
+    port: 8888
+  selector:
+    component: otel-collector
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  labels:
+    app: opentelemetry
+    component: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opentelemetry
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9090"
+        prometheus.io/scrape: "true"
+      labels:
+        app: opentelemetry
+        component: otel-collector
+    spec:
+      containers:
+      - name: otel-collector
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        image: otel/opentelemetry-collector-contrib-dev:latest
+        command:
+          - "/otelcontribcol"
+          - "--config=/conf/otel-collector-config.yaml"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - containerPort: 55679 # Default endpoint for ZPages.
+        - containerPort: 4317 # Default endpoint for OpenTelemetry receiver.
+        - containerPort: 4318 # Default endpoint for OpenTelemetry receiver.
+        - containerPort: 14250 # Default endpoint for Jaeger gRPC receiver.
+        - containerPort: 14268 # Default endpoint for Jaeger HTTP receiver.
+        - containerPort: 9411 # Default endpoint for Zipkin receiver.
+        - containerPort: 8888  # Default endpoint for querying metrics.
+        - containerPort: 9090  # Default endpoint for prometheus scraper.
+        volumeMounts:
+          - name: otel-collector-config-vol
+            mountPath: /conf
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+      volumes:
+        - configMap:
+            name: otel-collector-conf
+            items:
+              - key: otel-collector-config
+                path: otel-collector-config.yaml
+          name: otel-collector-config-vol
+---
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: dapr-config
+spec:
+  accessControl:
+    defaultAction: allow
+    trustDomain: "public"
+  tracing:
+    samplingRate: "1"
+    zipkin:
+      endpointAddress: "http://otel-collector:9411/api/v2/spans"
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: drasi-state
+spec:
+  type: state.mongodb
+  version: v1
+  metadata:
+    - name: host
+      value: drasi-mongo:27017
+    - name: username
+      value:
+    - name: password
+      value:
+    - name: actorStateStore
+      value: "true"
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: drasi-pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: "drasi-redis:6379"
+    - name: concurrency
+      value: "1"
+    - name: queueDepth
+      value: "100000"
+    - name: consumerID
+      value: "drasi"
+    - name: redisPassword
+      value: ""
+
+

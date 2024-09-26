@@ -1,0 +1,164 @@
+{
+  "name": "drasi",
+  "displayName": "drasi",
+  "publisher": "drasi",
+  "description": "",
+  "publisher": "drasi-project",
+  "version": "0.0.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drasi-project/drasi-platform.git"
+  },
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/*.yaml"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "drasi-explorer",
+          "title": "Drasi Explorer",
+          "icon": "resources/radioactive.svg"
+        }
+      ]
+    },
+    "views": {
+      "drasi-explorer": [
+        {
+          "id": "queries",
+          "name": "Continuous Queries"
+        },
+        {
+          "id": "sourceProviders",
+          "name": "Source Providers"
+        },
+        {
+          "id": "reactionProviders",
+          "name": "Reaction Providers"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "drasi.createSource",
+        "title": "Drasi: Create Source Manifest"
+      },
+      {
+        "command": "drasi.deployTools",
+        "title": "Drasi: Deploy Dev Tools"
+      },
+      {
+        "command": "queries.refresh",
+        "title": "Refresh",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "sourceProviders.refresh",
+        "title": "Refresh",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "queries.run",
+        "title": "Run"
+      },
+      {
+        "command": "sourceProviders.validate",
+        "title": "Validate"
+      },
+      {
+        "command": "reactionProviders.refresh",
+        "title": "Refresh",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "reactionProviders.validate",
+        "title": "Validate"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "queries.refresh",
+          "when": "view == queries",
+          "group": "navigation"
+        },
+        {
+          "command": "sourceProviders.refresh",
+          "when": "view == sourceProviders",
+          "group": "navigation"
+        },
+        {
+          "command": "reactionProviders.refresh",
+          "when": "view == reactionProviders",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "queries.run",
+          "when": "view == queries && viewItem == queryNode",
+          "group": "inline"
+        },
+        {
+          "command": "sourceProviders.validate",
+          "when": "view == sourceProviders && viewItem == sourceProviderNode",
+          "group": "inline"
+        },
+        {
+          "command": "reactionProviders.validate",
+          "when": "view == reactionProviders && viewItem == reactionProviderNode",
+          "group": "inline"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.0.1",
+    "@types/js-yaml": "^4.0.5",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.75.0",
+    "@typescript-eslint/eslint-plugin": "^5.49.0",
+    "@typescript-eslint/parser": "^5.49.0",
+    "@vscode/test-electron": "^2.2.2",
+    "@vscode/vsce": "^2.31.0",
+    "eslint": "^8.56.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.1.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "ajv": "^8.12.0",
+    "axios": "^1.7.2",
+    "braces": "^3.0.3",
+    "js-yaml": "^4.1.0",
+    "portfinder": "^1.0.32",
+    "strip-ansi": "^7.0.1"
+  }
+}

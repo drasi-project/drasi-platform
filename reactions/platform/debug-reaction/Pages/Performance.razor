@@ -1,0 +1,196 @@
+﻿@page "/performance"
+@using ChartJs.Blazor.Common;
+@using ChartJs.Blazor.Common.Axes;
+@using ChartJs.Blazor.Common.Axes.Ticks;
+@using ChartJs.Blazor.Common.Enums;
+@using ChartJs.Blazor.Common.Time;
+@using ChartJs.Blazor.LineChart;
+@using ChartJs.Blazor.Util;
+@using System.ComponentModel;
+
+@using System.Drawing;
+@using System.Collections.ObjectModel;
+@using System.Collections.Specialized;
+@using System.Reactive.Subjects;
+@using System.Reactive;
+@using DebugReaction.Models;
+@using DebugReaction.Services;
+
+@inject IStatisticsService _statsService;
+
+<PageTitle>Performance</PageTitle>
+
+<ToolsMenu></ToolsMenu>
+
+<select class="form-select" @onchange="SetTimeWindow">    
+    <option value="-30">Last 30 seconds</option>
+    <option value="-60" selected>Last minute</option>
+    <option value="-300">Last 5 minutes</option>
+    <option value="-600">Last 10 minutes</option>
+</select>
+
+
+<Chart Config=@_chart></Chart>
+
+<button class="btn btn-danger" @onclick="ResetData">Reset</button>
+
+@code
+{
+    private int _timeWindow = -60;
+    private Timer _windowTimer;
+
+    private TimeAxis _timeAxis = new TimeAxis
+    {
+        ScaleLabel = new ScaleLabel
+        {
+            LabelString = "Time"
+        },
+        Time = new TimeOptions
+        {
+            TooltipFormat = "HH:mm:ss",
+            Unit = TimeMeasurement.Second,
+        },        
+    };
+
+    private LinearCartesianAxis _valueAxis = new LinearCartesianAxis
+    {
+        ScaleLabel = new ScaleLabel
+        {
+            LabelString = "ms",
+        },        
+        Ticks = new LinearCartesianTicks()
+    };
+
+    private LineConfig _chart;
+
+    private LineDataset<TimePoint> _queryHostDataset = new LineDataset<TimePoint>()
+    {
+        Fill = FillingMode.Disabled,
+        Label = "Query Host Process Time"
+    };
+
+    private LineDataset<TimePoint> _enqueuedDataset = new LineDataset<TimePoint>()
+    {
+        Fill = FillingMode.Disabled,
+        Label = "Query Host Enqueue Time"
+    };
+
+    private LineDataset<TimePoint> _changeDispatcherDataset = new LineDataset<TimePoint>()
+    {
+        Fill = FillingMode.Disabled,
+        Label = "Change Dispatcher"
+    };
+
+    private LineDataset<TimePoint> _changeSvcDataset = new LineDataset<TimePoint>()
+    {
+        Fill = FillingMode.Disabled,
+        Label = "Change Router"
+    };
+
+    private List<Task> _listenerTasks = new List<Task>();
+
+    public Performance()
+    {
+        _chart = new LineConfig
+        {
+            Options = new LineOptions
+            {
+                Responsive = true,
+
+                Title = new OptionsTitle
+                {
+                    Display = true,
+                    Text = "Query Host"
+                },
+
+                Scales = new Scales
+                {
+                    XAxes = new List<CartesianAxis>
+                    {
+                        _timeAxis,
+                    },
+                    YAxes = new List<CartesianAxis>
+                    {
+                        _valueAxis
+                    }
+                }
+            }
+        };
+
+        _windowTimer = new Timer(_ =>
+        {
+            _timeAxis.Time.Min = DateTimeOffset.UtcNow.AddSeconds(_timeWindow).DateTime;
+            _timeAxis.Time.Max = DateTimeOffset.UtcNow.DateTime;
+            _valueAxis.Ticks.Max = CalculateMaxValue();
+
+            InvokeAsync(() => this.StateHasChanged());
+
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    protected override void OnInitialized()
+    {
+        _statsService.OnEventRecieved += OnEventRecieved;
+
+        _queryHostDataset.BorderColor = ColorUtil.FromDrawingColor(Color.Red);
+        _enqueuedDataset.BorderColor = ColorUtil.FromDrawingColor(Color.Purple);
+        _changeSvcDataset.BorderColor = ColorUtil.FromDrawingColor(Color.Blue);
+        _changeDispatcherDataset.BorderColor = ColorUtil.FromDrawingColor(Color.Green);
+
+        _chart.Data.Datasets.Add(_queryHostDataset);
+        _chart.Data.Datasets.Add(_enqueuedDataset);
+        _chart.Data.Datasets.Add(_changeSvcDataset);
+        _chart.Data.Datasets.Add(_changeDispatcherDataset);
+
+        _statsService.Subscribe(IStatisticsService.QueryHostTime, Observer.Create<TimePoint>(dp => InvokeAsync(() => _queryHostDataset.Add(dp))));
+        _statsService.Subscribe(IStatisticsService.EnqueueTime, Observer.Create<TimePoint>(dp => InvokeAsync(() => _enqueuedDataset.Add(dp))));
+        _statsService.Subscribe(IStatisticsService.ChangeServiceTime, Observer.Create<TimePoint>(dp => InvokeAsync(() => _changeSvcDataset.Add(dp))));
+        _statsService.Subscribe(IStatisticsService.ChangeDispatcherTime, Observer.Create<TimePoint>(dp => InvokeAsync(() => _changeDispatcherDataset.Add(dp))));
+    }
+
+    private void OnEventRecieved(RawEvent evt)
+    {
+        InvokeAsync(() =>
+        {
+            this.StateHasChanged();
+        });
+    }
+
+    private void SetTimeWindow(ChangeEventArgs e)
+    {
+        _timeWindow = int.Parse(e.Value?.ToString());
+    }
+
+    private void ResetData()
+    {
+        _queryHostDataset.Clear();
+        _enqueuedDataset.Clear();
+        _changeSvcDataset.Clear();
+        _changeDispatcherDataset.Clear();
+    }
+
+    private double CalculateMaxValue()
+    {
+        // todo: this is horrible, make this more efficient
+        var result = 0d;
+        var startTime = DateTimeOffset.UtcNow.AddSeconds(_timeWindow).DateTime;
+        foreach (var ds in _chart.Data.Datasets)
+        {
+            if (ds is not LineDataset<TimePoint>)
+                continue;
+
+            var data = (ds as LineDataset<TimePoint>).Data;
+
+            for (var i = data.Count - 1; i > -1; i--)
+            {
+                if (data[i].Time < startTime)
+                    break;
+
+                result = Math.Max(result, data[i].Y);
+            }
+        }
+
+        return result;
+    }
+
+}

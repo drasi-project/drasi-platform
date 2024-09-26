@@ -1,0 +1,16 @@
+kind: Source
+apiVersion: v1
+name: foo
+spec:
+  kind: PostgreSQL
+  host: reactive-graph.postgres.database.azure.com
+  port: 5432
+  user: postgres@reactive-graph
+  password:
+    kind: Secret
+    name: pg-creds
+    key: password
+  database: my-db2
+  ssl: true
+  tables:
+    - public.Item

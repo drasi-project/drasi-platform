@@ -1,0 +1,24 @@
+[package]
+name = "change-dispatcher"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4.33"
+log = "0.4.20"
+prost-types = "0.12.3"
+env_logger = { version = "0.11.2" }
+raxios = "0.5.2"
+serde_json = "1.0.113"
+tokio = {version = "1.36.0", features = ["full"]}
+reqwest = { version = "0.11.24", features = ["blocking", "json"]}
+prost = "0.12.3"
+axum = { version = "0.7.5", features = ["macros", "http1", "tokio"] }
+drasi-comms-abstractions = { path = "../../../infrastructure/comms-abstractions" }
+drasi-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
+
+
+[build-dependencies]
+tonic-build = "0.11"

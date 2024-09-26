@@ -1,0 +1,17 @@
+kind: QueryContainer
+apiVersion: v1
+name: default
+spec:
+  queryHostCount: 1
+  defaultStore: redis
+  storage:
+    memory:
+      kind: memory
+      enableArchive: false
+    redis:
+      kind: redis
+      connectionString: redis://drasi-redis:6379
+  results:
+    MONGO_URI: mongodb://drasi-mongo:27017
+    MONGO_RESULT_STORE_DB_NAME: Drasi
+    MONGO_RESULT_STORE_COLL_NAME: Results

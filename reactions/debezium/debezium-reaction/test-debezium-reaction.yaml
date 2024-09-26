@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Reaction
+name: test-debezium
+spec:
+  kind: Debug
+  queries:
+    building-comfort-ui
+  properties:
+    Brokers: test-kafka:9092
+    Topic: my-kafka-topic
+    IncludeKey: "true"
+    IncludeSchemas: "True"

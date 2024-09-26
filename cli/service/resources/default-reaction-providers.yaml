@@ -1,0 +1,174 @@
+apiVersion: v1
+kind: ReactionProvider
+name: Debug
+spec:
+  services:
+    debug:
+      image: reaction-debug
+      endpoints:
+        gateway:
+          setting: internal
+          target: $portConfigKey
+      config_schema:
+        type: object
+        properties:
+          portConfigKey:
+            type: number
+            default: 8080
+---
+apiVersion: v1
+kind: ReactionProvider
+name: Debezium
+spec:
+  services:
+    debezium: 
+      image: reaction-debezium
+  config_schema:
+    type: object
+    properties: 
+      Brokers:
+        type: string
+      Topic:
+        type: string
+      IncludeKey:
+        type: boolean
+        default: true
+      IncludeSchemas:
+        type: boolean
+        default: true
+    required:
+      - Brokers
+      - Topic
+---
+apiVersion: v1
+kind: ReactionProvider
+name: EventGrid
+spec:
+  services:
+    eventgrid:
+      image: reaction-eventgrid
+  config_schema:
+    type: object
+    properties: 
+      EventGridUri:
+        type: string
+      EventGridKey:
+        type: string
+    required:
+      - EventGridUri
+      - EventGridKey
+---
+apiVersion: v1
+kind: ReactionProvider
+name: Gremlin
+spec:
+  config_schema:
+    type: object
+    properties: 
+      AddedResultCommand:
+        type: string
+      UpdatedResultCommand: 
+        type: string
+      DatabaseHost:
+        type: string
+      DatabasePrimaryKey:
+        type: string
+      DatabaseName:
+        type: string
+      DatabaseContainerName:
+        type: string
+      DatabasePort:
+        type: string
+    required:
+      - DatabaseHost
+      - DatabasePrimaryKey
+      - DatabaseName
+      - DatabaseContainerName
+      - DatabasePort
+  services:
+    gremlin:
+      image: reaction-gremlin
+---
+apiVersion: v1
+kind: ReactionProvider
+name: Result
+spec:
+  services:
+    result:
+      image: reaction-result
+      endpoints:
+        gateway:
+          setting: internal
+          target: $result-portConfigKey
+      config_schema:
+        type: object
+        properties:
+          result-portConfigKey:
+            type: number
+            default: 8080
+---
+apiVersion: v1
+kind: ReactionProvider
+name: SignalR
+spec:
+  services:
+    signalr:
+      image: reaction-signalr
+      endpoints:
+        gateway:
+          setting: internal
+          target: $signalr-portConfigKey
+      config_schema:
+        type: object
+        properties: 
+          signalr-portConfigKey:
+            type: number
+            default: 8080
+---
+apiVersion: v1
+kind: ReactionProvider
+name: StorageQueue
+spec:
+  services:
+    storage_queue:
+      image: reaction-storage-queue
+  config_schema:
+    type: object
+    properties:
+      StorageConnectionString:
+        type: string
+      QueueName:
+        type: string
+    required:
+      - StorageConnectionString
+      - QueueName
+---
+apiVersion: v1
+kind: ReactionProvider
+name: StoredProc
+spec:
+  config_schema: 
+    type: object
+    properties: 
+      SqlCommand:
+        type: string
+      DatabaseHostname:
+        type: string
+      DatabasePort:
+        type: string
+      DatabaseUser:
+        type: string
+      DatabaseDbname:
+        type: string
+      DatabasePassword:
+        type: string
+    required:
+      - SqlCommand
+      - DatabaseHostname
+      - DatabasePort
+      - DatabaseUser
+      - DatabaseDbname
+      - DatabasePassword
+  services:
+    storedproc:
+      image: reaction-storedproc
