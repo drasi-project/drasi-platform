@@ -270,7 +270,7 @@ jobs:
             context: './reactions/power-platform/dataverse/dataverse-reaction', 
             file: './reactions/power-platform/dataverse/dataverse-reaction/Dockerfile', 
             name: 'reaction-dataverse', 
-            platforms: 'linux/amd64,linux/arm64'
+            platforms: 'linux/amd64'
           },
           { 
             label: 'Debezium',
