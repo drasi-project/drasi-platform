@@ -459,7 +459,8 @@ fn populate_default_values(
                                                     Some(i) => i.to_string(),
                                                     None => {
                                                         return Err(DomainError::InvalidSpec {
-                                                            message: "expected a valid integer".to_string(),
+                                                            message: "expected a valid integer"
+                                                                .to_string(),
                                                         })
                                                     }
                                                 },

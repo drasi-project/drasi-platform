@@ -468,7 +468,8 @@ fn populate_default_values(
                                                     Some(n) => n.to_string(),
                                                     None => {
                                                         return Err(DomainError::InvalidSpec {
-                                                            message: "Invalid dapr value".to_string(),
+                                                            message: "Invalid dapr value"
+                                                                .to_string(),
                                                         })
                                                     }
                                                 },
