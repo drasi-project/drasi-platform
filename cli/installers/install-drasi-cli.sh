@@ -1,6 +1,8 @@
 : ${DRASI_INSTALL_DIR:="/usr/local/bin"}
 : ${USE_SUDO:="false"}
 
+GITHUB_ORG=drasi-project
+GITHUB_REPO=drasi-platform
 
 DRASI_HTTP_REQUEST_CLI=curl
 
@@ -20,12 +22,7 @@ getSystemInfo() {
     OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
 
 
-    # if [ "$OS" == "darwin" ]; then
-    #     OS="macos"
-    # fi
-
-    if [[ ("$OS" == "linux" || ( "$OS" == "darwin" && ( "$ARCH" == "arm" || "$ARCH" == "arm64" ))) && "$DRASI_INSTALL_DIR" == "/usr/local/bin"  ]];
-    then
+    if [[ "$OS" == "linux" || "$OS" == "darwin" ]] && [ "$DRASI_INSTALL_DIR" == "/usr/local/bin" ]; then
         USE_SUDO="true"
     fi
 }
@@ -49,7 +46,6 @@ runAsRoot() {
     local CMD="$*"
 
     if [ $EUID -ne 0 -a $USE_SUDO = "true" ]; then
-        echo "Additional permissions needed. Please enter your sudo password..."
         CMD="sudo $CMD"
     fi
 
@@ -68,11 +64,11 @@ checkHttpRequestCLI() {
 }
 
 checkExistingInstallation() {
-    if [ -f "DRASI_CLI_FILE" ]; then
+    if [ -f "$DRASI_CLI_FILE" ]; then
         echo "Drasi CLI is already installed in $DRASI_CLI_FILE"
-        echo "Reinstalling Drasi CLI...\n"
+        echo -e "Reinstalling Drasi CLI...\n"
     else
-        echo "Installing Drasi CLI...\n"
+        echo -e "Installing Drasi CLI...\n"
     fi
 }
 
@@ -82,31 +78,35 @@ cleanup() {
     fi
 }
 
-downloadFile() {
-    OS_ARCH="${OS}-${ARCH}"
-    DRASI_CLI_ARTIFACT="drasi"
+getLatestRelease() {
+    local cliReleaseUrl="https://api.github.com/repos/${GITHUB_ORG}/${GITHUB_REPO}/releases"
 
-    DOWNLOAD_BASE="https://drasi.blob.core.windows.net/installs"
-    DOWNLOAD_URL="${DOWNLOAD_BASE}/${OS_ARCH}/${DRASI_CLI_ARTIFACT}"
+    local latest_release=""
+
+    if [ "$DRASI_HTTP_REQUEST_CLI" == "curl" ]; then
+        latest_release=$(curl -s $cliReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
+    else
+        latest_release=$(wget -q --header="Accept: application/json" -O - $cliReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
+    fi
+
+    ret_val=$latest_release
+}
+
+
+
+downloadFile() {
+    RELEASE_TAG=$1
+
+    DRASI_CLI_ARTIFACT="${DRASI_CLI_FILENAME}-${OS}-${ARCH}"
+
+    echo "Downloading Drasi CLI from the release $RELEASE_TAG..."
+    DOWNLOAD_BASE="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download"
+    DOWNLOAD_URL="${DOWNLOAD_BASE}/${RELEASE_TAG}/${DRASI_CLI_ARTIFACT}"
 
     DRASI_TMP_ROOT=$(mktemp -dt Drasi-install-XXXXXX)
     ARTIFACT_TMP_FILE="$DRASI_TMP_ROOT/$DRASI_CLI_ARTIFACT"
 
-
-    if [ "$DRASI_HTTP_REQUEST_CLI" == "curl" ]; then
-        if ! curl --output /dev/null --silent --head --fail "$DOWNLOAD_URL"; then
-            echo $DOWNLOAD_URL
-            echo "ERROR: The specified version of the Drasi CLI does not exist."
-            exit 1
-        fi
-    else
-        if ! wget --spider "$DOWNLOAD_URL" 2>/dev/null; then
-            echo "ERROR: The specified version of the Drasi CLI does not exist."
-            exit 1
-        fi
-    fi
-
-    echo "Downloading ${DOWNLOAD_URL}"
+    echo "Downloading $DOWNLOAD_URL ..."
     if [ "$DRASI_HTTP_REQUEST_CLI" == "curl" ]; then
         curl -SsL "$DOWNLOAD_URL" -o "$ARTIFACT_TMP_FILE"
     else
@@ -114,22 +114,29 @@ downloadFile() {
     fi
 
     if [ ! -f "$ARTIFACT_TMP_FILE" ]; then
-        echo "failed to download ${DOWNLOAD_URL}..."
+        echo "failed to download $DOWNLOAD_URL ..."
         exit 1
     fi
 }
 
 
 installFile() {
-    local tmp_root_Drasi_cli="$DRASI_TMP_ROOT/$DRASI_CLI_FILENAME"
+    DRASI_CLI_ARTIFACT="${DRASI_CLI_FILENAME}-${OS}-${ARCH}"
+    local tmp_root_Drasi_cli="$DRASI_TMP_ROOT/$DRASI_CLI_ARTIFACT"
 
     if [ ! -f "$tmp_root_Drasi_cli" ]; then
         echo "Failed to download Drasi CLI executable."
         exit 1
     fi
 
+    if [ -f "$DRASI_CLI_FILE" ]; then
+        runAsRoot rm "$DRASI_CLI_FILE"
+    fi
+
     chmod a+x $tmp_root_Drasi_cli
+    mkdir -p "$DRASI_INSTALL_DIR"
     runAsRoot cp "$tmp_root_Drasi_cli" "$DRASI_INSTALL_DIR"
+    runAsRoot mv "${DRASI_INSTALL_DIR}/${DRASI_CLI_ARTIFACT}" "${DRASI_INSTALL_DIR}/${DRASI_CLI_FILENAME}"
 
     if [ -f "$DRASI_CLI_FILE" ]; then
         echo "Drasi CLI was installed successfully to $DRASI_CLI_FILE"
@@ -149,15 +156,33 @@ fail_trap() {
     exit $result
 }
 
+installCompleted() {
+    echo -e "\nDrasi is installed!"
+}
 
+
+# -----------------------------------------------------------------------------
+# main
+# -----------------------------------------------------------------------------
 trap "fail_trap" EXIT
 
 getSystemInfo
-verifySupported
-checkExistingInstallation
 checkHttpRequestCLI
 
-downloadFile
+if [ -z "$1" ]; then
+    echo "Getting the latest Drasi CLI..."
+    getLatestRelease
+else
+    ret_val=$1
+fi 
+
+
+verifySupported $ret_val 
+checkExistingInstallation
+
+echo "Installing $ret_val Drasi CLI..."
+
+downloadFile $ret_val
 installFile
 cleanup
 

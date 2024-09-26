@@ -210,7 +210,7 @@ pub struct Service {
     pub replica: Option<String>,
     pub image: Option<String>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
-    pub endpoints: Option<HashMap<String, Endpoint>>, // HashMap <String., ServiceSpec?>?
+    pub endpoints: Option<HashMap<String, Endpoint>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
 }
 
@@ -269,4 +269,19 @@ pub enum DomainError {
 
     #[error("Internal: {inner}")]
     Internal { inner: Box<dyn std::error::Error> },
+
+    #[error("UndefinedSetting: {message}")]
+    UndefinedSetting {
+        message: String,
+    },
+
+    #[error("InvalidSpec: {message}")]
+    InvalidSpec {
+        message: String,
+    },
+
+    #[error("JsonParseError")]
+    JsonParseError {
+        message: String,
+    },
 }

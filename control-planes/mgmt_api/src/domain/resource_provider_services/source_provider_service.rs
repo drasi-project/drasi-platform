@@ -236,7 +236,14 @@ impl SchemaValidator for SourceProviderValidator {
         "required": ["services"]
       }"#;
 
-        let spec: Value = serde_json::from_str(provider_schema_json).unwrap();
+        let spec: Value = match serde_json::from_str(provider_schema_json) {
+            Ok(spec) => spec,
+            Err(e) => {
+                return Err(DomainError::Invalid {
+                    message: format!("Invalid Source Provider definition: {}", e),
+                });
+            }
+        };
         let compiled_schema = match jsonschema::JSONSchema::compile(&spec) {
             Ok(schema) => schema,
             Err(e) => {
@@ -250,7 +257,7 @@ impl SchemaValidator for SourceProviderValidator {
             if let Some(error) = errors.next() {
                 log::info!("Validation error: {}", error);
                 log::info!("Instance path: {}", error.instance_path);
-                return Err(DomainError::Invalid {
+                return Err(DomainError::InvalidSpec {
                     message: format!("Invalid Source Provider definition: {}", error),
                 });
             }

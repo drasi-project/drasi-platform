@@ -185,6 +185,9 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) e
 		if resp.StatusCode != http.StatusOK {
 			msg := resp.Status
 
+			// Adding a space before the response body for better readability
+			msg += " "
+
 			if b, err := io.ReadAll(resp.Body); err == nil {
 				msg += ": " + string(b)
 			}

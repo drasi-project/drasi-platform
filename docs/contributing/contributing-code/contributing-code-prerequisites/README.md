@@ -55,6 +55,26 @@ Using Chocolatey
 choco install make
 ```
 
+### Repo Setup
+
+1. Fork the repo
+1. Clone the repo
+    ```
+    git clone <your fork>
+    ```
+1. Initialize and update submodules (This is how the Query Host consumes `drasi-core`)
+     ```
+     git submodule init
+     git submodule update
+     ```
+1. Enable Git Hooks
+    We use pre-commit hooks to catch some issues early, enable the local git hooks using the following commands
+
+    ```
+    chmod +x .githooks/pre-commit
+    git config core.hooksPath .githooks
+    ```
+
 ### Enable Git Hooks
 
 We use pre-commit hooks to catch some issues early, enable the local git hooks using the following commands

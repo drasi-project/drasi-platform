@@ -139,7 +139,7 @@ jobs:
       matrix:
         component: [
           { 
-            label: 'Change Service',
+            label: 'Change Router',
             context: '.', 
             file: './sources/shared/change-router/Dockerfile', 
             name: 'source-change-router', 
@@ -154,7 +154,7 @@ jobs:
           },
           { 
             label: 'Query API',
-            context: './sources/shared/query-api', 
+            context: '.', 
             file: './sources/shared/query-api/Dockerfile', 
             name: 'source-query-api', 
             platforms: 'linux/amd64' 
