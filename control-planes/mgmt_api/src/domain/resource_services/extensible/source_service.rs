@@ -566,7 +566,8 @@ fn populate_default_values(
                                             Value::Bool(b) => b.to_string(),
                                             Value::Number(n) => match n.as_i64() {
                                                 Some(n) => n.to_string(),
-                                                None => {
+                                                None => 
+                                                {
                                                     #[allow(clippy::useless_format)]
                                                     return Err(DomainError::InvalidSpec {
                                                         message: format!(
