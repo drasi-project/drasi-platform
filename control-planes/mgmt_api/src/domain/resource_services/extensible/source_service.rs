@@ -163,6 +163,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
                 })
             }
         };
+        #[allow(clippy::map_clone)]
         let defined_services: Vec<String> = schema_services.keys().map(|s| s.clone()).collect();
         let services = match spec.services.clone() {
             Some(services) => services,
@@ -566,6 +567,7 @@ fn populate_default_values(
                                             Value::Number(n) => match n.as_i64() {
                                                 Some(n) => n.to_string(),
                                                 None => {
+                                                    #[allow(clippy::useless_format)]
                                                     return Err(DomainError::InvalidSpec {
                                                         message: format!(
                                                             "expected a valid integer"

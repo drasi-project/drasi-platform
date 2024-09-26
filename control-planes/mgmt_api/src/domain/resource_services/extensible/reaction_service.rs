@@ -172,6 +172,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                 })
             }
         };
+        #[allow(clippy::map_clone)]
         let defined_services: Vec<String> = schema_services.keys().cloned().collect();
         for service_name in services.keys() {
             if !defined_services.contains(service_name) {
@@ -441,6 +442,7 @@ fn populate_default_values(
                                                 Some(i) => i.to_string(),
                                                 None => {
                                                     return Err(DomainError::InvalidSpec {
+                                                        #[allow(clippy::useless_format)]
                                                         message: format!(
                                                             "expected a valid integer"
                                                         ),
@@ -561,6 +563,7 @@ fn populate_default_values(
                                                         Some(i) => i,
                                                         None => {
                                                             return Err(DomainError::InvalidSpec {
+                                                                #[allow(clippy::useless_format)]
                                                                 message: format!(
                                                                     "expected a valid integer"
                                                                 ),
