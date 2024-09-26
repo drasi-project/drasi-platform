@@ -199,7 +199,7 @@ impl SequentialChangeStream for RedisChangeStream {
 
 impl Drop for RedisChangeStream {
     fn drop(&mut self) {
-        _ = self.cancel.notify_one();
+        self.cancel.notify_one()
     }
 }
 

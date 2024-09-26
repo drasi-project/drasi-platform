@@ -9,7 +9,8 @@ pub async fn from_env() -> Result<Arc<dyn ViewStore>, ViewError> {
             todo!()
         }
         "mongo" => {
-            let mongo_uri = env::var("MONGO_URI").unwrap_or("mongodb://drasi-mongo:27017".to_string());
+            let mongo_uri =
+                env::var("MONGO_URI").unwrap_or("mongodb://drasi-mongo:27017".to_string());
             let db_name = env::var("MONGO_DB").unwrap_or("drasi-results".to_string());
 
             let store = match MongoViewStore::connect(&mongo_uri, &db_name).await {

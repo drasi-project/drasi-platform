@@ -80,8 +80,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
             },
         );
 
-        let mut store_index = 0;
-        for (name, storage_spec) in source.spec.storage {
+        for (store_index, (name, storage_spec)) in source.spec.storage.into_iter().enumerate() {
             env.insert(
                 format!("STORE_{}", store_index),
                 ConfigValue::Inline {
@@ -183,7 +182,6 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                     );
                 }
             }
-            store_index += 1;
         }
 
         specs.push(KubernetesSpec {

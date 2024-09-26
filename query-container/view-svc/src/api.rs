@@ -139,7 +139,10 @@ async fn view_stream(
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     let timestamp = match params.get("timestamp") {
-        Some(ts) => Some(ts.parse::<u64>().unwrap()),
+        Some(ts) => match ts.parse::<u64>() {
+            Ok(ts) => Some(ts),
+            Err(_) => None,
+        },
         None => None,
     };
 

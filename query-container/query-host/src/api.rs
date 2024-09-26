@@ -421,10 +421,7 @@ impl ResultEvent {
                     ..
                 } => {
                     updated_results.push(UpdatePayload {
-                        before: match before {
-                            Some(before) => Some(variables_to_json(before)),
-                            None => None,
-                        },
+                        before: before.map(variables_to_json),
                         after: Some(variables_to_json(after)),
                         grouping_keys: Some(grouping_keys),
                     });
@@ -489,70 +486,70 @@ mod mappings {
     use crate::api;
     use drasi_core::models;
 
-    impl Into<models::QuerySourceElement> for api::QuerySourceLabel {
-        fn into(self) -> models::QuerySourceElement {
+    impl From<api::QuerySourceLabel> for models::QuerySourceElement {
+        fn from(val: api::QuerySourceLabel) -> Self {
             models::QuerySourceElement {
-                source_label: self.source_label,
+                source_label: val.source_label,
             }
         }
     }
 
-    impl Into<models::QuerySubscription> for api::QuerySubscription {
-        fn into(self) -> models::QuerySubscription {
+    impl From<api::QuerySubscription> for models::QuerySubscription {
+        fn from(val: api::QuerySubscription) -> Self {
             models::QuerySubscription {
-                id: Arc::from(self.id),
-                nodes: self.nodes.into_iter().map(|v| v.into()).collect(),
-                relations: self.relations.into_iter().map(|v| v.into()).collect(),
-                pipeline: self.pipeline.into_iter().map(Arc::from).collect(),
+                id: Arc::from(val.id),
+                nodes: val.nodes.into_iter().map(|v| v.into()).collect(),
+                relations: val.relations.into_iter().map(|v| v.into()).collect(),
+                pipeline: val.pipeline.into_iter().map(Arc::from).collect(),
             }
         }
     }
 
-    impl Into<models::QueryJoinKey> for api::QueryJoinKey {
-        fn into(self) -> models::QueryJoinKey {
+    impl From<api::QueryJoinKey> for models::QueryJoinKey {
+        fn from(val: api::QueryJoinKey) -> Self {
             models::QueryJoinKey {
-                label: self.label,
-                property: self.property,
+                label: val.label,
+                property: val.property,
             }
         }
     }
 
-    impl Into<models::QueryJoin> for api::QueryJoin {
-        fn into(self) -> models::QueryJoin {
+    impl From<api::QueryJoin> for models::QueryJoin {
+        fn from(val: api::QueryJoin) -> Self {
             models::QueryJoin {
-                id: self.id,
-                keys: self.keys.into_iter().map(|v| v.into()).collect(),
+                id: val.id,
+                keys: val.keys.into_iter().map(|v| v.into()).collect(),
             }
         }
     }
 
-    impl Into<models::QuerySources> for api::QuerySources {
-        fn into(self) -> models::QuerySources {
+    impl From<api::QuerySources> for models::QuerySources {
+        fn from(val: api::QuerySources) -> Self {
             models::QuerySources {
-                subscriptions: self.subscriptions.into_iter().map(|v| v.into()).collect(),
-                joins: self.joins.into_iter().map(|v| v.into()).collect(),
-                middleware: self.middleware.into_iter().map(|v| v.into()).collect(),
+                subscriptions: val.subscriptions.into_iter().map(|v| v.into()).collect(),
+                joins: val.joins.into_iter().map(|v| v.into()).collect(),
+                middleware: val.middleware.into_iter().map(|v| v.into()).collect(),
             }
         }
     }
 
-    impl Into<models::QueryConfig> for api::QuerySpec {
-        fn into(self) -> models::QueryConfig {
+    impl From<api::QuerySpec> for models::QueryConfig {
+        fn from(val: api::QuerySpec) -> Self {
             models::QueryConfig {
-                mode: self.mode.into(),
-                query: self.query,
-                sources: self.sources.into(),
-                storage_profile: self.storage_profile,
+                mode: val.mode,
+                query: val.query,
+                sources: val.sources.into(),
+                storage_profile: val.storage_profile,
             }
         }
     }
 
-    impl Into<models::SourceMiddlewareConfig> for api::SourceMiddlewareConfig {
-        fn into(self) -> models::SourceMiddlewareConfig {
+    impl From<api::SourceMiddlewareConfig> for models::SourceMiddlewareConfig {
+        fn from(val: api::SourceMiddlewareConfig) -> Self {
             models::SourceMiddlewareConfig {
-                kind: Arc::from(self.kind),
-                name: Arc::from(self.name),
-                config: self.config,
+                kind: Arc::from(val.kind),
+                name: Arc::from(val.name),
+                config: val.config,
             }
         }
     }

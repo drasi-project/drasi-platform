@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 actor_name.as_str(),
                 Box::new(move |_actor_type, id, actor_client| {
                     Arc::new(QueryActor::new(
-                        &id,
+                        id,
                         &query_container_id,
                         actor_client,
                         dapr_client.clone(),

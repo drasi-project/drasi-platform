@@ -17,9 +17,9 @@ impl SourceProviderDomainServiceImpl {
     ) -> Self {
         SourceProviderDomainServiceImpl {
             dapr_client,
-            repo: repo,
+            repo,
             validators: vec![Box::new(SourceProviderValidator {})],
-            _TProviderSpec: std::marker::PhantomData,
+            _tprovider_spec: std::marker::PhantomData,
         }
     }
 }
@@ -252,10 +252,12 @@ impl SchemaValidator for SourceProviderValidator {
                 });
             }
         };
-        let result = compiled_schema.validate(&schema);
-        if let Err(errors) = result {
-            for error in errors {
-                return Err(DomainError::Invalid {
+        let result = compiled_schema.validate(schema);
+        if let Err(mut errors) = result {
+            if let Some(error) = errors.next() {
+                log::info!("Validation error: {}", error);
+                log::info!("Instance path: {}", error.instance_path);
+                return Err(DomainError::InvalidSpec {
                     message: format!("Invalid Source Provider definition: {}", error),
                 });
             }

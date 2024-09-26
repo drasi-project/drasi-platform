@@ -199,9 +199,6 @@ dependencies = [
  "pin-project-lite",
  "rustversion",
  "serde",
- "serde_json",
- "serde_path_to_error",
- "serde_urlencoded",
  "sync_wrapper 0.1.2",
  "tokio",
  "tower 0.4.13",
@@ -279,6 +276,18 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00c055ee2d014ae5981ce1016374e8213682aa14d9bf40e48ab48b5f3ef20eaa"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -2521,7 +2530,7 @@ name = "publish-api"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "axum 0.6.20",
+ "axum 0.7.5",
  "env_logger 0.10.2",
  "futures",
  "log",

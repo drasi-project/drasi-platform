@@ -21,14 +21,14 @@ impl QueryContainerDomainServiceImpl {
     ) -> Self {
         QueryContainerDomainServiceImpl {
             dapr_client,
-            repo: repo,
+            repo,
             actor_type: |_spec| "QueryContainerResource".to_string(),
             ready_check: |status| status.available,
             validators: vec![],
-            _TSpec: std::marker::PhantomData,
-            _TStatus: std::marker::PhantomData,
-            _TApiSpec: std::marker::PhantomData,
-            _TApiStatus: std::marker::PhantomData,
+            _tspec: std::marker::PhantomData,
+            _tstatus: std::marker::PhantomData,
+            _tapi_spec: std::marker::PhantomData,
+            _tapi_status: std::marker::PhantomData,
         }
     }
 }

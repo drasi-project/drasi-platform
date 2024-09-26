@@ -23,7 +23,7 @@ mod change_dispatcher_config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting Source Change Dispatcher");
+    info!("Starting Source Change Dispatcher");
 
     let config = ChangeDispatcherConfig::new();
     info!("Initializing SourceID: {} ...", config.source_id);
@@ -47,8 +47,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_state(shared_state);
 
     let addr = format!("0.0.0.0:{}", config.app_port);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = match tokio::net::TcpListener::bind(&addr).await {
+        Ok(listener) => listener,
+        Err(_e) => {
+            return Err(Box::<dyn std::error::Error>::from(
+                "Error binding to the address",
+            ));
+        }
+    };
+    match axum::serve(listener, app).await {
+        Ok(_) => {
+            log::info!("Server started at: {}", &addr);
+        }
+        Err(e) => {
+            log::error!("Error starting the server: {:?}", e);
+        }
+    };
     Ok(())
 }
 
@@ -77,18 +91,27 @@ async fn receive(
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
     let traceparent = match headers.get("traceparent") {
-        Some(tp) => tp.to_str().unwrap().to_string(),
-        None => {
-            return StatusCode::BAD_REQUEST;
-        }
+        Some(tp) => match tp.to_str() {
+            Ok(tp) => tp.to_string(),
+            Err(_) => "".to_string(),
+        },
+        None => "".to_string(),
     };
 
     let config = state.config.clone();
     let invoker = &state.invoker;
     let json_data = body["data"].clone();
-    process_changes(&invoker, json_data, config, traceparent).await;
-
-    StatusCode::OK
+    match process_changes(invoker, json_data, config, traceparent).await {
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(e) => {
+            log::error!("Error processing changes: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error processing changes: {:?}", e),
+            )
+                .into_response()
+        }
+    }
 }
 
 async fn process_changes(
@@ -96,22 +119,47 @@ async fn process_changes(
     changes: Value,
     config: ChangeDispatcherConfig,
     traceparent: String,
-) {
+) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(changes) = changes.as_array() {
         for change_event in changes {
             info!(
                 "Processing change - id:{}, subscription:{}",
                 change_event["id"],
-                serde_json::to_string(&change_event["subscriptions"]).unwrap()
+                match serde_json::to_string(&change_event["subscriptions"]) {
+                    Ok(subs) => subs,
+                    Err(_) =>
+                        return Err(Box::<dyn std::error::Error>::from(
+                            "Error serializing subscriptions into a string"
+                        )),
+                }
             );
 
             let mut dispatch_event = change_event.clone();
             dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherStart_ms"] =
-                serde_json::to_value(chrono::Utc::now().timestamp_millis()).unwrap();
+                match serde_json::to_value(chrono::Utc::now().timestamp_millis()) {
+                    Ok(val) => val,
+                    Err(_) => {
+                        return Err(Box::<dyn std::error::Error>::from(
+                            "Error serializing timestamp into json value",
+                        ));
+                    }
+                };
             dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ms"] =
-                serde_json::to_value(0).unwrap();
+                match serde_json::to_value(0) {
+                    Ok(val) => val,
+                    Err(_) => {
+                        unreachable!();
+                    }
+                };
 
-            let subscriptions = change_event["subscriptions"].as_array().unwrap().clone();
+            let subscriptions = match change_event["subscriptions"].as_array() {
+                Some(subs) => subs.clone(),
+                None => {
+                    return Err(Box::<dyn std::error::Error>::from(
+                        "Error getting subscriptions from change event",
+                    ));
+                }
+            };
 
             let query_nodes: HashSet<&str> = subscriptions
                 .iter()
@@ -122,16 +170,32 @@ async fn process_changes(
                 let app_id = format!("{}-publish-api", query_node_id);
 
                 dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ms"] =
-                    serde_json::to_value(chrono::Utc::now().timestamp_millis()).unwrap();
+                    match serde_json::to_value(chrono::Utc::now().timestamp_millis()) {
+                        Ok(val) => val,
+                        Err(_) => {
+                            return Err(Box::<dyn std::error::Error>::from(
+                                "Error serializing timestamp into json value",
+                            ));
+                        }
+                    };
                 let queries: Vec<_> = subscriptions
                     .iter()
                     .filter(|x| x["queryNodeId"] == query_node_id)
                     .map(|x| x["queryId"].clone())
                     .collect();
-                dispatch_event["queries"] = serde_json::to_value(queries).unwrap();
+                dispatch_event["queries"] = match serde_json::to_value(queries) {
+                    Ok(val) => val,
+                    Err(_) => {
+                        return Err(Box::<dyn std::error::Error>::from(
+                            "Error serializing queries into json value",
+                        ));
+                    }
+                };
 
                 let mut headers = HashMap::new();
-                headers.insert("traceparent".to_string(), traceparent.clone());
+                if !traceparent.is_empty() {
+                    headers.insert("traceparent".to_string(), traceparent.clone());
+                }
                 let headers = Headers::new(headers);
                 match invoker
                     .invoke(
@@ -140,15 +204,18 @@ async fn process_changes(
                         "change".to_string(),
                         headers,
                     )
-                    .await {
-                        Ok(_) => {
-
-                        },
-                        Err(e) => {
-                            info!("Error invoking the publish-api: {:?}", e);
-                        }
+                    .await
+                {
+                    Ok(_) => {}
+                    Err(e) => {
+                        return Err(Box::<dyn std::error::Error>::from(format!(
+                            "Error invoking app: {}",
+                            e
+                        )));
                     }
+                }
             }
         }
     }
+    Ok(())
 }

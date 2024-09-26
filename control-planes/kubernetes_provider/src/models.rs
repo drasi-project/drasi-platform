@@ -52,6 +52,7 @@ pub struct RuntimeConfig {
 }
 
 impl RuntimeConfig {
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> RuntimeConfig {
         //todo: read from config map
         let pub_sub_config = vec![

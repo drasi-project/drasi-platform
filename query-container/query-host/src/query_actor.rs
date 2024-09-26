@@ -11,6 +11,7 @@ use crate::{
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use axum::{response::IntoResponse, Json};
+use dapr::client::TonicClient;
 use dapr::server::{
     actor::{
         context_client::{ActorContextClient, ActorStateOperation},
@@ -18,7 +19,6 @@ use dapr::server::{
     },
     utils::DaprJson,
 };
-use dapr::{client::TonicClient};
 use dapr_macros::actor;
 use drasi_core::middleware::MiddlewareTypeRegistry;
 use gethostname::gethostname;
@@ -143,16 +143,13 @@ impl Actor for QueryActor {
 
     async fn on_reminder(&self, _reminder_name: &str, _data: Vec<u8>) -> Result<(), ActorError> {
         log::info!("Query reminder {}", self.query_id);
-        match self.lifecycle.get_state() {
-            QueryState::TransientError(err) => {
-                log::info!(
-                    "Query {} in transient error state on reminder - {}",
-                    self.query_id,
-                    err
-                );
-                self.init_worker().await?;
-            }
-            _ => {}
+        if let QueryState::TransientError(err) = self.lifecycle.get_state() {
+            log::info!(
+                "Query {} in transient error state on reminder - {}",
+                self.query_id,
+                err
+            );
+            self.init_worker().await?;
         }
         Ok(())
     }
@@ -162,6 +159,7 @@ impl Actor for QueryActor {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl QueryActor {
     pub fn new(
         query_id: &str,

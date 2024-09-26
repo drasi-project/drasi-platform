@@ -7,17 +7,17 @@ mod query_container;
 mod reaction;
 mod source;
 
-impl<TSpec, TStatus, TSpecDto, TStatusDto> Into<Resource<TSpec, TStatus>>
-    for ResourceDto<TSpecDto, TStatusDto>
+impl<TSpec, TStatus, TSpecDto, TStatusDto> From<ResourceDto<TSpecDto, TStatusDto>>
+    for Resource<TSpec, TStatus>
 where
     TSpecDto: Into<TSpec>,
     TStatusDto: Into<TStatus>,
 {
-    fn into(self) -> Resource<TSpec, TStatus> {
+    fn from(val: ResourceDto<TSpecDto, TStatusDto>) -> Self {
         Resource {
-            id: self.id,
-            spec: self.spec.into(),
-            status: self.status.map(|s| s.into()),
+            id: val.id,
+            spec: val.spec.into(),
+            status: val.status.map(|s| s.into()),
         }
     }
 }
@@ -37,9 +37,9 @@ where
     }
 }
 
-impl Into<ConfigValue> for ConfigValueDto {
-    fn into(self) -> ConfigValue {
-        match self {
+impl From<ConfigValueDto> for ConfigValue {
+    fn from(value: ConfigValueDto) -> Self {
+        match value {
             ConfigValueDto::Inline { value } => match value {
                 InlineValueDto::String { value } => ConfigValue::Inline {
                     value: InlineValue::String { value },

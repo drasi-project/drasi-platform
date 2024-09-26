@@ -53,6 +53,7 @@ pub struct QueryWorker {
     is_shutdown: Mutex<Option<oneshot::Receiver<()>>>,
 }
 
+#[allow(clippy::too_many_arguments)]
 impl QueryWorker {
     pub fn start(
         query_container_id: Arc<str>,
@@ -85,10 +86,7 @@ impl QueryWorker {
             builder = builder.with_joins(config.sources.joins.clone());
 
             let index_set = match index_factory
-                .build(
-                    &modified_config.storage_profile,
-                    &query_id,
-                )
+                .build(&modified_config.storage_profile, &query_id)
                 .await
             {
                 Ok(ei) => ei,
@@ -340,7 +338,7 @@ impl QueryWorker {
                                             },
                                         }
 
-                                        if let Err(err) = change_stream.ack(&evt_id).await {
+                                        if let Err(err) = change_stream.ack(evt_id).await {
                                             log::error!("Error acknowledging message: {}", err);
                                             tracing::error!("Error acknowledging message: {}", err);
                                         }
@@ -465,46 +463,43 @@ async fn process_change(
     let process_end_time = SystemTime::now();
 
     if !changes.is_empty() {
-        match metadata
+        if let Some(tracking) = metadata
             .entry("tracking".to_string())
             .or_insert(Value::Object(Map::new()))
             .as_object_mut()
         {
-            Some(tracking) => {
-                let dequeue_time = Number::from(
-                    dequeue_time
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
-                );
-                let query_start_time = Number::from(
-                    process_start_time
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
-                );
-                let query_end_time = Number::from(
-                    process_end_time
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
-                );
+            let dequeue_time = Number::from(
+                dequeue_time
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+            );
+            let query_start_time = Number::from(
+                process_start_time
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+            );
+            let query_end_time = Number::from(
+                process_end_time
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+            );
 
-                let mut qt = Map::new();
-                qt.insert("dequeue_ms".to_string(), Value::Number(dequeue_time));
-                qt.insert("queryStart_ms".to_string(), Value::Number(query_start_time));
-                qt.insert("queryEnd_ms".to_string(), Value::Number(query_end_time));
+            let mut qt = Map::new();
+            qt.insert("dequeue_ms".to_string(), Value::Number(dequeue_time));
+            qt.insert("queryStart_ms".to_string(), Value::Number(query_start_time));
+            qt.insert("queryEnd_ms".to_string(), Value::Number(query_end_time));
 
-                tracking.insert("query".to_string(), Value::Object(qt));
-            }
-            None => {}
-        };
+            tracking.insert("query".to_string(), Value::Object(qt));
+        }
 
         let seq = seq_manager.increment(&source_change_id);
         let output =
-            ResultEvent::from_query_results(&query_id, changes, seq, timestamp, Some(metadata));
+            ResultEvent::from_query_results(query_id, changes, seq, timestamp, Some(metadata));
 
-        match publisher.publish(&query_id, output).await {
+        match publisher.publish(query_id, output).await {
             Ok(_) => log::info!("Published result"),
             Err(err) => {
                 log::error!("Error publishing result: {}", err);
@@ -516,6 +511,7 @@ async fn process_change(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 #[instrument(skip_all, fields(query_id = query_id), err)]
 async fn bootstrap(
     query_container_id: &str,
@@ -530,7 +526,7 @@ async fn bootstrap(
 ) -> Result<(), BootstrapError> {
     match publisher
         .publish(
-            &query_id,
+            query_id,
             ResultEvent::from_control_signal(
                 query_id,
                 seq_manager.increment("control"),
@@ -568,7 +564,7 @@ async fn bootstrap(
         for change in initial_data.drain(..) {
             let timestamp = change.get_transaction_time();
             let element_id = change.get_reference().element_id.to_string();
-            let change_results = match query.process_source_change(change).await {                
+            let change_results = match query.process_source_change(change).await {
                 Ok(r) => r,
                 Err(e) => {
                     log::error!("Error processing source change: {}", e);
@@ -582,8 +578,8 @@ async fn bootstrap(
 
             let seq = seq_manager.increment("bootstrap");
             let output =
-                ResultEvent::from_query_results(&query_id, change_results, seq, timestamp, None);
-            match publisher.publish(&query_id, output).await {
+                ResultEvent::from_query_results(query_id, change_results, seq, timestamp, None);
+            match publisher.publish(query_id, output).await {
                 Ok(_) => log::info!("Published result"),
                 Err(err) => {
                     log::error!("Error publishing result: {}", err);
@@ -595,7 +591,7 @@ async fn bootstrap(
 
     match publisher
         .publish(
-            &query_id,
+            query_id,
             ResultEvent::from_control_signal(
                 query_id,
                 seq_manager.increment("control"),
@@ -734,7 +730,7 @@ impl SequenceManager {
                     log::error!("Error applying sequence: {}", err);
                 }
 
-                if let Err(_) = chg {
+                if chg.is_err() {
                     log::info!("Sequence counter channel closed");
                     break;
                 }

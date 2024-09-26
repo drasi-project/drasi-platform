@@ -153,9 +153,9 @@ impl<'de> Visitor<'de> for StringOrConfig {
             Integer { value: i64 },
         }
 
-        impl Into<ConfigValueDto> for FakeConfigValueDto {
-            fn into(self) -> ConfigValueDto {
-                match self {
+        impl From<FakeConfigValueDto> for ConfigValueDto {
+            fn from(fcv: FakeConfigValueDto) -> ConfigValueDto {
+                match fcv {
                     FakeConfigValueDto::Inline { value } => ConfigValueDto::Inline {
                         value: InlineValueDto::String { value },
                     },
@@ -174,6 +174,27 @@ impl<'de> Visitor<'de> for StringOrConfig {
                 }
             }
         }
+        // impl Into<ConfigValueDto> for FakeConfigValueDto {
+        //     fn into(self) -> ConfigValueDto {
+        //         match self {
+        //             FakeConfigValueDto::Inline { value } => ConfigValueDto::Inline {
+        //                 value: InlineValueDto::String { value },
+        //             },
+        //             FakeConfigValueDto::Secret { name, key } => {
+        //                 ConfigValueDto::Secret { name, key }
+        //             }
+        //             FakeConfigValueDto::List { value } => ConfigValueDto::Inline {
+        //                 value: InlineValueDto::List { value },
+        //             },
+        //             FakeConfigValueDto::Boolean { value } => ConfigValueDto::Inline {
+        //                 value: InlineValueDto::Boolean { value },
+        //             },
+        //             FakeConfigValueDto::Integer { value } => ConfigValueDto::Inline {
+        //                 value: InlineValueDto::Integer { value },
+        //             },
+        //         }
+        //     }
+        // }
         let fv = FakeConfigValueDto::deserialize(de::value::MapAccessDeserializer::new(map))?;
         Ok(fv.into())
     }

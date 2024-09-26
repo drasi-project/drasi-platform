@@ -51,7 +51,7 @@ where
     dapr_client: dapr::Client<TonicClient>,
     repo: Box<dyn ResourceSpecRepository<TProviderSpec> + Send + Sync>,
     validators: Vec<Box<dyn SchemaValidator + Send + Sync>>,
-    _TProviderSpec: std::marker::PhantomData<TProviderSpec>,
+    _tprovider_spec: std::marker::PhantomData<TProviderSpec>,
 }
 
 #[async_trait]
@@ -91,7 +91,7 @@ where
 
         Ok(ResourceProvider {
             id: id.to_string(),
-            spec: spec,
+            spec,
         })
     }
 

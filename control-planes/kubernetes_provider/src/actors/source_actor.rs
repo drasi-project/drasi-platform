@@ -3,7 +3,7 @@ use crate::{
     spec_builder::source::SourceSpecBuilder,
 };
 use axum::{response::IntoResponse, Json};
-use dapr::{server::actor::context_client::ActorContextClient};
+use dapr::server::actor::context_client::ActorContextClient;
 use dapr_macros::actor;
 use resource_provider_api::models::{SourceSpec, SourceStatus};
 use std::{collections::BTreeMap, marker};
@@ -49,11 +49,10 @@ impl SourceActor {
                 ReconcileStatus::Online => continue,
             };
         }
-        
-        Json(SourceStatus { 
+
+        Json(SourceStatus {
             available,
             messages: Some(messages),
-
         })
     }
 }

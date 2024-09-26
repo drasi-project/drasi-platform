@@ -33,7 +33,6 @@ fn spawn_handler_task(
                 Ok(r) => r,
                 Err(e) => {
                     log::error!("error invoking actor: {}", e);
-                    ()
                 }
             };
         }

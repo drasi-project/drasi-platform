@@ -27,16 +27,16 @@ impl QueryDomainServiceImpl {
     ) -> Self {
         QueryDomainServiceImpl {
             dapr_client,
-            repo: repo,
+            repo,
             actor_type: |spec| format!("{}.ContinuousQuery", spec.container),
             ready_check: |status| status.status == "RUNNING",
             validators: vec![Box::new(QuerySpecValidator {
                 query_container_service: container_service,
             })],
-            _TSpec: std::marker::PhantomData,
-            _TStatus: std::marker::PhantomData,
-            _TApiSpec: std::marker::PhantomData,
-            _TApiStatus: std::marker::PhantomData,
+            _tspec: std::marker::PhantomData,
+            _tstatus: std::marker::PhantomData,
+            _tapi_spec: std::marker::PhantomData,
+            _tapi_status: std::marker::PhantomData,
         }
     }
 }

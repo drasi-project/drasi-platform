@@ -49,11 +49,10 @@ impl FutureQueueConsumer for FutureConsumer {
     }
 
     fn now(&self) -> u64 {
-        let now = SystemTime::now()
+        SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
             .as_secs()
-            * 1000;
-        now
+            * 1000
     }
 }

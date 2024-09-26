@@ -11,9 +11,9 @@ impl From<QueryContainerStatus> for QueryContainerStatusDto {
     }
 }
 
-impl Into<StorageSpec> for StorageSpecDto {
-    fn into(self) -> StorageSpec {
-        match self {
+impl From<StorageSpecDto> for StorageSpec {
+    fn from(spec: StorageSpecDto) -> Self {
+        match spec {
             StorageSpecDto::Memory { enable_archive } => StorageSpec::Memory { enable_archive },
             StorageSpecDto::Redis {
                 connection_string,
@@ -28,13 +28,12 @@ impl Into<StorageSpec> for StorageSpecDto {
                 direct_io,
             } => StorageSpec::RocksDb {
                 enable_archive,
-                storage_class: storage_class.into(),
+                storage_class,
                 direct_io,
             },
         }
     }
 }
-
 impl From<StorageSpec> for StorageSpecDto {
     fn from(spec: StorageSpec) -> Self {
         match spec {
@@ -52,28 +51,28 @@ impl From<StorageSpec> for StorageSpecDto {
                 direct_io,
             } => StorageSpecDto::RocksDb {
                 enable_archive,
-                storage_class: storage_class.into(),
+                storage_class,
                 direct_io,
             },
         }
     }
 }
 
-impl Into<QueryContainerSpec> for QueryContainerSpecDto {
-    fn into(self) -> QueryContainerSpec {
+impl From<QueryContainerSpecDto> for QueryContainerSpec {
+    fn from(spec: QueryContainerSpecDto) -> Self {
         QueryContainerSpec {
-            query_host_count: self.query_host_count,
-            storage: self
+            query_host_count: spec.query_host_count,
+            storage: spec
                 .storage
                 .into_iter()
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
-            results: self
+            results: spec
                 .results
                 .into_iter()
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
-            default_store: self.default_store,
+            default_store: spec.default_store,
         }
     }
 }

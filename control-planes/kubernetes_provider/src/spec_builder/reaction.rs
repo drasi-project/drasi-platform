@@ -12,7 +12,10 @@ use k8s_openapi::{
 use kube::core::ObjectMeta;
 use resource_provider_api::models::{ConfigValue, EndpointSetting, ReactionSpec, ResourceRequest};
 use serde::Serialize;
-use std::{collections::{BTreeMap, HashMap}, hash::{Hash, Hasher}};
+use std::{
+    collections::{BTreeMap, HashMap},
+    hash::{Hash, Hasher},
+};
 
 pub struct ReactionSpecBuilder {}
 
@@ -24,10 +27,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
     ) -> Vec<KubernetesSpec> {
         let mut specs = Vec::new();
 
-        let properties = match source.spec.properties.clone() {
-            Some(props) => props,
-            None => HashMap::new(),
-        };
+        let properties = source.spec.properties.clone().unwrap_or_default();
         let mut env: BTreeMap<String, ConfigValue> = properties.into_iter().collect();
 
         env.insert(
@@ -52,10 +52,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 
         let config_name = format!("{}-{}-{}", source.id, "reaction", "queries");
 
-        let services = match source.spec.services {
-            Some(services) => services,
-            None => HashMap::new(),
-        };
+        let services = source.spec.services.clone().unwrap_or_default();
 
         for (service_name, service_spec) in services {
             let mut config_volumes = BTreeMap::new();
@@ -78,22 +75,16 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 
             let app_port = match service_spec.dapr {
                 Some(ref dapr) => match dapr.get("app-port") {
-                    Some(port) => match port {
-                        ConfigValue::Inline { value } => Some(value.parse::<u16>().unwrap()),
-                        _ => None,
-                    },
-                    None => None,
+                    Some(ConfigValue::Inline { value }) => Some(value.parse::<u16>().unwrap()),
+                    _ => None,
                 },
                 None => None,
             };
 
             let app_protocol = match service_spec.dapr {
                 Some(ref dapr) => match dapr.get("app-protocol") {
-                    Some(protocol) => match protocol {
-                        ConfigValue::Inline { value } => Some(value.clone()),
-                        _ => None,
-                    },
-                    None => None,
+                    Some(ConfigValue::Inline { value }) => Some(value.clone()),
+                    _ => None,
                 },
                 None => None,
             };
@@ -111,7 +102,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                 selector: Some(labels.clone()),
                                 ports: Some(vec![ServicePort {
                                     name: Some(endpoint_name.clone()),
-                                    port: port,
+                                    port,
                                     target_port: Some(IntOrString::String(endpoint_name.clone())),
                                     ..Default::default()
                                 }]),
@@ -155,7 +146,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 service_name: "reaction".to_string(),
                 deployment: deployment_spec,
                 services: k8s_services,
-                config_maps: config_maps,
+                config_maps,
                 volume_claims: BTreeMap::new(),
                 pub_sub: Some(Component {
                     metadata: ObjectMeta {
@@ -180,7 +171,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 fn calc_hash<T: Serialize>(obj: &T) -> String {
     let data = serde_json::to_vec(obj).unwrap();
     let mut hash = SpookyHasher::default();
-    data.hash(&mut hash);    
+    data.hash(&mut hash);
     let hsh = hash.finish();
     format!("{:02x}", hsh)
 }

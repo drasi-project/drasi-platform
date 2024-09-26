@@ -22,7 +22,7 @@ const VERSION: i32 = 16;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting Kubernetes Provider version {}", VERSION);
+    log::info!("Starting Kubernetes Provider version {}", VERSION);
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::thread::sleep(std::time::Duration::new(3, 0));
 
     let mut dapr_server = dapr::server::DaprHttpServer::new().await;
-    static RUNTIME_CONFIG: Lazy<RuntimeConfig> = Lazy::new(|| RuntimeConfig::default());
+    static RUNTIME_CONFIG: Lazy<RuntimeConfig> = Lazy::new(RuntimeConfig::default);
 
     let kube_config = Config::infer().await?;
 

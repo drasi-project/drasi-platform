@@ -1,0 +1,126 @@
+name: Run cargo fmt and cargo clippy
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: [ "main" ]
+  
+
+jobs:
+  clippy_check:
+    name: Cargo Clippy lint check
+    env:
+      # Set RUSTFLAGS for Clippy linting
+      # RUSTFLAGS: |
+      #   -Dwarnings                        # Treat warnings as errors
+      #   -W clippy::print_stdout           # Warn on use of 'print' and 'println!'
+      #   -A unused                         # Allow unused code (false positive occurences in query-perf)
+      #   -A clippy::module_inception       # Allow module inception (module with same name as the file)
+      #   -A clippy::ptr_arg                # Allow passing references as function parameters
+      #   -A clippy::type_complexity        # Allow complex types without warning
+      RUSTFLAGS: |
+        -Dwarnings                        
+        -W clippy::print_stdout       
+        -A unused                         
+        -A clippy::module_inception       
+        -A clippy::ptr_arg                
+        -A clippy::type_complexity      
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [
+          {
+            label: 'Change Dispatcher',
+            context: './sources/shared/change-dispatcher/'
+          },
+          {
+            label: 'Query Container',
+            context: './query-container'
+          },
+          {
+            label: 'Kubernetes Provider',
+            context: './control-planes/kubernetes_provider'
+          },
+          {
+            label: 'Management API',
+            context: './control-planes/mgmt_api'
+          },
+          {
+            label: 'Infrastructure',
+            context: './infrastructure'
+          }
+          # { Will enable after PR #43 gets merged
+          #   label: 'Change router',
+          #   context: './sources/shared/change-router/'
+          # },
+          # { Will enable after PR #45 gets merged
+          #   label: 'Query API',
+          #   context: './sources/shared/query-api/'
+          # },
+        ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          submodules: true          
+          token: ${{ secrets.DRASI_CORE_PAT }}
+      - name: Install protobuf-compiler
+        run: sudo apt-get install -y protobuf-compiler
+      - name: Run Cargo Clippy for ${{ matrix.component.label }}
+        run: |
+          cd ${{ matrix.component.context }}
+          cargo clippy  --all-targets --all-features 
+
+
+  fmt_check:
+    name: cargo format check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [
+          {
+            label: 'Change Dispatcher',
+            context: './sources/shared/change-dispatcher/'
+          },
+          {
+            label: 'Query Container',
+            context: './query-container'
+          },
+          {
+            label: 'Kubernetes Provider',
+            context: './control-planes/kubernetes_provider'
+          },
+          {
+            label: 'Management API',
+            context: './control-planes/mgmt_api'
+          },
+          {
+            label: 'Infrastructure',
+            context: './infrastructure'
+          }
+          # { Will enable after PR #43 gets merged
+          #   label: 'Change router',
+          #   context: './sources/shared/change-router/'
+          # },
+          # { Will enable after PR #45 gets merged
+          #   label: 'Query API',
+          #   context: './sources/shared/query-api/'
+          # },
+        ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          submodules: true          
+          token: ${{ secrets.DRASI_CORE_PAT }}
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1.0.7
+        with:
+            toolchain: nightly
+            override: true
+      - name: Run Cargo fmt
+        run: |
+          cd ${{ matrix.component.context }}
+          rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
+          cargo fmt -- --check

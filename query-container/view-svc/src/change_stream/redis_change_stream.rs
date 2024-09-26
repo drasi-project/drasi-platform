@@ -203,7 +203,7 @@ impl SequentialChangeStream for RedisChangeStream {
 
 impl Drop for RedisChangeStream {
     fn drop(&mut self) {
-        _ = self.cancel.notify_one();
+        self.cancel.notify_one();
     }
 }
 
@@ -267,35 +267,23 @@ where
                 Ok(data) => Ok(Message {
                     id: message.id.clone(),
                     data,
-                    trace_state: match evt.extension("tracestate") {
-                        Some(v) => Some(v.to_string()),
-                        None => None,
-                    },
-                    trace_parent: match evt.extension("traceparent") {
-                        Some(v) => Some(v.to_string()),
-                        None => None,
-                    },
+                    trace_state: evt.extension("traceparent").map(|v| v.to_string()),
+                    trace_parent: evt.extension("tracestate").map(|v| v.to_string()),
                 }),
-                Err(err) => {
-                    return Err(ChangeStreamError::MessageError {
-                        id: message.id.clone(),
-                        error: format!("Failed to deserialize data: {:?}", err),
-                    })
-                }
-            },
-            _ => {
-                return Err(ChangeStreamError::MessageError {
+                Err(err) => Err(ChangeStreamError::MessageError {
                     id: message.id.clone(),
-                    error: "Invalid data type".to_string(),
-                })
-            }
-        },
-        _ => {
-            return Err(ChangeStreamError::MessageError {
+                    error: format!("Failed to deserialize data: {:?}", err),
+                }),
+            },
+            _ => Err(ChangeStreamError::MessageError {
                 id: message.id.clone(),
-                error: "Missing data".to_string(),
-            })
-        }
+                error: "Invalid data type".to_string(),
+            }),
+        },
+        _ => Err(ChangeStreamError::MessageError {
+            id: message.id.clone(),
+            error: "Missing data".to_string(),
+        }),
     }
 }
 

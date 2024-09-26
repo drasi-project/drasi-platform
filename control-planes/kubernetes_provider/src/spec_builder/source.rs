@@ -106,45 +106,30 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
         });
 
         let source_spec = source.spec;
-        let services = match source_spec.services {
-            Some(services) => services,
-            None => HashMap::new(),
-        }; // Maybe we need to make service as a required field
-        let properties = match source_spec.properties {
-            Some(props) => props,
-            None => HashMap::new(),
-        };
+        let services = source_spec.services.unwrap_or_default();
+        let properties = source_spec.properties.unwrap_or_default();
 
         let env_var_map: BTreeMap<String, ConfigValue> = properties.into_iter().collect();
 
         for (service_name, service_spec) in services {
             let app_port = match service_spec.dapr {
                 Some(ref dapr) => match dapr.get("app-port") {
-                    Some(port) => match port {
-                        ConfigValue::Inline { value } => Some(value.parse::<u16>().unwrap()),
-                        _ => None,
-                    },
-                    None => None,
+                    Some(ConfigValue::Inline { value }) => Some(value.parse::<u16>().unwrap()),
+                    _ => None,
                 },
                 None => None,
             };
 
             let app_protocol = match service_spec.dapr {
                 Some(ref dapr) => match dapr.get("app-protocol") {
-                    Some(protocol) => match protocol {
-                        ConfigValue::Inline { value } => Some(value.clone()),
-                        _ => None,
-                    },
-                    None => None,
+                    Some(ConfigValue::Inline { value }) => Some(value.clone()),
+                    _ => None,
                 },
                 None => None,
             };
 
             let replica = match service_spec.replica {
-                Some(rep) => match rep.parse::<i32>() {
-                    Ok(r) => r,
-                    Err(_) => 1,
-                },
+                Some(rep) => rep.parse::<i32>().unwrap_or(1),
                 None => 1,
             };
             let mut env_var_map = env_var_map.clone();
@@ -161,40 +146,37 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 }
             }
             let mut k8s_services = BTreeMap::new();
-            match service_spec.endpoints {
-                Some(endpoints) => {
-                    for (endpoint_name, endpoint) in endpoints {
-                        match endpoint.setting {
-                            EndpointSetting::Internal => {
-                                let port = endpoint.target.parse::<i32>().unwrap();
-                                let service_spec = ServiceSpec {
-                                    type_: Some("ClusterIP".to_string()),
-                                    selector: Some(hashmap![
-                                        "drasi/type".to_string() => "source".to_string(),
-                                        "drasi/resource".to_string() => source.id.clone(),
-                                        "drasi/service".to_string() => service_name.clone()
-                                    ]),
-                                    ports: Some(vec![ServicePort {
-                                        name: Some(endpoint_name.clone()),
-                                        port: port,
-                                        target_port: Some(IntOrString::Int(port)),
-                                        ..Default::default()
-                                    }]),
+            if let Some(endpoints) = service_spec.endpoints {
+                for (endpoint_name, endpoint) in endpoints {
+                    match endpoint.setting {
+                        EndpointSetting::Internal => {
+                            let port = endpoint.target.parse::<i32>().unwrap();
+                            let service_spec = ServiceSpec {
+                                type_: Some("ClusterIP".to_string()),
+                                selector: Some(hashmap![
+                                    "drasi/type".to_string() => "source".to_string(),
+                                    "drasi/resource".to_string() => source.id.clone(),
+                                    "drasi/service".to_string() => service_name.clone()
+                                ]),
+                                ports: Some(vec![ServicePort {
+                                    name: Some(endpoint_name.clone()),
+                                    port,
+                                    target_port: Some(IntOrString::Int(port)),
                                     ..Default::default()
-                                };
+                                }]),
+                                ..Default::default()
+                            };
 
-                                k8s_services.insert(endpoint_name.clone(), service_spec);
-                            }
-                            EndpointSetting::External => {
-                                unimplemented!();
-                            }
-                            _ => {
-                                unreachable!();
-                            }
+                            k8s_services.insert(endpoint_name.clone(), service_spec);
+                        }
+                        EndpointSetting::External => {
+                            unimplemented!();
+                        }
+                        _ => {
+                            unreachable!();
                         }
                     }
                 }
-                None => {}
             };
 
             let k8s_spec = KubernetesSpec {

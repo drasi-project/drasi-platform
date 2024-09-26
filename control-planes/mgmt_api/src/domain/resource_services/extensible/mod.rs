@@ -40,10 +40,10 @@ where
     validators: Vec<Box<dyn ExtensibleSpecValidator<TSpec> + Send + Sync>>,
     retrieve_current_kind: fn(&TSpec) -> Option<String>,
     populate_default_values: fn(&TSpec, Value) -> Result<TSpec, DomainError>,
-    _TSpec: std::marker::PhantomData<TSpec>,
-    _TStatus: std::marker::PhantomData<TStatus>,
-    _TApiSpec: std::marker::PhantomData<TApiSpec>,
-    _TApiStatus: std::marker::PhantomData<TApiStatus>,
+    _tspec: std::marker::PhantomData<TSpec>,
+    _tstatus: std::marker::PhantomData<TStatus>,
+    _tapi_spec: std::marker::PhantomData<TApiSpec>,
+    _tapi_status: std::marker::PhantomData<TApiStatus>,
 }
 
 #[async_trait]
@@ -159,7 +159,7 @@ where
 
         Ok(Resource {
             id: id.to_string(),
-            spec: spec,
+            spec,
             status: {
                 let mut mut_dapr = self.dapr_client.clone();
                 let status: Option<TApiStatus> = match mut_dapr
@@ -173,10 +173,7 @@ where
                     }
                 };
 
-                match status {
-                    Some(s) => Some(s.into()),
-                    None => None,
-                }
+                status.map(|s| s.into())
             },
         })
     }
@@ -208,10 +205,7 @@ where
                         }
                     };
 
-                    match status {
-                        Some(s) => Some(s.into()),
-                        None => None,
-                    }
+                    status.map(|s| s.into())
                 },
             });
         }

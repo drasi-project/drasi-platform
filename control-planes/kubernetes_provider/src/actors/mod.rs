@@ -7,9 +7,9 @@ use crate::{
 use async_trait::async_trait;
 use dapr::server::{
     actor::{
+        axum::{response::IntoResponse, Json},
         context_client::{ActorContextClient, ActorStateOperation},
-        Actor, ActorError,  axum::{response::IntoResponse, Json},
-
+        Actor, ActorError,
     },
     utils::DaprJson,
 };
@@ -138,7 +138,7 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
             .await
         {
             Ok(result) => {
-                if result.data.len() == 0 {
+                if result.data.is_empty() {
                     log::debug!("No actor state found");
                     return Ok(Vec::new());
                 }
@@ -146,13 +146,13 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
                     Ok(specs) => Ok(specs),
                     Err(e) => {
                         log::error!("Failed to deserialize actor state: {}", e);
-                        return Err(ActorError::MethodError(Box::new(e)));
+                        Err(ActorError::MethodError(Box::new(e)))
                     }
                 }
             }
             Err(e) => {
                 log::error!("Failed to get actor state: {}", e);
-                return Err(ActorError::MethodError(Box::new(e)));
+                Err(ActorError::MethodError(Box::new(e)))
             }
         }
     }
@@ -162,7 +162,10 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
         let mut controllers = self.controllers.write().await;
         controllers.clear();
         for spec in specs {
-            controllers.insert(spec.service_name.clone(), ResourceController::start(self.kube_config.clone(), spec));
+            controllers.insert(
+                spec.service_name.clone(),
+                ResourceController::start(self.kube_config.clone(), spec),
+            );
         }
     }
 

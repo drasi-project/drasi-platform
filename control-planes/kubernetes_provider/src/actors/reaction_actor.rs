@@ -3,7 +3,7 @@ use crate::{
     spec_builder::reaction::ReactionSpecBuilder,
 };
 use axum::{response::IntoResponse, Json};
-use dapr::{server::actor::context_client::ActorContextClient};
+use dapr::server::actor::context_client::ActorContextClient;
 use dapr_macros::actor;
 use resource_provider_api::models::{ReactionSpec, ReactionStatus};
 use std::{collections::BTreeMap, marker};
@@ -35,7 +35,6 @@ impl ReactionActor {
         }
     }
 
-
     pub async fn get_status(&self) -> impl IntoResponse {
         let controllers = self.controllers.read().await;
         let available = controllers
@@ -50,11 +49,10 @@ impl ReactionActor {
                 ReconcileStatus::Online => continue,
             };
         }
-        
-        Json(ReactionStatus { 
+
+        Json(ReactionStatus {
             available,
             messages: Some(messages),
-
         })
     }
 }

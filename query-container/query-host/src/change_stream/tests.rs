@@ -1,3 +1,4 @@
+#![allow(clippy::print_stdout)]
 use std::{env, time::Duration};
 
 use redis::{streams::StreamPendingReply, AsyncCommands};
@@ -22,7 +23,7 @@ fn get_url() -> String {
 #[tokio::test]
 async fn serves_messages_sequentially() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -35,11 +36,11 @@ async fn serves_messages_sequentially() {
         .unwrap();
 
     let _: redis::Value = connection
-        .xadd(&query_container_id, "*", &vec![("data", "{\"data\": 1}")])
+        .xadd(&query_container_id, "*", &[("data", "{\"data\": 1}")])
         .await
         .unwrap();
     let _: redis::Value = connection
-        .xadd(&query_container_id, "*", &vec![("data", "{\"data\": 2}")])
+        .xadd(&query_container_id, "*", &[("data", "{\"data\": 2}")])
         .await
         .unwrap();
 
@@ -56,7 +57,7 @@ async fn serves_messages_sequentially() {
             .xadd(
                 &query_container_id,
                 "*",
-                &vec![("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {}}}", i))],
             )
             .await
             .unwrap();
@@ -72,7 +73,7 @@ async fn serves_messages_sequentially() {
 #[tokio::test]
 async fn buffers_messages() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -89,7 +90,7 @@ async fn buffers_messages() {
             .xadd(
                 &query_container_id,
                 "*",
-                &vec![("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {}}}", i))],
             )
             .await
             .unwrap();
@@ -122,7 +123,7 @@ async fn buffers_messages() {
 #[tokio::test]
 async fn recovers_unack_messages() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -139,7 +140,7 @@ async fn recovers_unack_messages() {
             .xadd(
                 &query_container_id,
                 "*",
-                &vec![("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {}}}", i))],
             )
             .await
             .unwrap();
@@ -170,7 +171,7 @@ async fn recovers_unack_messages() {
 #[tokio::test]
 async fn waits_for_new_messages() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -185,7 +186,7 @@ async fn waits_for_new_messages() {
     task::spawn(async move {
         tokio::time::sleep(Duration::from_millis(1000)).await;
         let _: redis::Value = connection
-            .xadd(&query_container_id, "*", &vec![("data", "{\"data\": 1}")])
+            .xadd(&query_container_id, "*", &[("data", "{\"data\": 1}")])
             .await
             .unwrap();
     });
@@ -197,7 +198,7 @@ async fn waits_for_new_messages() {
 #[tokio::test]
 async fn stops_buffering_on_drop() {
     let url = get_url();
-    let query_container_id = format!("test:{}", Uuid::new_v4().to_string());
+    let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
@@ -214,7 +215,7 @@ async fn stops_buffering_on_drop() {
             .xadd(
                 &query_container_id,
                 "*",
-                &vec![("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {}}}", i))],
             )
             .await
             .unwrap();
@@ -235,7 +236,7 @@ async fn stops_buffering_on_drop() {
             .xadd(
                 &query_container_id,
                 "*",
-                &vec![("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {}}}", i))],
             )
             .await
             .unwrap();
