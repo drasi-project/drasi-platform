@@ -277,7 +277,7 @@ jobs:
             context: './reactions/debezium/debezium-reaction', 
             file: './reactions/debezium/debezium-reaction/Dockerfile', 
             name: 'reaction-debezium', 
-            platforms: 'linux/amd64'
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Debug',
@@ -291,35 +291,35 @@ jobs:
             context: './reactions/azure/eventgrid-reaction', 
             file: './reactions/azure/eventgrid-reaction/Dockerfile', 
             name: 'reaction-eventgrid', 
-            platforms: 'linux/amd64'
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Gremlin',
             context: './reactions/gremlin/gremlin-reaction', 
             file: './reactions/gremlin/gremlin-reaction/Dockerfile', 
             name: 'reaction-gremlin', 
-            platforms: 'linux/amd64'
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Result',
             context: './reactions/platform/result-reaction', 
             file: './reactions/platform/result-reaction/Dockerfile', 
             name: 'reaction-result', 
-            platforms: 'linux/amd64'
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'StorageQueue',
             context: './reactions/azure/storagequeue-reaction', 
             file: './reactions/azure/storagequeue-reaction/Dockerfile', 
             name: 'reaction-storagequeue', 
-            platforms: 'linux/amd64'
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'StoredProc',
             context: './reactions/sql/storedproc-reaction', 
             file: './reactions/sql/storedproc-reaction/Dockerfile', 
             name: 'reaction-storedproc', 
-            platforms: 'linux/amd64'
+            platforms: 'linux/amd64,linux/arm64'
           }
         ]
     steps:
