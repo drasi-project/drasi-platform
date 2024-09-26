@@ -171,4 +171,4 @@ spec:
       - DatabasePassword
   services:
     storedproc:
-      image: reaction-result
+      image: reaction-storedproc
