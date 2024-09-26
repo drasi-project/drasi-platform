@@ -72,7 +72,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
                 Ok(validation) => validation,
                 Err(e) => {
                     return Err(DomainError::InvalidSpec {
-                        message: format!("Invalid source config schema"),
+                        message: "Invalid source config schema".to_string(),
                     });
                 }
             };
@@ -159,7 +159,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
             Some(services) => services,
             None => {
                 return Err(DomainError::InvalidSpec {
-                    message: format!("Invalid source schema"),
+                    message: "Invalid source schema".to_string(),
                 })
             }
         };
@@ -168,13 +168,13 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
             Some(services) => services,
             None => {
                 return Err(DomainError::InvalidSpec {
-                    message: format!("Services not defined"),
+                    message: "Services not defined".to_string(),
                 })
             }
         };
         // Check if the services defined in the source spec are defined in the schema
         for (service_name, service_settings) in &services {
-            if !defined_services.contains(&service_name) {
+            if !defined_services.contains(service_name) {
                 return Err(DomainError::UndefinedSetting {
                     message: format!("Service {} is not defined in the schema", service_name),
                 });
@@ -342,7 +342,7 @@ fn populate_default_values(
                                 Some(n) => n,
                                 None => {
                                     return Err(DomainError::InvalidSpec {
-                                        message: format!("expected a valid integer"),
+                                        message: "expected a valid integer".to_string(),
                                     })
                                 }
                             },
@@ -366,7 +366,7 @@ fn populate_default_values(
                                             Some(n) => n,
                                             None => {
                                                 return Err(DomainError::InvalidSpec {
-                                                    message: format!("expected a valid integer"),
+                                                    message: "expected a valid integer".to_string(),
                                                 })
                                             }
                                         },
@@ -452,7 +452,7 @@ fn populate_default_values(
                                                 Some(n) => n.to_string(),
                                                 None => {
                                                     return Err(DomainError::InvalidSpec {
-                                                        message: format!("Invalid dapr value"),
+                                                        message: "Invalid dapr value".to_string(),
                                                     })
                                                 }
                                             },
@@ -468,7 +468,7 @@ fn populate_default_values(
                                                     Some(n) => n.to_string(),
                                                     None => {
                                                         return Err(DomainError::InvalidSpec {
-                                                            message: format!("Invalid dapr value"),
+                                                            message: "Invalid dapr value".to_string(),
                                                         })
                                                     }
                                                 },
@@ -550,7 +550,7 @@ fn populate_default_values(
                                             Some(n) => n.to_string(),
                                             None => {
                                                 return Err(DomainError::InvalidSpec {
-                                                    message: format!("expected a valid integer"),
+                                                    message: "expected a valid integer".to_string(),
                                                 })
                                             }
                                         },
@@ -620,7 +620,7 @@ fn populate_default_values(
                             Some(setting) => setting.as_str().unwrap().to_string(),
                             None => {
                                 return Err(DomainError::InvalidSpec {
-                                    message: format!("Invalid endpoint setting"),
+                                    message: "Invalid endpoint setting".to_string(),
                                 })
                             }
                         };
@@ -628,7 +628,7 @@ fn populate_default_values(
                             Some(target) => target.as_str().unwrap().to_string(),
                             None => {
                                 return Err(DomainError::InvalidSpec {
-                                    message: format!("Invalid endpoint target"),
+                                    message: "Invalid endpoint target".to_string(),
                                 })
                             }
                         };
@@ -641,11 +641,11 @@ fn populate_default_values(
                                             InlineValue::String { value } => value.clone(),
                                             InlineValue::Integer { value } => value.to_string(),
                                             _ => return Err(DomainError::InvalidSpec {
-                                                message: format!("Invalid endpoint value; expected string or integer"),
+                                                message: "Invalid endpoint value; expected string or integer".to_string(),
                                             }),
                                         }
                                         _ => return Err(DomainError::InvalidSpec {
-                                            message: format!("Invalid endpoint value; expected string or integere"),
+                                            message: "Invalid endpoint value; expected string or integere".to_string(),
                                         }),
                                     },
                                     None => return Err(DomainError::InvalidSpec {
@@ -654,7 +654,7 @@ fn populate_default_values(
                                 }
                             },
                             None => return Err(DomainError::InvalidSpec {
-                                message: format!("Unable to retrieve the target port as the properties are not defined"),
+                                message: "Unable to retrieve the target port as the properties are not defined".to_string(),
                             }),
                         };
 
@@ -665,7 +665,7 @@ fn populate_default_values(
                                     "external" => EndpointSetting::External,
                                     _ => {
                                         return Err(DomainError::InvalidSpec {
-                                            message: format!("Invalid endpoint setting; expected \'internal\' or \'external\'"),
+                                            message: "Invalid endpoint setting; expected \'internal\' or \'external\'".to_string(),
                                         })
                                     }
                                 }
@@ -687,7 +687,7 @@ fn populate_default_values(
                     Value::Number(s) => Some(s.to_string()),
                     _ => {
                         return Err(DomainError::InvalidSpec {
-                            message: format!("Invalid image value"),
+                            message: "Invalid image value".to_string(),
                         })
                     }
                 },

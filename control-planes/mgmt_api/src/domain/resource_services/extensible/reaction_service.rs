@@ -64,7 +64,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             Some(service) => service,
             None => {
                 return Err(DomainError::InvalidSpec {
-                    message: format!("Invalid reaction schema"),
+                    message: "Invalid reaction schema".to_string(),
                 })
             }
         };
@@ -136,7 +136,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                 Ok(json_data_properties) => json_data_properties,
                 Err(e) => {
                     return Err(DomainError::JsonParseError {
-                        message: format!("Unable to parse the properties"),
+                        message: "Unable to parse the properties".to_string(),
                     })
                 }
             };
@@ -160,7 +160,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             Some(schema_services) => schema_services,
             None => {
                 return Err(DomainError::JsonParseError {
-                    message: format!("Invalid reaction schema"),
+                    message: "Invalid reaction schema".to_string(),
                 })
             }
         };
@@ -168,13 +168,13 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             Some(services) => services,
             None => {
                 return Err(DomainError::InvalidSpec {
-                    message: format!("Services not defined"),
+                    message: "Services not defined".to_string(),
                 })
             }
         };
-        let defined_services: Vec<String> = schema_services.keys().map(|s| s.clone()).collect();
-        for (service_name, _service_settings) in &services {
-            if !defined_services.contains(&service_name) {
+        let defined_services: Vec<String> = schema_services.keys().cloned().collect();
+        for service_name in services.keys() {
+            if !defined_services.contains(service_name) {
                 return Err(DomainError::UndefinedSetting {
                     message: format!("Service {} is not defined in the schema", service_name),
                 });
@@ -269,7 +269,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                     Ok(json_data_properties) => json_data_properties,
                     Err(e) => {
                         return Err(DomainError::JsonParseError {
-                            message: format!("Unable to parse the service properties"),
+                            message: "Unable to parse the service properties".to_string(),
                         })
                     }
                 };
@@ -306,7 +306,7 @@ fn populate_default_values(
             Some(properties) => properties,
             None => {
                 return Err(DomainError::JsonParseError {
-                    message: format!("Invalid reaction schema"),
+                    message: "Invalid reaction schema".to_string(),
                 })
             }
         };
@@ -333,7 +333,7 @@ fn populate_default_values(
                                 Some(i) => i,
                                 None => {
                                     return Err(DomainError::InvalidSpec {
-                                        message: format!("expected a valid integer"),
+                                        message: "expected a valid integer".to_string(),
                                     })
                                 }
                             },
@@ -357,7 +357,7 @@ fn populate_default_values(
                                             Some(i) => i,
                                             None => {
                                                 return Err(DomainError::InvalidSpec {
-                                                    message: format!("expected a valid integer"),
+                                                    message: "expected a valid integer".to_string(),
                                                 })
                                             }
                                         },
@@ -390,7 +390,7 @@ fn populate_default_values(
             Some(properties) => properties,
             None => {
                 return Err(DomainError::JsonParseError {
-                    message: format!("Invalid reaction schema"),
+                    message: "Invalid reaction schema".to_string(),
                 })
             }
         };
@@ -459,9 +459,7 @@ fn populate_default_values(
                                                     Some(i) => i.to_string(),
                                                     None => {
                                                         return Err(DomainError::InvalidSpec {
-                                                            message: format!(
-                                                                "expected a valid integer"
-                                                            ),
+                                                            message: "expected a valid integer".to_string(),
                                                         })
                                                     }
                                                 },
@@ -538,7 +536,7 @@ fn populate_default_values(
                                             Some(i) => i,
                                             None => {
                                                 return Err(DomainError::InvalidSpec {
-                                                    message: format!("expected a valid integer"),
+                                                    message: "expected a valid integer".to_string(),
                                                 })
                                             }
                                         },
@@ -617,7 +615,7 @@ fn populate_default_values(
                             Some(setting) => setting.as_str().unwrap().to_string(),
                             None => {
                                 return Err(DomainError::InvalidSpec {
-                                    message: format!("Invalid endpoint setting"),
+                                    message: "Invalid endpoint setting".to_string(),
                                 })
                             }
                         };
@@ -625,7 +623,7 @@ fn populate_default_values(
                             Some(target) => target.as_str().unwrap().to_string(),
                             None => {
                                 return Err(DomainError::InvalidSpec {
-                                    message: format!("Invalid endpoint target"),
+                                    message: "Invalid endpoint target".to_string(),
                                 })
                             }
                         };
@@ -638,11 +636,11 @@ fn populate_default_values(
                                             InlineValue::String { value } => value.clone(),
                                             InlineValue::Integer { value } => value.to_string(),
                                             _ => return Err(DomainError::InvalidSpec {
-                                                message: format!("Invalid endpoint value; endpoint target must be a string or integer"),
+                                                message: "Invalid endpoint value; endpoint target must be a string or integer".to_string(),
                                             }),
                                         }
                                         _ => return Err(DomainError::InvalidSpec {
-                                            message: format!("Invalid endpoint value; endpoint target must be a string or integer"),
+                                            message: "Invalid endpoint value; endpoint target must be a string or integer".to_string(),
                                         }),
                                     },
                                     None => return Err(DomainError::InvalidSpec {
@@ -651,7 +649,7 @@ fn populate_default_values(
                                 }
                             },
                             None => return Err(DomainError::InvalidSpec {
-                                message: format!("target port is not defined"),
+                                message: "target port is not defined".to_string(),
                             }),
                         };
 
@@ -662,7 +660,7 @@ fn populate_default_values(
                                     "external" => EndpointSetting::External,
                                     _ => {
                                         return Err(DomainError::InvalidSpec {
-                                            message: format!("Invalid endpoint setting; endpoint setting must be either internal or external"),
+                                            message: "Invalid endpoint setting; endpoint setting must be either internal or external".to_string(),
                                         })
                                     }
                                 }
@@ -683,13 +681,13 @@ fn populate_default_values(
                     Value::Number(s) => Some(s.to_string()),
                     _ => {
                         return Err(DomainError::InvalidSpec {
-                            message: format!("Invalid image value"),
+                            message: "Invalid image value".to_string(),
                         })
                     }
                 },
                 None => {
                     return Err(DomainError::InvalidSpec {
-                        message: format!("Image not defined"),
+                        message: "Image not defined".to_string(),
                     })
                 }
             };
@@ -705,7 +703,7 @@ fn populate_default_values(
         }
     } else {
         return Err(DomainError::InvalidSpec {
-            message: format!("Invalid reaction schema"),
+            message: "Invalid reaction schema".to_string(),
         });
     }
 
