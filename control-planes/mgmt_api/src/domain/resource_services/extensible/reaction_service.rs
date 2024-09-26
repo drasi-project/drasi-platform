@@ -79,9 +79,14 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             };
             let source_properties = match spec.properties {
                 Some(ref properties) => properties.clone(),
-                None => return Err(DomainError::InvalidSpec {
-                    message: format!("properties are not defined for reaction {}", spec.kind.clone()),
-                }),
+                None => {
+                    return Err(DomainError::InvalidSpec {
+                        message: format!(
+                            "properties are not defined for reaction {}",
+                            spec.kind.clone()
+                        ),
+                    })
+                }
             };
 
             let mut new_spec_properties = serde_json::Map::new();
@@ -179,7 +184,10 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             Some(services) => services,
             None => {
                 return Err(DomainError::InvalidSpec {
-                    message: format!("reaction service are not defined for reaction {}", spec.kind.clone()),
+                    message: format!(
+                        "reaction service are not defined for reaction {}",
+                        spec.kind.clone()
+                    ),
                 })
             }
         };
@@ -323,9 +331,11 @@ fn populate_default_values(
                         value: InlineValue::Integer {
                             value: match n.as_i64() {
                                 Some(i) => i,
-                                None => return Err(DomainError::InvalidSpec {
-                                    message: format!("expected a valid integer"),
-                                }),
+                                None => {
+                                    return Err(DomainError::InvalidSpec {
+                                        message: format!("expected a valid integer"),
+                                    })
+                                }
                             },
                         },
                     },
@@ -345,9 +355,11 @@ fn populate_default_values(
                                     value: InlineValue::Integer {
                                         value: match n.as_i64() {
                                             Some(i) => i,
-                                            None => return Err(DomainError::InvalidSpec {
-                                                message: format!("expected a valid integer"),
-                                            }),
+                                            None => {
+                                                return Err(DomainError::InvalidSpec {
+                                                    message: format!("expected a valid integer"),
+                                                })
+                                            }
                                         },
                                     },
                                 },
@@ -382,7 +394,7 @@ fn populate_default_values(
                 })
             }
         };
-        
+
         for (service_name, service_config) in schema_services {
             let service_config_map = match service_config.as_object() {
                 Some(properties) => properties,
@@ -427,9 +439,13 @@ fn populate_default_values(
                                         value: InlineValue::String {
                                             value: match n.as_i64() {
                                                 Some(i) => i.to_string(),
-                                                None => return Err(DomainError::InvalidSpec {
-                                                    message: format!("expected a valid integer"),
-                                                }),
+                                                None => {
+                                                    return Err(DomainError::InvalidSpec {
+                                                        message: format!(
+                                                            "expected a valid integer"
+                                                        ),
+                                                    })
+                                                }
                                             },
                                         },
                                     },
@@ -441,9 +457,13 @@ fn populate_default_values(
                                                 Value::Bool(b) => b.to_string(),
                                                 Value::Number(n) => match n.as_i64() {
                                                     Some(i) => i.to_string(),
-                                                    None => return Err(DomainError::InvalidSpec {
-                                                        message: format!("expected a valid integer"),
-                                                    }),
+                                                    None => {
+                                                        return Err(DomainError::InvalidSpec {
+                                                            message: format!(
+                                                                "expected a valid integer"
+                                                            ),
+                                                        })
+                                                    }
                                                 },
                                                 _ => continue,
                                             };
@@ -490,7 +510,10 @@ fn populate_default_values(
                         },
                         None => {
                             return Err(DomainError::InvalidSpec {
-                                message: format!("Unable to retrieve the service properties for {}", service_name),
+                                message: format!(
+                                    "Unable to retrieve the service properties for {}",
+                                    service_name
+                                ),
                             })
                         }
                     };
@@ -513,9 +536,11 @@ fn populate_default_values(
                                     value: InlineValue::Integer {
                                         value: match n.as_i64() {
                                             Some(i) => i,
-                                            None => return Err(DomainError::InvalidSpec {
-                                                message: format!("expected a valid integer"),
-                                            }),
+                                            None => {
+                                                return Err(DomainError::InvalidSpec {
+                                                    message: format!("expected a valid integer"),
+                                                })
+                                            }
                                         },
                                     },
                                 },
@@ -535,9 +560,13 @@ fn populate_default_values(
                                                 value: InlineValue::Integer {
                                                     value: match n.as_i64() {
                                                         Some(i) => i,
-                                                        None => return Err(DomainError::InvalidSpec {
-                                                            message: format!("expected a valid integer"),
-                                                        }),
+                                                        None => {
+                                                            return Err(DomainError::InvalidSpec {
+                                                                message: format!(
+                                                                    "expected a valid integer"
+                                                                ),
+                                                            })
+                                                        }
                                                     },
                                                 },
                                             },
@@ -577,24 +606,29 @@ fn populate_default_values(
                             Some(properties) => properties,
                             None => {
                                 return Err(DomainError::JsonParseError {
-                                    message: format!("Invalid endpoint properties for {}", endpoint_name),
+                                    message: format!(
+                                        "Invalid endpoint properties for {}",
+                                        endpoint_name
+                                    ),
                                 })
                             }
                         };
-                        let setting = match endpoints_properties
-                            .get("setting") {
-                                Some(setting) => setting.as_str().unwrap().to_string(),
-                                None => return Err(DomainError::InvalidSpec {
+                        let setting = match endpoints_properties.get("setting") {
+                            Some(setting) => setting.as_str().unwrap().to_string(),
+                            None => {
+                                return Err(DomainError::InvalidSpec {
                                     message: format!("Invalid endpoint setting"),
-                                }),
-                            };
-                        let target = match endpoints_properties
-                            .get("target") {
-                                Some(target) => target.as_str().unwrap().to_string(),
-                                None => return Err(DomainError::InvalidSpec {
+                                })
+                            }
+                        };
+                        let target = match endpoints_properties.get("target") {
+                            Some(target) => target.as_str().unwrap().to_string(),
+                            None => {
+                                return Err(DomainError::InvalidSpec {
                                     message: format!("Invalid endpoint target"),
-                                }),
-                            };
+                                })
+                            }
+                        };
                         let target = target.trim_start_matches("$").to_string();
                         let target_port_value = match service_properties {
                             Some(ref properties) => {
@@ -647,9 +681,11 @@ fn populate_default_values(
                 Some(image) => match image {
                     Value::String(s) => Some(s.clone()),
                     Value::Number(s) => Some(s.to_string()),
-                    _ => return Err(DomainError::InvalidSpec {
-                        message: format!("Invalid image value"),
-                    }),
+                    _ => {
+                        return Err(DomainError::InvalidSpec {
+                            message: format!("Invalid image value"),
+                        })
+                    }
                 },
                 None => {
                     return Err(DomainError::InvalidSpec {
