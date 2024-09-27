@@ -29,24 +29,18 @@ jobs:
         component: [
           { 
             label: 'Query Host',
-            context: './query-container/query-host', 
-            file: './query-container/query-host/Dockerfile', 
-            name: 'query-container-query-host', 
-            platforms: 'linux/amd64'
+            path: 'query-container/query-host', 
+            name: 'query-container-query-host'
           },
           { 
             label: 'Publish API',
-            context: './query-container/publish-api', 
-            file: './query-container/publish-api/Dockerfile', 
-            name: 'query-container-publish-api', 
-            platforms: 'linux/amd64'
+            path: 'query-container/publish-api', 
+            name: 'query-container-publish-api'
           },
           { 
             label: 'View Service',
-            context: './query-container/view-svc', 
-            file: './query-container/view-svc/Dockerfile', 
-            name: 'query-container-view-svc', 
-            platforms: 'linux/amd64'
+            path: 'query-container/view-svc', 
+            name: 'query-container-view-svc'
           }
         ]
 
@@ -71,28 +65,17 @@ jobs:
           key: buildx-${{ matrix.component.name }}
           restore-keys: |
             buildx-${{ matrix.component.name }}
-      
-      - name: Build
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: ${{ matrix.component.context }}
-          file: ${{ matrix.component.file }}
-          platforms: ${{ matrix.component.platforms }}
-          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}
-          load: true
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
-      - name: Save Docker image to cache
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.docker-cache
-          key: docker-${{ github.sha }}
-          
-      - name: Save the Docker image
+      - name: Build
         run: |
-          mkdir -p /tmp/.docker-cache
-          docker save ${{ github.repository_owner }}/${{ matrix.component.name }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz      
+          cd ${{ matrix.component.path }}
+          DOCKERX_OPTS="--output type=docker,dest=${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        with:
+          name: image-${{ matrix.component.name }}
+          path: ${{ matrix.component.name }}.tar.gz
 
 
   build-control-plane:
@@ -105,17 +88,13 @@ jobs:
         component: [
           { 
             label: 'Management API',
-            context: './control-planes', 
-            file: './control-planes/mgmt_api/Dockerfile', 
-            name: 'api', 
-            platforms: 'linux/amd64'
+            path: 'control-planes/mgmt_api', 
+            name: 'api'
           },
           { 
             label: 'k8s Resource Provider',
-            context: './control-planes', 
-            file: './control-planes/kubernetes_provider/Dockerfile', 
-            name: 'kubernetes-provider', 
-            platforms: 'linux/amd64'
+            path: 'control-planes/kubernetes_provider', 
+            name: 'kubernetes-provider'
           }
         ]
     steps:
@@ -139,26 +118,15 @@ jobs:
             buildx-${{ matrix.component.name }}
       
       - name: Build
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: ${{ matrix.component.context }}
-          file: ${{ matrix.component.file }}
-          platforms: ${{ matrix.component.platforms }}
-          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}
-          load: true
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
-
-      - name: Save Docker image to cache
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.docker-cache
-          key: docker-${{ github.sha }}
-          
-      - name: Save the Docker image
         run: |
-          mkdir -p /tmp/.docker-cache
-          docker save ${{ github.repository_owner }}/${{ matrix.component.name }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
+          cd ${{ matrix.component.path }}
+          DOCKERX_OPTS="--output type=docker,dest=${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        with:
+          name: image-${{ matrix.component.name }}
+          path: ${{ matrix.component.name }}.tar.gz
 
   build-sources:
     runs-on: ubuntu-latest
@@ -170,81 +138,59 @@ jobs:
         component: [
           { 
             label: 'Change Router',
-            context: '.', 
-            file: './sources/shared/change-router/Dockerfile', 
-            name: 'source-change-router', 
-            platforms: 'linux/amd64'
+            path: 'sources/shared/change-router', 
+            name: 'source-change-router'
           },
           { 
             label: 'Change Dispatcher',
-            context: '.', 
-            file: './sources/shared/change-dispatcher/Dockerfile', 
-            name: 'source-change-dispatcher', 
-            platforms: 'linux/amd64'
+            path: 'sources/shared/change-dispatcher', 
+            name: 'source-change-dispatcher'
           },
           { 
             label: 'Query API',
-            context: '.', 
-            file: './sources/shared/query-api/Dockerfile', 
-            name: 'source-query-api', 
-            platforms: 'linux/amd64' 
+            path: 'sources/shared/query-api', 
+            name: 'source-query-api' 
           },
           { 
             label: 'Debezium Reactivator',
-            context: './sources/relational/debezium-reactivator', 
-            file: './sources/relational/debezium-reactivator/Dockerfile', 
-            name: 'source-debezium-reactivator', 
-            platforms: 'linux/amd64' 
+            path: 'sources/relational/debezium-reactivator', 
+            name: 'source-debezium-reactivator'
           },
           { 
             label: 'SQL Proxy',
-            context: './sources/relational/sql-proxy', 
-            file: './sources/relational/sql-proxy/Dockerfile', 
-            name: 'source-sql-proxy', 
-            platforms: 'linux/amd64' 
+            path: 'sources/relational/sql-proxy', 
+            name: 'source-sql-proxy' 
           },
 
           { 
             label: 'CosmosDB Reactivator',
-            context: './sources/cosmosdb/cosmosdb-ffcf-reactivator', 
-            file: './sources/cosmosdb/cosmosdb-ffcf-reactivator/Dockerfile', 
-            name: 'source-cosmosdb-reactivator', 
-            platforms: 'linux/amd64' 
+            path: './sources/cosmosdb/cosmosdb-ffcf-reactivator', 
+            name: 'source-cosmosdb-reactivator'
           },
           { 
             label: 'Gremlin Proxy',
-            context: './sources/cosmosdb/gremlin-proxy', 
-            file: './sources/cosmosdb/gremlin-proxy/Dockerfile', 
-            name: 'source-gremlin-proxy', 
-            platforms: 'linux/amd64' 
+            path: 'sources/cosmosdb/gremlin-proxy', 
+            name: 'source-gremlin-proxy'
           },
           { 
             label: 'Dataverse Reactivator',
-            context: './sources/dataverse/dataverse-reactivator', 
-            file: './sources/dataverse/dataverse-reactivator/Dockerfile', 
-            name: 'source-dataverse-reactivator', 
-            platforms: 'linux/amd64' 
+            path: './sources/dataverse/dataverse-reactivator',
+            name: 'source-dataverse-reactivator'
           },
           { 
             label: 'Dataverse Proxy',
-            context: './sources/dataverse/dataverse-proxy', 
-            file: './sources/dataverse/dataverse-proxy/Dockerfile', 
-            name: 'source-dataverse-proxy', 
-            platforms: 'linux/amd64' 
+            path: './sources/dataverse/dataverse-proxy', 
+            name: 'source-dataverse-proxy'
           },
           { 
             label: 'EventHub Reactivator',
-            context: './sources/eventhub/eventhub-reactivator', 
-            file: './sources/eventhub/eventhub-reactivator/Dockerfile', 
-            name: 'source-eventhub-reactivator', 
-            platforms: 'linux/amd64' 
+            path: './sources/eventhub/eventhub-reactivator', 
+            name: 'source-eventhub-reactivator'
           },
           { 
             label: 'EventHub Proxy',
-            context: './sources/eventhub/eventhub-proxy', 
-            file: './sources/eventhub/eventhub-proxy/Dockerfile', 
-            name: 'source-eventhub-proxy', 
-            platforms: 'linux/amd64' 
+            path: './sources/eventhub/eventhub-proxy', 
+            name: 'source-eventhub-proxy'
           }
         ]
 
@@ -269,26 +215,15 @@ jobs:
             buildx-${{ matrix.component.name }}
       
       - name: Build
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: ${{ matrix.component.context }}
-          file: ${{ matrix.component.file }}
-          platforms: ${{ matrix.component.platforms }}
-          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}
-          load: true
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
-
-      - name: Save Docker image to cache
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.docker-cache
-          key: docker-${{ github.sha }}
-          
-      - name: Save the Docker image
         run: |
-          mkdir -p /tmp/.docker-cache
-          docker save ${{ github.repository_owner }}/${{ matrix.component.name }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
+          cd ${{ matrix.component.path }}
+          DOCKERX_OPTS="--output type=docker,dest=${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        with:
+          name: image-${{ matrix.component.name }}
+          path: ${{ matrix.component.name }}.tar.gz
 
   build-reactions:
     permissions:
@@ -300,66 +235,48 @@ jobs:
         component: [
           { 
             label: 'SignalR',
-            context: './reactions/signalr/signalr-reaction', 
-            file: './reactions/signalr/signalr-reaction/Dockerfile', 
-            name: 'reaction-signalr', 
-            platforms: 'linux/amd64'
+            path: 'reactions/signalr/signalr-reaction', 
+            name: 'reaction-signalr'
           },
           { 
             label: 'Dataverse',
-            context: './reactions/power-platform/dataverse/dataverse-reaction', 
-            file: './reactions/power-platform/dataverse/dataverse-reaction/Dockerfile', 
-            name: 'reaction-dataverse', 
-            platforms: 'linux/amd64'
+            path: './reactions/power-platform/dataverse/dataverse-reaction', 
+            name: 'reaction-dataverse'
           },
           { 
             label: 'Debezium',
-            context: './reactions/debezium/debezium-reaction', 
-            file: './reactions/debezium/debezium-reaction/Dockerfile', 
-            name: 'reaction-debezium', 
-            platforms: 'linux/amd64'
+            path: './reactions/debezium/debezium-reaction', 
+            name: 'reaction-debezium'
           },
           { 
             label: 'Debug',
-            context: './reactions/platform/debug-reaction', 
-            file: './reactions/platform/debug-reaction/Dockerfile', 
-            name: 'reaction-debug', 
-            platforms: 'linux/amd64'
+            path: './reactions/platform/debug-reaction', 
+            name: 'reaction-debug'
           },
           { 
             label: 'EventGrid',
-            context: './reactions/azure/eventgrid-reaction', 
-            file: './reactions/azure/eventgrid-reaction/Dockerfile', 
-            name: 'reaction-eventgrid', 
-            platforms: 'linux/amd64'
+            path: './reactions/azure/eventgrid-reaction',
+            name: 'reaction-eventgrid'
           },
           { 
             label: 'Gremlin',
-            context: './reactions/gremlin/gremlin-reaction', 
-            file: './reactions/gremlin/gremlin-reaction/Dockerfile', 
-            name: 'reaction-gremlin', 
-            platforms: 'linux/amd64'
+            path: './reactions/gremlin/gremlin-reaction', 
+            name: 'reaction-gremlin'
           },
           { 
             label: 'Result',
-            context: './reactions/platform/result-reaction', 
-            file: './reactions/platform/result-reaction/Dockerfile', 
-            name: 'reaction-result', 
-            platforms: 'linux/amd64'
+            path: './reactions/platform/result-reaction', 
+            name: 'reaction-result'
           },
           { 
             label: 'StorageQueue',
-            context: './reactions/azure/storagequeue-reaction', 
-            file: './reactions/azure/storagequeue-reaction/Dockerfile', 
-            name: 'reaction-storagequeue', 
-            platforms: 'linux/amd64'
+            path: './reactions/azure/storagequeue-reaction', 
+            name: 'reaction-storagequeue'
           },
           { 
             label: 'StoredProc',
-            context: './reactions/sql/storedproc-reaction', 
-            file: './reactions/sql/storedproc-reaction/Dockerfile', 
-            name: 'reaction-storedproc', 
-            platforms: 'linux/amd64'
+            path: './reactions/sql/storedproc-reaction', 
+            name: 'reaction-storedproc'
           }
         ]
     steps:
@@ -383,26 +300,15 @@ jobs:
             buildx-${{ matrix.component.name }}
      
       - name: Build
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: ${{ matrix.component.context }}
-          file: ${{ matrix.component.file }}
-          platforms: ${{ matrix.component.platforms }}
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}
-          load: true
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
-
-      - name: Save Docker image to cache
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.docker-cache
-          key: docker-${{ github.sha }}
-          
-      - name: Save the Docker image
         run: |
-          mkdir -p /tmp/.docker-cache
-          docker save ${{ github.repository_owner }}/${{ matrix.component.name }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
+          cd ${{ matrix.component.path }}
+          DOCKERX_OPTS="--output type=docker,dest=${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        with:
+          name: image-${{ matrix.component.name }}
+          path: ${{ matrix.component.name }}.tar.gz
 
   build-cli:
     permissions:
@@ -454,23 +360,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Download artifacts
+      - name: Download CLI
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: cli
+          path: cli
 
       - name: Install Drasi CLI
         run: |
           chmod +x ./cli/linux-x64/drasi
           sudo mv ./cli/linux-x64/drasi /usr/local/bin/drasi
 
-      - name: Restore Docker image from cache
-        uses: actions/cache@v2
+      - name: Download images
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          path: /tmp/.docker-cache
-          key: docker-${{ github.sha }}
+          path: images
+          pattern: image-*
+          merge-multiple: true
 
-      - name: Load Docker image from cache
+      - name: Load Docker images
         run: |
-          find /tmp/.docker-cache -name "*.gz" | while read -r FILE; do
+          find ./images -name "*.gz" | while read -r FILE; do
             echo "Processing $FILE..."            
             gunzip -c "$FILE" | docker load            
             echo "Loaded $(basename "$FILE" .gz) into Docker."

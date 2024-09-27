@@ -7,14 +7,16 @@ DOCKER_TAG_VERSION?=latest
 default: docker-build
 
 docker-build:
-	docker build publish-api -t $(IMAGE_PREFIX)/query-container-publish-api:$(DOCKER_TAG_VERSION)
-	docker build query-host -t $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION)
-	docker build view-svc -t $(IMAGE_PREFIX)/query-container-view-svc:$(DOCKER_TAG_VERSION)
+	$(MAKE) -C publish-api $(MAKECMDGOALS)
+	$(MAKE) -C query-host $(MAKECMDGOALS)
+	$(MAKE) -C view-svc $(MAKECMDGOALS)
 
 kind-load:
-	kind load docker-image $(IMAGE_PREFIX)/query-container-publish-api:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/query-container-view-svc:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
+	$(MAKE) -C publish-api $(MAKECMDGOALS)
+	$(MAKE) -C query-host $(MAKECMDGOALS)
+	$(MAKE) -C view-svc $(MAKECMDGOALS)
 
 test:
-	cargo test --all
+	$(MAKE) -C publish-api $(MAKECMDGOALS)
+	$(MAKE) -C query-host $(MAKECMDGOALS)
+	$(MAKE) -C view-svc $(MAKECMDGOALS)

@@ -2,35 +2,45 @@
 
 CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
-DOCKER_TAG_VERSION?=latest
+DOCKER_TAG_VERSION ?= latest
 
 default: docker-build
 
 docker-build:
-	docker build cosmosdb/cosmosdb-ffcf-reactivator -t $(IMAGE_PREFIX)/source-cosmosdb-reactivator:$(DOCKER_TAG_VERSION)
-	docker build relational/debezium-reactivator -t $(IMAGE_PREFIX)/source-debezium-reactivator:$(DOCKER_TAG_VERSION)
-	docker build ../ -f shared/change-dispatcher/Dockerfile -t $(IMAGE_PREFIX)/source-change-dispatcher:$(DOCKER_TAG_VERSION)
-	docker build ../ -f shared/change-router/Dockerfile -t $(IMAGE_PREFIX)/source-change-router:$(DOCKER_TAG_VERSION)
-	docker build shared/query-api -t $(IMAGE_PREFIX)/source-query-api:$(DOCKER_TAG_VERSION)
-	docker build cosmosdb/gremlin-proxy -t $(IMAGE_PREFIX)/source-gremlin-proxy:$(DOCKER_TAG_VERSION)
-	docker build relational/sql-proxy -t $(IMAGE_PREFIX)/source-sql-proxy:$(DOCKER_TAG_VERSION)
-	docker build eventhub/eventhub-reactivator -t $(IMAGE_PREFIX)/source-eventhub-reactivator:$(DOCKER_TAG_VERSION)
-	docker build eventhub/eventhub-proxy -t $(IMAGE_PREFIX)/source-eventhub-proxy:$(DOCKER_TAG_VERSION)
-	docker build dataverse/dataverse-reactivator -t $(IMAGE_PREFIX)/source-dataverse-reactivator:$(DOCKER_TAG_VERSION)
-	docker build dataverse/dataverse-proxy -t $(IMAGE_PREFIX)/source-dataverse-proxy:$(DOCKER_TAG_VERSION)
+	$(MAKE) -C cosmosdb/cosmosdb-ffcf-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C cosmosdb/gremlin-proxy $(MAKECMDGOALS)
+	$(MAKE) -C relational/debezium-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C relational/sql-proxy $(MAKECMDGOALS)
+	$(MAKE) -C shared/change-dispatcher $(MAKECMDGOALS)
+	$(MAKE) -C shared/change-router $(MAKECMDGOALS)
+	$(MAKE) -C shared/query-api $(MAKECMDGOALS)
+	$(MAKE) -C eventhub/eventhub-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C eventhub/eventhub-proxy $(MAKECMDGOALS)
+	$(MAKE) -C dataverse/dataverse-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C dataverse/dataverse-proxy $(MAKECMDGOALS)
 
 kind-load:
-	kind load docker-image $(IMAGE_PREFIX)/source-cosmosdb-reactivator:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-debezium-reactivator:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-change-dispatcher:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-change-router:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-query-api:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-gremlin-proxy:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-sql-proxy:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-eventhub-reactivator:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-eventhub-proxy:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-dataverse-reactivator:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
-	kind load docker-image $(IMAGE_PREFIX)/source-dataverse-proxy:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
+	$(MAKE) -C cosmosdb/cosmosdb-ffcf-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C cosmosdb/gremlin-proxy $(MAKECMDGOALS)
+	$(MAKE) -C relational/debezium-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C relational/sql-proxy $(MAKECMDGOALS)
+	$(MAKE) -C shared/change-dispatcher $(MAKECMDGOALS)
+	$(MAKE) -C shared/change-router $(MAKECMDGOALS)
+	$(MAKE) -C shared/query-api $(MAKECMDGOALS)
+	$(MAKE) -C eventhub/eventhub-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C eventhub/eventhub-proxy $(MAKECMDGOALS)
+	$(MAKE) -C dataverse/dataverse-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C dataverse/dataverse-proxy $(MAKECMDGOALS)
 
 test:
-	echo "No tests to run yet"
+	$(MAKE) -C cosmosdb/cosmosdb-ffcf-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C cosmosdb/gremlin-proxy $(MAKECMDGOALS)
+	$(MAKE) -C relational/debezium-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C relational/sql-proxy $(MAKECMDGOALS)
+	$(MAKE) -C shared/change-dispatcher $(MAKECMDGOALS)
+	$(MAKE) -C shared/change-router $(MAKECMDGOALS)
+	$(MAKE) -C shared/query-api $(MAKECMDGOALS)
+	$(MAKE) -C eventhub/eventhub-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C eventhub/eventhub-proxy $(MAKECMDGOALS)
+	$(MAKE) -C dataverse/dataverse-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C dataverse/dataverse-proxy $(MAKECMDGOALS)
