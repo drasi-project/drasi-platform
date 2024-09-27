@@ -69,13 +69,13 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: image-${{ matrix.component.name }}
-          path: ${{ github.workspace }}/${{ matrix.component.name }}.tar.gz
+          path: ${{ github.workspace }}/${{ matrix.component.name }}.tar
 
 
   build-control-plane:
@@ -120,13 +120,13 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: image-${{ matrix.component.name }}
-          path: ${{ github.workspace }}/${{ matrix.component.name }}.tar.gz
+          path: ${{ github.workspace }}/${{ matrix.component.name }}.tar
 
   build-sources:
     runs-on: ubuntu-latest
@@ -217,13 +217,13 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: image-${{ matrix.component.name }}
-          path: ${{ github.workspace }}/${{ matrix.component.name }}.tar.gz
+          path: ${{ github.workspace }}/${{ matrix.component.name }}.tar
 
   build-reactions:
     permissions:
@@ -302,13 +302,13 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}          
-          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: image-${{ matrix.component.name }}
-          path: ${{ github.workspace }}/${{ matrix.component.name }}.tar.gz
+          path: ${{ github.workspace }}/${{ matrix.component.name }}.tar
 
   build-cli:
     permissions:
@@ -380,9 +380,9 @@ jobs:
 
       - name: Load Docker images
         run: |
-          find ./images -name "*.gz" | while read -r FILE; do
+          find ./images -name "*.tar" | while read -r FILE; do
             echo "Processing $FILE..."            
-            gunzip -c "$FILE" | docker load            
+            docker load -i $FILE
             echo "Loaded $(basename "$FILE" .gz) into Docker."
           done
         
