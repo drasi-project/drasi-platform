@@ -32,15 +32,6 @@ jobs:
         with:
           submodules: true
 
-      - name: Install latest nightly
-        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1.0.7
-        with:
-            toolchain: nightly
-            override: true
-
-      - name: Install rustfmt
-        run: rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
-
       - name: Install protobuf-compiler
         run: sudo apt-get install -y protobuf-compiler
 
