@@ -78,9 +78,10 @@ jobs:
           context: ${{ matrix.component.context }}
           file: ${{ matrix.component.file }}
           platforms: ${{ matrix.component.platforms }}
-          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }}
+          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}
+          load: true
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
       - name: Save Docker image to cache
         uses: actions/cache@v2
@@ -91,7 +92,7 @@ jobs:
       - name: Save the Docker image
         run: |
           mkdir -p /tmp/.docker-cache
-          docker save ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz      
+          docker save ${{ github.repository_owner }}/${{ matrix.component.name }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz      
 
 
   build-control-plane:
@@ -143,9 +144,10 @@ jobs:
           context: ${{ matrix.component.context }}
           file: ${{ matrix.component.file }}
           platforms: ${{ matrix.component.platforms }}
-          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }}
+          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}
+          load: true
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
       - name: Save Docker image to cache
         uses: actions/cache@v2
@@ -156,7 +158,7 @@ jobs:
       - name: Save the Docker image
         run: |
           mkdir -p /tmp/.docker-cache
-          docker save ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
+          docker save ${{ github.repository_owner }}/${{ matrix.component.name }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
 
   build-sources:
     runs-on: ubuntu-latest
@@ -258,13 +260,6 @@ jobs:
         with:
           install: true
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Cache Docker layers
         uses: actions/cache@v3
         with:
@@ -279,7 +274,8 @@ jobs:
           context: ${{ matrix.component.context }}
           file: ${{ matrix.component.file }}
           platforms: ${{ matrix.component.platforms }}
-          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }}
+          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}
+          load: true
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
 
@@ -292,7 +288,7 @@ jobs:
       - name: Save the Docker image
         run: |
           mkdir -p /tmp/.docker-cache
-          docker save ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
+          docker save ${{ github.repository_owner }}/${{ matrix.component.name }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
 
   build-reactions:
     permissions:
@@ -392,7 +388,8 @@ jobs:
           context: ${{ matrix.component.context }}
           file: ${{ matrix.component.file }}
           platforms: ${{ matrix.component.platforms }}
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }}
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}
+          load: true
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
 
@@ -405,7 +402,7 @@ jobs:
       - name: Save the Docker image
         run: |
           mkdir -p /tmp/.docker-cache
-          docker save ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
+          docker save ${{ github.repository_owner }}/${{ matrix.component.name }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
 
   build-cli:
     permissions:
