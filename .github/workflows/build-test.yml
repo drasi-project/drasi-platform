@@ -69,13 +69,13 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=/${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: image-${{ matrix.component.name }}
-          path: ${{ matrix.component.name }}.tar.gz
+          path: /${{ matrix.component.name }}.tar.gz
 
 
   build-control-plane:
@@ -120,13 +120,13 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=/${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: image-${{ matrix.component.name }}
-          path: ${{ matrix.component.name }}.tar.gz
+          path: /${{ matrix.component.name }}.tar.gz
 
   build-sources:
     runs-on: ubuntu-latest
@@ -217,13 +217,13 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=/${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: image-${{ matrix.component.name }}
-          path: ${{ matrix.component.name }}.tar.gz
+          path: /${{ matrix.component.name }}.tar.gz
 
   build-reactions:
     permissions:
@@ -302,13 +302,13 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=/${{ matrix.component.name }}.tar.gz --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: image-${{ matrix.component.name }}
-          path: ${{ matrix.component.name }}.tar.gz
+          path: /${{ matrix.component.name }}.tar.gz
 
   build-cli:
     permissions:
