@@ -194,7 +194,7 @@ jobs:
             context: './sources/relational/debezium-reactivator', 
             file: './sources/relational/debezium-reactivator/Dockerfile', 
             name: 'source-debezium-reactivator', 
-            platforms: 'linux/amd64,linux/arm64' 
+            platforms: 'linux/amd64' 
           },
           { 
             label: 'SQL Proxy',
@@ -209,7 +209,7 @@ jobs:
             context: './sources/cosmosdb/cosmosdb-ffcf-reactivator', 
             file: './sources/cosmosdb/cosmosdb-ffcf-reactivator/Dockerfile', 
             name: 'source-cosmosdb-reactivator', 
-            platforms: 'linux/amd64,linux/arm64' 
+            platforms: 'linux/amd64' 
           },
           { 
             label: 'Gremlin Proxy',
@@ -223,28 +223,28 @@ jobs:
             context: './sources/dataverse/dataverse-reactivator', 
             file: './sources/dataverse/dataverse-reactivator/Dockerfile', 
             name: 'source-dataverse-reactivator', 
-            platforms: 'linux/amd64,linux/arm64' 
+            platforms: 'linux/amd64' 
           },
           { 
             label: 'Dataverse Proxy',
             context: './sources/dataverse/dataverse-proxy', 
             file: './sources/dataverse/dataverse-proxy/Dockerfile', 
             name: 'source-dataverse-proxy', 
-            platforms: 'linux/amd64,linux/arm64' 
+            platforms: 'linux/amd64' 
           },
           { 
             label: 'EventHub Reactivator',
             context: './sources/eventhub/eventhub-reactivator', 
             file: './sources/eventhub/eventhub-reactivator/Dockerfile', 
             name: 'source-eventhub-reactivator', 
-            platforms: 'linux/amd64,linux/arm64' 
+            platforms: 'linux/amd64' 
           },
           { 
             label: 'EventHub Proxy',
             context: './sources/eventhub/eventhub-proxy', 
             file: './sources/eventhub/eventhub-proxy/Dockerfile', 
             name: 'source-eventhub-proxy', 
-            platforms: 'linux/amd64,linux/arm64' 
+            platforms: 'linux/amd64' 
           }
         ]
 
@@ -303,7 +303,7 @@ jobs:
             context: './reactions/signalr/signalr-reaction', 
             file: './reactions/signalr/signalr-reaction/Dockerfile', 
             name: 'reaction-signalr', 
-            platforms: 'linux/amd64,linux/arm64'
+            platforms: 'linux/amd64'
           },
           { 
             label: 'Dataverse',
@@ -317,49 +317,49 @@ jobs:
             context: './reactions/debezium/debezium-reaction', 
             file: './reactions/debezium/debezium-reaction/Dockerfile', 
             name: 'reaction-debezium', 
-            platforms: 'linux/amd64,linux/arm64'
+            platforms: 'linux/amd64'
           },
           { 
             label: 'Debug',
             context: './reactions/platform/debug-reaction', 
             file: './reactions/platform/debug-reaction/Dockerfile', 
             name: 'reaction-debug', 
-            platforms: 'linux/amd64,linux/arm64'
+            platforms: 'linux/amd64'
           },
           { 
             label: 'EventGrid',
             context: './reactions/azure/eventgrid-reaction', 
             file: './reactions/azure/eventgrid-reaction/Dockerfile', 
             name: 'reaction-eventgrid', 
-            platforms: 'linux/amd64,linux/arm64'
+            platforms: 'linux/amd64'
           },
           { 
             label: 'Gremlin',
             context: './reactions/gremlin/gremlin-reaction', 
             file: './reactions/gremlin/gremlin-reaction/Dockerfile', 
             name: 'reaction-gremlin', 
-            platforms: 'linux/amd64,linux/arm64'
+            platforms: 'linux/amd64'
           },
           { 
             label: 'Result',
             context: './reactions/platform/result-reaction', 
             file: './reactions/platform/result-reaction/Dockerfile', 
             name: 'reaction-result', 
-            platforms: 'linux/amd64,linux/arm64'
+            platforms: 'linux/amd64'
           },
           { 
             label: 'StorageQueue',
             context: './reactions/azure/storagequeue-reaction', 
             file: './reactions/azure/storagequeue-reaction/Dockerfile', 
             name: 'reaction-storagequeue', 
-            platforms: 'linux/amd64,linux/arm64'
+            platforms: 'linux/amd64'
           },
           { 
             label: 'StoredProc',
             context: './reactions/sql/storedproc-reaction', 
             file: './reactions/sql/storedproc-reaction/Dockerfile', 
             name: 'reaction-storedproc', 
-            platforms: 'linux/amd64,linux/arm64'
+            platforms: 'linux/amd64'
           }
         ]
     steps:
