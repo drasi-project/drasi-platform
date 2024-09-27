@@ -1,0 +1,48 @@
+name: Run lint checks
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint_check:
+    name: Cargo Clippy lint check
+    env:
+      # Set RUSTFLAGS for Clippy linting
+      # RUSTFLAGS: |
+      #   -Dwarnings                        # Treat warnings as errors
+      #   -W clippy::print_stdout           # Warn on use of 'print' and 'println!'
+      #   -A unused                         # Allow unused code (false positive occurences in query-perf)
+      #   -A clippy::module_inception       # Allow module inception (module with same name as the file)
+      #   -A clippy::ptr_arg                # Allow passing references as function parameters
+      #   -A clippy::type_complexity        # Allow complex types without warning
+      RUSTFLAGS: |
+        -Dwarnings                        
+        -W clippy::print_stdout       
+        -A unused                         
+        -A clippy::module_inception       
+        -A clippy::ptr_arg                
+        -A clippy::type_complexity      
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          submodules: true
+
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1.0.7
+        with:
+            toolchain: nightly
+            override: true
+
+      - name: Install rustfmt
+        run: rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
+
+      - name: Install protobuf-compiler
+        run: sudo apt-get install -y protobuf-compiler
+
+      - name: Lint check
+        run: make lint-check

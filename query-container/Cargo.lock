@@ -200,7 +200,6 @@ dependencies = [
  "rustversion",
  "serde",
  "sync_wrapper 0.1.2",
- "tokio",
  "tower 0.4.13",
  "tower-layer",
  "tower-service",
@@ -214,6 +213,7 @@ checksum = "8f43644eed690f5374f1af436ecd6aea01cd201f6fbdf0178adaf6907afb2cec"
 dependencies = [
  "async-trait",
  "axum-core 0.4.4",
+ "axum-macros",
  "bytes",
  "futures-util",
  "http 1.1.0",
@@ -280,11 +280,10 @@ dependencies = [
 
 [[package]]
 name = "axum-macros"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00c055ee2d014ae5981ce1016374e8213682aa14d9bf40e48ab48b5f3ef20eaa"
+checksum = "57d123550fa8d071b7255cb0cc04dc302baa6c8c4a79f55701552684d8399bce"
 dependencies = [
- "heck",
  "proc-macro2",
  "quote",
  "syn 2.0.72",
@@ -2530,7 +2529,7 @@ name = "publish-api"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "axum 0.7.5",
+ "axum 0.7.6",
  "env_logger 0.10.2",
  "futures",
  "log",

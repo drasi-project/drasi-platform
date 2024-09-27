@@ -15,3 +15,6 @@ kind-load:
 
 test:
 	@echo "No tests to run yet"
+
+lint-check:
+	@echo "No lint checks to run yet"

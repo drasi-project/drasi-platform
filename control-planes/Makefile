@@ -17,3 +17,7 @@ kind-load:
 test:
 	$(MAKE) -C mgmt_api $(MAKECMDGOALS)
 	$(MAKE) -C kubernetes_provider $(MAKECMDGOALS)
+
+lint-check:
+	$(MAKE) -C mgmt_api $(MAKECMDGOALS)
+	$(MAKE) -C kubernetes_provider $(MAKECMDGOALS)

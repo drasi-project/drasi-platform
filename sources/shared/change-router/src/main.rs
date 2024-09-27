@@ -55,7 +55,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let data: Value = match serde_json::from_slice(&sub.data) {
             Ok(data) => data,
             Err(e) => {
-                log::error!("Error parsing the response from the Dapr state query: {:?}", e);
+                log::error!(
+                    "Error parsing the response from the Dapr state query: {:?}",
+                    e
+                );
                 continue;
             }
         };
@@ -75,9 +78,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             match data["queryNodeId"].as_str() {
                 Some(query_node_id) => query_node_id,
                 None => {
-                    log::error!("Error loading queryNodeId for node subscription: {:?}", data);
+                    log::error!(
+                        "Error loading queryNodeId for node subscription: {:?}",
+                        data
+                    );
                     log::error!("The queryNodeId field must be a valid string");
-                    continue
+                    continue;
                 }
             },
             match data["queryId"].as_str() {
@@ -85,9 +91,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 None => {
                     log::error!("Error loading queryId for subscription: {:?}", data);
                     log::error!("The queryId field must be a valid string");
-                    continue
+                    continue;
                 }
-            }
+            },
         );
         let rel_labels: Vec<&str> = match data["relLabels"].as_array() {
             Some(labels) => labels
@@ -106,7 +112,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 None => {
                     log::error!("Error loading queryNodeId for rel subscription: {:?}", data);
                     log::error!("The queryNodeId field must be a valid string");
-                    continue
+                    continue;
                 }
             },
             match data["queryId"].as_str() {
@@ -114,9 +120,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 None => {
                     log::error!("Error loading queryId for subscription: {:?}", data);
                     log::error!("The queryId field must be a valid string");
-                    continue
+                    continue;
                 }
-            }
+            },
         );
     }
 
@@ -133,7 +139,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dapr_port = match config.dapr_port.parse::<u16>() {
         Ok(port) => port,
         Err(_e) => {
-            return Err(Box::<dyn std::error::Error>::from("Error parsing Dapr port"));
+            return Err(Box::<dyn std::error::Error>::from(
+                "Error parsing Dapr port",
+            ));
         }
     };
     let publisher = DaprHttpPublisher::new(
@@ -158,7 +166,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(listener) => listener,
         Err(e) => {
-            return Err(Box::<dyn std::error::Error>::from(format!("Error binding to address: {:?}", e)));
+            return Err(Box::<dyn std::error::Error>::from(format!(
+                "Error binding to address: {:?}",
+                e
+            )));
         }
     };
     axum::serve(listener, subscriber_server).await.unwrap();
@@ -197,7 +208,7 @@ async fn receive(
         Some(trace_parent) => match trace_parent.to_str() {
             Ok(trace_parent) => trace_parent.to_string(),
             Err(_e) => "".to_string(),
-        }
+        },
         None => "".to_string(),
     };
     let config = state.config.clone();
@@ -218,7 +229,10 @@ async fn receive(
     {
         Ok(_) => {}
         Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})));
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            );
         }
     }
 
@@ -234,7 +248,9 @@ async fn process_changes(
     traceparent: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !changes.is_array() {
-        return Err(Box::<dyn std::error::Error>::from("Changes must be an array"));
+        return Err(Box::<dyn std::error::Error>::from(
+            "Changes must be an array",
+        ));
     }
     if let Some(changes) = changes.as_array() {
         for change in changes {
@@ -254,14 +270,17 @@ async fn process_changes(
                             "Activating new SourceSubscription: id:{}",
                             change["payload"]["after"]["id"]
                         );
-                        let node_labels: Vec<&str> = match change["payload"]["after"]["nodeLabels"]
-                            .as_array() {
+                        let node_labels: Vec<&str> =
+                            match change["payload"]["after"]["nodeLabels"].as_array() {
                                 Some(labels) => labels
                                     .iter()
                                     .map(|label| label.as_str().unwrap_or(""))
                                     .collect(),
                                 None => {
-                                    log::error!("Error loading nodeLabels from the ChangeEvent: {:?}", change);
+                                    log::error!(
+                                        "Error loading nodeLabels from the ChangeEvent: {:?}",
+                                        change
+                                    );
                                     log::error!("Error path: 'payload' -> 'after' -> 'nodeLabels'");
                                     continue;
                                 }
@@ -287,14 +306,17 @@ async fn process_changes(
                                 }
                             }
                         );
-                        let rel_labels: Vec<&str> = match change["payload"]["after"]["relLabels"]
-                            .as_array() {
+                        let rel_labels: Vec<&str> =
+                            match change["payload"]["after"]["relLabels"].as_array() {
                                 Some(labels) => labels
                                     .iter()
                                     .map(|label| label.as_str().unwrap_or(""))
                                     .collect(),
                                 None => {
-                                    log::error!("Error loading relLabels from the ChangeEvent: {:?}", change);
+                                    log::error!(
+                                        "Error loading relLabels from the ChangeEvent: {:?}",
+                                        change
+                                    );
                                     log::error!("Error path: 'payload' -> 'after' -> 'relLabels'");
                                     continue;
                                 }
@@ -349,63 +371,65 @@ async fn process_changes(
             let mut subscriptions: Option<Vec<String>> = None;
             if change["payload"]["source"]["table"] == "node" {
                 if change["op"] == "i" || change["op"] == "u" {
-                    let labels: Vec<&str> = match change["payload"]["after"]["labels"]
-                        .as_array() {
-                            Some(labels) => labels
-                                .iter()
-                                .map(|label| label.as_str().unwrap_or(""))
-                                .collect(),
-                            None => {
-                                log::error!("Error loading labels from the ChangeEvent payload: {:?}", change);
-                                log::error!("Error path: 'payload' -> 'after' -> 'labels'");
-                                continue;
-                            }
-                        };
+                    let labels: Vec<&str> = match change["payload"]["after"]["labels"].as_array() {
+                        Some(labels) => labels
+                            .iter()
+                            .map(|label| label.as_str().unwrap_or(""))
+                            .collect(),
+                        None => {
+                            log::error!(
+                                "Error loading labels from the ChangeEvent payload: {:?}",
+                                change
+                            );
+                            log::error!("Error path: 'payload' -> 'after' -> 'labels'");
+                            continue;
+                        }
+                    };
                     subscriptions = node_subscriber.get_subscribers_for_labels(labels);
                 } else if change["op"] == "d" {
-                    let labels: Vec<&str> = match change["payload"]["before"]["labels"]
-                        .as_array() {
-                            Some(labels) => labels
-                                .iter()
-                                .map(|label| label.as_str().unwrap_or(""))
-                                .collect(),
-                            None => {
-                                log::error!("Error loading labels from the ChangeEvent payload: {:?}", change);
-                                log::error!("Error path: 'payload' -> 'before' -> 'labels'");
-                                continue;
-                            }
-                        };
+                    let labels: Vec<&str> = match change["payload"]["before"]["labels"].as_array() {
+                        Some(labels) => labels
+                            .iter()
+                            .map(|label| label.as_str().unwrap_or(""))
+                            .collect(),
+                        None => {
+                            log::error!(
+                                "Error loading labels from the ChangeEvent payload: {:?}",
+                                change
+                            );
+                            log::error!("Error path: 'payload' -> 'before' -> 'labels'");
+                            continue;
+                        }
+                    };
                     subscriptions = node_subscriber.get_subscribers_for_labels(labels);
                 } else {
                 }
             } else if change["payload"]["source"]["table"] == "rel" {
                 if change["op"] == "i" || change["op"] == "u" {
-                    let labels: Vec<&str> = match change["payload"]["after"]["labels"]
-                        .as_array() {
-                            Some(labels) => labels
-                                .iter()
-                                .map(|label| label.as_str().unwrap_or(""))
-                                .collect(),
-                            None => {
-                                log::error!("Error loading labels from the ChangeEvent: {:?}", change);
-                                log::error!("Error path: 'payload' -> 'after' -> 'labels'");
-                                continue;
-                            }
-                        };
+                    let labels: Vec<&str> = match change["payload"]["after"]["labels"].as_array() {
+                        Some(labels) => labels
+                            .iter()
+                            .map(|label| label.as_str().unwrap_or(""))
+                            .collect(),
+                        None => {
+                            log::error!("Error loading labels from the ChangeEvent: {:?}", change);
+                            log::error!("Error path: 'payload' -> 'after' -> 'labels'");
+                            continue;
+                        }
+                    };
                     subscriptions = rel_subscriber.get_subscribers_for_labels(labels);
                 } else if change["op"] == "d" {
-                    let labels: Vec<&str> = match change["payload"]["before"]["labels"]
-                        .as_array() {
-                            Some(labels) => labels
-                                .iter()
-                                .map(|label| label.as_str().unwrap_or(""))
-                                .collect(),
-                            None => {
-                                log::error!("Error loading labels from the ChangeEvent: {:?}", change);
-                                log::error!("Error path: 'payload' -> 'before' -> 'labels'");
-                                continue;
-                            }
-                        };
+                    let labels: Vec<&str> = match change["payload"]["before"]["labels"].as_array() {
+                        Some(labels) => labels
+                            .iter()
+                            .map(|label| label.as_str().unwrap_or(""))
+                            .collect(),
+                        None => {
+                            log::error!("Error loading labels from the ChangeEvent: {:?}", change);
+                            log::error!("Error path: 'payload' -> 'before' -> 'labels'");
+                            continue;
+                        }
+                    };
                     subscriptions = rel_subscriber.get_subscribers_for_labels(labels);
                 } else {
                 }

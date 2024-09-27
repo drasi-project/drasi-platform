@@ -7,10 +7,10 @@ use axum::{
     Router,
 };
 use chrono::Utc;
-use control_event::{SubscriptionData, ControlEvent, Payload, Source, SubscriptionInput};
+use control_event::{ControlEvent, Payload, Source, SubscriptionData, SubscriptionInput};
 use log::debug;
 use query_api_config::QueryApiConfig;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -94,7 +94,11 @@ async fn handle_subscription(
         Ok(subscription_input) => subscription_input,
         Err(e) => {
             log::error!("Error parsing the subscription input: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error parsing the subscription input: {:?}", e)).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error parsing the subscription input: {:?}", e),
+            )
+                .into_response();
         }
     };
     log::info!(
@@ -108,7 +112,7 @@ async fn handle_subscription(
             Ok(tp) => {
                 headers_map.insert("traceparent".to_string(), tp.to_string());
             }
-            Err(_e) => {} // 
+            Err(_e) => {} //
         },
         None => {
             log::warn!("No traceparent header found in the request");
@@ -119,7 +123,7 @@ async fn handle_subscription(
         ts_ms: Utc::now().timestamp_millis() as u64,
         payload: Payload {
             source: Source {
-                db: "Drasi".to_string(), 
+                db: "Drasi".to_string(),
                 table: "SourceSubscription".to_string(),
             },
             before: None,
@@ -140,7 +144,11 @@ async fn handle_subscription(
         }
         Err(e) => {
             log::error!("Error publishing the subscription event: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error publishing the subscription event: {:?}", e)).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error publishing the subscription event: {:?}", e),
+            )
+                .into_response();
         }
     }
 
@@ -149,20 +157,30 @@ async fn handle_subscription(
         Ok(labels) => labels,
         Err(e) => {
             log::error!("Error serializing the node labels: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error serializing the node labels: {:?}", e)).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error serializing the node labels: {:?}", e),
+            )
+                .into_response();
         }
     };
     let input_rel_labels = match serde_json::to_string(&subscription_input.rel_labels) {
         Ok(labels) => labels,
         Err(e) => {
             log::error!("Error serializing the relationship labels: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error serializing the relationship labels: {:?}", e)).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error serializing the relationship labels: {:?}", e),
+            )
+                .into_response();
         }
     };
 
     log::info!(
         "queryApi.main/subscription - queryId: {} - fetching nodeLabels:{}, relLabels:{}",
-        subscription_input.query_id, input_node_labels, input_rel_labels
+        subscription_input.query_id,
+        input_node_labels,
+        input_rel_labels
     );
 
     let subscription_data = SubscriptionData {
@@ -175,7 +193,11 @@ async fn handle_subscription(
         Ok(json) => json,
         Err(e) => {
             log::error!("Error serializing the subscription data: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error serializing the subscription data: {:?}", e)).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error serializing the subscription data: {:?}", e),
+            )
+                .into_response();
         }
     };
 
@@ -197,7 +219,11 @@ async fn handle_subscription(
         }
         Err(e) => {
             log::error!("Error invoking the acquire method on the proxy: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error invoking the acquire method on the proxy: {:?}", e)).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error invoking the acquire method on the proxy: {:?}", e),
+            )
+                .into_response();
         }
     };
 
@@ -206,7 +232,11 @@ async fn handle_subscription(
         Ok(json) => json,
         Err(e) => {
             log::error!("Error parsing the response from the proxy: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error parsing the response from the proxy: {:?}", e)).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error parsing the response from the proxy: {:?}", e),
+            )
+                .into_response();
         }
     };
 

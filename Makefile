@@ -19,3 +19,9 @@ test:
 	$(MAKE) -C query-container $(MAKECMDGOALS)
 	$(MAKE) -C sources $(MAKECMDGOALS)
 	$(MAKE) -C reactions $(MAKECMDGOALS)
+
+lint-check:
+	$(MAKE) -C control-planes $(MAKECMDGOALS)
+	$(MAKE) -C query-container $(MAKECMDGOALS)
+	$(MAKE) -C sources $(MAKECMDGOALS)
+	$(MAKE) -C reactions $(MAKECMDGOALS)

@@ -20,3 +20,8 @@ test:
 	$(MAKE) -C publish-api $(MAKECMDGOALS)
 	$(MAKE) -C query-host $(MAKECMDGOALS)
 	$(MAKE) -C view-svc $(MAKECMDGOALS)
+
+lint-check:
+	$(MAKE) -C publish-api $(MAKECMDGOALS)
+	$(MAKE) -C query-host $(MAKECMDGOALS)
+	$(MAKE) -C view-svc $(MAKECMDGOALS)

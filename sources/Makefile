@@ -44,3 +44,16 @@ test:
 	$(MAKE) -C eventhub/eventhub-proxy $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-reactivator $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-proxy $(MAKECMDGOALS)
+
+lint-check:
+	$(MAKE) -C cosmosdb/cosmosdb-ffcf-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C cosmosdb/gremlin-proxy $(MAKECMDGOALS)
+	$(MAKE) -C relational/debezium-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C relational/sql-proxy $(MAKECMDGOALS)
+	$(MAKE) -C shared/change-dispatcher $(MAKECMDGOALS)
+	$(MAKE) -C shared/change-router $(MAKECMDGOALS)
+	$(MAKE) -C shared/query-api $(MAKECMDGOALS)
+	$(MAKE) -C eventhub/eventhub-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C eventhub/eventhub-proxy $(MAKECMDGOALS)
+	$(MAKE) -C dataverse/dataverse-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C dataverse/dataverse-proxy $(MAKECMDGOALS)
