@@ -11,7 +11,7 @@ docker-build:
 	docker build relational/debezium-reactivator -t $(IMAGE_PREFIX)/source-debezium-reactivator:$(DOCKER_TAG_VERSION)
 	docker build ../ -f shared/change-dispatcher/Dockerfile -t $(IMAGE_PREFIX)/source-change-dispatcher:$(DOCKER_TAG_VERSION)
 	docker build ../ -f shared/change-router/Dockerfile -t $(IMAGE_PREFIX)/source-change-router:$(DOCKER_TAG_VERSION)
-	docker build shared/query-api -t $(IMAGE_PREFIX)/source-query-api:$(DOCKER_TAG_VERSION)
+	docker build ../ -f shared/query-api/Dockerfile -t $(IMAGE_PREFIX)/source-query-api:$(DOCKER_TAG_VERSION)
 	docker build cosmosdb/gremlin-proxy -t $(IMAGE_PREFIX)/source-gremlin-proxy:$(DOCKER_TAG_VERSION)
 	docker build relational/sql-proxy -t $(IMAGE_PREFIX)/source-sql-proxy:$(DOCKER_TAG_VERSION)
 	docker build eventhub/eventhub-reactivator -t $(IMAGE_PREFIX)/source-eventhub-reactivator:$(DOCKER_TAG_VERSION)
