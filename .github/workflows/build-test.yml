@@ -24,6 +24,7 @@ jobs:
       packages: write
       contents: read
     runs-on: ubuntu-latest
+    environment: manual-approval
 
     steps:
       - name: Checkout repository
@@ -84,6 +85,7 @@ jobs:
 
   build-control-plane:
     runs-on: ubuntu-latest
+    environment: manual-approval
     permissions:
       packages: write
       contents: read
@@ -132,6 +134,7 @@ jobs:
 
   build-sources:
     runs-on: ubuntu-latest
+    environment: manual-approval
     permissions:
       packages: write
       contents: read
@@ -255,6 +258,7 @@ jobs:
       packages: write
       contents: read
     runs-on: ubuntu-latest
+    environment: manual-approval
     strategy:
       matrix:
         component: [
@@ -473,6 +477,7 @@ jobs:
       packages: write
       contents: read
     runs-on: ubuntu-latest
+    environment: manual-approval
     if: failure()
     needs: 
       - build-query-container
