@@ -24,6 +24,31 @@ jobs:
       packages: write
       contents: read
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [
+          { 
+            label: 'Query Host',
+            context: './query-container/query-host', 
+            file: './query-container/query-host/Dockerfile', 
+            name: 'query-container-query-host', 
+            platforms: 'linux/amd64'
+          },
+          { 
+            label: 'Publish API',
+            context: './query-container/publish-api', 
+            file: './query-container/publish-api/Dockerfile', 
+            name: 'query-container-publish-api', 
+            platforms: 'linux/amd64'
+          },
+          { 
+            label: 'View Service',
+            context: './query-container/view-svc', 
+            file: './query-container/view-svc/Dockerfile', 
+            name: 'query-container-view-svc', 
+            platforms: 'linux/amd64'
+          }
+        ]
 
     steps:
       - name: Checkout repository
@@ -39,54 +64,59 @@ jobs:
         with:
           install: true
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+      - name: Cache Docker layers
+        uses: actions/cache@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/.buildx-cache
+          key: buildx-${{ matrix.component.name }}
+          restore-keys: |
+            buildx-${{ matrix.component.name }}
       
-      - name: Build Query Host
+      - name: Build
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
-          context: ./query-container/query-host
-          file: ./query-container/query-host/Dockerfile
-          platforms: linux/amd64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache,mode=max
-          push: true
+          context: ${{ matrix.component.context }}
+          file: ${{ matrix.component.file }}
+          platforms: ${{ matrix.component.platforms }}
+          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
 
-      - name: Build Publish API
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - name: Save Docker image to cache
+        uses: actions/cache@v2
         with:
-          context: ./query-container/publish-api
-          file: ./query-container/publish-api/Dockerfile
-          platforms: linux/amd64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
-          push: true
+          path: /tmp/.docker-cache
+          key: docker-${{ github.sha }}
+          
+      - name: Save the Docker image
+        run: |
+          mkdir -p /tmp/.docker-cache
+          docker save ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz      
 
-      - name: Build View Service
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: ./query-container/view-svc
-          file: ./query-container/view-svc/Dockerfile
-          platforms: linux/amd64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
-          push: true
 
   build-control-plane:
     runs-on: ubuntu-latest
     permissions:
       packages: write
       contents: read
+    strategy:
+      matrix:
+        component: [
+          { 
+            label: 'Management API',
+            context: './control-planes', 
+            file: './control-planes/mgmt_api/Dockerfile', 
+            name: 'api', 
+            platforms: 'linux/amd64'
+          },
+          { 
+            label: 'k8s Resource Provider',
+            context: './control-planes', 
+            file: './control-planes/kubernetes_provider/Dockerfile', 
+            name: 'kubernetes-provider', 
+            platforms: 'linux/amd64'
+          }
+        ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -99,36 +129,34 @@ jobs:
         with:
           install: true
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+      - name: Cache Docker layers
+        uses: actions/cache@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/.buildx-cache
+          key: buildx-${{ matrix.component.name }}
+          restore-keys: |
+            buildx-${{ matrix.component.name }}
       
-      - name: Build Management API
+      - name: Build
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
-          context: ./control-planes
-          file: ./control-planes/mgmt_api/Dockerfile
-          platforms: linux/amd64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache,mode=max
-          push: true
+          context: ${{ matrix.component.context }}
+          file: ${{ matrix.component.file }}
+          platforms: ${{ matrix.component.platforms }}
+          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
 
-      - name: Build k8s Resource Provider
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - name: Save Docker image to cache
+        uses: actions/cache@v2
         with:
-          context: ./control-planes
-          file: ./control-planes/kubernetes_provider/Dockerfile
-          platforms: linux/amd64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache,mode=max
-          push: true
+          path: /tmp/.docker-cache
+          key: docker-${{ github.sha }}
+          
+      - name: Save the Docker image
+        run: |
+          mkdir -p /tmp/.docker-cache
+          docker save ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
 
   build-sources:
     runs-on: ubuntu-latest
@@ -188,7 +216,6 @@ jobs:
             name: 'source-gremlin-proxy', 
             platforms: 'linux/amd64' 
           },
-
           { 
             label: 'Dataverse Reactivator',
             context: './sources/dataverse/dataverse-reactivator', 
@@ -203,7 +230,6 @@ jobs:
             name: 'source-dataverse-proxy', 
             platforms: 'linux/amd64,linux/arm64' 
           },
-
           { 
             label: 'EventHub Reactivator',
             context: './sources/eventhub/eventhub-reactivator', 
@@ -238,17 +264,35 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-${{ matrix.component.name }}
+          restore-keys: |
+            buildx-${{ matrix.component.name }}
       
-      - name: Build and push
+      - name: Build
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ${{ matrix.component.context }}
           file: ${{ matrix.component.file }}
           platforms: ${{ matrix.component.platforms }}
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache,mode=max
-          push: true
+          tags: ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+
+      - name: Save Docker image to cache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.docker-cache
+          key: docker-${{ github.sha }}
+          
+      - name: Save the Docker image
+        run: |
+          mkdir -p /tmp/.docker-cache
+          docker save ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
 
   build-reactions:
     permissions:
@@ -334,23 +378,34 @@ jobs:
         with:
           install: true
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+      - name: Cache Docker layers
+        uses: actions/cache@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/.buildx-cache
+          key: buildx-${{ matrix.component.name }}
+          restore-keys: |
+            buildx-${{ matrix.component.name }}
      
-      - name: Build and push
+      - name: Build
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ${{ matrix.component.context }}
           file: ${{ matrix.component.file }}
           platforms: ${{ matrix.component.platforms }}
           tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache,mode=max
-          push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+
+      - name: Save Docker image to cache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.docker-cache
+          key: docker-${{ github.sha }}
+          
+      - name: Save the Docker image
+        run: |
+          mkdir -p /tmp/.docker-cache
+          docker save ${{ github.repository_owner }}/${{ matrix.component.name }}:${{ github.sha }} | gzip > /tmp/.docker-cache/${{ matrix.component.name }}.tar.gz
 
   build-cli:
     permissions:
@@ -410,43 +465,19 @@ jobs:
           chmod +x ./cli/linux-x64/drasi
           sudo mv ./cli/linux-x64/drasi /usr/local/bin/drasi
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+      - name: Restore Docker image from cache
+        uses: actions/cache@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Download images
-        run: |
-          docker pull ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/source-change-router:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/source-sql-proxy:${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository_owner }}/reaction-signalr:${{ github.sha }}
-          
-          docker image list
+          path: /tmp/.docker-cache
+          key: docker-${{ github.sha }}
 
-      - name: Tag images
+      - name: Load Docker image from cache
         run: |
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ github.sha }} ${{ github.repository_owner }}/query-container-query-host
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ github.sha }} ${{ github.repository_owner }}/query-container-publish-api
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ github.sha }} ${{ github.repository_owner }}/query-container-view-svc
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }} ${{ github.repository_owner }}/api
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ github.sha }} ${{ github.repository_owner }}/kubernetes-provider
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-router:${{ github.sha }} ${{ github.repository_owner }}/source-change-router
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-change-dispatcher:${{ github.sha }} ${{ github.repository_owner }}/source-change-dispatcher
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-query-api:${{ github.sha }} ${{ github.repository_owner }}/source-query-api
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-debezium-reactivator:${{ github.sha }} ${{ github.repository_owner }}/source-debezium-reactivator
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/source-sql-proxy:${{ github.sha }} ${{ github.repository_owner }}/source-sql-proxy
-          docker image tag docker.io/ghcr.io/${{ github.repository_owner }}/reaction-signalr:${{ github.sha }} ${{ github.repository_owner }}/reaction-signalr
-        
+          find /tmp/.docker-cache -name "*.gz" | while read -r FILE; do
+            echo "Processing $FILE..."            
+            gunzip -c "$FILE" | docker load            
+            echo "Loaded $(basename "$FILE" .gz) into Docker."
+          done
         
       - name: Install Kind
         run: |
@@ -468,71 +499,4 @@ jobs:
         working-directory: e2e-tests
         run: npm test
 
-  cleanup:
-    permissions:
-      packages: write
-      contents: read
-    runs-on: ubuntu-latest
-    if: failure()
-    needs: 
-      - build-query-container
-      - build-control-plane
-      - build-sources
-      - build-reactions
-      - build-cli
-      - e2e-tests
-    steps:
-    
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Delete images from GHCR
-        run: |
-          IMAGE_NAMES=(
-            "query-container-query-host"
-            "query-container-publish-api"
-            "query-container-view-svc"
-            "api"
-            "kubernetes-provider"
-            
-            "source-change-router"
-            "source-change-dispatcher"
-            "source-query-api"
-            
-            "source-debezium-reactivator"
-            "source-sql-proxy"
-            "source-cosmosdb-reactivator"
-            "source-gremlin-proxy"
-            "source-eventhub-reactivator"
-            "source-eventhub-proxy"
-            "source-dataverse-reactivator"
-            "source-dataverse-proxy"
-
-            "reaction-signalr"
-            "reaction-dataverse"
-            "reaction-debezium"
-            "reaction-debug"
-            "reaction-eventgrid"
-            "reaction-gremlin"
-            "reaction-result"
-            "reaction-storagequeue"
-            "reaction-storedproc"
-          )
-          for IMAGE_NAME in "${IMAGE_NAMES[@]}"; do
-            REPO=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
-            TAG=${{ github.sha }}
-            FULL_IMAGE_NAME=$REPO:$TAG
-            if docker pull $FULL_IMAGE_NAME; then
-              DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $FULL_IMAGE_NAME | sed 's/.*@//')
-              if [ -n "$DIGEST" ]; then
-                curl -X DELETE -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} https://ghcr.io/v2/${{ github.repository_owner }}/$IMAGE_NAME/manifests/$DIGEST
-                echo "Deleted image $FULL_IMAGE_NAME"
-              fi
-            else
-              echo "Image with tag $TAG for $IMAGE_NAME does not exist."
-            fi
-          done
+  
