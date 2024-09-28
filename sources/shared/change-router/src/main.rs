@@ -23,7 +23,7 @@ mod subscribers;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting Source Change Router");
+    log::info!("Starting Source Change Router");
 
     let config = ChangeRouterConfig::from_env();
 
@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         Ok(response) => response.results,
         Err(e) => {
-            println!("Error querying state: {:?}", e);
+            log::error!("Error querying state: {:?}", e);
             vec![]
         }
     };
@@ -480,7 +480,7 @@ async fn process_changes(
                     let headers = Headers::new(headers);
                     match publisher.publish(change_dispatch_event, headers).await {
                         Ok(_) => {
-                            println!("published event to topic: {}", publish_topic);
+                            log::info!("published event to topic: {}", publish_topic);
                         }
                         Err(e) => {
                             return Err(e);
@@ -488,7 +488,7 @@ async fn process_changes(
                     }
                 }
                 None => {
-                    println!("No subscribers for change: {:?}", change);
+                    log::info!("No subscribers for change: {:?}", change);
                 }
             }
         }
