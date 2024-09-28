@@ -52,8 +52,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let shared_state = Arc::new(AppState {
         config: config.clone(),
-        publisher: publisher,
-        invoker: invoker,
+        publisher,
+        invoker,
     });
 
     let app = Router::new()
@@ -70,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = match tokio::net::TcpListener::bind(&addr).await {
         Ok(listener) => listener,
         Err(_e) => {
-            return Err(Box::<dyn std::error::Error>::from("Error binding to the address").into());
+            return Err(Box::<dyn std::error::Error>::from("Error binding to the address"));
         }
     };
     match axum::serve(listener, app).await {
@@ -107,7 +107,7 @@ async fn handle_subscription(
     );
 
     let mut headers_map = std::collections::HashMap::new();
-    _ = match headers.get("traceparent") {
+    match headers.get("traceparent") {
         Some(tp) => match tp.to_str() {
             Ok(tp) => {
                 headers_map.insert("traceparent".to_string(), tp.to_string());

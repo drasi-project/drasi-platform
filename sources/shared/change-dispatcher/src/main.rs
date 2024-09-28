@@ -117,7 +117,7 @@ async fn receive(
 async fn process_changes(
     invoker: &DaprHttpInvoker,
     changes: Value,
-    config: ChangeDispatcherConfig,
+    _config: ChangeDispatcherConfig,
     traceparent: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(changes) = changes.as_array() {

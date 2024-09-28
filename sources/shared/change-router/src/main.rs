@@ -221,8 +221,8 @@ async fn receive(
         publisher,
         json_data,
         config,
-        &node_subscriber,
-        &rel_subscriber,
+        node_subscriber,
+        rel_subscriber,
         trace_parent,
     )
     .await
@@ -363,8 +363,7 @@ async fn process_changes(
                     } else {
                         // TODO - supprt other ops on SourceSubscriptions
                     }
-                } else {
-                }
+                } 
                 return Ok(());
             }
 
@@ -402,8 +401,7 @@ async fn process_changes(
                         }
                     };
                     subscriptions = node_subscriber.get_subscribers_for_labels(labels);
-                } else {
-                }
+                } 
             } else if change["payload"]["source"]["table"] == "rel" {
                 if change["op"] == "i" || change["op"] == "u" {
                     let labels: Vec<&str> = match change["payload"]["after"]["labels"].as_array() {
@@ -431,10 +429,8 @@ async fn process_changes(
                         }
                     };
                     subscriptions = rel_subscriber.get_subscribers_for_labels(labels);
-                } else {
-                }
-            } else {
-            }
+                } 
+            } 
 
             match subscriptions {
                 Some(subscriptions) => {

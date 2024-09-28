@@ -17,7 +17,7 @@ impl SubscriberMap {
         let set = self
             .label_map
             .entry(label.to_string())
-            .or_insert_with(HashSet::new);
+            .or_default();
 
         let json_data = json!({
             "queryNodeId": query_node_id,
