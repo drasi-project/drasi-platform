@@ -363,7 +363,7 @@ async fn process_changes(
                     } else {
                         // TODO - supprt other ops on SourceSubscriptions
                     }
-                } 
+                }
                 return Ok(());
             }
 
@@ -401,7 +401,7 @@ async fn process_changes(
                         }
                     };
                     subscriptions = node_subscriber.get_subscribers_for_labels(labels);
-                } 
+                }
             } else if change["payload"]["source"]["table"] == "rel" {
                 if change["op"] == "i" || change["op"] == "u" {
                     let labels: Vec<&str> = match change["payload"]["after"]["labels"].as_array() {
@@ -429,8 +429,8 @@ async fn process_changes(
                         }
                     };
                     subscriptions = rel_subscriber.get_subscribers_for_labels(labels);
-                } 
-            } 
+                }
+            }
 
             match subscriptions {
                 Some(subscriptions) => {

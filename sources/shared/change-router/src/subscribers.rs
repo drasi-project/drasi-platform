@@ -26,7 +26,7 @@ impl Subscriber {
 
     pub fn get_subscribers_for_labels(&self, labels: Vec<&str>) -> Option<Vec<String>> {
         let subscriber_map = self.subscriber_map.lock().unwrap();
-        
+
         subscriber_map.get_subscribers_for_labels(labels).clone()
     }
 }

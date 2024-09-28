@@ -70,7 +70,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = match tokio::net::TcpListener::bind(&addr).await {
         Ok(listener) => listener,
         Err(_e) => {
-            return Err(Box::<dyn std::error::Error>::from("Error binding to the address"));
+            return Err(Box::<dyn std::error::Error>::from(
+                "Error binding to the address",
+            ));
         }
     };
     match axum::serve(listener, app).await {

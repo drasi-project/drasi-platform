@@ -14,10 +14,7 @@ impl SubscriberMap {
     }
 
     fn add(&mut self, label: &str, query_node_id: &str, query_id: &str) {
-        let set = self
-            .label_map
-            .entry(label.to_string())
-            .or_default();
+        let set = self.label_map.entry(label.to_string()).or_default();
 
         let json_data = json!({
             "queryNodeId": query_node_id,
