@@ -34,7 +34,7 @@ async fn main() -> Result<(), std::io::Error> {
     std::thread::sleep(std::time::Duration::new(5, 0));
 
     let addr = "https://127.0.0.1".to_string();
-    let mut dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
+    let dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
         .await
         .expect("Unable to connect to Dapr");
     let mongo_client = mongodb::Client::with_uri_str(&mongo_uri).await.unwrap();
@@ -45,9 +45,18 @@ async fn main() -> Result<(), std::io::Error> {
     HttpServer::new(move || {
         //todo: investigate IoC container
         let db = mongo_client.database(&mongo_db);
+
+        let source_provider_repo =
+            Arc::new(ProviderRepositoryImpl::new(db.clone(), "source_schemas"));
+        let reaction_provider_repo =
+            Arc::new(ProviderRepositoryImpl::new(db.clone(), "reaction_schemas"));
+
         let source_repo = SourceRepositoryImpl::new(db.clone());
-        let source_domain_svc =
-            SourceDomainServiceImpl::new(dapr_client.clone(), Box::new(source_repo));
+        let source_domain_svc = SourceDomainServiceImpl::new(
+            dapr_client.clone(),
+            Box::new(source_repo),
+            source_provider_repo.clone(),
+        );
 
         let source_domain_svc_arc: web::Data<SourceDomainService> =
             web::Data::from(Arc::new(source_domain_svc) as Arc<SourceDomainService>);
@@ -61,8 +70,11 @@ async fn main() -> Result<(), std::io::Error> {
             web::Data::from(qc_domain_svc.clone() as Arc<QueryContainerDomainService>);
 
         let reaction_repo = ReactionRepositoryImpl::new(db.clone());
-        let reaction_domain_svc =
-            ReactionDomainServiceImpl::new(dapr_client.clone(), Box::new(reaction_repo));
+        let reaction_domain_svc = ReactionDomainServiceImpl::new(
+            dapr_client.clone(),
+            Box::new(reaction_repo),
+            reaction_provider_repo.clone(),
+        );
         let reaction_domain_svc_arc: web::Data<ReactionDomainService> =
             web::Data::from(Arc::new(reaction_domain_svc) as Arc<ReactionDomainService>);
 
@@ -74,21 +86,18 @@ async fn main() -> Result<(), std::io::Error> {
         );
         let query_domain_svc_arc: web::Data<QueryDomainService> =
             web::Data::from(Arc::new(query_domain_svc) as Arc<QueryDomainService>);
-        let source_provider_repo = SourceProviderRepositoryImpl::new(db.clone());
-        let source_provider_domain_svc = SourceProviderDomainServiceImpl::new(
-            dapr_client.clone(),
-            Box::new(source_provider_repo),
-        );
+
+        let source_provider_domain_svc =
+            SourceProviderDomainServiceImpl::new(dapr_client.clone(), source_provider_repo.clone());
 
         let source_provider_domain_svc_arc: web::Data<SourceProviderDomainService> =
             web::Data::from(
                 Arc::new(source_provider_domain_svc) as Arc<SourceProviderDomainService>
             );
 
-        let reaction_provider_repo = ReactionProviderRepositoryImpl::new(db.clone());
         let reaction_provider_domain_svc = ReactionProviderDomainServiceImpl::new(
             dapr_client.clone(),
-            Box::new(reaction_provider_repo),
+            reaction_provider_repo.clone(),
         );
         let reaction_provider_domain_svc_arc: web::Data<ReactionProviderDomainService> =
             web::Data::from(

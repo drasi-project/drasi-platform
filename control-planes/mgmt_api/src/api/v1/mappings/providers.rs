@@ -1,10 +1,11 @@
 use crate::domain::models::{
-    Endpoint, EndpointSetting, ReactionProviderSpec, ResourceProvider, Service, SourceProviderSpec,
+    Endpoint, EndpointSetting, JsonSchema, ProviderService, ProviderSpec, ResourceProvider,
+    SchemaType, ServiceConfig, ServiceEndpoint,
 };
 
 use super::{
-    EndpointDto, EndpointSettingDto, ReactionProviderSpecDto, ResourceProviderDto, ServiceDto,
-    SourceProviderSpecDto,
+    EndpointDto, EndpointSettingDto, JsonSchemaDto, ProviderServiceDto, ProviderSpecDto,
+    ResourceProviderDto, SchemaTypeDto, ServiceConfigDto, ServiceEndpointDto,
 };
 impl<TSpec, TSpecDto> From<ResourceProviderDto<TSpecDto>> for ResourceProvider<TSpec>
 where
@@ -30,11 +31,11 @@ where
     }
 }
 
-impl From<ServiceDto> for Service {
-    fn from(service: ServiceDto) -> Self {
-        Service {
-            replica: service.replica,
-            image: service.image,
+impl From<ServiceConfigDto> for ServiceConfig {
+    fn from(service: ServiceConfigDto) -> Self {
+        ServiceConfig {
+            replica: None,
+            image: None,
             endpoints: service
                 .endpoints
                 .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
@@ -87,11 +88,9 @@ impl From<EndpointSettingDto> for EndpointSetting {
     }
 }
 
-impl From<Service> for ServiceDto {
-    fn from(service: Service) -> Self {
-        ServiceDto {
-            replica: service.replica,
-            image: service.image,
+impl From<ServiceConfig> for ServiceConfigDto {
+    fn from(service: ServiceConfig) -> Self {
+        ServiceConfigDto {
             endpoints: service
                 .endpoints
                 .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
@@ -108,38 +107,144 @@ impl From<Service> for ServiceDto {
     }
 }
 
-impl From<SourceProviderSpecDto> for SourceProviderSpec {
-    fn from(spec: SourceProviderSpecDto) -> Self {
-        SourceProviderSpec {
-            services: spec.services.into_iter().collect(),
-            config_schema: spec.config_schema,
+impl From<ProviderSpecDto> for ProviderSpec {
+    fn from(provider_spec: ProviderSpecDto) -> Self {
+        ProviderSpec {
+            services: provider_spec
+                .services
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+            config_schema: provider_spec.config_schema.map(|schema| schema.into()),
         }
     }
 }
 
-impl From<SourceProviderSpec> for SourceProviderSpecDto {
-    fn from(spec: SourceProviderSpec) -> Self {
-        SourceProviderSpecDto {
-            services: spec.services.into_iter().collect(),
-            config_schema: spec.config_schema,
+impl From<ProviderSpec> for ProviderSpecDto {
+    fn from(provider_spec: ProviderSpec) -> Self {
+        ProviderSpecDto {
+            services: provider_spec
+                .services
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+            config_schema: provider_spec.config_schema.map(|schema| schema.into()),
         }
     }
 }
 
-impl From<ReactionProviderSpecDto> for ReactionProviderSpec {
-    fn from(spec: ReactionProviderSpecDto) -> Self {
-        ReactionProviderSpec {
-            services: spec.services.into_iter().collect(),
-            config_schema: spec.config_schema,
+impl From<ProviderServiceDto> for ProviderService {
+    fn from(provider_service: ProviderServiceDto) -> Self {
+        ProviderService {
+            image: provider_service.image,
+            dapr: provider_service.dapr,
+            endpoints: provider_service
+                .endpoints
+                .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            config_schema: provider_service.config_schema.map(|schema| schema.into()),
         }
     }
 }
 
-impl From<ReactionProviderSpec> for ReactionProviderSpecDto {
-    fn from(spec: ReactionProviderSpec) -> Self {
-        ReactionProviderSpecDto {
-            services: spec.services.into_iter().collect(),
-            config_schema: spec.config_schema,
+impl From<ProviderService> for ProviderServiceDto {
+    fn from(provider_service: ProviderService) -> Self {
+        ProviderServiceDto {
+            image: provider_service.image,
+            dapr: provider_service.dapr,
+            endpoints: provider_service
+                .endpoints
+                .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            config_schema: provider_service.config_schema.map(|schema| schema.into()),
+        }
+    }
+}
+
+impl From<ServiceEndpointDto> for ServiceEndpoint {
+    fn from(service_endpoint: ServiceEndpointDto) -> Self {
+        ServiceEndpoint {
+            setting: service_endpoint.setting.into(),
+            target: service_endpoint.target,
+        }
+    }
+}
+
+impl From<ServiceEndpoint> for ServiceEndpointDto {
+    fn from(endpoint: ServiceEndpoint) -> Self {
+        ServiceEndpointDto {
+            setting: endpoint.setting.into(),
+            target: endpoint.target,
+        }
+    }
+}
+
+impl From<SchemaTypeDto> for SchemaType {
+    fn from(schema_type: SchemaTypeDto) -> Self {
+        match schema_type {
+            SchemaTypeDto::String => SchemaType::String,
+            SchemaTypeDto::Number => SchemaType::Number,
+            SchemaTypeDto::Integer => SchemaType::Integer,
+            SchemaTypeDto::Object => SchemaType::Object,
+            SchemaTypeDto::Array => SchemaType::Array,
+            SchemaTypeDto::Boolean => SchemaType::Boolean,
+            SchemaTypeDto::Null => SchemaType::Null,
+        }
+    }
+}
+
+impl From<SchemaType> for SchemaTypeDto {
+    fn from(schema_type: SchemaType) -> Self {
+        match schema_type {
+            SchemaType::String => SchemaTypeDto::String,
+            SchemaType::Number => SchemaTypeDto::Number,
+            SchemaType::Integer => SchemaTypeDto::Integer,
+            SchemaType::Object => SchemaTypeDto::Object,
+            SchemaType::Array => SchemaTypeDto::Array,
+            SchemaType::Boolean => SchemaTypeDto::Boolean,
+            SchemaType::Null => SchemaTypeDto::Null,
+        }
+    }
+}
+
+impl From<JsonSchemaDto> for JsonSchema {
+    fn from(schema: JsonSchemaDto) -> Self {
+        JsonSchema {
+            schema: schema.schema,
+            schema_type: schema.schema_type.into(),
+            properties: schema
+                .properties
+                .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            required: schema.required,
+            items: schema.items.map(|items| Box::new((*items).into())),
+            enum_values: schema.enum_values,
+            format: schema.format,
+            minimum: schema.minimum,
+            maximum: schema.maximum,
+            min_length: schema.min_length,
+            max_length: schema.max_length,
+            description: schema.description,
+            default: schema.default,
+        }
+    }
+}
+
+impl From<JsonSchema> for JsonSchemaDto {
+    fn from(schema: JsonSchema) -> Self {
+        JsonSchemaDto {
+            schema: schema.schema,
+            schema_type: schema.schema_type.into(),
+            properties: schema
+                .properties
+                .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            required: schema.required,
+            items: schema.items.map(|items| Box::new((*items).into())),
+            enum_values: schema.enum_values,
+            format: schema.format,
+            minimum: schema.minimum,
+            maximum: schema.maximum,
+            min_length: schema.min_length,
+            max_length: schema.max_length,
+            description: schema.description,
+            default: schema.default,
         }
     }
 }

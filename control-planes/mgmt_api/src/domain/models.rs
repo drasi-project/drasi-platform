@@ -1,16 +1,10 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::{
-    collections::{BTreeMap, HashMap},
-    hash::Hash,
-    pin::Pin,
-};
+use std::collections::{BTreeMap, HashMap};
 use thiserror::Error;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "kind")]
-pub enum PersistedSpec {
-    Source(SourceSpec),
+pub trait HasKind {
+    fn kind(&self) -> &str;
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -55,8 +49,14 @@ impl Default for ConfigValue {
 #[serde(tag = "kind")]
 pub struct SourceSpec {
     pub kind: String,
-    pub services: Option<HashMap<String, Option<Service>>>,
-    pub properties: Option<HashMap<String, Option<ConfigValue>>>,
+    pub services: Option<HashMap<String, ServiceConfig>>,
+    pub properties: Option<HashMap<String, ConfigValue>>,
+}
+
+impl HasKind for SourceSpec {
+    fn kind(&self) -> &str {
+        &self.kind
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -101,9 +101,15 @@ pub struct QueryContainerStatus {
 pub struct ReactionSpec {
     pub kind: String,
     pub tag: Option<String>,
-    pub services: Option<HashMap<String, Option<Service>>>,
+    pub services: Option<HashMap<String, ServiceConfig>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
     pub queries: HashMap<String, String>,
+}
+
+impl HasKind for ReactionSpec {
+    fn kind(&self) -> &str {
+        &self.kind
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -192,21 +198,30 @@ pub struct SourceProviderStatus {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-
-pub struct SourceProviderSpec {
-    pub services: HashMap<String, Value>,
-    pub config_schema: Option<Value>,
+pub struct ProviderSpec {
+    pub services: HashMap<String, ProviderService>,
+    pub config_schema: Option<JsonSchema>,
 }
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
 
-pub struct ReactionProviderSpec {
-    pub services: HashMap<String, Value>,
-    pub config_schema: Option<Value>,
+pub struct SourceProviderMarker;
+pub struct ReactionProviderMarker;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ProviderService {
+    pub image: String,
+    pub dapr: Option<HashMap<String, String>>,
+    pub endpoints: Option<HashMap<String, ServiceEndpoint>>,
+    pub config_schema: Option<JsonSchema>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Service {
+pub struct ServiceEndpoint {
+    pub setting: EndpointSetting,
+    pub target: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServiceConfig {
     pub replica: Option<String>,
     pub image: Option<String>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
@@ -221,6 +236,7 @@ pub struct Endpoint {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub enum EndpointSetting {
     Internal,
     External,
@@ -278,4 +294,59 @@ pub enum DomainError {
 
     #[error("JsonParseError")]
     JsonParseError { message: String },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct JsonSchema {
+    #[serde(rename = "$schema", skip_serializing_if = "Option::is_none")]
+    pub schema: Option<String>,
+
+    #[serde(rename = "type")]
+    pub schema_type: SchemaType,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub properties: Option<std::collections::HashMap<String, JsonSchema>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub required: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub items: Option<Box<JsonSchema>>, // For array types
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enum_values: Option<Vec<serde_json::Value>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimum: Option<f64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub maximum: Option<f64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_length: Option<u64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<u64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum SchemaType {
+    Object,
+    Array,
+    String,
+    Number,
+    Integer,
+    Boolean,
+    Null,
 }

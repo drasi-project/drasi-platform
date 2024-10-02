@@ -144,28 +144,6 @@ pub struct ReactionStatus {
     pub messages: Option<BTreeMap<String, String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SourceProviderSpec {
-    pub services: HashMap<String, serde_json::Value>,
-    pub config_schema: Option<serde_json::Value>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SourceProviderStatus {
-    pub available: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ReactionProviderSpec {
-    pub services: HashMap<String, serde_json::Value>,
-    pub config_schema: Option<serde_json::Value>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ReactionProviderStatus {
-    pub available: bool,
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ConfigProperties {
     pub default: Option<DefaultValue>,

@@ -12,7 +12,6 @@ impl QueryContainerRepositoryImpl {
     pub fn new(db: Database) -> Self {
         QueryContainerRepositoryImpl {
             collection: db.collection::<Document>("query-containers"),
-            schema_collection: None,
             _t: std::marker::PhantomData,
         }
     }
