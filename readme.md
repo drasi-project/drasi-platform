@@ -7,7 +7,7 @@ Drasi provides real-time actionable insights without the overhead of traditional
 Drasi operates through three components:
 
 *	 **Sources** connect to data repositories within software systems to monitor logs and feeds to track changing data.
-*	 **Continuous Queries** interpret monitored events by applying criteria and conditions to identify significant changes. In Drasi, these Continuous Queries are written using the Cypher Query Language.
+*	 **Continuous Queries** interpret monitored changes by applying criteria and conditions to identify significant changes. In Drasi, these Continuous Queries are written using the Cypher Query Language.
 *	 **Reactions** trigger meaningful responses based on updates to the result sets of the Continuous Queries.<br>
   
 <img src="https://github.com/drasi-project/community/blob/main/images/drasi_components.png" alt="Alt text" width="800" height="300">
