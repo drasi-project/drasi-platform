@@ -12,7 +12,6 @@ impl ReactionRepositoryImpl {
     pub fn new(db: Database) -> Self {
         ReactionRepositoryImpl {
             collection: db.collection::<Document>("reactions"),
-            schema_collection: Some(db.collection::<Document>("reaction_schemas")),
             _t: std::marker::PhantomData,
         }
     }

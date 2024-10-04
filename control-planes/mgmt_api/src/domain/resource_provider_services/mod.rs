@@ -1,11 +1,11 @@
-use std::fmt::Debug;
+use std::sync::Arc;
 
 use crate::persistence::ResourceSpecRepository;
 use async_trait::async_trait;
 use dapr::client::TonicClient;
-use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 
+use super::models::ProviderSpec;
 use super::models::{DomainError, ResourceProvider};
 
 mod reaction_provider_service;
@@ -27,65 +27,66 @@ fn add_kind_field_to_schema(schema: Value) -> Result<Value, DomainError> {
 
 #[async_trait]
 pub trait SchemaValidator {
-    async fn validate_schema(&self, _schema: &Value) -> Result<(), super::models::DomainError>;
+    async fn validate_schema(
+        &self,
+        _schema: &ProviderSpec,
+    ) -> Result<(), super::models::DomainError>;
 }
 
 #[async_trait]
-pub trait ResourceProviderDomainService<TProviderSpec> {
-    async fn set(&self, id: &str, registration: Value)
-        -> Result<Value, super::models::DomainError>;
+pub trait ResourceProviderDomainService<TMarker> {
+    async fn set(
+        &self,
+        id: &str,
+        registration: ProviderSpec,
+    ) -> Result<ProviderSpec, super::models::DomainError>;
     async fn get(
         &self,
         id: &str,
-    ) -> Result<ResourceProvider<TProviderSpec>, super::models::DomainError>;
+    ) -> Result<ResourceProvider<ProviderSpec>, super::models::DomainError>;
     async fn delete(&self, id: &str) -> Result<(), super::models::DomainError>;
-    async fn list(
-        &self,
-    ) -> Result<Vec<ResourceProvider<TProviderSpec>>, super::models::DomainError>;
+    async fn list(&self)
+        -> Result<Vec<ResourceProvider<ProviderSpec>>, super::models::DomainError>;
 }
 
-pub struct ResourceProviderDomainServiceImpl<TProviderSpec>
-where
-    TProviderSpec: Serialize + DeserializeOwned + Debug + Clone + Send + Sync,
-{
+pub struct ResourceProviderDomainServiceImpl<TMarker> {
     dapr_client: dapr::Client<TonicClient>,
-    repo: Box<dyn ResourceSpecRepository<TProviderSpec> + Send + Sync>,
+    repo: Arc<dyn ResourceSpecRepository<ProviderSpec> + Send + Sync>,
     validators: Vec<Box<dyn SchemaValidator + Send + Sync>>,
-    _tprovider_spec: std::marker::PhantomData<TProviderSpec>,
+    _marker: std::marker::PhantomData<TMarker>,
 }
 
 #[async_trait]
-impl<TProviderSpec> ResourceProviderDomainService<TProviderSpec>
-    for ResourceProviderDomainServiceImpl<TProviderSpec>
+impl<TMarker> ResourceProviderDomainService<TMarker> for ResourceProviderDomainServiceImpl<TMarker>
 where
-    TProviderSpec: Serialize + DeserializeOwned + Debug + Clone + Send + Sync,
+    TMarker: Send + Sync,
 {
     async fn set(
         &self,
         id: &str,
-        registration: Value,
-    ) -> Result<Value, super::models::DomainError> {
+        registration: ProviderSpec,
+    ) -> Result<ProviderSpec, super::models::DomainError> {
         log::debug!("Registering resource: {}", id);
 
-        let schema = match add_kind_field_to_schema(registration.clone()) {
-            Ok(s) => s,
-            Err(e) => {
-                log::error!("Error adding kind field to schema: {}", e);
-                return Err(DomainError::Internal { inner: Box::new(e) });
-            }
-        };
+        // let schema = match add_kind_field_to_schema(registration.clone()) {
+        //     Ok(s) => s,
+        //     Err(e) => {
+        //         log::error!("Error adding kind field to schema: {}", e);
+        //         return Err(DomainError::Internal { inner: Box::new(e) });
+        //     }
+        // };
 
         for validator in &self.validators {
-            validator.validate_schema(&schema).await?;
+            validator.validate_schema(&registration).await?;
         }
-        self.repo.set_definition_schema(id, &schema).await?;
+        self.repo.set(id, &registration).await?;
         Ok(registration)
     }
 
     async fn get(
         &self,
         id: &str,
-    ) -> Result<ResourceProvider<TProviderSpec>, super::models::DomainError> {
+    ) -> Result<ResourceProvider<ProviderSpec>, super::models::DomainError> {
         log::debug!("Getting resource: {}", id);
         let spec = self.repo.get(id).await?;
 
@@ -97,7 +98,7 @@ where
 
     async fn delete(&self, id: &str) -> Result<(), super::models::DomainError> {
         log::debug!("Deregistering resource: {}", id);
-        match self.repo.delete_definition_schema(id).await {
+        match self.repo.delete(id).await {
             Ok(_) => {}
             Err(e) => {
                 log::error!("Error deregistering resource: {}", e);
@@ -109,7 +110,7 @@ where
 
     async fn list(
         &self,
-    ) -> Result<Vec<ResourceProvider<TProviderSpec>>, super::models::DomainError> {
+    ) -> Result<Vec<ResourceProvider<ProviderSpec>>, super::models::DomainError> {
         log::debug!("Listing resource providers");
         let mut result = Vec::new();
         let items = self.repo.list().await;

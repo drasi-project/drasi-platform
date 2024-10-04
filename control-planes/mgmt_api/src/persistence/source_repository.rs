@@ -12,7 +12,6 @@ impl SourceRepositoryImpl {
     pub fn new(db: Database) -> Self {
         SourceRepositoryImpl {
             collection: db.collection::<Document>("sources"),
-            schema_collection: Some(db.collection::<Document>("source_schemas")),
             _t: std::marker::PhantomData,
         }
     }

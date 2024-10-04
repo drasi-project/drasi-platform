@@ -46,18 +46,12 @@ impl From<SourceSpec> for resource_provider_api::models::SourceSpec {
     fn from(source_spec: SourceSpec) -> resource_provider_api::models::SourceSpec {
         resource_provider_api::models::SourceSpec {
             kind: source_spec.kind,
-            services: source_spec.services.map(|services| {
-                services
-                    .into_iter()
-                    .map(|(k, v)| (k, v.unwrap().into()))
-                    .collect()
-            }),
-            properties: source_spec.properties.map(|properties| {
-                properties
-                    .into_iter()
-                    .map(|(k, v)| (k, v.unwrap().into()))
-                    .collect()
-            }),
+            services: source_spec
+                .services
+                .map(|services| services.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            properties: source_spec
+                .properties
+                .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
         }
     }
 }
@@ -114,12 +108,9 @@ impl From<ReactionSpec> for resource_provider_api::models::ReactionSpec {
         resource_provider_api::models::ReactionSpec {
             kind: reaction_spec.kind,
             tag: reaction_spec.tag,
-            services: reaction_spec.services.map(|services| {
-                services
-                    .into_iter()
-                    .map(|(k, v)| (k, v.unwrap().into()))
-                    .collect()
-            }),
+            services: reaction_spec
+                .services
+                .map(|services| services.into_iter().map(|(k, v)| (k, v.into())).collect()),
             properties: reaction_spec
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
@@ -159,8 +150,8 @@ impl From<EndpointSetting> for resource_provider_api::models::EndpointSetting {
     }
 }
 
-impl From<Service> for resource_provider_api::models::Service {
-    fn from(service: Service) -> resource_provider_api::models::Service {
+impl From<ServiceConfig> for resource_provider_api::models::Service {
+    fn from(service: ServiceConfig) -> resource_provider_api::models::Service {
         resource_provider_api::models::Service {
             replica: service.replica,
             image: service.image.unwrap(),
@@ -173,28 +164,6 @@ impl From<Service> for resource_provider_api::models::Service {
             properties: service
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
-        }
-    }
-}
-
-impl From<SourceProviderSpec> for resource_provider_api::models::SourceProviderSpec {
-    fn from(
-        source_provider_spec: SourceProviderSpec,
-    ) -> resource_provider_api::models::SourceProviderSpec {
-        resource_provider_api::models::SourceProviderSpec {
-            services: source_provider_spec.services,
-            config_schema: source_provider_spec.config_schema,
-        }
-    }
-}
-
-impl From<ReactionProviderSpec> for resource_provider_api::models::ReactionProviderSpec {
-    fn from(
-        reaction_provider_spec: ReactionProviderSpec,
-    ) -> resource_provider_api::models::ReactionProviderSpec {
-        resource_provider_api::models::ReactionProviderSpec {
-            services: reaction_provider_spec.services,
-            config_schema: reaction_provider_spec.config_schema,
         }
     }
 }
@@ -344,36 +313,6 @@ impl From<resource_provider_api::models::ReactionStatus> for ReactionStatus {
         ReactionStatus {
             available: reaction_status.available,
             messages: reaction_status.messages,
-        }
-    }
-}
-
-impl From<SourceProviderStatus> for resource_provider_api::models::SourceProviderStatus {
-    fn from(
-        source_provider_status: SourceProviderStatus,
-    ) -> resource_provider_api::models::SourceProviderStatus {
-        resource_provider_api::models::SourceProviderStatus {
-            available: source_provider_status.available,
-        }
-    }
-}
-
-impl From<resource_provider_api::models::ReactionProviderStatus> for ReactionProviderStatus {
-    fn from(
-        reaction_provider_status: resource_provider_api::models::ReactionProviderStatus,
-    ) -> ReactionProviderStatus {
-        ReactionProviderStatus {
-            available: reaction_provider_status.available,
-        }
-    }
-}
-
-impl From<resource_provider_api::models::SourceProviderStatus> for SourceProviderStatus {
-    fn from(
-        source_provider_status: resource_provider_api::models::SourceProviderStatus,
-    ) -> SourceProviderStatus {
-        SourceProviderStatus {
-            available: source_provider_status.available,
         }
     }
 }

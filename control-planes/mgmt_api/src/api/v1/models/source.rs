@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use super::ConfigValueDto;
 
-use super::ServiceDto;
+use super::ServiceConfigDto;
 
 use std::collections::BTreeMap;
 use std::collections::HashMap;
@@ -12,8 +12,8 @@ use std::collections::HashMap;
 #[serde(tag = "kind")]
 pub struct SourceSpecDto {
     pub kind: String,
-    pub services: Option<HashMap<String, Option<ServiceDto>>>,
-    pub properties: Option<HashMap<String, Option<ConfigValueDto>>>,
+    pub services: Option<HashMap<String, ServiceConfigDto>>,
+    pub properties: Option<HashMap<String, ConfigValueDto>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

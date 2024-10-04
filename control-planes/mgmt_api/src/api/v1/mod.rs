@@ -111,13 +111,12 @@ macro_rules! v1_crud_api_provider {
 
     }
 
-    use serde_json::Value;
     #[put("/{id}")]
-    async fn put_resource(svc: web::Data<$domain_service>, id: web::Path<String>, body: web::Json<Value>) -> HttpResponse {
+    async fn put_resource(svc: web::Data<$domain_service>, id: web::Path<String>, body: web::Json<$spec_dto>) -> HttpResponse {
       log::debug!("put_provider_resource: {:?}", id);
       let data = body.into_inner();
 
-      match svc.set(&id.into_inner(), data).await {
+      match svc.set(&id.into_inner(), data.into()).await {
         Ok(res) => HttpResponse::Ok().json(res),
         Err(e) => e.into()
       }
@@ -189,18 +188,18 @@ pub mod reaction_handlers {
 
 pub mod source_provider_handlers {
     use crate::{
-        api::v1::models::SourceProviderSpecDto,
+        api::v1::models::ProviderSpecDto,
         domain::resource_provider_services::SourceProviderDomainService,
     };
-    v1_crud_api_provider!(SourceProviderDomainService, SourceProviderSpecDto);
+    v1_crud_api_provider!(SourceProviderDomainService, ProviderSpecDto);
 }
 
 pub mod reaction_provider_handlers {
     use crate::{
-        api::v1::models::ReactionProviderSpecDto,
+        api::v1::models::ProviderSpecDto,
         domain::resource_provider_services::ReactionProviderDomainService,
     };
-    v1_crud_api_provider!(ReactionProviderDomainService, ReactionProviderSpecDto);
+    v1_crud_api_provider!(ReactionProviderDomainService, ProviderSpecDto);
 }
 
 pub mod query_handlers {
