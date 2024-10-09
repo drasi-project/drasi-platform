@@ -16,9 +16,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{get, post},
-    Json, Router,
-
-    
+    Json, Router,  
 };
 
 mod change_dispatcher_config;
