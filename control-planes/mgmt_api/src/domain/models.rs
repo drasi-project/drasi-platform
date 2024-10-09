@@ -212,6 +212,7 @@ pub struct ProviderService {
     pub dapr: Option<HashMap<String, String>>,
     pub endpoints: Option<HashMap<String, ServiceEndpoint>>,
     pub config_schema: Option<JsonSchema>,
+    pub deprovision_handler: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -221,12 +222,14 @@ pub struct ServiceEndpoint {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ServiceConfig {
     pub replica: Option<String>,
     pub image: Option<String>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
     pub endpoints: Option<HashMap<String, Endpoint>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
+    pub deprovision_handler: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
