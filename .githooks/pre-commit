@@ -16,3 +16,8 @@ cargo fmt  --manifest-path ./control-planes/mgmt_api/Cargo.toml --check
 cargo fmt  --manifest-path ./control-planes/resource_provider_api/Cargo.toml --check
 
 cargo fmt  --manifest-path ./infrastructure/Cargo.toml --all --check
+
+echo "Running cargo fmt for sources..."
+cargo fmt --manifest-path ./sources/shared/change-dispatcher/Cargo.toml --check
+cargo fmt --manifest-path ./sources/shared/change-rotuer/Cargo.toml --check
+cargo fmt --manifest-path ./sources/shared/query-api/Cargo.toml --check
