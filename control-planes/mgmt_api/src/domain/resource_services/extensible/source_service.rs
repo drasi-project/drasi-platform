@@ -160,7 +160,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
             }
         };
         // Check if the services defined in the source spec are defined in the schema
-        for (service_name, service_settings) in &services {
+        for (service_name, _service_settings) in &services {
             if !defined_services.contains(service_name) {
                 return Err(DomainError::UndefinedSetting {
                     message: format!("Service {} is not defined in the schema", service_name),
