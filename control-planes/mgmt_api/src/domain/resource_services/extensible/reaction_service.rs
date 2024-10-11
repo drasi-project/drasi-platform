@@ -27,7 +27,7 @@ impl ReactionDomainServiceImpl {
         dapr_client: dapr::Client<TonicClient>,
         repo: Box<ReactionRepository>,
         provider_repo: Arc<ProviderRepository>,
-        invoker: Arc<dyn Invoker>
+        invoker: Arc<dyn Invoker>,
     ) -> Self {
         ReactionDomainServiceImpl {
             dapr_client,

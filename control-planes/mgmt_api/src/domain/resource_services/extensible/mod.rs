@@ -126,7 +126,7 @@ where
     async fn delete(&self, id: &str) -> Result<(), DomainError> {
         log::debug!("Deleting resource: {}", id);
         let spec = self.repo.get(id).await?;
-        
+
         let schema = match self.provider_repo.get(spec.kind()).await {
             Ok(schema) => Some(schema),
             Err(e) => {
@@ -134,15 +134,31 @@ where
                 None
             }
         };
-        
+
         if let Some(schema) = &schema {
             for (service_name, service_config) in &schema.services {
                 if let Some(deprovision_handler) = &service_config.deprovision_handler {
                     if *deprovision_handler {
-                        match self.invoker.invoke(Payload::None, format!("{}-{}", id, service_name).as_str(), "deprovision", None).await {
-                            Ok(_) => log::info!("Called Deprovision handler for {}-{}", id, service_name),
+                        match self
+                            .invoker
+                            .invoke(
+                                Payload::None,
+                                format!("{}-{}", id, service_name).as_str(),
+                                "deprovision",
+                                None,
+                            )
+                            .await
+                        {
+                            Ok(_) => {
+                                log::info!("Called Deprovision handler for {}-{}", id, service_name)
+                            }
                             Err(e) => {
-                                log::error!("Error deprovisioning {}-{}: {}", id, service_name, e.to_string());                                    
+                                log::error!(
+                                    "Error deprovisioning {}-{}: {}",
+                                    id,
+                                    service_name,
+                                    e.to_string()
+                                );
                             }
                         }
                     }
@@ -151,7 +167,7 @@ where
         }
 
         let mut mut_dapr = self.dapr_client.clone();
-        
+
         let _: () = match mut_dapr
             .invoke_actor(
                 (self.actor_type)(&spec),
