@@ -4,12 +4,12 @@ metadata:
   name: test-data-init
 data:
   init.sql: >
-    CREATE TABLE item (
+    CREATE TABLE public."item" (
         id INTEGER NOT NULL PRIMARY KEY,
         name CHARACTER VARYING(100) NOT NULL,
         category CHARACTER VARYING(10) NOT NULL
     );
-    INSERT INTO item (id, name, category)
+    INSERT INTO public."item" (id, name, category)
       VALUES
         (1, 'Item 1', 'A'),
         (2, 'Item 2', 'B'),

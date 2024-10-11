@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Source
+name: smoke-test
+spec:
+  kind: PostgreSQL
+  properties:
+    host: postgres.default.svc.cluster.local
+    user: postgres
+    port: 5432
+    ssl: false
+    password: smoke-test
+    database: smokedb
+    tables:
+      - public.item

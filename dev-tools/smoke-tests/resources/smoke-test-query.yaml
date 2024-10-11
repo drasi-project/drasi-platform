@@ -1,0 +1,15 @@
+kind: ContinuousQuery
+apiVersion: v1
+name: smoke-query
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: smoke-postgres
+  query: >
+    MATCH
+      (i:item {category: 'A'})
+    RETURN
+      i.id as Id,
+      i.name as Name,
+      i.category as Category
