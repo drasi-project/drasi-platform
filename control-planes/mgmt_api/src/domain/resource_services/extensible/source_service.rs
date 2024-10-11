@@ -27,7 +27,7 @@ impl SourceDomainServiceImpl {
         dapr_client: dapr::Client<TonicClient>,
         repo: Box<SourceRepository>,
         provider_repo: Arc<ProviderRepository>,
-        invoker: Arc<dyn Invoker>
+        invoker: Arc<dyn Invoker>,
     ) -> Self {
         SourceDomainServiceImpl {
             dapr_client,

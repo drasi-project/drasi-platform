@@ -212,7 +212,7 @@ pub struct ProviderService {
     pub image: String,
     pub dapr: Option<HashMap<String, String>>,
     pub endpoints: Option<HashMap<String, ServiceEndpoint>>,
-    pub config_schema: Option<JsonSchema>,    
+    pub config_schema: Option<JsonSchema>,
     pub deprovision_handler: Option<bool>,
 }
 
