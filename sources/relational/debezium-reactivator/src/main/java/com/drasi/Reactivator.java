@@ -22,11 +22,13 @@ public class Reactivator {
         try {
             var sourceId = System.getenv("SOURCE_ID");
             var connector = System.getenv("connector");
+            var instanceId = System.getenv("INSTANCE_ID");
             SpringApplication app = new SpringApplication(Reactivator.class);
             Map<String, Object> defaultProperties = new HashMap<>();
             defaultProperties.put("server.port", "80");
             defaultProperties.put("drasi.sourceid", sourceId);
             defaultProperties.put("drasi.connector", connector);
+            defaultProperties.put("drasi.instanceid", instanceId);
             app.setDefaultProperties(defaultProperties);
             app.run(args);
         } catch (Exception ex) {

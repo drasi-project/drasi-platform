@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use dapr::client::TonicClient;
+use drasi_comms_abstractions::comms::{Invoker, Payload};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
-use std::{collections::HashMap, env, fmt::Debug, sync::Arc, time::Duration};
+use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
 
 use crate::{
     domain::models::{
@@ -39,6 +40,7 @@ where
     dapr_client: dapr::Client<TonicClient>,
     repo: Box<dyn ResourceSpecRepository<TSpec> + Send + Sync>,
     provider_repo: Arc<ProviderRepository>,
+    invoker: Arc<dyn Invoker>,
     actor_type: fn(&TSpec) -> String,
     ready_check: fn(&TStatus) -> bool,
     validators: Vec<Box<dyn ExtensibleSpecValidator<TSpec> + Send + Sync>>,
@@ -131,16 +133,14 @@ where
                 log::error!("Error getting schema for resource: {}", e);
                 None
             }
-        };        
+        };
         
         if let Some(schema) = &schema {
-            let client = reqwest::Client::new();
-            let port = std::env::var("DAPR_HTTP_PORT").unwrap_or("3500".to_string());
             for (service_name, service_config) in &schema.services {
                 if let Some(deprovision_handler) = &service_config.deprovision_handler {
                     if *deprovision_handler {
-                        match client.post(format!("http://localhost:{}/v1.0/invoke/{}/method/deprovision", port, format!("{}-{}", id, service_name))).send().await {
-                            Ok(r) => log::info!("Deprovisioned {}-{}: {}", id, service_name, r.status()),                            
+                        match self.invoker.invoke(Payload::None, format!("{}-{}", id, service_name).as_str(), "deprovision", None).await {
+                            Ok(_) => log::info!("Called Deprovision handler for {}-{}", id, service_name),
                             Err(e) => {
                                 log::error!("Error deprovisioning {}-{}: {}", id, service_name, e.to_string());                                    
                             }

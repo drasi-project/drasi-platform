@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 resource_provider_api = { path = "../resource_provider_api" }
+drasi-comms-abstractions = { path = "../../infrastructure/comms-abstractions" }
+drasi-comms-dapr = { path = "../../infrastructure/comms-dapr" }
 dapr = "=0.15.1"
 async-stream = "0.3.5"
 async-trait = "0.1"

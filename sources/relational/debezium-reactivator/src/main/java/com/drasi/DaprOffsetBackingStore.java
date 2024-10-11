@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class DaprOffsetBackingStore extends MemoryOffsetBackingStore {
-    private static final Logger log = LoggerFactory.getLogger(org.apache.kafka.connect.storage.FileOffsetBackingStore.class);
+    private static final Logger log = LoggerFactory.getLogger(DaprOffsetBackingStore.class);
 
     private DaprClient client;
     private String stateStore;
@@ -42,6 +42,17 @@ public class DaprOffsetBackingStore extends MemoryOffsetBackingStore {
     public synchronized void start() {
         super.start();
         log.info("Starting DaprOffsetBackingStore");
+
+        var instanceId = System.getenv("INSTANCE_ID");
+        var resp = client.getState(stateStore, "instance_id", TypeRef.STRING);
+        var respValue = resp.block().getValue();
+
+        if (respValue == null || !respValue.equals(instanceId)) {
+            log.info("Instance ID mismatch. Clearing offset store.");
+            client.deleteState(stateStore, "offset").block();
+            client.saveState(stateStore, "instance_id", instanceId).block();
+        }
+
         load();
     }
 

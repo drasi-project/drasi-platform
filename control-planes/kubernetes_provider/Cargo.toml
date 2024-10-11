@@ -26,4 +26,5 @@ axum = { version = "0.7.5", features = ["macros"] }
 kube-derive = "0.87.1"
 schemars = "0.8.15"
 bytes = "1.7.1"
+uuid = { version = "1.10.0", features = ["v4"] }
 
