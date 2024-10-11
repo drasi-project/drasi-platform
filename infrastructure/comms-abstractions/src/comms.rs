@@ -17,20 +17,25 @@ impl Headers {
     }
 }
 
+pub enum Payload {
+    None,
+    Json(Value),
+    Bytes(bytes::Bytes),
+}
+
 #[async_trait]
-pub trait Invoker {
-    fn new(dapr_host: String, dapr_port: u16) -> Self;
+pub trait Invoker: Send + Sync {
     async fn invoke(
         &self,
-        data: Value,
-        app_id: String,
-        method: String,
-        headers: Headers,
+        data: Payload,
+        app_id: &str,
+        method: &str,
+        headers: Option<Headers>,
     ) -> Result<bytes::Bytes, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
-pub trait Publisher {
+pub trait Publisher: Send + Sync {
     fn new(dapr_host: String, dapr_port: u16, pubsub: String, topic: String) -> Self;
     async fn publish(
         &self,
