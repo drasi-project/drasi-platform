@@ -201,7 +201,7 @@ async fn process_changes(
                 match invoker
                     .invoke(
                         Payload::Json(dispatch_event.clone()),
-                        app_id.into(),
+                        &app_id,
                         "change",
                         Some(headers),
                     )

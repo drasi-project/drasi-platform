@@ -83,17 +83,18 @@ impl Invoker for DaprHttpInvoker {
         app_id: &str,
         method: &str,
         headers: Option<Headers>,
-    ) -> Result<bytes::Bytes, Box<dyn std::error::Error>> {        
-        let url = format!("http://{}:{}/v1.0/invoke/{}/method/{}", self.dapr_host, self.dapr_port, app_id, method);
-        
+    ) -> Result<bytes::Bytes, Box<dyn std::error::Error>> {
+        let url = format!(
+            "http://{}:{}/v1.0/invoke/{}/method/{}",
+            self.dapr_host, self.dapr_port, app_id, method
+        );
+
         let request_headers = {
             let mut request_headers = reqwest::header::HeaderMap::new();
             if let Some(headers) = headers {
                 for (key, value) in headers.headers.iter() {
-                    request_headers.insert(
-                        key.parse::<reqwest::header::HeaderName>()?,
-                        value.parse()?,
-                    );
+                    request_headers
+                        .insert(key.parse::<reqwest::header::HeaderName>()?, value.parse()?);
                 }
             }
 
@@ -108,14 +109,11 @@ impl Invoker for DaprHttpInvoker {
                     _ => {}
                 }
             }
-            
+
             request_headers
         };
 
-        let request = self
-            .client
-            .post(url)
-            .headers(request_headers);
+        let request = self.client.post(url).headers(request_headers);
 
         let request = match data {
             Payload::Json(data) => request.json(&data),
