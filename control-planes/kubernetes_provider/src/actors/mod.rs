@@ -68,7 +68,9 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
     ) -> impl IntoResponse {
         log::info!("Actor configure - {} {}", self.actor_type, self.id);
         let instance_id = uuid::Uuid::new_v4().to_string();
-        let platform_specs = self.spec_builder.build(spec, &self.runtime_config, &instance_id);
+        let platform_specs = self
+            .spec_builder
+            .build(spec, &self.runtime_config, &instance_id);
 
         if let Err(err) = self.write_specs(&platform_specs).await {
             log::error!("Failed to write specs: {}", err);

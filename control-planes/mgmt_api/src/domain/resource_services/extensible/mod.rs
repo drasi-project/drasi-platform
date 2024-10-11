@@ -524,7 +524,7 @@ fn merge_spec(
             endpoints,
             dapr,
             properties: service_properties,
-            deprovision_handler: service_config.deprovision_handler.clone(),
+            deprovision_handler: service_config.deprovision_handler,
         };
 
         services.insert(service_name.clone(), new_service);
