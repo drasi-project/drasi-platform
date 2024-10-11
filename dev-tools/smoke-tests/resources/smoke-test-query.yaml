@@ -5,7 +5,7 @@ spec:
   mode: query
   sources:
     subscriptions:
-      - id: smoke-postgres
+      - id: smoke-test
   query: >
     MATCH
       (i:item {category: 'A'})

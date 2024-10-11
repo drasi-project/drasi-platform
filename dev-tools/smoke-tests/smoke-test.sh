@@ -11,6 +11,8 @@ echo Setting up Postgres...
 
 # Deploy Postgres   TODO: Update the URL
 kubectl apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml
+kubectl wait --for=condition=ready --timeout=60s pod -l app=postgres
+
 
 echo Postgres database is created in the 'default' namespace
 
