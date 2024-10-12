@@ -208,10 +208,10 @@ async fn handle_subscription(
     let invoker = &state.invoker;
     let response = match invoker
         .invoke(
-            subscription_data_json,
-            proxy_name,
-            "acquire".to_string(),
-            headers.clone(),
+            drasi_comms_abstractions::comms::Payload::Json(subscription_data_json),
+            &proxy_name,
+            "acquire",
+            Some(headers.clone()),
         )
         .await
     {
