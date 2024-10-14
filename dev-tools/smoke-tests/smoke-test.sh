@@ -49,6 +49,7 @@ postgres_pod=$(kubectl get pods -l app=postgres -o jsonpath="{.items[0].metadata
 
 echo "Inserting data into the database"
 echo "postgres pod:$postgres_pod"
+set +e
 # kubectl exec -i $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')" 2>/dev/null || true
 (kubectl exec -i $postgres_pod -n default -- psql -U postgres -d smokedb -q -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')" 2>/dev/null || true)
 
