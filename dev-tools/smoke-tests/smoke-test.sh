@@ -37,7 +37,6 @@ drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke
 drasi wait reaction smoke-result-reaction -t 120
 
 # Initial result
-kubectl run curl-pod --image=curlimages/curl -n smoke --restart=Never --rm -i -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'
 initial_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never  --rm -i -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'  2>/dev/null)
 initial_parsed_output=$(echo $initial_output | grep -o '\[.*\]')
 echo "Initial output:$initial_parsed_output"
