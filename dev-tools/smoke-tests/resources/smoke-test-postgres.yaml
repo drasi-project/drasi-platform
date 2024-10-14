@@ -4,16 +4,14 @@ metadata:
   name: test-data-init
 data:
   init.sql: >
-    CREATE TABLE public."item" (
-        id INTEGER NOT NULL PRIMARY KEY,
-        name CHARACTER VARYING(100) NOT NULL,
-        category CHARACTER VARYING(10) NOT NULL
+    CREATE TABLE public."Item" (
+        "id" INTEGER NOT NULL PRIMARY KEY,
+        "name" CHARACTER VARYING(100) NOT NULL,
+        "category" CHARACTER VARYING(10) NOT NULL
     );
-    INSERT INTO public."item" (id, name, category)
-      VALUES
-        (1, 'Item 1', 'A'),
-        (2, 'Item 2', 'B'),
-        (3, 'Item 3', 'A');
+    INSERT INTO public."Item" VALUES (1, 'Item 1', 'A');
+    INSERT INTO public."Item" VALUES (2, 'Item 2', 'B');
+    INSERT INTO public."Item" VALUES (3, 'Item 3', 'A');
 ---
 apiVersion: v1
 kind: ConfigMap

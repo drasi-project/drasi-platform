@@ -23,7 +23,7 @@ echo Populating the data in the database
 curl -s https://drasi.blob.core.windows.net/smoke-tests/setup-smoke-data.sh | bash
 kubectl create secret generic pg-creds --from-literal=password=$POSTGRES_PASSWORD -n $namespace
 
-echo "Current records in the 'item' table:"
+echo "Current records in the 'Item' table:"
 (kubectl run smoke-postgresql-client --rm -i --restart='Never' --namespace default \
   --image docker.io/bitnami/postgresql:15.1.0-debian-11-r31 --env="PGPASSWORD=$POSTGRES_PASSWORD" \
   --command -- psql -q --host smoke-postgresql -U postgres -d postgres -p 5432 -c '\c smokedb' \

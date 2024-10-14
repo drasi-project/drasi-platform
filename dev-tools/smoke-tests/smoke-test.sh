@@ -24,6 +24,7 @@ drasi namespace set $namespace   # Set the namespace
 echo Applying a Source with the name 'smoke-test'
 drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-source.yaml
 drasi wait source smoke-test -t 120
+sleep 5
 
 # Apply continuous query 
 echo Applying a ContinuousQuery with the name 'smoke-query'
@@ -47,8 +48,9 @@ echo Adding the following entry to the database: '{"Id": 4, "Name": "Item 4", "C
 # get the postgres pod name
 postgres_pod=$(kubectl get pods -l app=postgres -o jsonpath="{.items[0].metadata.name}" -n default)
 
+echo postgres pod name: $postgres_pod
 
-kubectl exec -it $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c "INSERT INTO public.item (id, name, category) VALUES (4, 'Item 4', 'A');" > /dev/null 2>&1
+kubectl exec -it $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A');" 2>/dev/null
 
 
 echo "Retrieving the current result from the debug reaction"
@@ -73,7 +75,7 @@ if [ "$final_parsed_output" == "$expected_output" ]; then
     drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-query.yaml
     drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml
 
-    
+
 else
     echo "Smoke test failed"
 

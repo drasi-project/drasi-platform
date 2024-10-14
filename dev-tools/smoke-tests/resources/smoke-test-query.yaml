@@ -8,7 +8,7 @@ spec:
       - id: smoke-test
   query: >
     MATCH
-      (i:item {category: 'A'})
+      (i:Item {category: 'A'})
     RETURN
       i.id as Id,
       i.name as Name,
