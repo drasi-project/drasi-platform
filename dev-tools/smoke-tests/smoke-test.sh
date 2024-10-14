@@ -37,7 +37,7 @@ drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke
 drasi wait reaction smoke-result-reaction -t 120
 
 # Initial result
-initial_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never  --rm --attach -- sh -c 'curl http://smoke-result-reaction-gateway:8080/smoke-query/all')
+initial_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never  --rm --attach -q -- sh -c 'curl -s http://smoke-result-reaction-gateway:8080/smoke-query/all')
 echo "Initial output before parse:$initial_output"
 initial_parsed_output=$(echo $initial_output | grep -o '\[.*\]')
 echo "Initial output:$initial_parsed_output"
@@ -50,7 +50,7 @@ postgres_pod=$(kubectl get pods -l app=postgres -o jsonpath="{.items[0].metadata
 
 echo "Inserting data into the database"
 echo "postgres pod:$postgres_pod"
-kubectl exec -it $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')"
+kubectl exec -i $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')"
 
 
 echo "Retrieving the current result from the debug reaction"
