@@ -11,4 +11,4 @@ spec:
     password: smoke-test
     database: smokedb
     tables:
-      - public.item
+      - public.Item
