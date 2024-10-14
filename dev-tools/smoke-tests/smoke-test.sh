@@ -51,6 +51,7 @@ echo Adding the following entry to the database: '{"Id": 4, "Name": "Item 4", "C
 postgres_pod=$(kubectl get pods -l app=postgres -o jsonpath="{.items[0].metadata.name}" -n default)
 
 echo "Inserting data into the database"
+echo "postgres pod:$postgres_pod"
 kubectl exec -it $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')" 2>/dev/null
 
 
