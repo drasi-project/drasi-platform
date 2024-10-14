@@ -24,12 +24,11 @@ drasi namespace set $namespace   # Set the namespace
 echo Applying a Source with the name 'smoke-test'
 drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-source.yaml
 drasi wait source smoke-test -t 120
-sleep 5
 
 # Apply continuous query 
 echo Applying a ContinuousQuery with the name 'smoke-query'
 drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-query.yaml
-
+sleep 5
 
 # Apply Reaction
 echo Applying a Reaction with the name 'smoke-result-reaction'
@@ -38,7 +37,7 @@ drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke
 drasi wait reaction smoke-result-reaction -t 120
 
 # Initial result
-initial_output=$(kubectl run curl-pod --image=curlimages/curl -n drasi-system --restart=Never --rm -it  -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all; sleep 3'  2>/dev/null)
+initial_output=$(kubectl run curl-pod --image=curlimages/curl -n drasi-system --restart=Never --rm -it  -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'  2>/dev/null)
 initial_parsed_output=$(echo $initial_output | grep -o '\[.*\]')
 echo "Initial output:$initial_parsed_output"
 
@@ -48,15 +47,13 @@ echo Adding the following entry to the database: '{"Id": 4, "Name": "Item 4", "C
 # get the postgres pod name
 postgres_pod=$(kubectl get pods -l app=postgres -o jsonpath="{.items[0].metadata.name}" -n default)
 
-echo postgres pod name: $postgres_pod
-
-kubectl exec -it $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A');" 2>/dev/null
+kubectl exec -it $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')" 2>/dev/null
 
 
 echo "Retrieving the current result from the debug reaction"
 sleep 10
 
-final_output=$(kubectl run curl-pod --image=curlimages/curl -n drasi-system --restart=Never --rm -it  -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all; sleep 3'  2>/dev/null)
+final_output=$(kubectl run curl-pod --image=curlimages/curl -n drasi-system --restart=Never --rm -it  -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'  2>/dev/null)
 final_parsed_output=$(echo $final_output | grep -o '\[.*\]')
 echo "Final output:$final_parsed_output"
 
