@@ -37,8 +37,8 @@ drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke
 drasi wait reaction smoke-result-reaction -t 120
 
 # Initial result
-kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm -it -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'
-initial_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never  --rm -it -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'  2>/dev/null)
+kubectl run curl-pod --image=curlimages/curl -n smoke --restart=Never --rm -i -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'
+initial_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never  --rm -i -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'  2>/dev/null)
 initial_parsed_output=$(echo $initial_output | grep -o '\[.*\]')
 echo "Initial output:$initial_parsed_output"
 
@@ -55,7 +55,7 @@ kubectl exec -it $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c 
 echo "Retrieving the current result from the debug reaction"
 sleep 10
 
-final_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm -it  -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'  2>/dev/null)
+final_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm -i  -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'  2>/dev/null)
 final_parsed_output=$(echo $final_output | grep -o '\[.*\]')
 echo "Final output:$final_parsed_output"
 
