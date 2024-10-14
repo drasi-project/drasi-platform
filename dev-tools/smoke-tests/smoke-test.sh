@@ -37,7 +37,8 @@ drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke
 drasi wait reaction smoke-result-reaction -t 120
 
 # Initial result
-initial_output=$(kubectl run curl-pod --image=curlimages/curl -n drasi-system --restart=Never --rm -it  -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'  2>/dev/null)
+kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm -it  -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'
+initial_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm -it  -- sh -c 'sleep 3; curl http://smoke-result-reaction-gateway:8080/smoke-query/all'  2>/dev/null)
 initial_parsed_output=$(echo $initial_output | grep -o '\[.*\]')
 echo "Initial output:$initial_parsed_output"
 
@@ -47,6 +48,7 @@ echo Adding the following entry to the database: '{"Id": 4, "Name": "Item 4", "C
 # get the postgres pod name
 postgres_pod=$(kubectl get pods -l app=postgres -o jsonpath="{.items[0].metadata.name}" -n default)
 
+echo "Inserting data into the database"
 kubectl exec -it $postgres_pod -n default  -- psql -U postgres -d smokedb -q -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')" 2>/dev/null
 
 
