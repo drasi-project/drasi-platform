@@ -9,8 +9,8 @@ if (-not $namespace) {
 
 Write-Host "Setting up Postgres..."
 
-# Deploy Postgres   TODO: Update the URL
-kubectl apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml -n default
+# Deploy Postgres
+kubectl apply -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml -n default
 kubectl wait --for=condition=ready --timeout=60s pod -l app=postgres -n default
 
 Write-Host "Postgres database is created in the 'default' namespace"
@@ -22,17 +22,17 @@ drasi namespace set $namespace
 
 # Apply source
 Write-Host "Applying a Source with the name 'smoke-test'"
-drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-source.yaml
+drasi apply -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-source.yaml
 drasi wait source smoke-test -t 120
 
 # Apply continuous query
 Write-Host "Applying a ContinuousQuery with the name 'smoke-query'"
-drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-query.yaml
+drasi apply -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-query.yaml
 Start-Sleep -Seconds 5
 
 # Apply Reaction
 Write-Host "Applying a Reaction with the name 'smoke-result-reaction'"
-drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml
+drasi apply -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml
 
 drasi wait reaction smoke-result-reaction -t 120
 
@@ -94,20 +94,20 @@ if ($final_parsed_output -eq $expected_output) {
 
     # Cleaning up resources
     Write-Host "Cleaning up resources..."
-    kubectl delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml -n default
+    kubectl delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml -n default
 
-    drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-source.yaml
-    drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-query.yaml
-    drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml
+    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-source.yaml
+    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-query.yaml
+    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml
 } else {
     Write-Host "Smoke test failed"
 
     Write-Host "Resources are not deleted. If you wish to clean up everything, run the following commands:"
 
-    Write-Host "kubectl delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml -n default"
-    Write-Host "drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-source.yaml"
-    Write-Host "drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-query.yaml"
-    Write-Host "drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml"
+    Write-Host "kubectl delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml -n default"
+    Write-Host "drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-source.yaml"
+    Write-Host "drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-query.yaml"
+    Write-Host "drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml"
 
     
     exit 1
