@@ -184,7 +184,7 @@ impl SequentialChangeStream for RedisChangeStream {
         _ = self.cancel.notify_one();
         let mut connection = self.connection.lock().await;
         let _: i64 = match connection
-            .xgroup_delconsumer(&self.topic, &self.group_id, "qh")
+            .xgroup_destroy(&self.topic, &self.group_id)
             .await
         {
             Ok(res) => {
