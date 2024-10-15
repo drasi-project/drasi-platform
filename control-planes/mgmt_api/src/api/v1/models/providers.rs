@@ -17,6 +17,8 @@ pub struct ProviderServiceDto {
     pub dapr: Option<HashMap<String, String>>,
     pub endpoints: Option<HashMap<String, ServiceEndpointDto>>,
     pub config_schema: Option<JsonSchemaDto>,
+    #[serde(rename = "deprovisionHandler")]
+    pub deprovision_handler: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

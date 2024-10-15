@@ -1,4 +1,5 @@
 use change_dispatcher_config::ChangeDispatcherConfig;
+use drasi_comms_abstractions::comms::Payload;
 use log::info;
 use serde_json::Value;
 
@@ -199,10 +200,10 @@ async fn process_changes(
                 let headers = Headers::new(headers);
                 match invoker
                     .invoke(
-                        dispatch_event.clone(),
-                        app_id,
-                        "change".to_string(),
-                        headers,
+                        Payload::Json(dispatch_event.clone()),
+                        &app_id,
+                        "change",
+                        Some(headers),
                     )
                     .await
                 {

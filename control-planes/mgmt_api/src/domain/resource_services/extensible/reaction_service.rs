@@ -11,6 +11,7 @@ use crate::{
 
 use async_trait::async_trait;
 use dapr::client::TonicClient;
+use drasi_comms_abstractions::comms::Invoker;
 use jsonschema::JSONSchema;
 use std::{collections::HashMap, sync::Arc};
 pub type ReactionDomainService = dyn ResourceDomainService<ReactionSpec, ReactionStatus>;
@@ -26,11 +27,13 @@ impl ReactionDomainServiceImpl {
         dapr_client: dapr::Client<TonicClient>,
         repo: Box<ReactionRepository>,
         provider_repo: Arc<ProviderRepository>,
+        invoker: Arc<dyn Invoker>,
     ) -> Self {
         ReactionDomainServiceImpl {
             dapr_client,
             repo,
             provider_repo,
+            invoker,
             actor_type: |_spec| "ReactionResource".to_string(),
             ready_check: |status| status.available,
             validators: vec![Box::new(ReactionSpecValidator {})],

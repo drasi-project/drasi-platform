@@ -6,18 +6,24 @@ import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
 import io.debezium.engine.spi.OffsetCommitPolicy;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class PostgresChangeMonitor implements ChangeMonitor {
     private String sourceId;
     private ChangePublisher publisher;
+    private ExecutorService executor;
+    private DebeziumEngine<ChangeEvent<String, String>> engine;
 
     public PostgresChangeMonitor(String sourceId, ChangePublisher publisher) {
         this.sourceId = sourceId;
         this.publisher = publisher;
+        this.executor = Executors.newSingleThreadExecutor();
     }
 
     public void run() throws IOException, SQLException {
@@ -55,12 +61,18 @@ public class PostgresChangeMonitor implements ChangeMonitor {
 
         final Properties props = config.asProperties();
 
-        try (DebeziumEngine<ChangeEvent<String, String>> engine = DebeziumEngine.create(Json.class)
+        engine = DebeziumEngine.create(Json.class)
                 .using(props)
                 .using(OffsetCommitPolicy.always())
-                .notifying(new PostgresChangeConsumer(mappings, publisher)).build()) {
-            engine.run();
-        }
+                .notifying(new PostgresChangeConsumer(mappings, publisher)).build();
+
+        executor.execute(engine);
+    }
+
+    public void close() throws Exception {
+        engine.close();
+        executor.shutdown();
+        executor.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS);
     }
 
     private static String CleanPublicationName(String name) {

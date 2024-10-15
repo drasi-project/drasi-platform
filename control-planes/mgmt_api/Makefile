@@ -8,7 +8,7 @@ DOCKERX_OPTS ?= --load --cache-to type=inline,mode=max
 default: docker-build
 
 docker-build:
-	docker buildx build .. -f ./Dockerfile -t $(IMAGE_PREFIX)/api:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
+	docker buildx build ../../ -f ./Dockerfile -t $(IMAGE_PREFIX)/api:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
 
 kind-load:
 	kind load docker-image $(IMAGE_PREFIX)/api:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)

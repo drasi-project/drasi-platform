@@ -36,6 +36,7 @@ impl From<ServiceConfigDto> for ServiceConfig {
         ServiceConfig {
             replica: None,
             image: None,
+            deprovision_handler: None,
             endpoints: service
                 .endpoints
                 .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
@@ -142,6 +143,7 @@ impl From<ProviderServiceDto> for ProviderService {
                 .endpoints
                 .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
             config_schema: provider_service.config_schema.map(|schema| schema.into()),
+            deprovision_handler: provider_service.deprovision_handler,
         }
     }
 }
@@ -155,6 +157,7 @@ impl From<ProviderService> for ProviderServiceDto {
                 .endpoints
                 .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
             config_schema: provider_service.config_schema.map(|schema| schema.into()),
+            deprovision_handler: provider_service.deprovision_handler,
         }
     }
 }
