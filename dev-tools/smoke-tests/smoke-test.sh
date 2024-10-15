@@ -49,7 +49,7 @@ postgres_pod=$(kubectl get pods -l app=postgres -o jsonpath="{.items[0].metadata
 
 echo "Inserting data into the database"
 echo "postgres pod:$postgres_pod"
-kubectl exec -i $postgres_pod -n default -- psql -U postgres -d smokedb -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')" 2> /dev/null
+kubectl exec -i $postgres_pod -n default -- psql -U postgres -d smokedb -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')"
 if [ $? -ne 0 ]; then
     echo "Command failed with non-zero exit code"
     echo "Error message:"
