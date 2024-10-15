@@ -41,27 +41,28 @@ initial_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --re
 initial_parsed_output=$(echo $initial_output | grep -o '\[.*\]')
 echo "Initial output:$initial_parsed_output"
 
-# Insert data into the postgres database
-echo Adding the following entry to the database: '{"Id": 4, "Name": "Item 4", "Category": "A"}'
+
 
 # get the postgres pod name
 postgres_pod=$(kubectl get pods -l app=postgres -o jsonpath="{.items[0].metadata.name}" -n default)
 
-echo "Inserting data into the database"
+echo "Inserting the following entries into the database: '{"Id": 4, "Name": "Item 4", "Category": "B"}'"
 echo "postgres pod:$postgres_pod"
-kubectl exec  $postgres_pod -n default -- psql -U postgres -d smokedb -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'A')" 2>/dev/null
+kubectl exec  $postgres_pod -n default -- psql -U postgres -d smokedb -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'B')" 2>/dev/null
+sleep 5
+echo "Inserting the following entries into the database: '{"Id": 5, "Name": "Item 5", "Category": "A"}'"
+kubectl exec  $postgres_pod -n default -- psql -U postgres -d smokedb -c "INSERT INTO public.\"Item\" VALUES (5, 'Item 5', 'A')" 2>/dev/null
 
 echo "Retrieving the current result from the debug reaction"
-sleep 10
+sleep 20
 
 final_output=$(kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never  --rm --attach -q -- sh -c 'curl -s http://smoke-result-reaction-gateway:8080/smoke-query/all' 2>/dev/null)
 final_parsed_output=$(echo $final_output | grep -o '\[.*\]')
 echo "Final output:$final_parsed_output"
 
-expected_output='[{"Category":"A","Id":1,"Name":"Item 1"},{"Category":"A","Id":3,"Name":"Item 3"},{"Category":"A","Id":4,"Name":"Item 4"}]'
+expected_output='[{"Category":"A","Id":1,"Name":"Item 1"},{"Category":"A","Id":3,"Name":"Item 3"},{"Category":"A","Id":5,"Name":"Item 5"}]'
 
 echo "Expected output after the insertion:$expected_output"
-echo "Actual output:$parsed_output"
 
 if [ "$final_parsed_output" == "$expected_output" ]; then
     echo "Smoke test passed!"
