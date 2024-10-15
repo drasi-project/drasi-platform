@@ -36,7 +36,6 @@ drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke
 
 drasi wait reaction smoke-result-reaction -t 120
 
-# Run kubectl command to execute the curl pod and fetch the result
 # Run the kubectl command and capture the output
 $initial_output = & kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm --attach -q -- sh -c 'curl -s http://smoke-result-reaction-gateway:8080/smoke-query/all' 2>$null
 
@@ -59,13 +58,13 @@ Write-Host "Inserting the following entries into the database: {'Id': 4, 'Name':
 Write-Host "postgres pod: $postgres_pod"
 
 # Execute the first SQL insert command inside the postgres pod
-kubectl exec $postgres_pod -n default -- psql -U postgres -d smokedb -c "INSERT INTO public.\"Item\" VALUES (4, 'Item 4', 'B')" 2>$null
+kubectl exec $postgres_pod -n default -- psql -U postgres -d smokedb -c "INSERT INTO public.`"Item`" VALUES (6, 'Item 4', 'B')"
 
 Start-Sleep -Seconds 5
 
 Write-Host "Inserting the following entries into the database: {'Id': 5, 'Name': 'Item 5', 'Category': 'A'}"
 
-kubectl exec $postgres_pod -n default -- psql -U postgres -d smokedb -c "INSERT INTO public.\"Item\" VALUES (5, 'Item 5', 'A')" 2>$null
+kubectl exec $postgres_pod -n default -- psql -U postgres -d smokedb -c "INSERT INTO public.`"Item`" VALUES (5, 'Item 5', 'A')"
 
 
 Write-Host "Retrieving the current result from the debug reaction"
@@ -73,12 +72,16 @@ Write-Host "Retrieving the current result from the debug reaction"
 
 Start-Sleep -Seconds 20
 
-
-$final_output = kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm --attach -q -- sh -c 'curl -s http://smoke-result-reaction-gateway:8080/smoke-query/all' 2>$null
+$final_output = & kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm --attach -q -- sh -c 'curl -s http://smoke-result-reaction-gateway:8080/smoke-query/all' 2>$null
 
 # Extract the portion of the output that matches the pattern [.*]
-$final_parsed_output = $final_output -match '\[.*\]' | Out-Null
+if ($final_output -match '\[.*\]') {
+    $final_parsed_output = $Matches[0]
+} else {
+    $final_parsed_output = $null
+}
 $final_parsed_output = $Matches[0]
+
 
 Write-Host "Final output: $final_parsed_output"
 
