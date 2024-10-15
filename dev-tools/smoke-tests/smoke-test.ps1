@@ -37,10 +37,15 @@ drasi apply -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke
 drasi wait reaction smoke-result-reaction -t 120
 
 # Run kubectl command to execute the curl pod and fetch the result
-$initial_output = kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm --attach -q -- sh -c 'curl -s http://smoke-result-reaction-gateway:8080/smoke-query/all' 2>$null
+# Run the kubectl command and capture the output
+$initial_output = & kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm --attach -q -- sh -c 'curl -s http://smoke-result-reaction-gateway:8080/smoke-query/all' 2>$null
 
 # Extract the portion of the output that matches the pattern [.*]
-$initial_parsed_output = $initial_output -match '\[.*\]' | Out-Null
+if ($initial_output -match '\[.*\]') {
+    $initial_parsed_output = $Matches[0]
+} else {
+    $initial_parsed_output = $null
+}
 $initial_parsed_output = $Matches[0]
 
 # Print the parsed output
@@ -100,7 +105,7 @@ if ($final_parsed_output -eq $expected_output) {
     Write-Host "drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-source.yaml"
     Write-Host "drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-query.yaml"
     Write-Host "drasi delete -f https://raw.githubusercontent.com/ruokun-niu/drasi-platform/smoke-test-test/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml"
-    
+
     
     exit 1
 }
