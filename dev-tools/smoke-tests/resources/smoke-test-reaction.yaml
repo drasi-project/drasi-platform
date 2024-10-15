@@ -1,0 +1,9 @@
+kind: Reaction
+apiVersion: v1
+name: smoke-result-reaction
+spec:
+  kind: Result
+  queries:
+    smoke-query:
+  endpoints:
+    gateway: 8080
