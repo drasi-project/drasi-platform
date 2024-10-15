@@ -29,6 +29,8 @@ public class Reactivator {
             defaultProperties.put("drasi.sourceid", sourceId);
             defaultProperties.put("drasi.connector", connector);
             defaultProperties.put("drasi.instanceid", instanceId);
+            defaultProperties.put("server.shutdown", "graceful");
+            defaultProperties.put("spring.lifecycle.timeout-per-shutdown-phase", "20s");
             app.setDefaultProperties(defaultProperties);
             app.run(args);
         } catch (Exception ex) {
