@@ -183,10 +183,7 @@ impl SequentialChangeStream for RedisChangeStream {
     async fn unsubscribe(&self) -> Result<(), ChangeStreamError> {
         _ = self.cancel.notify_one();
         let mut connection = self.connection.lock().await;
-        let _: i64 = match connection
-            .xgroup_destroy(&self.topic, &self.group_id)
-            .await
-        {
+        let _: i64 = match connection.xgroup_destroy(&self.topic, &self.group_id).await {
             Ok(res) => {
                 log::debug!("unsubscribe response: {:?}", res);
                 res
