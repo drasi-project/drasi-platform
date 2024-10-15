@@ -78,6 +78,6 @@ if [ "$final_parsed_output" == "$expected_output" ]; then
 else
     echo "Smoke test failed"
 
-    echo "Resources are not deleted. If you wish to clean up everything, run 'curl -s https://raw.githubusercontent.com/drasi-project/drasi-platform/smoke-test/dev-tools/smoke-tests/cleanup-smoke-test.sh | bash'"
+    echo "Resources are not deleted. If you wish to clean up everything, run 'curl -s https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/cleanup-smoke-test.sh | bash'"
     exit 1
 fi
