@@ -217,49 +217,145 @@ pub mod reaction_provider_handlers {
 }
 
 pub mod query_handlers {
-    use actix_web::{post, web::Bytes};
-    use async_stream::stream;
+    use actix_web::{HttpRequest, Responder};
+    use actix_ws::{CloseCode, CloseReason, Message};
     use futures_util::StreamExt;
+    use tokio::{pin, select};
 
     use crate::{
         api::v1::models::{QuerySpecDto, QueryStatusDto},
         domain::{debug_service::DebugService, resource_services::QueryDomainService},
     };
 
-    #[post("/debug")]
-    async fn debug(svc: web::Data<DebugService>, body: web::Json<QuerySpecDto>) -> HttpResponse {
+    #[get("null/debug")]
+    async fn debug(
+        svc: web::Data<DebugService>,
+        req: HttpRequest,
+        body: web::Payload,
+    ) -> actix_web::Result<impl Responder> {
         log::info!("debug query route");
-        let query = body.into_inner();
+        let (cancellation_tx, cancellation_rx) = tokio::sync::oneshot::channel::<()>();
+        let (response, mut session, msg_stream) = actix_ws::handle(&req, body)?;
 
-        match svc.debug(query.into()).await {
-            Ok(res) => {
-                let stream = stream! {
-                  tokio::pin!(res);
+        actix_web::rt::spawn(async move {
+            let mut msg_stream = msg_stream.fuse();
 
-                  yield Ok(Bytes::from_static(b"["));
-                  let mut is_first = true;
-
-                  while let Some(item) = res.next().await {
-                    match serde_json::to_vec(&item) {
-                      Ok(bytes) => {
-                        if is_first {
-                          is_first = false;
-                        } else {
-                          yield Ok(Bytes::from_static(b","));
+            let query = {
+                let mut query = None;
+                while let Some(msg) = msg_stream.next().await {
+                    match msg {
+                        Ok(actix_ws::Message::Text(text)) => {
+                            query = match serde_json::from_str::<QuerySpecDto>(&text) {
+                                Ok(q) => Some(q),
+                                Err(e) => {
+                                    log::error!("Error parsing query spec: {}", e);
+                                    _ = session
+                                        .close(Some(CloseReason {
+                                            code: CloseCode::Invalid,
+                                            description: Some(format!("Invalid query spec: {}", e)),
+                                        }))
+                                        .await
+                                        .ok();
+                                    return;
+                                }
+                            };
+                            break;
                         }
-                        yield Ok(Bytes::from(bytes))
-                      },
-                      Err(e) => yield Err(e)
-                    };
-                  }
+                        _ => {}
+                    }
+                }
+                query
+            };
 
-                  yield Ok(Bytes::from_static(b"]"));
-                };
+            let query = match query {
+                Some(q) => q,
+                None => {
+                    log::error!("No query spec provided");
+                    _ = session
+                        .close(Some(CloseReason {
+                            code: CloseCode::Invalid,
+                            description: Some("No query provided".to_string()),
+                        }))
+                        .await
+                        .ok();
+                    return;
+                }
+            };
 
-                HttpResponse::Ok().streaming(stream)
+            let data_stream = match svc.debug(query.into(), cancellation_rx).await {
+                Ok(res) => res,
+                Err(e) => {
+                    log::error!("Error debugging query: {}", e);
+                    _ = session
+                        .close(Some(CloseReason {
+                            code: CloseCode::Error,
+                            description: Some(format!("Error debugging query: {}", e)),
+                        }))
+                        .await
+                        .ok();
+                    return;
+                }
+            };
+
+            let data_stream = data_stream.fuse();
+            pin!(data_stream);
+
+            loop {
+                select! {
+                  msg = msg_stream.next() => {
+                    match msg {
+                        Some(Ok(msg)) => {
+                            match msg {
+                                Message::Ping(bytes) => {
+                                    if session.pong(&bytes).await.is_err() {
+                                        log::info!("Ping failed, closing session");
+                                        break;
+                                    }
+                                },
+                                Message::Close(cr) => {
+                                    log::info!("Received close message: {:?}", cr);
+                                    break;
+                                },
+                                _ => break,
+                            }
+                        }
+                        Some(Err(e)) => {
+                            log::error!("Error receiving message: {}", e);
+                            break;
+                        }
+                        None => break,
+                    }
+                },
+                evt = data_stream.next() => {
+                    match evt {
+                        Some(evt) => {
+                            let json = match serde_json::to_string(&evt) {
+                                Ok(j) => j,
+                                Err(e) => {
+                                    log::error!("Error serializing message: {}", e);
+                                    break;
+                                }
+                            };
+                            match session.text(json.clone()).await {
+                                Ok(_) => log::info!("Sent debug message"),
+                                Err(e) => {
+                                    log::error!("Error sending message: {}", e);
+                                    break;
+                                }
+                            }
+
+                        }
+                        None => break,
+                    }
+                }
+
+                }
             }
-            Err(e) => e.into(),
-        }
+            _ = cancellation_tx.send(()).ok();
+            _ = session.close(None).await.ok();
+        });
+
+        Ok(response)
     }
 
     v1_crud_api!(QueryDomainService, QuerySpecDto, QueryStatusDto, debug);

@@ -1,17 +1,3 @@
-// Copyright 2024 The Drasi Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 use std::time::Duration;
 
 use self::api::ResultEvent;
@@ -85,10 +71,10 @@ impl ResultService {
 pub mod api {
     use std::fmt::{Display, Formatter};
 
-    use serde::Deserialize;
+    use serde::{Deserialize, Serialize};
     use serde_json::{Map, Value};
 
-    #[derive(Deserialize, Debug, Clone)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(tag = "kind")]
     pub enum ControlSignal {
         #[serde(rename = "bootstrapStarted")]
@@ -119,7 +105,7 @@ pub mod api {
         }
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     #[serde(tag = "kind")]
     pub enum ResultEvent {
         #[serde(rename = "change")]
@@ -129,7 +115,7 @@ pub mod api {
         Control(ResultControlEvent),
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     #[serde(rename_all = "camelCase")]
     pub struct ResultChangeEvent {
         pub query_id: String,
@@ -141,7 +127,7 @@ pub mod api {
         pub metadata: Option<Map<String, Value>>,
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     #[serde(rename_all = "camelCase")]
     pub struct ResultControlEvent {
         pub query_id: String,
@@ -151,7 +137,7 @@ pub mod api {
         pub control_signal: ControlSignal,
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdatePayload {
         pub before: Option<Map<String, Value>>,
         pub after: Option<Map<String, Value>>,
