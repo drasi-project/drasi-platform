@@ -37,13 +37,12 @@ impl DaprStateManager {
                 // if it is an object, check if it has a "key" field and a "value" field
                 for entry in entry {
                     match entry {
-                        Value::String(_) => continue,
                         Value::Object(obj) => {
                             if !obj.contains_key("key") || !obj.contains_key("value") {
                                 return Err(Box::from("State entry object must have 'key' and 'value' fields"));
                             }
                         }
-                        _ => return Err(Box::from("State entry must be a JSON array of strings or objects")),
+                        _ => return Err(Box::from("State entry must be a JSON array of objects")),
                     }
                 }
             }
