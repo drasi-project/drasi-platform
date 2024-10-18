@@ -1,9 +1,8 @@
 {
   "name": "drasi",
   "displayName": "drasi",
-  "publisher": "drasi",
-  "description": "",
   "publisher": "drasi-project",
+  "description": "",
   "version": "0.0.3",
   "repository": {
     "type": "git",
@@ -144,6 +143,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "16.x",
     "@types/vscode": "^1.75.0",
+    "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
     "@vscode/test-electron": "^2.2.2",
@@ -159,6 +159,7 @@
     "braces": "^3.0.3",
     "js-yaml": "^4.1.0",
     "portfinder": "^1.0.32",
-    "strip-ansi": "^7.0.1"
+    "strip-ansi": "^7.0.1",
+    "ws": "^8.18.0"
   }
 }

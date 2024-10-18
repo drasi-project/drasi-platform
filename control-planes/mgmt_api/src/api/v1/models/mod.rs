@@ -234,3 +234,26 @@ pub struct ReadyWaitParams {
 fn default_ready_timeout() -> u64 {
     60
 }
+
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "kind")]
+pub enum ControlMessage {
+    #[serde(rename = "error")]
+    Error(ErrorMessage),
+}
+
+impl ControlMessage {
+    pub fn error(message: String) -> Self {
+        ControlMessage::Error(ErrorMessage { message })
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ErrorMessage {
+    pub message: String,
+}

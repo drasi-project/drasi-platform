@@ -163,6 +163,10 @@ async fn main() -> Result<(), std::io::Error> {
                 web::scope("/v1/reactionProviders")
                     .configure(api::v1::reaction_provider_handlers::configure),
             )
+            .service(
+                web::scope("/v1/debug")
+                    .configure(api::v1::debug_handlers::configure),
+            )
     })
     .bind(("127.0.0.1", 8080))?
     .run()

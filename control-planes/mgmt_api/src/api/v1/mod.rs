@@ -217,146 +217,205 @@ pub mod reaction_provider_handlers {
 }
 
 pub mod query_handlers {
+    use std::sync::Arc;
+
     use actix_web::{HttpRequest, Responder};
     use actix_ws::{CloseCode, CloseReason, Message};
     use futures_util::StreamExt;
-    use tokio::{pin, select};
+    use tokio::{pin, select, sync::Notify};
 
     use crate::{
         api::v1::models::{QuerySpecDto, QueryStatusDto},
         domain::{debug_service::DebugService, resource_services::QueryDomainService},
     };
 
-    #[get("null/debug")]
-    async fn debug(
-        svc: web::Data<DebugService>,
-        req: HttpRequest,
-        body: web::Payload,
-    ) -> actix_web::Result<impl Responder> {
-        log::info!("debug query route");
-        let (cancellation_tx, cancellation_rx) = tokio::sync::oneshot::channel::<()>();
-        let (response, mut session, msg_stream) = actix_ws::handle(&req, body)?;
+    v1_crud_api!(QueryDomainService, QuerySpecDto, QueryStatusDto);
+}
 
-        actix_web::rt::spawn(async move {
-            let mut msg_stream = msg_stream.fuse();
+pub mod debug_handlers {
+  use std::{sync::Arc, time::Duration};
+  
+  use actix_web::{web::{self}, get, HttpRequest, Responder};
+  use actix_ws::{CloseCode, CloseReason, Message};
+  use futures_util::StreamExt;
+  use tokio::{pin, select, sync::Notify};
 
-            let query = {
-                let mut query = None;
-                while let Some(msg) = msg_stream.next().await {
-                    match msg {
-                        Ok(actix_ws::Message::Text(text)) => {
-                            query = match serde_json::from_str::<QuerySpecDto>(&text) {
-                                Ok(q) => Some(q),
-                                Err(e) => {
-                                    log::error!("Error parsing query spec: {}", e);
-                                    _ = session
-                                        .close(Some(CloseReason {
-                                            code: CloseCode::Invalid,
-                                            description: Some(format!("Invalid query spec: {}", e)),
-                                        }))
-                                        .await
-                                        .ok();
-                                    return;
-                                }
-                            };
-                            break;
-                        }
-                        _ => {}
-                    }
-                }
-                query
-            };
+  use crate::{
+      api::v1::models::{ControlMessage, QuerySpecDto},
+      domain::debug_service::DebugService,
+  };
+  pub fn configure(cfg: &mut web::ServiceConfig) {
+    cfg.service(debug);
 
-            let query = match query {
-                Some(q) => q,
-                None => {
-                    log::error!("No query spec provided");
-                    _ = session
-                        .close(Some(CloseReason {
-                            code: CloseCode::Invalid,
-                            description: Some("No query provided".to_string()),
-                        }))
-                        .await
-                        .ok();
-                    return;
-                }
-            };
+  }
 
-            let data_stream = match svc.debug(query.into(), cancellation_rx).await {
-                Ok(res) => res,
-                Err(e) => {
-                    log::error!("Error debugging query: {}", e);
-                    _ = session
-                        .close(Some(CloseReason {
-                            code: CloseCode::Error,
-                            description: Some(format!("Error debugging query: {}", e)),
-                        }))
-                        .await
-                        .ok();
-                    return;
-                }
-            };
+  #[get("")]
+  async fn debug(
+      svc: web::Data<DebugService>,
+      req: HttpRequest,
+      body: web::Payload,
+  ) -> actix_web::Result<impl Responder> {
+      let cancel = Arc::new(Notify::new());
+      let (response, mut session, msg_stream) = actix_ws::handle(&req, body)?;
 
-            let data_stream = data_stream.fuse();
-            pin!(data_stream);
+      actix_web::rt::spawn(async move {
+          let mut msg_stream = msg_stream.fuse();
 
-            loop {
-                select! {
-                  msg = msg_stream.next() => {
-                    match msg {
-                        Some(Ok(msg)) => {
-                            match msg {
-                                Message::Ping(bytes) => {
-                                    if session.pong(&bytes).await.is_err() {
-                                        log::info!("Ping failed, closing session");
-                                        break;
-                                    }
-                                },
-                                Message::Close(cr) => {
-                                    log::info!("Received close message: {:?}", cr);
-                                    break;
-                                },
-                                _ => break,
-                            }
-                        }
-                        Some(Err(e)) => {
-                            log::error!("Error receiving message: {}", e);
-                            break;
-                        }
-                        None => break,
-                    }
+          let query = {
+              let mut query = None;
+              while let Some(msg) = msg_stream.next().await {
+                  match msg {
+                      Ok(actix_ws::Message::Text(text)) => {
+                          query = match serde_json::from_str::<QuerySpecDto>(&text) {
+                              Ok(q) => Some(q),
+                              Err(e) => {
+                                  log::error!("Error parsing query spec: {}", e);
+                                  _ = session.text(ControlMessage::error(e.to_string()).to_json()).await.ok();
+                                  _ = session
+                                      .close(Some(CloseReason {
+                                          code: CloseCode::Invalid,
+                                          description: None,
+                                      }))
+                                      .await
+                                      .ok();
+                                  return;
+                              }
+                          };
+                          break;
+                      }
+                      Ok(actix_ws::Message::Ping(bytes)) => {
+                          if session.pong(&bytes).await.is_err() {
+                              log::info!("Ping failed, closing session");
+                              break;
+                          }
+                      }
+                      Ok(actix_ws::Message::Pong(_)) => {}
+                      Ok(actix_ws::Message::Close(cr)) => {
+                          log::info!("Received close message: {:?}", cr);
+                          return;
+                      }
+                      Err(e) => {
+                          log::error!("Error receiving message: {}", e);
+                          return;
+                      }
+                      _ => {}
+                  }
+              }
+              query
+          };
+
+          let query = match query {
+              Some(q) => q,
+              None => {
+                  log::error!("No query spec provided");
+                  _ = session
+                      .close(Some(CloseReason {
+                          code: CloseCode::Invalid,
+                          description: Some("No query provided".to_string()),
+                      }))
+                      .await
+                      .ok();
+                  return;
+              }
+          };
+
+          let data_stream = match svc.debug(query.into(), cancel.clone()).await {
+              Ok(res) => res,
+              Err(e) => {
+                  log::error!("Error debugging query: {}", e);
+                  _ = session.text(ControlMessage::error(e.to_string()).to_json()).await.ok();
+                  _ = session
+                      .close(Some(CloseReason {
+                          code: CloseCode::Error,
+                          description: None,
+                      }))
+                      .await
+                      .ok();
+                  return;
+              }
+          };
+
+          let data_stream = data_stream.fuse();
+          pin!(data_stream);            
+
+          loop {
+              select! {
+                _ = tokio::time::sleep(Duration::from_secs(10)) => {
+                  log::info!("Sending ping");
+                  if session.ping(b"").await.is_err() {
+                      log::info!("Ping failed, closing session");
+                      break;
+                  }
                 },
-                evt = data_stream.next() => {
-                    match evt {
-                        Some(evt) => {
-                            let json = match serde_json::to_string(&evt) {
-                                Ok(j) => j,
-                                Err(e) => {
-                                    log::error!("Error serializing message: {}", e);
-                                    break;
-                                }
-                            };
-                            match session.text(json.clone()).await {
-                                Ok(_) => log::info!("Sent debug message"),
-                                Err(e) => {
-                                    log::error!("Error sending message: {}", e);
-                                    break;
-                                }
-                            }
+                msg = msg_stream.next() => {
+                  match msg {
+                      Some(Ok(msg)) => {
+                          match msg {
+                              Message::Ping(bytes) => {
+                                  if session.pong(&bytes).await.is_err() {
+                                      log::info!("Ping failed, closing session");
+                                      break;
+                                  }
+                              },
+                              Message::Pong(_) => {},
+                              Message::Close(cr) => {
+                                  log::info!("Received close message: {:?}", cr);
+                                  break;
+                              },
+                              _ => {
+                                  log::info!("Received unexpected message: {:?}", msg);
+                                  break;
+                              },
+                          }
+                      }
+                      Some(Err(e)) => {
+                          log::error!("Error receiving message: {}", e);
+                          break;
+                      }
+                      None => break,
+                  }
+              },
+              evt = data_stream.next() => {
+                  match evt {
+                      Some(evt) => {
+                          let json = match serde_json::to_string(&evt) {
+                              Ok(j) => j,
+                              Err(e) => {
+                                  log::error!("Error serializing message: {}", e);
+                                  break;
+                              }
+                          };
+                          match session.text(json).await {
+                              Ok(_) => log::debug!("Sent debug message"),
+                              Err(e) => {
+                                  log::error!("Error sending debug message: {}", e);
+                                  break;
+                              }
+                          }
+                      }
+                      None => break,
+                  }
+              }
 
-                        }
-                        None => break,
-                    }
-                }
+              }
+          }
+          log::info!("debug stream ended");
+          
+          cancel.notify_waiters();
+          log::info!("Cancellation signal sent");
+          
+          while let Some(_) = data_stream.next().await {
+            log::info!("Draining message stream");
+          }            
 
-                }
-            }
-            _ = cancellation_tx.send(()).ok();
-            _ = session.close(None).await.ok();
-        });
+          log::info!("Closing session");
+          
+          _ = session.close(None).await.ok();
 
-        Ok(response)
-    }
+          log::info!("Session closed");
+      });
 
-    v1_crud_api!(QueryDomainService, QuerySpecDto, QueryStatusDto, debug);
+      Ok(response)
+  }
+
 }

@@ -144,8 +144,20 @@ impl Actor for QueryActor {
     #[tracing::instrument(skip_all, fields(query_id=self.query_id.as_ref()), err)]
     async fn on_deactivate(&self) -> Result<(), ActorError> {
         log::info!("Query deactivated {}", self.query_id);
+
+        let transient = self.config.get().await.map_or(false, |c| c.transient.is_some_and(|f| f));
         if let Some(w) = self.worker.take().await {
-            w.shutdown_async().await;
+            if transient {
+                w.delete();
+                w.shutdown();
+                self.worker.clear().await;
+                _ = self.unregister_reminder().await;
+                self.config.clear().await;
+                self.lifecycle.change_state(QueryState::Deleted);
+                _ = self.persist_config().await;
+            } else {
+                w.shutdown_async().await;
+            }            
         }
 
         if let Some(w) = self.status_watcher.take().await {
