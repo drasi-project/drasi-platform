@@ -38,3 +38,12 @@ pub trait Publisher {
         headers: Headers,
     ) -> Result<(), Box<dyn std::error::Error>>;
 }
+
+#[async_trait]
+pub trait StateManager {
+    fn new(dapr_host: &str, dapr_port: u16, store_name: &str) -> Self;
+    async fn save_state(
+        &self,
+        state_entry: Value,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+}

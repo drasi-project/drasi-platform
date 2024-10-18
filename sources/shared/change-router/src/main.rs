@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use change_router_config::ChangeRouterConfig;
 use log::{debug, info};
-use serde_json::{json, Value};
+use serde_json::{json, to_vec, Value};
 use subscribers::Subscriber;
 use uuid::Uuid;
 
@@ -14,8 +14,8 @@ use axum::{
     Json, Router,
 };
 
-use drasi_comms_abstractions::comms::{Headers, Publisher};
-use drasi_comms_dapr::comms::DaprHttpPublisher;
+use drasi_comms_abstractions::comms::{Headers, Publisher, StateManager};
+use drasi_comms_dapr::comms::{DaprHttpPublisher, DaprStateManager};
 
 mod change_router_config;
 mod subscriber_map;
@@ -37,20 +37,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let query_condition = json!({
         "filter": {
-            "EQ": { "type": "SourceSubscription"}
-        },
+            "EQ": { "type": "SourceSubscription" }
+        }
     });
+    let mut metadata = std::collections::HashMap::new();
+    metadata.insert("contentType".to_string(), "application/json".to_string());
     let response = match dapr_client
-        .query_state_alpha1(config.clone().subscriber_store, query_condition, None)
+        .query_state_alpha1(config.clone().subscriber_store, query_condition, Some(metadata))
         .await
     {
         Ok(response) => response.results,
         Err(e) => {
-            log::error!("Error querying state: {:?}", e);
+            log::error!("Error querying the Dapr state store: {:?}", e);
             vec![]
         }
     };
-
     for sub in response {
         let data: Value = match serde_json::from_slice(&sub.data) {
             Ok(data) => data,
@@ -62,6 +63,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
         };
+
+
         // if the data is corrupt for this subscription, this will cause a panic and stop loading all the others... we should probably log an error but continue to load the rest of the subscriptions
         let node_labels: Vec<&str> = match data["nodeLabels"].as_array() {
             Some(labels) => labels
@@ -126,11 +129,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    info!(
+    println!(
         "Forwarding Node types: {:?}",
         node_subscriber.get_label_map()
     );
-    info!(
+    println!(
         "Forwarding Relation types: {:?}",
         rel_subscriber.get_label_map()
     );
@@ -151,11 +154,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         topic,
     );
 
+    let state_manager = DaprStateManager::new(
+        "127.0.0.1",
+        dapr_port,
+        &config.subscriber_store,
+    );
+
     let shared_state = Arc::new(AppState {
         node_subscriber,
         rel_subscriber,
         config: config.clone(),
         publisher,
+        state_manager
     });
     let subscriber_server = Router::new()
         .route("/dapr/subscribe", get(subscribe))
@@ -182,6 +192,7 @@ struct AppState {
     rel_subscriber: Subscriber,
     config: ChangeRouterConfig,
     publisher: DaprHttpPublisher,
+    state_manager: DaprStateManager,
 }
 
 async fn subscribe() -> impl IntoResponse {
@@ -217,6 +228,7 @@ async fn receive(
     let json_data = body["data"].clone();
 
     let publisher = &state.publisher;
+    let state_manager = &state.state_manager;
     match process_changes(
         publisher,
         json_data,
@@ -224,6 +236,7 @@ async fn receive(
         node_subscriber,
         rel_subscriber,
         trace_parent,
+        state_manager
     )
     .await
     {
@@ -246,6 +259,7 @@ async fn process_changes(
     node_subscriber: &Subscriber,
     rel_subscriber: &Subscriber,
     traceparent: String,
+    state_manager: &DaprStateManager,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !changes.is_array() {
         return Err(Box::<dyn std::error::Error>::from(
@@ -263,6 +277,7 @@ async fn process_changes(
             );
             debug!("ChangeEvent: {}", change);
 
+            // Bootstrap
             if change["payload"]["source"]["db"] == "Drasi" {
                 if change["payload"]["source"]["table"] == "SourceSubscription" {
                     if change["op"] == "i" {
@@ -343,7 +358,6 @@ async fn process_changes(
                             }
                         );
 
-                        // let mut dapr_client = dapr_client.clone();
                         let source_subscription_value = json!({
                             "type": "SourceSubscription",
                             "queryId": change["payload"]["after"]["queryId"],
@@ -351,11 +365,35 @@ async fn process_changes(
                             "nodeLabels": change["payload"]["after"]["nodeLabels"],
                             "relLabels": change["payload"]["after"]["relLabels"]
                         });
-                        let mut headers = std::collections::HashMap::new();
-                        headers.insert("traceparent".to_string(), traceparent.clone());
-                        let headers = Headers::new(headers);
-                        match publisher.publish(source_subscription_value, headers).await {
-                            Ok(_) => {}
+
+
+                        let state_key = format!(
+                            "SourceSubscription-{}-{}",
+                            match change["payload"]["after"]["queryNodeId"].as_str() {
+                                Some(query_node_id) => query_node_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryNodeId from the ChangeEvent"
+                                    )),
+                            },
+                            match change["payload"]["after"]["queryId"].as_str() {
+                                Some(query_id) => query_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryId from the ChangeEvent"
+                                    )),
+                            }
+                        );
+
+                        // combine statekey and source_subscription_value into a json
+                        // where the key is the state key and the value is the source subscription value
+                        let states = json!([{
+                            "key": state_key,
+                            "value": source_subscription_value
+                        }]);
+
+                        match state_manager.save_state(states).await {
+                            Ok(_) => info!("Saved SourceSubscription to state store"),
                             Err(e) => {
                                 return Err(e);
                             }
@@ -448,7 +486,7 @@ async fn process_changes(
                             parsed_subscription
                         })
                         .collect();
-
+                    
                     let change_dispatch_event = json!([{
                         "id": change_id,
                         "sourceId": config.source_id,
@@ -480,7 +518,7 @@ async fn process_changes(
                     let headers = Headers::new(headers);
                     match publisher.publish(change_dispatch_event, headers).await {
                         Ok(_) => {
-                            log::info!("published event to topic: {}", publish_topic);
+                            info!("published event to topic: {}", publish_topic);
                         }
                         Err(e) => {
                             return Err(e);
