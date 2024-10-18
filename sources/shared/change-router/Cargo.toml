@@ -9,7 +9,7 @@ edition = "2021"
 async-trait = "0.1.80"
 axum = { version = "0.7.5", features = ["macros", "http1", "tokio"] }
 chrono = "0.4.33"
-dapr = "=0.15.1"
+dapr = "0.15.1"
 dapr-macros = {version = "=0.15.1", package = "dapr-macros"}
 drasi-comms-abstractions = { path = "../../../infrastructure/comms-abstractions" }
 drasi-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
