@@ -9,6 +9,7 @@ use crate::{
     ProviderRepository,
 };
 use dapr::client::TonicClient;
+use drasi_comms_abstractions::comms::Invoker;
 use jsonschema::JSONSchema;
 use std::{collections::HashMap, sync::Arc};
 
@@ -26,11 +27,13 @@ impl SourceDomainServiceImpl {
         dapr_client: dapr::Client<TonicClient>,
         repo: Box<SourceRepository>,
         provider_repo: Arc<ProviderRepository>,
+        invoker: Arc<dyn Invoker>,
     ) -> Self {
         SourceDomainServiceImpl {
             dapr_client,
             repo,
             provider_repo,
+            invoker,
             actor_type: |_spec| "SourceResource".to_string(),
             ready_check: |status| status.available,
             validators: vec![Box::new(SourceSpecValidator {})],
@@ -160,7 +163,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
             }
         };
         // Check if the services defined in the source spec are defined in the schema
-        for (service_name, service_settings) in &services {
+        for service_name in services.keys() {
             if !defined_services.contains(service_name) {
                 return Err(DomainError::UndefinedSetting {
                     message: format!("Service {} is not defined in the schema", service_name),
