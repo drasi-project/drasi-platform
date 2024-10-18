@@ -9,10 +9,29 @@ import (
 
 func NewWaitCommand() *cobra.Command {
 	var waitCommand = &cobra.Command{
-		Use:   "wait (-f [files] | KIND NAME)",
+		Use:   "wait [kind name] |",
 		Short: "Wait for resources to be ready",
-		Long:  `Waits for resources from provided manifests`,
-		Args:  cobra.MinimumNArgs(0),
+		Long: `Wait for a resource to be ready based on a specified kind and name, or use the '-f' flag to specify one or more YAML files containing the definitions of resources to wait for.
+
+Will not return until all resources are ready or the specified timeout is reached.
+
+Arguments:
+  kind  The kind of resource to wait for. Available kinds are (case-insensitive):
+          - ContinuousQuery (or 'Query' for short)
+          - QueryContainer
+          - Reaction
+          - ReactionProvider
+          - Source
+          - SourceProvider
+  name  The name of the resource to describe.
+
+Usage examples:
+  drasi wait continuousquery my-query
+  drasi wait -f sources.yaml queries.yaml reactions.yaml
+  drasi wait -f resources.yaml -n my-namespace
+`,
+
+		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 			var manifests *[]api.Manifest
