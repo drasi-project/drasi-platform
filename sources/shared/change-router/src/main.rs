@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use change_router_config::ChangeRouterConfig;
 use log::{debug, info};
-use serde_json::{json, to_vec, Value};
+use serde_json::{json, Value};
 use subscribers::Subscriber;
 use uuid::Uuid;
 
@@ -14,11 +14,13 @@ use axum::{
     Json, Router,
 };
 
-use drasi_comms_abstractions::comms::{Headers, Publisher, StateManager};
-use drasi_comms_dapr::comms::{DaprHttpPublisher, DaprStateManager};
+use drasi_comms_abstractions::comms::{Headers, Publisher};
+use drasi_comms_dapr::comms::{DaprHttpPublisher};
+use state_manager::DaprStateManager;
 
 mod change_router_config;
 mod subscriber_map;
+mod state_manager;
 mod subscribers;
 
 #[tokio::main]
@@ -129,11 +131,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    println!(
+    info!(
         "Forwarding Node types: {:?}",
         node_subscriber.get_label_map()
     );
-    println!(
+    info!(
         "Forwarding Relation types: {:?}",
         rel_subscriber.get_label_map()
     );
@@ -197,7 +199,6 @@ struct AppState {
 
 async fn subscribe() -> impl IntoResponse {
     let config = ChangeRouterConfig::from_env();
-    // just do a json that is a list of subscriptions
     let subscriptions = vec![json! {
         {
             "pubsubname": config.pubsub_name.clone(),
