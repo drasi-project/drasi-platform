@@ -70,10 +70,9 @@ if [ "$final_parsed_output" == "$expected_output" ]; then
     echo "cleaning up resources..."
     kubectl delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml -n default
 
-    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-source.yaml
-    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-query.yaml
     drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml
-
+    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-query.yaml
+    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-source.yaml
 
 else
     echo "Smoke test failed"

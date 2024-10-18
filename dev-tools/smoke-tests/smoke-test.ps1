@@ -96,19 +96,20 @@ if ($final_parsed_output -eq $expected_output) {
     Write-Host "Cleaning up resources..."
     kubectl delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml -n default
 
-    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-source.yaml
-    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-query.yaml
     drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml
+    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-query.yaml
+    drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-source.yaml
+    
 } else {
     Write-Host "Smoke test failed"
 
     Write-Host "Resources are not deleted. If you wish to clean up everything, run the following commands:"
 
     Write-Host "kubectl delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-postgres.yaml -n default"
-    Write-Host "drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-source.yaml"
-    Write-Host "drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-query.yaml"
     Write-Host "drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-reaction.yaml"
-
+    Write-Host "drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-query.yaml"
+    Write-Host "drasi delete -f https://raw.githubusercontent.com/drasi-project/drasi-platform/main/dev-tools/smoke-tests/resources/smoke-test-source.yaml"
+    
     
     exit 1
 }
