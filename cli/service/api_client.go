@@ -154,10 +154,10 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) e
 		subject := "Apply: " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
 
-		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name)
+		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[strings.ToLower(mf.Kind)], mf.Name)
 
 		if mf.Tag != "" {
-			url = fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name+":"+mf.Tag)
+			url = fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[strings.ToLower(mf.Kind)], mf.Name+":"+mf.Tag)
 		}
 		data, err := json.Marshal(mf.Spec)
 		if err != nil {
@@ -206,10 +206,10 @@ func (t *apiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) 
 		subject := "Delete: " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
 
-		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name)
+		url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[strings.ToLower(mf.Kind)], mf.Name)
 
 		if mf.Tag != "" {
-			url = fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name+":"+mf.Tag)
+			url = fmt.Sprintf("%v/%v/%v/%v", t.prefix, mf.ApiVersion, kindRoutes[strings.ToLower(mf.Kind)], mf.Name+":"+mf.Tag)
 		}
 		req, err := http.NewRequest(http.MethodDelete, url, bytes.NewReader([]byte{}))
 		if err != nil {
@@ -237,7 +237,7 @@ func (t *apiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) 
 func (t *apiClient) GetResource(kind string, name string) (*api.Resource, error) {
 	var result api.Resource
 
-	url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, "v1", kindRoutes[kind], name)
+	url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, "v1", kindRoutes[strings.ToLower(kind)], name)
 	resp, err := t.client.Get(url)
 	if err != nil {
 		return nil, err
@@ -264,7 +264,7 @@ func (t *apiClient) GetResource(kind string, name string) (*api.Resource, error)
 func (t *apiClient) ListResources(kind string) ([]api.Resource, error) {
 	var result []api.Resource
 
-	url := fmt.Sprintf("%v/%v/%v", t.prefix, "v1", kindRoutes[kind])
+	url := fmt.Sprintf("%v/%v/%v", t.prefix, "v1", kindRoutes[strings.ToLower(kind)])
 	resp, err := t.client.Get(url)
 	if err != nil {
 		return nil, err
@@ -298,7 +298,7 @@ func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output o
 
 		output.AddTask(subject, fmt.Sprintf("Waiting for %v/%v to come online", mf.Kind, mf.Name))
 
-		url := fmt.Sprintf("%v/%v/%v/%v/ready-wait?timeout=%v", t.prefix, mf.ApiVersion, kindRoutes[mf.Kind], mf.Name, timeout)
+		url := fmt.Sprintf("%v/%v/%v/%v/ready-wait?timeout=%v", t.prefix, mf.ApiVersion, kindRoutes[strings.ToLower(mf.Kind)], mf.Name, timeout)
 
 		req, err := http.NewRequest(http.MethodGet, url, bytes.NewReader([]byte{}))
 		if err != nil {
@@ -333,17 +333,13 @@ type StatusUpdate struct {
 }
 
 var kindRoutes = map[string]string{
-	"Source":           "sources",
-	"ContinuousQuery":  "continuousQueries",
-	"continuousQuery":  "continuousQueries",
-	"Query":            "continuousQueries",
-	"QueryContainer":   "queryContainers",
-	"queryContainer":   "queryContainers",
-	"Reaction":         "reactions",
-	"SourceProvider":   "sourceProviders",
-	"sourceProvider":   "sourceProviders",
-	"ReactionProvider": "reactionProviders",
-	"reactionProvider": "reactionProviders",
+	"continuousquery":  "continuousQueries",
+	"query":            "continuousQueries",
+	"querycontainer":   "queryContainers",
+	"reaction":         "reactions",
+	"reactionprovider": "reactionProviders",
+	"source":           "sources",
+	"sourceprovider":   "sourceProviders",
 }
 
 func init() {

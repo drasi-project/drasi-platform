@@ -10,9 +10,14 @@ import (
 func NewVersionCommand() *cobra.Command {
 	var versionCommand = &cobra.Command{
 		Use:   "version",
-		Short: "Get Drasi CLI version",
-		Long:  `Get Drasi CLI version`,
-		Args:  cobra.MinimumNArgs(0),
+		Short: "Show the Drasi CLI version",
+		Long: `Show the Drasi CLI version. 
+By default, this is the version of Drasi that the 'init' command will install when run.
+
+Usage examples:
+  drasi version
+`,
+		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println("Drasi CLI version: " + config.Version)
 			return nil
