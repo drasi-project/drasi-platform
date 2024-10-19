@@ -55,6 +55,10 @@
         "title": "Drasi: Deploy Dev Tools"
       },
       {
+        "command": "drasi.helloWorld",
+        "title": "Drasi: Hello"
+      },
+      {
         "command": "queries.refresh",
         "title": "Refresh",
         "icon": {
@@ -129,13 +133,13 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "vscode:prepublish": "NODE_ENV=production node ./esbuild.js",
+    "compile": "node ./esbuild.js",
+    "package": "vsce package",
+    "watch": "node ./esbuild.js --watch",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js",
-    "package": "vsce package"
+    "pretest": "npm run compile && npm run lint",
+    "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@types/glob": "^8.0.1",
@@ -148,12 +152,14 @@
     "@typescript-eslint/parser": "^5.49.0",
     "@vscode/test-electron": "^2.2.2",
     "@vscode/vsce": "^2.31.0",
+    "esbuild": "^0.16.10",
     "eslint": "^8.56.0",
     "glob": "^8.1.0",
     "mocha": "^10.1.0",
     "typescript": "^4.9.4"
   },
   "dependencies": {
+    "@vscode/webview-ui-toolkit": "^1.4.0",
     "ajv": "^8.12.0",
     "axios": "^1.7.2",
     "braces": "^3.0.3",

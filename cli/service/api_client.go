@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -57,6 +58,7 @@ func MakeApiClient(namespace string) (*apiClient, error) {
 	result.client = &http.Client{
 		Timeout: 30 * time.Second,
 	}
+	result.streamClient = &http.Client{}
 
 	return &result, nil
 }
@@ -68,6 +70,7 @@ type apiClient struct {
 	stopCh        chan struct{}
 	port          int32
 	client        *http.Client
+	streamClient  *http.Client
 	prefix        string
 }
 
@@ -333,6 +336,44 @@ func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output o
 
 		output.SucceedTask(subject, fmt.Sprintf("%v online", subject))
 	}
+	return nil
+}
+
+func (t *apiClient) Watch(kind string, name string, output chan map[string]interface{}) error {
+
+	defer close(output)
+	url := fmt.Sprintf("%v/%v/%v/%v/watch", t.prefix, "v1", kindRoutes[kind], name)
+	resp, err := t.streamClient.Get(url)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(resp.Status)
+	}
+
+	decoder := json.NewDecoder(resp.Body)
+
+	if _, err := decoder.Token(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Iterate through each element in the JSON array
+	for decoder.More() {
+		var item map[string]interface{}
+		if err := decoder.Decode(&item); err != nil {
+			log.Fatal(err)
+		}
+		output <- item
+	}
+
+	// Decode the closing bracket for the array `]`
+	if _, err := decoder.Token(); err != nil {
+		log.Fatal(err)
+	}
+
 	return nil
 }
 

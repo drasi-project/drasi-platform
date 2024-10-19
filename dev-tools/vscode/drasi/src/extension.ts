@@ -21,10 +21,7 @@ import { SourceProviderExplorer } from './source-provider-explorer';
 import { ReactionProviderExplorer } from './reaction-provider-explorer';
 
 export function activate(context: vscode.ExtensionContext) {
-
-	console.log('Congratulations, your extension "drasi" is now active!');
-
-	const queryExplorer = new QueryExplorer();
+	const queryExplorer = new QueryExplorer(context.extensionUri);
 	vscode.window.registerTreeDataProvider('queries', queryExplorer);
 
 	const sourceProviderExplorer = new SourceProviderExplorer();

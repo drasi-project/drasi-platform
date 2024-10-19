@@ -1,5 +1,6 @@
 use std::time::Duration;
-
+use futures::StreamExt;
+use reqwest_streams::*;
 use self::api::ResultEvent;
 use super::models::{ChangeStreamConfig, DomainError};
 use crate::change_stream::{
@@ -11,14 +12,18 @@ use futures_util::Stream;
 
 pub struct ResultService {
     stream_config: ChangeStreamConfig,
+    http_client: reqwest::Client,
 }
 
 impl ResultService {
     pub fn new(stream_config: ChangeStreamConfig) -> Self {
-        ResultService { stream_config }
+        ResultService { 
+            stream_config,
+            http_client: reqwest::Client::new(),
+        }
     }
 
-    pub async fn stream(
+    pub async fn stream_from_start(
         &self,
         query_id: &str,
         consumer_id: &str,
@@ -45,6 +50,97 @@ impl ResultService {
         };
 
         let result = stream! {
+            loop {
+                let msg = match change_stream.recv::<ResultEvent>().await {
+                    Ok(msg) => msg,
+                    Err(err) => {
+                        log::error!("Error receiving message from change stream: {}", err);
+                        break;
+                    },
+                };
+
+                match msg {
+                    Some(msg) => {
+                        _ = change_stream.ack(&msg.id).await;
+                        yield msg.data;
+                    },
+                    None => tokio::time::sleep(Duration::from_millis(100)).await,
+                };
+            }
+        };
+
+        Ok(result)
+    }
+
+    pub async fn snapshot_stream_from_now(
+        &self,
+        query_container_id: &str,
+        query_id: &str,
+        consumer_id: &str,
+    ) -> Result<impl Stream<Item = ResultEvent> + Send, DomainError> {
+        
+        let mut snapshot_stream = match self.http_client.get(&format!("http://{}-view-svc/{}", query_container_id, query_id)).send().await {
+            Ok(r) => {
+                if !r.status().is_success() {
+                    log::error!("Error getting view: {}", r.status());
+                    return Err(DomainError::Internal {
+                        inner: Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Error getting view")),
+                    });
+                }
+                r.json_array_stream::<api::ViewElement>(usize::MAX)
+            },
+            Err(e) => {
+                log::error!("Error getting view: {}", e);
+                return Err(DomainError::Internal {
+                    inner: Box::new(e),
+                });
+            },
+        };
+        
+        let topic = format!("{}-results", query_id);
+        let change_stream = match RedisChangeStream::new(
+            &self.stream_config.redis_url,
+            &topic,
+            consumer_id,
+            consumer_id,
+            self.stream_config.buffer_size,
+            self.stream_config.fetch_batch_size,
+            InitialCursor::End,
+        )
+        .await
+        {
+            Ok(cs) => cs,
+            Err(err) => {
+                log::error!("Error creating change stream: {}", err);
+                return Err(DomainError::Internal {
+                    inner: Box::new(err),
+                });
+            }
+        };
+
+        let query_id = query_id.to_string();
+
+        let result = stream! {
+            while let Some(item) = snapshot_stream.next().await {
+                match item {
+                    Ok(api::ViewElement::Data(data)) => {
+                        let event = ResultEvent::Change(api::ResultChangeEvent {
+                            query_id: query_id.clone(),
+                            sequence: 0,  //todo
+                            source_time_ms: 0,
+                            added_results: vec![data],
+                            updated_results: vec![],
+                            deleted_results: vec![],
+                            metadata: None,
+                        });
+                        yield event;
+                    },
+                    Err(e) => {
+                        log::error!("Error getting view: {}", e);                        
+                    },
+                    _ => (),
+                }
+            }
             loop {
                 let msg = match change_stream.recv::<ResultEvent>().await {
                     Ok(msg) => msg,
@@ -143,4 +239,16 @@ pub mod api {
         pub after: Option<Map<String, Value>>,
         pub grouping_keys: Option<Vec<String>>,
     }
+
+    #[derive(Serialize, Deserialize, Debug)]
+    #[serde(rename_all = "camelCase")]
+    pub enum ViewElement {
+        Header {
+            sequence: u64,
+            timestamp: u64,
+            state: Option<String>,
+        },
+        Data(Map<String, Value>),
+    }
+
 }

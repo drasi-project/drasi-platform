@@ -219,8 +219,9 @@ pub mod reaction_provider_handlers {
 pub mod query_handlers {
     use std::sync::Arc;
 
-    use actix_web::{HttpRequest, Responder};
+    use actix_web::{web::Bytes, HttpRequest, Responder};
     use actix_ws::{CloseCode, CloseReason, Message};
+    use async_stream::stream;
     use futures_util::StreamExt;
     use tokio::{pin, select, sync::Notify};
 
@@ -229,7 +230,40 @@ pub mod query_handlers {
         domain::{debug_service::DebugService, resource_services::QueryDomainService},
     };
 
-    v1_crud_api!(QueryDomainService, QuerySpecDto, QueryStatusDto);
+    #[get("/{id}/watch")]
+    async fn watch(svc: web::Data<DebugService>, id: web::Path<String>) -> HttpResponse {
+        match svc.watch_query(&id).await {
+          Ok(res) => {
+              let stream = stream! {
+                tokio::pin!(res);
+
+                yield Ok(Bytes::from_static(b"["));
+                let mut is_first = true;
+
+                while let Some(item) = res.next().await {
+                  match serde_json::to_vec(&item) {
+                    Ok(bytes) => {
+                      if is_first {
+                        is_first = false;
+                      } else {
+                        yield Ok(Bytes::from_static(b","));
+                      }
+                      yield Ok(Bytes::from(bytes))
+                    },
+                    Err(e) => yield Err(e)
+                  };
+                }
+
+                yield Ok(Bytes::from_static(b"]"));
+              };
+
+              HttpResponse::Ok().streaming(stream)
+          }
+          Err(e) => e.into(),
+      }
+    }
+
+    v1_crud_api!(QueryDomainService, QuerySpecDto, QueryStatusDto, watch);
 }
 
 pub mod debug_handlers {

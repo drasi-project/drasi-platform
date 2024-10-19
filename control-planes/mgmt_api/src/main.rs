@@ -85,10 +85,10 @@ async fn main() -> Result<(), std::io::Error> {
         let source_domain_svc_arc: web::Data<SourceDomainService> =
             web::Data::from(Arc::new(source_domain_svc) as Arc<SourceDomainService>);
 
-        let qc_repo = QueryContainerRepositoryImpl::new(db.clone());
+        let qc_repo = Arc::new(QueryContainerRepositoryImpl::new(db.clone()));
         let qc_domain_svc = Arc::new(QueryContainerDomainServiceImpl::new(
             dapr_client.clone(),
-            Box::new(qc_repo),
+            qc_repo.clone(),
         ));
         let qc_domain_svc_arc: web::Data<QueryContainerDomainService> =
             web::Data::from(qc_domain_svc.clone() as Arc<QueryContainerDomainService>);
@@ -103,10 +103,10 @@ async fn main() -> Result<(), std::io::Error> {
         let reaction_domain_svc_arc: web::Data<ReactionDomainService> =
             web::Data::from(Arc::new(reaction_domain_svc) as Arc<ReactionDomainService>);
 
-        let query_repo = QueryRepositoryImpl::new(db.clone());
+        let query_repo = Arc::new(QueryRepositoryImpl::new(db.clone()));
         let query_domain_svc = QueryDomainServiceImpl::new(
             dapr_client.clone(),
-            Box::new(query_repo),
+            query_repo.clone(),
             qc_domain_svc.clone(),
         );
         let query_domain_svc_arc: web::Data<QueryDomainService> =
@@ -135,7 +135,7 @@ async fn main() -> Result<(), std::io::Error> {
             fetch_batch_size: 10,
         });
 
-        let debug_service = DebugService::new(dapr_client.clone(), Arc::new(result_service));
+        let debug_service = DebugService::new(dapr_client.clone(), Arc::new(result_service), query_repo.clone());
 
         App::new()
             .wrap(middleware::Logger::default())

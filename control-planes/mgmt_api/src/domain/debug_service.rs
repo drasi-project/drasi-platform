@@ -6,7 +6,7 @@ use futures_util::{Stream, StreamExt};
 use resource_provider_api::models::QueryStatus;
 use tokio::{select, sync::Notify, task};
 
-use crate::domain::result_service::api::{ControlSignal, ResultEvent};
+use crate::{domain::result_service::api::{ControlSignal, ResultEvent}, QueryRepository};
 
 use super::{
     models::{DomainError, QuerySpec},
@@ -16,13 +16,15 @@ use super::{
 pub struct DebugService {
     dapr_client: dapr::Client<TonicClient>,
     result_service: Arc<ResultService>,
+    query_repo: Arc<QueryRepository>,
 }
 
 impl DebugService {
-    pub fn new(dapr_client: dapr::Client<TonicClient>, result_service: Arc<ResultService>) -> Self {
+    pub fn new(dapr_client: dapr::Client<TonicClient>, result_service: Arc<ResultService>, query_repo: Arc<QueryRepository>) -> Self {
         Self {
             dapr_client,
             result_service,
+            query_repo,
         }
     }
 
@@ -130,7 +132,7 @@ impl DebugService {
 
         let result_service = self.result_service.clone();
 
-        let result_stream = match result_service.stream(&temp_id, "debug").await {
+        let result_stream = match result_service.stream_from_start(&temp_id, "debug").await {
             Ok(rs) => rs,
             Err(err) => {
                 _ = mut_dapr
@@ -196,4 +198,15 @@ impl DebugService {
         };
         Ok(debug_stream)
     }
+
+    pub async fn watch_query(
+        &self,
+        query_id: &str
+    ) -> Result<impl Stream<Item = ResultEvent>, DomainError> {
+        let consumer_id = format!("debug-{}", uuid::Uuid::new_v4());
+        let query = self.query_repo.get(query_id).await?;
+        let result_stream = self.result_service.snapshot_stream_from_now(&query.container, query_id, &consumer_id).await?;
+        Ok(result_stream)
+    }
+
 }
