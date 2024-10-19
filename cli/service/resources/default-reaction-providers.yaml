@@ -186,3 +186,24 @@ spec:
   services:
     storedproc:
       image: reaction-storedproc
+---
+apiVersion: v1
+kind: ReactionProvider
+name: Dataverse
+spec:
+  services:
+    dataverse:
+      image: reaction-dataverse
+  config_schema:
+    type: object
+    properties:
+      endpoint:
+        type: string
+      clientId:
+        type: string
+      secret:
+        type: string
+    required:
+      - endpoint
+      - clientId
+      - secret
