@@ -1,10 +1,22 @@
 use serde_json::Value;
+use serde::Deserialize;
+
+
 
 pub struct DaprStateManager {
     client: reqwest::Client,
     dapr_host: String,
     dapr_port: u16,
     store_name: String,
+}
+
+// Used to validate the state entry objects
+#[derive(Deserialize)]
+struct StateEntry {
+    #[serde(rename = "key")]
+    _key: String,
+    #[serde(rename = "value")]
+    _value: Value,
 }
 
 impl DaprStateManager {
@@ -19,7 +31,7 @@ impl DaprStateManager {
 
     pub async fn save_state(
         &self,
-        state_entry: Value,
+        state_entry: Vec<Value>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let url = format!(
             "http://{}:{}/v1.0/state/{}?metadata.contentType=application/json",
@@ -30,25 +42,13 @@ impl DaprStateManager {
         let mut request_headers = reqwest::header::HeaderMap::new();
         request_headers.insert("Content-Type", "application/json".parse().unwrap());
 
-        // check if the state entry is a json array
-        match state_entry.as_array() {
-            Some(entry) => {
-                // check each entry, if it is a string continue
-                // if it is an object, check if it has a "key" field and a "value" field
-                for entry in entry {
-                    match entry {
-                        Value::Object(obj) => {
-                            if !obj.contains_key("key") || !obj.contains_key("value") {
-                                return Err(Box::from("State entry object must have 'key' and 'value' fields"));
-                            }
-                        }
-                        _ => return Err(Box::from("State entry must be a JSON array of objects")),
-                    }
-                }
-            }
-            None => return Err(Box::from("State entry must be a JSON array")),
+        // Validate the state entry objects
+        for entry in &state_entry {
+            let _ = match serde_json::from_value::<StateEntry>(entry.clone()) {
+                Ok(_) => (),
+                Err(_e) => return Err(Box::from("State entry object must have 'key' and 'value' fields")),
+            };
         }
-
         let response = self.client.post(url).headers(request_headers).json(&state_entry).send().await;
 
         match response {

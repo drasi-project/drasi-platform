@@ -388,10 +388,10 @@ async fn process_changes(
 
                         // combine statekey and source_subscription_value into a json
                         // where the key is the state key and the value is the source subscription value
-                        let states = json!([{
+                        let states = vec![json!({
                             "key": state_key,
                             "value": source_subscription_value
-                        }]);
+                        })];
 
                         match state_manager.save_state(states).await {
                             Ok(_) => info!("Saved SourceSubscription to state store"),
