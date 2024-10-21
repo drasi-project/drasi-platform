@@ -16,7 +16,7 @@ use axum::{
 
 use drasi_comms_abstractions::comms::{Headers, Publisher};
 use drasi_comms_dapr::comms::DaprHttpPublisher;
-use state_manager::DaprStateManager;
+use state_manager::{DaprStateManager, StateEntry};
 
 mod change_router_config;
 mod state_manager;
@@ -32,44 +32,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let node_subscriber = Subscriber::new();
     let rel_subscriber = Subscriber::new();
 
-    let addr = "https://127.0.0.1".to_string();
-    let mut dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
-        .await
-        .expect("Unable to connect to Dapr");
-
     let query_condition = json!({
         "filter": {
             "EQ": { "type": "SourceSubscription" }
         }
     });
     let mut metadata = std::collections::HashMap::new();
+
+    let topic = format!("{}-dispatch", config.source_id.clone()).to_string();
+    let dapr_port = match config.dapr_port.parse::<u16>() {
+        Ok(port) => port,
+        Err(_e) => {
+            return Err(Box::<dyn std::error::Error>::from(
+                "Error parsing Dapr port",
+            ));
+        }
+    };
+    let publisher = DaprHttpPublisher::new(
+        "127.0.0.1".to_string(),
+        dapr_port,
+        config.pubsub_name.clone(),
+        topic,
+    );
+    let state_manager = DaprStateManager::new("127.0.0.1", dapr_port, &config.subscriber_store);
+
     metadata.insert("contentType".to_string(), "application/json".to_string());
-    let response = match dapr_client
-        .query_state_alpha1(
-            config.clone().subscriber_store,
-            query_condition,
-            Some(metadata),
-        )
+    let response = match state_manager
+        .query_state(query_condition, Some(metadata))
         .await
     {
-        Ok(response) => response.results,
+        Ok(response) => response,
         Err(e) => {
             log::error!("Error querying the Dapr state store: {:?}", e);
             vec![]
         }
     };
-    for sub in response {
-        let data: Value = match serde_json::from_slice(&sub.data) {
-            Ok(data) => data,
-            Err(e) => {
-                log::error!(
-                    "Error parsing the response from the Dapr state query: {:?}",
-                    e
-                );
-                continue;
-            }
-        };
-
+    for data in response {
         // if the data is corrupt for this subscription, this will cause a panic and stop loading all the others... we should probably log an error but continue to load the rest of the subscriptions
         let node_labels: Vec<&str> = match data["nodeLabels"].as_array() {
             Some(labels) => labels
@@ -142,24 +140,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Forwarding Relation types: {:?}",
         rel_subscriber.get_label_map()
     );
-
-    let topic = format!("{}-dispatch", config.source_id.clone()).to_string();
-    let dapr_port = match config.dapr_port.parse::<u16>() {
-        Ok(port) => port,
-        Err(_e) => {
-            return Err(Box::<dyn std::error::Error>::from(
-                "Error parsing Dapr port",
-            ));
-        }
-    };
-    let publisher = DaprHttpPublisher::new(
-        "127.0.0.1".to_string(),
-        dapr_port,
-        config.pubsub_name.clone(),
-        topic,
-    );
-
-    let state_manager = DaprStateManager::new("127.0.0.1", dapr_port, &config.subscriber_store);
 
     let shared_state = Arc::new(AppState {
         node_subscriber,
@@ -386,10 +366,7 @@ async fn process_changes(
 
                         // combine statekey and source_subscription_value into a json
                         // where the key is the state key and the value is the source subscription value
-                        let states = vec![json!({
-                            "key": state_key,
-                            "value": source_subscription_value
-                        })];
+                        let states = vec![StateEntry::new(&state_key, source_subscription_value)];
 
                         match state_manager.save_state(states).await {
                             Ok(_) => info!("Saved SourceSubscription to state store"),

@@ -1,5 +1,6 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 
 pub struct DaprStateManager {
     client: reqwest::Client,
@@ -9,12 +10,19 @@ pub struct DaprStateManager {
 }
 
 // Used to validate the state entry objects
-#[derive(Deserialize)]
-struct StateEntry {
-    #[serde(rename = "key")]
-    _key: String,
-    #[serde(rename = "value")]
-    _value: Value,
+#[derive(Deserialize, Serialize)]
+pub struct StateEntry {
+    key: String,
+    value: Value,
+}
+
+impl StateEntry {
+    pub fn new(key: &str, value: Value) -> Self {
+        StateEntry {
+            key: key.to_string(),
+            value,
+        }
+    }
 }
 
 impl DaprStateManager {
@@ -27,9 +35,49 @@ impl DaprStateManager {
         }
     }
 
+    pub async fn query_state(
+        &self,
+        query_condition: Value,
+        metadata: Option<HashMap<String, String>>,
+    ) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
+        let addr = "https://127.0.0.1".to_string();
+        let mut dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
+            .await
+            .expect("Unable to connect to Dapr");
+
+        let response = match dapr_client
+            .query_state_alpha1(&self.store_name, query_condition, metadata)
+            .await
+        {
+            Ok(response) => response.results,
+            Err(e) => {
+                log::error!("Error querying the Dapr state store: {:?}", e);
+                vec![]
+            }
+        };
+
+        // for each item in response, serialize the data field in json
+        let mut result = vec![];
+        for item in response {
+            let data: Value = match serde_json::from_slice(&item.data) {
+                Ok(data) => data,
+                Err(e) => {
+                    log::error!(
+                        "Error parsing the response from the Dapr state query: {:?}",
+                        e
+                    );
+                    continue;
+                }
+            };
+            result.push(data);
+        }
+
+        return Ok(result);
+    }
+
     pub async fn save_state(
         &self,
-        state_entry: Vec<Value>,
+        state_entry: Vec<StateEntry>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let url = format!(
             "http://{}:{}/v1.0/state/{}?metadata.contentType=application/json",
@@ -39,17 +87,6 @@ impl DaprStateManager {
         let mut request_headers = reqwest::header::HeaderMap::new();
         request_headers.insert("Content-Type", "application/json".parse().unwrap());
 
-        // Validate the state entry objects
-        for entry in &state_entry {
-            match serde_json::from_value::<StateEntry>(entry.clone()) {
-                Ok(_) => (),
-                Err(_e) => {
-                    return Err(Box::from(
-                        "State entry object must have 'key' and 'value' fields",
-                    ))
-                }
-            };
-        }
         let response = self
             .client
             .post(url)
