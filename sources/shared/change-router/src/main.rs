@@ -15,12 +15,12 @@ use axum::{
 };
 
 use drasi_comms_abstractions::comms::{Headers, Publisher};
-use drasi_comms_dapr::comms::{DaprHttpPublisher};
+use drasi_comms_dapr::comms::DaprHttpPublisher;
 use state_manager::DaprStateManager;
 
 mod change_router_config;
-mod subscriber_map;
 mod state_manager;
+mod subscriber_map;
 mod subscribers;
 
 #[tokio::main]
@@ -45,7 +45,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut metadata = std::collections::HashMap::new();
     metadata.insert("contentType".to_string(), "application/json".to_string());
     let response = match dapr_client
-        .query_state_alpha1(config.clone().subscriber_store, query_condition, Some(metadata))
+        .query_state_alpha1(
+            config.clone().subscriber_store,
+            query_condition,
+            Some(metadata),
+        )
         .await
     {
         Ok(response) => response.results,
@@ -65,7 +69,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
         };
-
 
         // if the data is corrupt for this subscription, this will cause a panic and stop loading all the others... we should probably log an error but continue to load the rest of the subscriptions
         let node_labels: Vec<&str> = match data["nodeLabels"].as_array() {
@@ -156,18 +159,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         topic,
     );
 
-    let state_manager = DaprStateManager::new(
-        "127.0.0.1",
-        dapr_port,
-        &config.subscriber_store,
-    );
+    let state_manager = DaprStateManager::new("127.0.0.1", dapr_port, &config.subscriber_store);
 
     let shared_state = Arc::new(AppState {
         node_subscriber,
         rel_subscriber,
         config: config.clone(),
         publisher,
-        state_manager
+        state_manager,
     });
     let subscriber_server = Router::new()
         .route("/dapr/subscribe", get(subscribe))
@@ -237,7 +236,7 @@ async fn receive(
         node_subscriber,
         rel_subscriber,
         trace_parent,
-        state_manager
+        state_manager,
     )
     .await
     {
@@ -367,7 +366,6 @@ async fn process_changes(
                             "relLabels": change["payload"]["after"]["relLabels"]
                         });
 
-
                         let state_key = format!(
                             "SourceSubscription-{}-{}",
                             match change["payload"]["after"]["queryNodeId"].as_str() {
@@ -487,7 +485,7 @@ async fn process_changes(
                             parsed_subscription
                         })
                         .collect();
-                    
+
                     let change_dispatch_event = json!([{
                         "id": change_id,
                         "sourceId": config.source_id,

@@ -1,7 +1,5 @@
-use serde_json::Value;
 use serde::Deserialize;
-
-
+use serde_json::Value;
 
 pub struct DaprStateManager {
     client: reqwest::Client,
@@ -23,7 +21,7 @@ impl DaprStateManager {
     pub fn new(dapr_host: &str, dapr_port: u16, store_name: &str) -> Self {
         DaprStateManager {
             client: reqwest::Client::new(),
-            dapr_host:dapr_host.to_string(),
+            dapr_host: dapr_host.to_string(),
             dapr_port,
             store_name: store_name.to_string(),
         }
@@ -38,18 +36,27 @@ impl DaprStateManager {
             self.dapr_host, self.dapr_port, self.store_name
         );
 
-
         let mut request_headers = reqwest::header::HeaderMap::new();
         request_headers.insert("Content-Type", "application/json".parse().unwrap());
 
         // Validate the state entry objects
         for entry in &state_entry {
-            let _ = match serde_json::from_value::<StateEntry>(entry.clone()) {
+            match serde_json::from_value::<StateEntry>(entry.clone()) {
                 Ok(_) => (),
-                Err(_e) => return Err(Box::from("State entry object must have 'key' and 'value' fields")),
+                Err(_e) => {
+                    return Err(Box::from(
+                        "State entry object must have 'key' and 'value' fields",
+                    ))
+                }
             };
         }
-        let response = self.client.post(url).headers(request_headers).json(&state_entry).send().await;
+        let response = self
+            .client
+            .post(url)
+            .headers(request_headers)
+            .json(&state_entry)
+            .send()
+            .await;
 
         match response {
             Ok(resp) => {
