@@ -17,17 +17,13 @@ Will not return until all resources are ready or the specified timeout is reache
 
 Arguments:
   kind  The kind of resource to wait for. Available kinds are (case-insensitive):
-          - ContinuousQuery (or 'Query' for short)
-          - QueryContainer
           - Reaction
-          - ReactionProvider
           - Source
-          - SourceProvider
-  name  The name of the resource to describe.
+  name  The name of the resource to wait for.
 
 Usage examples:
-  drasi wait continuousquery my-query
-  drasi wait -f sources.yaml queries.yaml reactions.yaml
+  drasi wait source my-source
+  drasi wait -f sources.yaml reactions.yaml
   drasi wait -f resources.yaml -n my-namespace
 `,
 
