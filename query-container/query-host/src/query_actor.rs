@@ -145,7 +145,11 @@ impl Actor for QueryActor {
     async fn on_deactivate(&self) -> Result<(), ActorError> {
         log::info!("Query deactivated {}", self.query_id);
 
-        let transient = self.config.get().await.map_or(false, |c| c.transient.is_some_and(|f| f));
+        let transient = self
+            .config
+            .get()
+            .await
+            .map_or(false, |c| c.transient.is_some_and(|f| f));
         if let Some(w) = self.worker.take().await {
             if transient {
                 w.delete();
@@ -157,7 +161,7 @@ impl Actor for QueryActor {
                 _ = self.persist_config().await;
             } else {
                 w.shutdown_async().await;
-            }            
+            }
         }
 
         if let Some(w) = self.status_watcher.take().await {

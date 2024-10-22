@@ -14,7 +14,7 @@
 
 use actix_web::{middleware, web, App, HttpServer};
 use domain::{
-    query_actor_service::{self, QueryActorService},
+    query_actor_service::QueryActorService,
     resource_provider_services::{
         ReactionProviderDomainService, ReactionProviderDomainServiceImpl,
         SourceProviderDomainService, SourceProviderDomainServiceImpl,

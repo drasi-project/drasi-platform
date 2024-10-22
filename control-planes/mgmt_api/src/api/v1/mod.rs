@@ -417,22 +417,31 @@ pub mod debug_handlers {
                 },
                 evt = data_stream.next() => {
                     match evt {
-                        Some(evt) => {
-                            let json = match serde_json::to_string(&evt) {
-                                Ok(j) => j,
-                                Err(e) => {
-                                    log::error!("Error serializing message: {}", e);
-                                    break;
-                                }
-                            };
-                            match session.text(json).await {
-                                Ok(_) => log::debug!("Sent debug message"),
-                                Err(e) => {
-                                    log::error!("Error sending debug message: {}", e);
-                                    break;
-                                }
+                        Some(evt) => match evt {
+                            Ok(evt) => {
+                              let json = match serde_json::to_string(&evt) {
+                                  Ok(j) => j,
+                                  Err(e) => {
+                                      log::error!("Error serializing message: {}", e);
+                                      break;
+                                  }
+                              };
+                              match session.text(json).await {
+                                  Ok(_) => log::debug!("Sent debug message"),
+                                  Err(e) => {
+                                      log::error!("Error sending debug message: {}", e);
+                                      break;
+                                  }
+                              }
+                          },
+                            Err(e) => {
+                              _ = session
+                                .text(ControlMessage::error(e.to_string()).to_json())
+                                .await
+                                .ok();
                             }
                         }
+
                         None => break,
                     }
                 }
@@ -444,7 +453,7 @@ pub mod debug_handlers {
             _ = cancel_tx.send(());
             log::info!("Cancellation signal sent");
 
-            while let Some(_) = data_stream.next().await {
+            while (data_stream.next().await).is_some() {
                 log::info!("Draining message stream");
             }
 

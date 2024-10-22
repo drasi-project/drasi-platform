@@ -80,7 +80,7 @@ impl ResultService {
     ) -> Result<impl Stream<Item = ResultEvent> + Send, DomainError> {
         let mut snapshot_stream = match self
             .http_client
-            .get(&format!(
+            .get(format!(
                 "http://{}-view-svc/{}",
                 query_container_id, query_id
             ))

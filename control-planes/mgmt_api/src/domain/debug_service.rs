@@ -43,20 +43,17 @@ impl DebugService {
         &self,
         mut spec: QuerySpec,
         mut cancellation: oneshot::Receiver<()>,
-    ) -> Result<impl Stream<Item = ResultEvent>, DomainError> {
+    ) -> Result<impl Stream<Item = Result<ResultEvent, DomainError>>, DomainError> {
         let temp_id = format!("debug-{}", uuid::Uuid::new_v4());
         log::info!("debugging query: {}", temp_id);
         spec.transient = Some(true);
 
-        match self
+        if let Err(e) = self
             .query_actor_service
             .configure(&temp_id, spec.clone())
             .await
         {
-            Err(e) => {
-                return Err(DomainError::Internal { inner: Box::new(e) });
-            }
-            Ok(_) => {}
+            return Err(DomainError::Internal { inner: Box::new(e) });
         }
 
         let container_id = spec.container.clone();
@@ -88,6 +85,7 @@ impl DebugService {
                             Ok(_) => log::info!("debug query running"),
                             Err(e) => {
                                 log::error!("debug query error: {:?}", e);
+                                yield Err(e);
                                 break;
                             },
                         },
@@ -111,7 +109,7 @@ impl DebugService {
                                     _ => false,
                                 };
 
-                                yield item;
+                                yield Ok(item);
 
                                 if end_of_stream {
                                     break;
