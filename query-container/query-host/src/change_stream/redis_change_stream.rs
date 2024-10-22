@@ -1,3 +1,17 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -183,7 +197,10 @@ impl SequentialChangeStream for RedisChangeStream {
     async fn unsubscribe(&self) -> Result<(), ChangeStreamError> {
         _ = self.cancel.notify_one();
         let mut connection = self.connection.lock().await;
-        let _: i64 = match connection.xgroup_destroy(&self.topic, &self.group_id).await {
+        let _: i64 = match connection
+            .xgroup_delconsumer(&self.topic, &self.group_id, "qh")
+            .await
+        {
             Ok(res) => {
                 log::debug!("unsubscribe response: {:?}", res);
                 res
