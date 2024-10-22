@@ -15,22 +15,12 @@
  */
 
 import * as vscode from 'vscode';
-import { createSource } from './create-source';
-import { QueryExplorer } from './query-explorer';
-import { SourceProviderExplorer } from './source-provider-explorer';
-import { ReactionProviderExplorer } from './reaction-provider-explorer';
+import { WorkspaceExplorer } from './workspace-explorer';
 
 export function activate(context: vscode.ExtensionContext) {
-	const queryExplorer = new QueryExplorer(context.extensionUri);
-	vscode.window.registerTreeDataProvider('queries', queryExplorer);
-
-	const sourceProviderExplorer = new SourceProviderExplorer();
-	vscode.window.registerTreeDataProvider('sourceProviders', sourceProviderExplorer);
-
-	const reactionProviderExplorer = new ReactionProviderExplorer();
-	vscode.window.registerTreeDataProvider('reactionProviders', reactionProviderExplorer);
-
-	context.subscriptions.push(vscode.commands.registerCommand('drasi.createSource', createSource));
+	const workspaceExplorer = new WorkspaceExplorer(context.extensionUri);
+	vscode.window.registerTreeDataProvider('workspace', workspaceExplorer);
+	
 }
 
 export function deactivate() {}

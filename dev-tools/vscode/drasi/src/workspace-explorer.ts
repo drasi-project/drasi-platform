@@ -16,10 +16,14 @@
 
 import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
-import { ContinuousQuery } from './continuous-query';
+import { ContinuousQuery } from './models/continuous-query';
 import { QueryDebugger } from './query-debugger';
+import { SourceProvider } from './models/source-provider';
+import { ReactionProvider } from './models/reaction-provider';
+import { validateSourceProvider } from './source-provider-explorer';
+import { validateReactionProvider } from './reaction-provider-explorer';
 
-export class QueryExplorer implements vscode.TreeDataProvider<ExplorerNode> {
+export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> {
 	
 	private _onDidChangeTreeData: vscode.EventEmitter<ExplorerNode | undefined | void> = new vscode.EventEmitter<ExplorerNode | undefined | void>();
 	readonly onDidChangeTreeData: vscode.Event<ExplorerNode | undefined | void> = this._onDidChangeTreeData.event;
@@ -27,8 +31,10 @@ export class QueryExplorer implements vscode.TreeDataProvider<ExplorerNode> {
 
   constructor (extensionUri: vscode.Uri) {
     this.extensionUri = extensionUri;
-    vscode.commands.registerCommand('queries.refresh', this.refresh.bind(this));
-    vscode.commands.registerCommand('queries.run', this.runQuery.bind(this));
+    vscode.commands.registerCommand('workspace.refresh', this.refresh.bind(this));
+    vscode.commands.registerCommand('workspace.query.run', this.runQuery.bind(this));
+    vscode.commands.registerCommand('workspace.sourceProvider.validate', validateSourceProvider);
+    vscode.commands.registerCommand('workspace.reactionProvider.validate', validateReactionProvider);
     vscode.workspace.onDidSaveTextDocument((evt) => {
       if (evt.languageId === "yaml") {
         this.refresh();
@@ -60,9 +66,12 @@ export class QueryExplorer implements vscode.TreeDataProvider<ExplorerNode> {
           let content = await vscode.workspace.fs.readFile(f);
           let docs: any[] = yaml.loadAll(content.toString());
           let hasQueries = docs.some(x => !!x && x.kind === "ContinuousQuery");
+          let hasSourceProviders = docs.some(x => !!x && x.kind === "SourceProvider");
+          let hasReactionProviders = docs.some(x => !!x && x.kind === "ReactionProvider");
 
-          if (hasQueries)
+          if (hasQueries || hasSourceProviders || hasReactionProviders) {
             result.push(new FileNode(f));
+          }
         }
         catch (err) {
           console.error(err);
@@ -85,6 +94,18 @@ export class QueryExplorer implements vscode.TreeDataProvider<ExplorerNode> {
       for (let qry of docs.filter(x => !!x && x.kind === "ContinuousQuery" && x.name)) {
         let queryUri = vscode.Uri.parse(element.resourceUri.toString() + "#" + qry.name);
         let node = new QueryNode(qry, queryUri);
+        result.push(node);
+      }
+
+      for (let item of docs.filter(x => !!x && x.kind === "SourceProvider" && x.name)) {
+        let itemUri = vscode.Uri.parse(element.resourceUri.toString() + "#" + item.name);
+        let node = new SourceProviderNode(item, itemUri);
+        result.push(node);
+      }
+
+      for (let item of docs.filter(x => !!x && x.kind === "ReactionProvider" && x.name)) {
+        let itemUri = vscode.Uri.parse(element.resourceUri.toString() + "#" + item.name);
+        let node = new ReactionProviderNode(item, itemUri);
         result.push(node);
       }
     }
@@ -130,6 +151,35 @@ class QueryNode extends ExplorerNode {
 	contextValue = 'queryNode';
 
   constructor (query: ContinuousQuery, uri: vscode.Uri) {
+    super(uri);
+    this.iconPath = new vscode.ThemeIcon('file-code');
+    this.label = query.name;
+    this.command = {
+      command: "vscode.open",
+      title: "Open",
+      arguments: [uri]
+    };
+  }
+}
+
+class SourceProviderNode extends ExplorerNode {
+	contextValue = 'sourceProviderNode';
+
+  constructor (sp: SourceProvider, uri: vscode.Uri) {
+    super(uri);
+    this.label = sp.name;
+    this.command = {
+      command: "vscode.open",
+      title: "Open",
+      arguments: [uri]
+    };
+  }
+}
+
+class ReactionProviderNode extends ExplorerNode {
+	contextValue = 'reactionProviderNode';
+
+  constructor (query: ReactionProvider, uri: vscode.Uri) {
     super(uri);
     this.label = query.name;
     this.command = {

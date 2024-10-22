@@ -18,6 +18,7 @@ import { Resource } from "./resource";
 
 
 export interface ReactionProvider extends Resource {
+  name: string;
   spec: ReactionProviderSpec;
 }
 

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ContinuousQuery } from './continuous-query';
+import { ContinuousQuery } from './models/continuous-query';
 import { PortForward } from './port-forward';
 import { CloseEvent, ErrorEvent, MessageEvent, WebSocket } from 'ws';
 import { getUri } from './utilities/getUri';

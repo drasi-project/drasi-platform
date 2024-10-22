@@ -18,6 +18,7 @@ import { Resource } from "./resource";
 
 
 export interface SourceProvider extends Resource {
+  name: string;
   spec: SourceProviderSpec;
 }
 

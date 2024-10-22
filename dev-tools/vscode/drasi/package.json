@@ -32,101 +32,55 @@
     "views": {
       "drasi-explorer": [
         {
-          "id": "queries",
-          "name": "Continuous Queries"
-        },
-        {
-          "id": "sourceProviders",
-          "name": "Source Providers"
-        },
-        {
-          "id": "reactionProviders",
-          "name": "Reaction Providers"
+          "id": "workspace",
+          "name": "Workspace"
         }
       ]
     },
     "commands": [
       {
-        "command": "drasi.createSource",
-        "title": "Drasi: Create Source Manifest"
-      },
-      {
-        "command": "drasi.deployTools",
-        "title": "Drasi: Deploy Dev Tools"
-      },
-      {
-        "command": "drasi.helloWorld",
-        "title": "Drasi: Hello"
-      },
-      {
-        "command": "queries.refresh",
+        "command": "workspace.refresh",
         "title": "Refresh",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
         }
-      },
+      },      
       {
-        "command": "sourceProviders.refresh",
-        "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
-      },
-      {
-        "command": "queries.run",
+        "command": "workspace.query.run",
         "title": "Run"
       },
       {
-        "command": "sourceProviders.validate",
+        "command": "workspace.sourceProvider.validate",
         "title": "Validate"
       },
       {
-        "command": "reactionProviders.refresh",
-        "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
-      },
-      {
-        "command": "reactionProviders.validate",
+        "command": "workspace.reactionProvider.validate",
         "title": "Validate"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "queries.refresh",
-          "when": "view == queries",
-          "group": "navigation"
-        },
-        {
-          "command": "sourceProviders.refresh",
-          "when": "view == sourceProviders",
-          "group": "navigation"
-        },
-        {
-          "command": "reactionProviders.refresh",
-          "when": "view == reactionProviders",
+          "command": "workspace.refresh",
+          "when": "view == workspace",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "queries.run",
-          "when": "view == queries && viewItem == queryNode",
+          "command": "workspace.query.run",
+          "when": "view == workspace && viewItem == queryNode",
           "group": "inline"
         },
         {
-          "command": "sourceProviders.validate",
-          "when": "view == sourceProviders && viewItem == sourceProviderNode",
+          "command": "workspace.sourceProvider.validate",
+          "when": "view == workspace && viewItem == sourceProviderNode",
           "group": "inline"
         },
         {
-          "command": "reactionProviders.validate",
-          "when": "view == reactionProviders && viewItem == reactionProviderNode",
+          "command": "workspace.reactionProvider.validate",
+          "when": "view == workspace && viewItem == reactionProviderNode",
           "group": "inline"
         }
       ]
