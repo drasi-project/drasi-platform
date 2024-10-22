@@ -1,19 +1,36 @@
 package cmd
 
 import (
+	"errors"
+
 	"drasi.io/cli/api"
 	"drasi.io/cli/service"
 	"drasi.io/cli/service/output"
-	"errors"
 	"github.com/spf13/cobra"
 )
 
 func NewDeleteCommand() *cobra.Command {
 	var deleteCommand = &cobra.Command{
-		Use:   "delete (-f [files] | KIND NAME)",
+		Use:   "delete [kind name] |",
 		Short: "Delete resources",
-		Long:  `Deletes resources from provided manifests`,
-		Args:  cobra.MinimumNArgs(0),
+		Long: `Deletes a resource based on a specified kind and name, or use the '-f' flag to specify one or more YAML files containing the definitions of one or more resources to delete.
+		
+Arguments:
+  kind  The kind of resource to delete. Available kinds are (case-insensitive):
+          - ContinuousQuery (or 'Query' for short)
+          - QueryContainer
+          - Reaction
+          - ReactionProvider
+          - Source
+          - SourceProvider
+  name  The name of the resource to delete.
+
+Usage examples:
+  drasi delete continuousquery my-query
+  drasi delete -f sources.yaml queries.yaml reactions.yaml
+  drasi delete -f resources.yaml -n my-namespace
+`,
+		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 			var manifests *[]api.Manifest
@@ -23,7 +40,7 @@ func NewDeleteCommand() *cobra.Command {
 			}
 
 			if len(*manifests) == 0 {
-				return errors.New("no manifests found. Did you forget to specify the '-f' flag")
+				return errors.New("no resource specified, specify a resource KIND and NAME or use the '-f' flag to specify a file")
 			}
 
 			var namespace string
@@ -31,7 +48,7 @@ func NewDeleteCommand() *cobra.Command {
 				return err
 			}
 
-			if cmd.Flags().Changed("namespace") == false {
+			if !cmd.Flags().Changed("namespace") {
 				cfg := readConfig()
 				namespace = cfg.DrasiNamespace
 			}
