@@ -13,7 +13,7 @@ use kube::core::ObjectMeta;
 use resource_provider_api::models::{ConfigValue, EndpointSetting, ReactionSpec, ResourceRequest};
 use serde::Serialize;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     hash::{Hash, Hasher},
 };
 
@@ -24,6 +24,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
         &self,
         source: ResourceRequest<ReactionSpec>,
         runtime_config: &RuntimeConfig,
+        instance_id: &str,
     ) -> Vec<KubernetesSpec> {
         let mut specs = Vec::new();
 
@@ -34,6 +35,13 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             "RESTART_HACK".to_string(),
             ConfigValue::Inline {
                 value: calc_hash(&source.spec),
+            },
+        );
+
+        env.insert(
+            "INSTANCE_ID".to_string(),
+            ConfigValue::Inline {
+                value: instance_id.to_string(),
             },
         );
 

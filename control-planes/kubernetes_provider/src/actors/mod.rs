@@ -17,6 +17,7 @@ use resource_provider_api::models::ResourceRequest;
 use std::collections::BTreeMap;
 use std::marker;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 pub mod querycontainer_actor;
 pub mod reaction_actor;
@@ -67,7 +68,26 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
     ) -> impl IntoResponse {
         log::info!("Actor configure - {} {}", self.actor_type, self.id);
 
-        let platform_specs = self.spec_builder.build(spec, &self.runtime_config);
+        let instance_id = self.read_instance_id().await.unwrap_or_else(|e| {
+            log::error!("Failed to read instance id: {}", e);
+            None
+        });
+
+        let instance_id = match instance_id {
+            Some(instance_id) => instance_id,
+            None => {
+                let instance_id = Uuid::new_v4().to_string();
+                if let Err(err) = self.write_instance_id(&instance_id).await {
+                    log::error!("Failed to write instance id: {}", err);
+                    return err.into_response();
+                }
+                instance_id
+            }
+        };
+
+        let platform_specs = self
+            .spec_builder
+            .build(spec, &self.runtime_config, &instance_id);
 
         if let Err(err) = self.write_specs(&platform_specs).await {
             log::error!("Failed to write specs: {}", err);
@@ -112,6 +132,10 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
             controller.deprovision();
         }
 
+        self.delete_instance_id().await.unwrap_or_else(|e| {
+            log::error!("Failed to delete instance id: {}", e);
+        });
+
         Json(()).into_response()
     }
 
@@ -155,6 +179,63 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
                 Err(ActorError::MethodError(Box::new(e)))
             }
         }
+    }
+
+    async fn read_instance_id(&self) -> Result<Option<String>, ActorError> {
+        let mut client = self.dapr_client.clone();
+        match client
+            .get_actor_state(format!("{}-instance-id", self.resource_type))
+            .await
+        {
+            Ok(result) => {
+                if result.data.is_empty() {
+                    log::debug!("No actor state (instance id) found");
+                    return Ok(None);
+                }
+                match String::from_utf8(result.data) {
+                    Ok(instance_id) => Ok(Some(instance_id)),
+                    Err(e) => {
+                        log::error!("Failed to deserialize actor state: {}", e);
+                        Err(ActorError::MethodError(Box::new(e)))
+                    }
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to get actor state: {}", e);
+                Err(ActorError::MethodError(Box::new(e)))
+            }
+        }
+    }
+
+    async fn write_instance_id(&self, instance_id: &str) -> Result<(), ActorError> {
+        log::debug!("Writing instance id {}", self.id);
+        let mut client = self.dapr_client.clone();
+        if let Err(e) = client
+            .execute_actor_state_transaction(vec![ActorStateOperation::Upsert {
+                key: format!("{}-instance-id", self.resource_type),
+                value: Some(instance_id.as_bytes().to_vec()),
+            }])
+            .await
+        {
+            log::error!("Failed to execute actor state transaction: {}", e);
+            return Err(ActorError::MethodError(Box::new(e)));
+        }
+        Ok(())
+    }
+
+    async fn delete_instance_id(&self) -> Result<(), ActorError> {
+        log::debug!("Deleting instance id {}", self.id);
+        let mut client = self.dapr_client.clone();
+        if let Err(e) = client
+            .execute_actor_state_transaction(vec![ActorStateOperation::Delete {
+                key: format!("{}-instance-id", self.resource_type),
+            }])
+            .await
+        {
+            log::error!("Failed to execute actor state transaction: {}", e);
+            return Err(ActorError::MethodError(Box::new(e)));
+        }
+        Ok(())
     }
 
     async fn load_controllers(&self, specs: Vec<KubernetesSpec>) {
