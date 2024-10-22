@@ -1,28 +1,39 @@
 use std::sync::Arc;
 
 use async_stream::stream;
-use dapr::client::TonicClient;
+use futures::FutureExt;
 use futures_util::{Stream, StreamExt};
-use resource_provider_api::models::QueryStatus;
-use tokio::{select, sync::Notify, task};
+use tokio::{
+    select,
+    sync::oneshot::{self},
+};
 
-use crate::{domain::result_service::api::{ControlSignal, ResultEvent}, QueryRepository};
+use crate::{
+    domain::result_service::api::{ControlSignal, ResultEvent},
+    QueryRepository,
+};
 
 use super::{
     models::{DomainError, QuerySpec},
+    query_actor_service::QueryActorService,
     result_service::ResultService,
 };
 
 pub struct DebugService {
-    dapr_client: dapr::Client<TonicClient>,
+    //dapr_client: dapr::Client<TonicClient>,
     result_service: Arc<ResultService>,
     query_repo: Arc<QueryRepository>,
+    query_actor_service: Arc<QueryActorService>,
 }
 
 impl DebugService {
-    pub fn new(dapr_client: dapr::Client<TonicClient>, result_service: Arc<ResultService>, query_repo: Arc<QueryRepository>) -> Self {
+    pub fn new(
+        query_actor_service: Arc<QueryActorService>,
+        result_service: Arc<ResultService>,
+        query_repo: Arc<QueryRepository>,
+    ) -> Self {
         Self {
-            dapr_client,
+            query_actor_service,
             result_service,
             query_repo,
         }
@@ -31,131 +42,55 @@ impl DebugService {
     pub async fn debug(
         &self,
         mut spec: QuerySpec,
-        cancellation: Arc<Notify>,
+        mut cancellation: oneshot::Receiver<()>,
     ) -> Result<impl Stream<Item = ResultEvent>, DomainError> {
-        //TODO: put a native debug method on the query actor inside query host, this is currently just a hack
-
         let temp_id = format!("debug-{}", uuid::Uuid::new_v4());
         log::info!("debugging query: {}", temp_id);
         spec.transient = Some(true);
-        let mut mut_dapr = self.dapr_client.clone();
 
-        let request = resource_provider_api::models::ResourceRequest::<
-            resource_provider_api::models::QuerySpec,
-        > {
-            id: temp_id.clone(),
-            spec: spec.clone().into(),
-        };
-
-        let _: () = match mut_dapr
-            .invoke_actor(
-                format!("{}.ContinuousQuery", spec.container),
-                temp_id.clone(),
-                "configure",
-                request,
-                None,
-            )
+        match self
+            .query_actor_service
+            .configure(&temp_id, spec.clone())
             .await
         {
             Err(e) => {
-                log::error!("Error configuring resource: {}", e);
                 return Err(DomainError::Internal { inner: Box::new(e) });
             }
-            Ok(r) => r,
-        };
-
-        let bs_cancel = cancellation.clone();
-        let cancel_task = task::spawn(async move { 
-            bs_cancel.notified().await; 
-        });
-
-        loop {
-            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-            if cancel_task.is_finished() {
-                log::info!("debug Stream cancelled by client");
-                if let Err(err) = mut_dapr.invoke_actor::<String, &str, (), ()>(format!("{}.ContinuousQuery", spec.container), temp_id.clone(), "deprovision", (), None).await {
-                    log::error!("Error deprovisioning resource: {}", err);
-                }
-                return Err(DomainError::Cancelled);
-            }            
-
-            match mut_dapr
-                .invoke_actor::<String, &str, (), QueryStatus>(
-                    format!("{}.ContinuousQuery", spec.container),
-                    temp_id.clone(),
-                    "getStatus",
-                    (),
-                    None,
-                )
-                .await
-            {
-                Err(e) => {
-                    log::error!("Error configuring resource: {}", e);
-                    return Err(DomainError::Internal { inner: Box::new(e) });
-                }
-                Ok(qs) => match qs.status.as_str() {
-                    "Running" => break,
-                    "TransientError" => {
-                        if let Err(err) = mut_dapr.invoke_actor::<String, &str, (), ()>(format!("{}.ContinuousQuery", spec.container), temp_id.clone(), "deprovision", (), None).await {
-                            log::error!("Error deprovisioning resource: {}", err);
-                        }
-                        return Err(DomainError::Invalid {
-                            message: format!(
-                                "Query failed to start - {}",
-                                qs.error_message.unwrap_or_default()
-                            ),
-                        })
-                    }
-                    "TerminalError" => {
-                        if let Err(err) = mut_dapr.invoke_actor::<String, &str, (), ()>(format!("{}.ContinuousQuery", spec.container), temp_id.clone(), "deprovision", (), None).await {
-                            log::error!("Error deprovisioning resource: {}", err);
-                        }
-                        return Err(DomainError::Invalid {
-                            message: format!(
-                                "Query failed to start - {}",
-                                qs.error_message.unwrap_or_default()
-                            ),
-                        })
-                    }
-                    "Deleted" => {
-                        return Err(DomainError::Invalid {
-                            message: "Query was deleted before it could start".to_string(),
-                        })
-                    }
-                    _ => {
-                        log::info!("Query status: {:?}", qs);
-                        continue;
-                    },
-                },
-            };
+            Ok(_) => {}
         }
 
+        let container_id = spec.container.clone();
         let result_service = self.result_service.clone();
 
         let result_stream = match result_service.stream_from_start(&temp_id, "debug").await {
             Ok(rs) => rs,
-            Err(err) => {
-                _ = mut_dapr
-                    .invoke_actor::<String, &str, (), ()>(
-                        format!("{}.ContinuousQuery", spec.container),
-                        temp_id.clone(),
-                        "deprovision",
-                        (),
-                        None,
-                    )
+            Err(e) => {
+                _ = self
+                    .query_actor_service
+                    .deprovision(&temp_id, &container_id)
                     .await;
-                return Err(err);
+                return Err(e);
             }
         };
+        let query_actor_service = self.query_actor_service.clone();
 
         let debug_stream = stream! {
+            let ready_wait = query_actor_service.wait_for_ready_or_error(&temp_id, &container_id).fuse();
             tokio::pin!(result_stream);
+            tokio::pin!(ready_wait);
             loop {
                 select! {
-                    _ = cancellation.notified() => {
+                    _ = &mut cancellation => {
                         log::info!("debug Stream cancelled by client");
                         break;
                     },
+                    qe = &mut ready_wait => match qe {
+                            Ok(_) => log::info!("debug query running"),
+                            Err(e) => {
+                                log::error!("debug query error: {:?}", e);
+                                break;
+                            },
+                        },
                     next = result_stream.next() => {
                         match next {
                             Some(item) => {
@@ -192,21 +127,21 @@ impl DebugService {
                 }
           }
           log::info!("removing debug query: {}", temp_id);
-          if let Err(err) = mut_dapr.invoke_actor::<String, &str, (), ()>(format!("{}.ContinuousQuery", spec.container), temp_id.clone(), "deprovision", (), None).await {
-              log::error!("Error deprovisioning resource: {}", err);
-          }
+          _ = query_actor_service.deprovision(&temp_id, &container_id).await;
         };
         Ok(debug_stream)
     }
 
     pub async fn watch_query(
         &self,
-        query_id: &str
+        query_id: &str,
     ) -> Result<impl Stream<Item = ResultEvent>, DomainError> {
         let consumer_id = format!("debug-{}", uuid::Uuid::new_v4());
         let query = self.query_repo.get(query_id).await?;
-        let result_stream = self.result_service.snapshot_stream_from_now(&query.container, query_id, &consumer_id).await?;
+        let result_stream = self
+            .result_service
+            .snapshot_stream_from_now(&query.container, query_id, &consumer_id)
+            .await?;
         Ok(result_stream)
     }
-
 }

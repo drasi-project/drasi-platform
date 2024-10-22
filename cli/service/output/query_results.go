@@ -5,17 +5,43 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"sort"
 	"sync"
 )
 
+var baseStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.NormalBorder()).
+	BorderForeground(lipgloss.Color("240"))
+
 func NewQueryResults() QueryResults {
+
+	t := table.New(
+		//table.WithHeight(10),
+		table.WithFocused(true),
+	)
+	t.SetCursor(-1)
+	s := table.DefaultStyles()
+	//s.Selected = s.Cell
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	t.SetStyles(s)
+
 	m := QueryResults{
 		lock:       &sync.RWMutex{},
 		resultKeys: make(map[[32]byte]int),
 		results:    make([]map[string]interface{}, 0, 100),
 		queue:      make(chan interface{}, 10),
+		table:      t,
 	}
 	p := tea.NewProgram(m)
 	m.program = p
@@ -60,6 +86,7 @@ type QueryResults struct {
 	resultKeys map[[32]byte]int
 	results    []map[string]interface{}
 	queue      chan interface{}
+	table      table.Model
 	program    *tea.Program
 }
 
@@ -104,7 +131,8 @@ func (m QueryResults) Init() tea.Cmd {
 }
 
 func (m QueryResults) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
+	//var cmds []tea.Cmd
+	var cmd tea.Cmd
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -118,8 +146,8 @@ func (m QueryResults) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	}
-
-	return m, tea.Batch(cmds...)
+	m.table, cmd = m.table.Update(msg)
+	return m, cmd
 }
 
 func (m *QueryResults) applyChanges(chg ChangeMsg) {
@@ -144,21 +172,53 @@ func (m *QueryResults) applyChanges(chg ChangeMsg) {
 		delete(m.resultKeys, key)
 		m.results[idx] = nil
 	}
-}
 
-func (m QueryResults) View() string {
-	var s string
-	s += "Results Table:\n\n"
-	s += "Data\n"
-	s += "-------------------\n"
+	cols := make([]table.Column, 0, 10)
+	rows := make([]table.Row, 0, 10)
+
+	headers := make(map[string]int)
 
 	for _, result := range m.results {
 		if result == nil {
 			continue
 		}
-		s += fmt.Sprintf("%+v\n", result)
+
+		row := make([]string, len(result), len(result))
+
+		for k, v := range result {
+			colIdx, exists := headers[k]
+			if !exists {
+				colIdx = len(headers)
+				headers[k] = colIdx
+				cols = append(cols, table.Column{
+					Title: k,
+					Width: 20,
+				})
+			}
+			row[colIdx] = fmt.Sprintf("%v", v)
+		}
+
+		rows = append(rows, row)
 	}
 
-	s += "\nPress 'q' to quit."
-	return s
+	m.table.SetColumns(cols)
+	m.table.SetRows(rows)
+}
+
+func (m QueryResults) View() string {
+	//var s string
+	//s += "Results Table:\n\n"
+	//s += "Data\n"
+	//s += "-------------------\n"
+	//
+	//for _, result := range m.results {
+	//	if result == nil {
+	//		continue
+	//	}
+	//	s += fmt.Sprintf("%+v\n", result)
+	//}
+	//
+	//s += "\nPress 'q' to quit."
+	//return s
+	return baseStyle.Render(m.table.View()) + "\n"
 }

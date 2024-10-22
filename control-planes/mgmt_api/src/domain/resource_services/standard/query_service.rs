@@ -43,7 +43,7 @@ impl QueryDomainServiceImpl {
             dapr_client,
             repo,
             actor_type: |spec| format!("{}.ContinuousQuery", spec.container),
-            ready_check: |status| status.status == "RUNNING",
+            ready_check: |status| status.status == "Running",
             validators: vec![Box::new(QuerySpecValidator {
                 query_container_service: container_service,
             })],

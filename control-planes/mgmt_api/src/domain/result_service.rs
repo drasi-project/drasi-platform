@@ -1,6 +1,3 @@
-use std::time::Duration;
-use futures::StreamExt;
-use reqwest_streams::*;
 use self::api::ResultEvent;
 use super::models::{ChangeStreamConfig, DomainError};
 use crate::change_stream::{
@@ -8,7 +5,10 @@ use crate::change_stream::{
     SequentialChangeStream,
 };
 use async_stream::stream;
+use futures::StreamExt;
 use futures_util::Stream;
+use reqwest_streams::*;
+use std::time::Duration;
 
 pub struct ResultService {
     stream_config: ChangeStreamConfig,
@@ -17,7 +17,7 @@ pub struct ResultService {
 
 impl ResultService {
     pub fn new(stream_config: ChangeStreamConfig) -> Self {
-        ResultService { 
+        ResultService {
             stream_config,
             http_client: reqwest::Client::new(),
         }
@@ -78,25 +78,33 @@ impl ResultService {
         query_id: &str,
         consumer_id: &str,
     ) -> Result<impl Stream<Item = ResultEvent> + Send, DomainError> {
-        
-        let mut snapshot_stream = match self.http_client.get(&format!("http://{}-view-svc/{}", query_container_id, query_id)).send().await {
+        let mut snapshot_stream = match self
+            .http_client
+            .get(&format!(
+                "http://{}-view-svc/{}",
+                query_container_id, query_id
+            ))
+            .send()
+            .await
+        {
             Ok(r) => {
                 if !r.status().is_success() {
                     log::error!("Error getting view: {}", r.status());
                     return Err(DomainError::Internal {
-                        inner: Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Error getting view")),
+                        inner: Box::new(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            "Error getting view",
+                        )),
                     });
                 }
                 r.json_array_stream::<api::ViewElement>(usize::MAX)
-            },
+            }
             Err(e) => {
                 log::error!("Error getting view: {}", e);
-                return Err(DomainError::Internal {
-                    inner: Box::new(e),
-                });
-            },
+                return Err(DomainError::Internal { inner: Box::new(e) });
+            }
         };
-        
+
         let topic = format!("{}-results", query_id);
         let change_stream = match RedisChangeStream::new(
             &self.stream_config.redis_url,
@@ -136,7 +144,7 @@ impl ResultService {
                         yield event;
                     },
                     Err(e) => {
-                        log::error!("Error getting view: {}", e);                        
+                        log::error!("Error getting view: {}", e);
                     },
                     _ => (),
                 }
@@ -250,5 +258,4 @@ pub mod api {
         },
         Data(Map<String, Value>),
     }
-
 }

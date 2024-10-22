@@ -235,7 +235,6 @@ fn default_ready_timeout() -> u64 {
     60
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "kind")]
 pub enum ControlMessage {

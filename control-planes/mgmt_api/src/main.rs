@@ -13,9 +13,12 @@
 // limitations under the License.
 
 use actix_web::{middleware, web, App, HttpServer};
-use domain::resource_provider_services::{
-    ReactionProviderDomainService, ReactionProviderDomainServiceImpl, SourceProviderDomainService,
-    SourceProviderDomainServiceImpl,
+use domain::{
+    query_actor_service::{self, QueryActorService},
+    resource_provider_services::{
+        ReactionProviderDomainService, ReactionProviderDomainServiceImpl,
+        SourceProviderDomainService, SourceProviderDomainServiceImpl,
+    },
 };
 use drasi_comms_dapr::comms::DaprHttpInvoker;
 use std::sync::Arc;
@@ -135,7 +138,13 @@ async fn main() -> Result<(), std::io::Error> {
             fetch_batch_size: 10,
         });
 
-        let debug_service = DebugService::new(dapr_client.clone(), Arc::new(result_service), query_repo.clone());
+        let query_actor_service = Arc::new(QueryActorService::new(dapr_client.clone()));
+
+        let debug_service = DebugService::new(
+            query_actor_service.clone(),
+            Arc::new(result_service),
+            query_repo.clone(),
+        );
 
         App::new()
             .wrap(middleware::Logger::default())
@@ -163,10 +172,7 @@ async fn main() -> Result<(), std::io::Error> {
                 web::scope("/v1/reactionProviders")
                     .configure(api::v1::reaction_provider_handlers::configure),
             )
-            .service(
-                web::scope("/v1/debug")
-                    .configure(api::v1::debug_handlers::configure),
-            )
+            .service(web::scope("/v1/debug").configure(api::v1::debug_handlers::configure))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
