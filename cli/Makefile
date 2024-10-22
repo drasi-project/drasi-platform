@@ -59,10 +59,10 @@ endif
 install: build ## Installs a local build for development
 	
 ifeq ($(IS_WINDOWS),true)
-	@echo "Installing Drasi";
+	@echo "Installing the Drasi CLI";
 	New-Item -ItemType Directory -Path "$(DRASI_LOCATION)" -Force; Copy-Item -Path bin\drasi.exe -Destination "$(DRASI_LOCATION)" -Force; $$currentPath = (Get-Item -Path HKCU:\Environment).GetValue('Path', $$null, 'DoNotExpandEnvironmentNames'); if (-Not ($$currentPath -like '*$(DRASI_LOCATION)*')) { Set-ItemProperty HKCU:\Environment "PATH" "$$currentPath;$(DRASI_LOCATION)" -Type ExpandString; $$env:PATH += ";$(DRASI_LOCATION)" }
 else
-	@echo "Installing Drasi"
+	@echo "Installing the Drasi CLI"
 	cp ./bin/drasi $(DRASI_LOCATION)
 endif
 

@@ -30,27 +30,21 @@ import (
 func NewListCommand() *cobra.Command {
 	var listCommand = &cobra.Command{
 		Use:   "list [kind]",
-		Short: "Get status of all resources of a type",
-		Long: `Get status of all resources of a type.
-This command retrieves and displays the status of all resources of the specified type. The status includes various fields that provide information about the current state of the resource.
+		Short: "Show a list of available resources",
+		Long: `Show a list of available resources of a specified kind along with their current status.
 
 Arguments:
-	kind   The type of resource for which to retrieve the status. 
-	
-Available types:
-	Source
-	Continuousquery (or query for short)
-	Reaction
-	Querycontainer
-	SourceProvider
-	ReactionProvider
+  kind  The kind of resource to list. Available kinds are (case-insensitive):
+          - ContinuousQuery (or 'Query' for short)
+          - QueryContainer
+          - Reaction
+          - ReactionProvider
+          - Source
+          - SourceProvider
 
-Example:
-	drasi list source
-	drasi list continuousquery
-	drasi list query
-	drasi list sourceprovider
-	drasi list reactionprovider
+Usage examples:
+  drasi list continuousquery
+  drasi list source -n my-namespace
 `,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

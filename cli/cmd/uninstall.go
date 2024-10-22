@@ -25,10 +25,15 @@ import (
 
 func NewUninstallCommand() *cobra.Command {
 	var uninstallCommand = &cobra.Command{
-		Use:   "uninstall ",
+		Use:   "uninstall",
 		Short: "Uninstall Drasi",
-		Long:  `Uninstall Drasi from the current namespace`,
-		Args:  cobra.MinimumNArgs(0),
+		Long: `Uninstall the Drasi environment from the the default or a specific namespace on the current Kubernetes cluster.
+		
+Usage examples:
+  drasi uninstall
+  drasi uninstall -n my-namespace
+`,
+		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := readConfig()
 			var err error

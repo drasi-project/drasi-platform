@@ -15,19 +15,27 @@
 package cmd
 
 import (
+	"errors"
+
 	"drasi.io/cli/api"
 	"drasi.io/cli/service"
 	"drasi.io/cli/service/output"
-	"errors"
 	"github.com/spf13/cobra"
 )
 
 func NewApplyCommand() *cobra.Command {
 	var applyCommand = &cobra.Command{
-		Use:   "apply -f [files]",
-		Short: "Apply resources",
-		Long:  `Creates or updates resources from provided manifests`,
-		Args:  cobra.MinimumNArgs(0),
+		Use:   "apply",
+		Short: "Create or update resources",
+		Long: `Create or update resources based on definitions contained in one or more YAML files.
+		
+Usage examples:
+  drasi apply -f resources.yaml
+  drasi apply -f sources.yaml queries.yaml reactions.yaml
+  drasi apply -f resources.yaml -n my-namespace
+`,
+
+		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 			var manifests *[]api.Manifest
@@ -46,7 +54,7 @@ func NewApplyCommand() *cobra.Command {
 			}
 
 			// If a namespace is not provided, use the one from the config file
-			if cmd.Flags().Changed("namespace") == false {
+			if !cmd.Flags().Changed("namespace") {
 				cfg := readConfig()
 				namespace = cfg.DrasiNamespace
 			}

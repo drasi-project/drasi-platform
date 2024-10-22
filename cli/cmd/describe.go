@@ -25,10 +25,26 @@ import (
 
 func NewDescribeCommand() *cobra.Command {
 	var describeCommand = &cobra.Command{
-		Use:   "describe [kind] [name]",
-		Short: "Get spec and status of a resource",
-		Long:  `Get spec and status of a resource`,
-		Args:  cobra.MinimumNArgs(2),
+		Use:   "describe [kind name]",
+		Short: "Show the definition and status of a resource",
+		Long: `Show the definition and current status of a specified resource.
+		
+Arguments:
+  kind  The kind of resource to describe. Available kinds are (case-insensitive):
+          - ContinuousQuery (or 'Query' for short)
+          - QueryContainer
+          - Reaction
+          - ReactionProvider
+          - Source
+          - SourceProvider
+  name  The name of the resource to describe.
+
+Usage examples:
+  drasi describe continuousquery my-query
+  drasi describe source my-source -n my-namespace
+`,
+
+		Args: cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var result *api.Resource
 			var err error
@@ -38,7 +54,7 @@ func NewDescribeCommand() *cobra.Command {
 				return err
 			}
 
-			if cmd.Flags().Changed("namespace") == false {
+			if !cmd.Flags().Changed("namespace") {
 				cfg := readConfig()
 				namespace = cfg.DrasiNamespace
 			}
