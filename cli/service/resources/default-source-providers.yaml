@@ -147,3 +147,62 @@ spec:
             type: string
         required:
           - partitionKey
+---
+apiVersion: v1
+kind: SourceProvider
+name: Dataverse
+spec: 
+  services:
+    proxy:
+      image: source-dataverse-proxy
+      dapr:
+        app-port: "80"
+    reactivator: 
+      image: source-dataverse-reactivator
+  config_schema:
+    type: object
+    properties:
+      endpoint:
+        type: string
+      clientId:
+        type: string
+      secret:
+        type: string
+      entities:
+        type: array
+      interval:
+        type: integer
+        default: 60
+    required:
+      - endpoint
+      - clientId
+      - secret
+      - entities
+---
+apiVersion: v1
+kind: SourceProvider
+name: EventHub
+spec: 
+  services:
+    proxy:
+      image: source-eventhub-proxy
+      dapr:
+        app-port: "80"
+    reactivator: 
+      image: source-eventhub-reactivator
+  config_schema:
+    type: object
+    properties:
+      connectionString:
+        type: string
+      consumerGroup:
+        type: string
+        default: "$Default"
+      eventHubs:
+        type: array
+      bootstrapWindow:
+        type: integer
+        default: 0
+    required:
+      - connectionString
+      - eventHubs
