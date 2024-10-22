@@ -321,4 +321,3 @@ impl From<redis::RedisError> for ChangeStreamError {
         }
     }
 }
-
