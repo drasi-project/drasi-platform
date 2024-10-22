@@ -72,7 +72,7 @@ impl DaprStateManager {
             result.push(data);
         }
 
-        return Ok(result);
+        Ok(result)
     }
 
     pub async fn save_state(
