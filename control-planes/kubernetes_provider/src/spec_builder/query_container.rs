@@ -45,6 +45,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
         &self,
         source: ResourceRequest<QueryContainerSpec>,
         runtime_config: &RuntimeConfig,
+        instance_id: &str,
     ) -> Vec<KubernetesSpec> {
         let mut specs = Vec::new();
 
@@ -60,7 +61,8 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                 1,
                 Some(4000),
                 hashmap![
-                "QUERY_NODE_ID" => ConfigValue::Inline { value: source.id.clone() }
+                "QUERY_NODE_ID" => ConfigValue::Inline { value: source.id.clone() },
+                "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
                 None,
                 None,
@@ -235,7 +237,8 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                 Some(8080),
                 hashmap![
                     "QUERY_NODE_ID" => ConfigValue::Inline { value: source.id.clone() },
-                    "VIEW_STORE_TYPE" => ConfigValue::Inline { value: "mongo".to_string() }
+                    "VIEW_STORE_TYPE" => ConfigValue::Inline { value: "mongo".to_string() },
+                    "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
                 Some(hashmap![
                     "api" => 80

@@ -38,6 +38,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
         &self,
         source: ResourceRequest<SourceSpec>,
         runtime_config: &RuntimeConfig,
+        instance_id: &str,
     ) -> Vec<KubernetesSpec> {
         let mut specs = Vec::new();
 
@@ -53,7 +54,8 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 1,
                 Some(3000),
                 hashmap![
-                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() }
+                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() },
+                "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
                 None,
                 None,
@@ -79,7 +81,8 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 1,
                 Some(3000),
                 hashmap![
-                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() }
+                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() },
+                "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
                 None,
                 None,
@@ -105,7 +108,8 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 1,
                 Some(4001),
                 hashmap![
-                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() }
+                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() },
+                "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
                 None,
                 None,
@@ -154,6 +158,14 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                     value: source.id.clone(),
                 },
             );
+
+            env_var_map.insert(
+                "INSTANCE_ID".to_string(),
+                ConfigValue::Inline {
+                    value: instance_id.to_string(),
+                },
+            );
+
             if let Some(props) = service_spec.properties {
                 for (key, value) in props {
                     env_var_map.insert(key, value);

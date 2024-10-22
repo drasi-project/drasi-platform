@@ -29,6 +29,9 @@ spec:
             default: pg
     reactivator: 
       image: source-debezium-reactivator
+      deprovisionHandler: true
+      dapr:
+        app-port: "80"
       config_schema:
         type: object
         properties:
@@ -78,6 +81,9 @@ spec:
             default: mssql
     reactivator: 
       image: source-debezium-reactivator
+      deprovisionHandler: true
+      dapr:
+        app-port: "80"
       config_schema:
         type: object
         properties:

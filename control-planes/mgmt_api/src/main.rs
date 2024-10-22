@@ -17,6 +17,7 @@ use domain::resource_provider_services::{
     ReactionProviderDomainService, ReactionProviderDomainServiceImpl, SourceProviderDomainService,
     SourceProviderDomainServiceImpl,
 };
+use drasi_comms_dapr::comms::DaprHttpInvoker;
 use std::sync::Arc;
 
 use crate::{
@@ -43,6 +44,10 @@ async fn main() -> Result<(), std::io::Error> {
 
     let mongo_db = std::env::var("MONGO_DB").unwrap_or("api".to_string());
     let redis_url = std::env::var("REDIS_URL").unwrap_or("redis://drasi-redis:6379".to_string());
+    let dapr_http_port = std::env::var("DAPR_HTTP_PORT")
+        .unwrap_or_else(|_| "3500".to_string())
+        .parse::<u16>()
+        .unwrap();
 
     // Introduce delay so that dapr grpc port is assigned before app tries to connect
     std::thread::sleep(std::time::Duration::new(5, 0));
@@ -59,6 +64,10 @@ async fn main() -> Result<(), std::io::Error> {
     HttpServer::new(move || {
         //todo: investigate IoC container
         let db = mongo_client.database(&mongo_db);
+        let invoker = Arc::new(DaprHttpInvoker::new(
+            "127.0.0.1".to_string(),
+            dapr_http_port,
+        ));
 
         let source_provider_repo =
             Arc::new(ProviderRepositoryImpl::new(db.clone(), "source_schemas"));
@@ -70,6 +79,7 @@ async fn main() -> Result<(), std::io::Error> {
             dapr_client.clone(),
             Box::new(source_repo),
             source_provider_repo.clone(),
+            invoker.clone(),
         );
 
         let source_domain_svc_arc: web::Data<SourceDomainService> =
@@ -88,6 +98,7 @@ async fn main() -> Result<(), std::io::Error> {
             dapr_client.clone(),
             Box::new(reaction_repo),
             reaction_provider_repo.clone(),
+            invoker.clone(),
         );
         let reaction_domain_svc_arc: web::Data<ReactionDomainService> =
             web::Data::from(Arc::new(reaction_domain_svc) as Arc<ReactionDomainService>);

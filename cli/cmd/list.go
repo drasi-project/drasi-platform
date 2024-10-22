@@ -15,15 +15,16 @@
 package cmd
 
 import (
-	"drasi.io/cli/api"
-	"drasi.io/cli/service"
 	"fmt"
-	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cobra"
 	"os"
 	"reflect"
 	"sort"
 	"strings"
+
+	"drasi.io/cli/api"
+	"drasi.io/cli/service"
+	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cobra"
 )
 
 func NewListCommand() *cobra.Command {
@@ -117,11 +118,10 @@ Example:
 			sort.Strings(headers)
 			headers = append([]string{"id"}, headers...)
 			table.SetHeader(headers)
-
 			for _, item := range items {
 				var row []string
 				for _, col := range headers {
-					row = append(row, item[col])
+					row = append(row, strings.TrimSpace(item[col]))
 				}
 				table.Append(row)
 			}

@@ -38,6 +38,7 @@ pub trait SpecBuilder<TSpec> {
         &self,
         source: ResourceRequest<TSpec>,
         runtime_config: &RuntimeConfig,
+        instance_id: &str,
     ) -> Vec<KubernetesSpec>;
 }
 
