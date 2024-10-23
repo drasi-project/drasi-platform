@@ -1,11 +1,11 @@
 kind: ContinuousQuery
 apiVersion: v1
-name: smoke-query
+name: quick-query
 spec:
   mode: query
   sources:
     subscriptions:
-      - id: smoke-test
+      - id: quick-test
   query: >
     MATCH
       (i:Item {category: 'A'})
