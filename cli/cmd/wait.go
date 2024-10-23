@@ -1,3 +1,17 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cmd
 
 import (
@@ -9,10 +23,25 @@ import (
 
 func NewWaitCommand() *cobra.Command {
 	var waitCommand = &cobra.Command{
-		Use:   "wait (-f [files] | KIND NAME)",
+		Use:   "wait [kind name] |",
 		Short: "Wait for resources to be ready",
-		Long:  `Waits for resources from provided manifests`,
-		Args:  cobra.MinimumNArgs(0),
+		Long: `Wait for a resource to be ready based on a specified kind and name, or use the '-f' flag to specify one or more YAML files containing the definitions of resources to wait for.
+
+Will not return until all resources are ready or the specified timeout is reached.
+
+Arguments:
+  kind  The kind of resource to wait for. Available kinds are (case-insensitive):
+          - Reaction
+          - Source
+  name  The name of the resource to wait for.
+
+Usage examples:
+  drasi wait source my-source
+  drasi wait -f sources.yaml reactions.yaml
+  drasi wait -f resources.yaml -n my-namespace
+`,
+
+		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 			var manifests *[]api.Manifest

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024 The Drasi Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.drasi;
 
 import com.drasi.models.RelationalGraphMapping;
@@ -6,18 +22,24 @@ import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
 import io.debezium.engine.spi.OffsetCommitPolicy;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SqlServerChangeMonitor implements ChangeMonitor {
     private String sourceId;
     private ChangePublisher publisher;
+    private ExecutorService executor;
+    private DebeziumEngine<ChangeEvent<String, String>> engine;
 
     public SqlServerChangeMonitor(String sourceId, ChangePublisher publisher) {
         this.sourceId = sourceId;
         this.publisher = publisher;
+        this.executor = Executors.newSingleThreadExecutor();
     }
 
     public void run() throws IOException, SQLException {
@@ -48,12 +70,18 @@ public class SqlServerChangeMonitor implements ChangeMonitor {
 
         final Properties props = config.asProperties();
 
-        try (DebeziumEngine<ChangeEvent<String, String>> engine = DebeziumEngine.create(Json.class)
+        engine = DebeziumEngine.create(Json.class)
                 .using(props)
                 .using(OffsetCommitPolicy.always())
-                .notifying(new SqlServerChangeConsumer(mappings, publisher)).build()) {
-            engine.run();
-        }
+                .notifying(new SqlServerChangeConsumer(mappings, publisher)).build();
+
+        executor.execute(engine);
+    }
+
+    public void close() throws Exception {
+        engine.close();
+        executor.shutdown();
+        executor.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS);
     }
 
     private static String CleanPublicationName(String name) {

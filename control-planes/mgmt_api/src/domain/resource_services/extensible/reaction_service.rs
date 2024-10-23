@@ -1,3 +1,17 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use super::{
     merge_spec, ExtensibleResourceDomainServiceImpl, ExtensibleSpecValidator, ResourceDomainService,
 };
@@ -11,6 +25,7 @@ use crate::{
 
 use async_trait::async_trait;
 use dapr::client::TonicClient;
+use drasi_comms_abstractions::comms::Invoker;
 use jsonschema::JSONSchema;
 use std::{collections::HashMap, sync::Arc};
 pub type ReactionDomainService = dyn ResourceDomainService<ReactionSpec, ReactionStatus>;
@@ -26,11 +41,13 @@ impl ReactionDomainServiceImpl {
         dapr_client: dapr::Client<TonicClient>,
         repo: Box<ReactionRepository>,
         provider_repo: Arc<ProviderRepository>,
+        invoker: Arc<dyn Invoker>,
     ) -> Self {
         ReactionDomainServiceImpl {
             dapr_client,
             repo,
             provider_repo,
+            invoker,
             actor_type: |_spec| "ReactionResource".to_string(),
             ready_check: |status| status.available,
             validators: vec![Box::new(ReactionSpecValidator {})],

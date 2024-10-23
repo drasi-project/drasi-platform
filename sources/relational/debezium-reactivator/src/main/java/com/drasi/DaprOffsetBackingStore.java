@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024 The Drasi Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.drasi;
 
 import io.dapr.client.DaprClient;
@@ -22,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class DaprOffsetBackingStore extends MemoryOffsetBackingStore {
-    private static final Logger log = LoggerFactory.getLogger(org.apache.kafka.connect.storage.FileOffsetBackingStore.class);
+    private static final Logger log = LoggerFactory.getLogger(DaprOffsetBackingStore.class);
 
     private DaprClient client;
     private String stateStore;
@@ -42,6 +58,17 @@ public class DaprOffsetBackingStore extends MemoryOffsetBackingStore {
     public synchronized void start() {
         super.start();
         log.info("Starting DaprOffsetBackingStore");
+
+        var instanceId = System.getenv("INSTANCE_ID");
+        var resp = client.getState(stateStore, "instance_id", TypeRef.STRING);
+        var respValue = resp.block().getValue();
+
+        if (respValue == null || !respValue.equals(instanceId)) {
+            log.info("Instance ID mismatch. Clearing offset store.");
+            client.deleteState(stateStore, "offset").block();
+            client.saveState(stateStore, "instance_id", instanceId).block();
+        }
+
         load();
     }
 
