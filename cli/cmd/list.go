@@ -1,3 +1,17 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cmd
 
 import (
@@ -16,27 +30,21 @@ import (
 func NewListCommand() *cobra.Command {
 	var listCommand = &cobra.Command{
 		Use:   "list [kind]",
-		Short: "Get status of all resources of a type",
-		Long: `Get status of all resources of a type.
-This command retrieves and displays the status of all resources of the specified type. The status includes various fields that provide information about the current state of the resource.
+		Short: "Show a list of available resources",
+		Long: `Show a list of available resources of a specified kind along with their current status.
 
 Arguments:
-	kind   The type of resource for which to retrieve the status. 
-	
-Available types:
-	Source
-	Continuousquery (or query for short)
-	Reaction
-	Querycontainer
-	SourceProvider
-	ReactionProvider
+  kind  The kind of resource to list. Available kinds are (case-insensitive):
+          - ContinuousQuery (or 'Query' for short)
+          - QueryContainer
+          - Reaction
+          - ReactionProvider
+          - Source
+          - SourceProvider
 
-Example:
-	drasi list source
-	drasi list continuousquery
-	drasi list query
-	drasi list sourceprovider
-	drasi list reactionprovider
+Usage examples:
+  drasi list continuousquery
+  drasi list source -n my-namespace
 `,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

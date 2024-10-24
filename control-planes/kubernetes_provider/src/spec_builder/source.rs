@@ -1,3 +1,17 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
     build_deployment_spec, SpecBuilder,
@@ -24,6 +38,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
         &self,
         source: ResourceRequest<SourceSpec>,
         runtime_config: &RuntimeConfig,
+        instance_id: &str,
     ) -> Vec<KubernetesSpec> {
         let mut specs = Vec::new();
 
@@ -39,7 +54,8 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 1,
                 Some(3000),
                 hashmap![
-                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() }
+                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() },
+                "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
                 None,
                 None,
@@ -65,7 +81,8 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 1,
                 Some(3000),
                 hashmap![
-                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() }
+                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() },
+                "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
                 None,
                 None,
@@ -91,7 +108,8 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 1,
                 Some(4001),
                 hashmap![
-                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() }
+                "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() },
+                "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
                 None,
                 None,
@@ -140,6 +158,14 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                     value: source.id.clone(),
                 },
             );
+
+            env_var_map.insert(
+                "INSTANCE_ID".to_string(),
+                ConfigValue::Inline {
+                    value: instance_id.to_string(),
+                },
+            );
+
             if let Some(props) = service_spec.properties {
                 for (key, value) in props {
                     env_var_map.insert(key, value);

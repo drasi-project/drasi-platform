@@ -1,0 +1,9 @@
+kind: Reaction
+apiVersion: v1
+name: quick-result-reaction
+spec:
+  kind: Result
+  queries:
+    quick-query:
+  endpoints:
+    gateway: 8080

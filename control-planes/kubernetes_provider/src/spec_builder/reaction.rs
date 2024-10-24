@@ -1,3 +1,17 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use crate::models::{Component, ComponentSpec};
 
 use super::{
@@ -13,7 +27,7 @@ use kube::core::ObjectMeta;
 use resource_provider_api::models::{ConfigValue, EndpointSetting, ReactionSpec, ResourceRequest};
 use serde::Serialize;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     hash::{Hash, Hasher},
 };
 
@@ -24,6 +38,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
         &self,
         source: ResourceRequest<ReactionSpec>,
         runtime_config: &RuntimeConfig,
+        instance_id: &str,
     ) -> Vec<KubernetesSpec> {
         let mut specs = Vec::new();
 
@@ -34,6 +49,13 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             "RESTART_HACK".to_string(),
             ConfigValue::Inline {
                 value: calc_hash(&source.spec),
+            },
+        );
+
+        env.insert(
+            "INSTANCE_ID".to_string(),
+            ConfigValue::Inline {
+                value: instance_id.to_string(),
             },
         );
 

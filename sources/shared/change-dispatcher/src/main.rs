@@ -1,4 +1,19 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use change_dispatcher_config::ChangeDispatcherConfig;
+use drasi_comms_abstractions::comms::Payload;
 use log::info;
 use serde_json::Value;
 
@@ -199,10 +214,10 @@ async fn process_changes(
                 let headers = Headers::new(headers);
                 match invoker
                     .invoke(
-                        dispatch_event.clone(),
-                        app_id,
-                        "change".to_string(),
-                        headers,
+                        Payload::Json(dispatch_event.clone()),
+                        &app_id,
+                        "change",
+                        Some(headers),
                     )
                     .await
                 {
