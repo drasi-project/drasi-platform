@@ -1,5 +1,20 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use async_trait::async_trait;
 use dapr::client::TonicClient;
+use drasi_comms_abstractions::comms::{Invoker, Payload};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
@@ -39,6 +54,7 @@ where
     dapr_client: dapr::Client<TonicClient>,
     repo: Box<dyn ResourceSpecRepository<TSpec> + Send + Sync>,
     provider_repo: Arc<ProviderRepository>,
+    invoker: Arc<dyn Invoker>,
     actor_type: fn(&TSpec) -> String,
     ready_check: fn(&TStatus) -> bool,
     validators: Vec<Box<dyn ExtensibleSpecValidator<TSpec> + Send + Sync>>,
@@ -124,7 +140,48 @@ where
     async fn delete(&self, id: &str) -> Result<(), DomainError> {
         log::debug!("Deleting resource: {}", id);
         let spec = self.repo.get(id).await?;
+
+        let schema = match self.provider_repo.get(spec.kind()).await {
+            Ok(schema) => Some(schema),
+            Err(e) => {
+                log::error!("Error getting schema for resource: {}", e);
+                None
+            }
+        };
+
+        if let Some(schema) = &schema {
+            for (service_name, service_config) in &schema.services {
+                if let Some(deprovision_handler) = &service_config.deprovision_handler {
+                    if *deprovision_handler {
+                        match self
+                            .invoker
+                            .invoke(
+                                Payload::None,
+                                format!("{}-{}", id, service_name).as_str(),
+                                "deprovision",
+                                None,
+                            )
+                            .await
+                        {
+                            Ok(_) => {
+                                log::info!("Called Deprovision handler for {}-{}", id, service_name)
+                            }
+                            Err(e) => {
+                                log::error!(
+                                    "Error deprovisioning {}-{}: {}",
+                                    id,
+                                    service_name,
+                                    e.to_string()
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         let mut mut_dapr = self.dapr_client.clone();
+
         let _: () = match mut_dapr
             .invoke_actor(
                 (self.actor_type)(&spec),
@@ -336,6 +393,7 @@ fn merge_spec(
                 endpoints: None,
                 dapr: None,
                 properties: None,
+                deprovision_handler: None,
             },
         };
 
@@ -480,6 +538,7 @@ fn merge_spec(
             endpoints,
             dapr,
             properties: service_properties,
+            deprovision_handler: service_config.deprovision_handler,
         };
 
         services.insert(service_name.clone(), new_service);

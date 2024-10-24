@@ -1,3 +1,17 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use super::{
     merge_spec, ExtensibleResourceDomainServiceImpl, ExtensibleSpecValidator, ResourceDomainService,
 };
@@ -9,6 +23,7 @@ use crate::{
     ProviderRepository,
 };
 use dapr::client::TonicClient;
+use drasi_comms_abstractions::comms::Invoker;
 use jsonschema::JSONSchema;
 use std::{collections::HashMap, sync::Arc};
 
@@ -26,11 +41,13 @@ impl SourceDomainServiceImpl {
         dapr_client: dapr::Client<TonicClient>,
         repo: Box<SourceRepository>,
         provider_repo: Arc<ProviderRepository>,
+        invoker: Arc<dyn Invoker>,
     ) -> Self {
         SourceDomainServiceImpl {
             dapr_client,
             repo,
             provider_repo,
+            invoker,
             actor_type: |_spec| "SourceResource".to_string(),
             ready_check: |status| status.available,
             validators: vec![Box::new(SourceSpecValidator {})],
@@ -160,7 +177,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
             }
         };
         // Check if the services defined in the source spec are defined in the schema
-        for (service_name, service_settings) in &services {
+        for service_name in services.keys() {
             if !defined_services.contains(service_name) {
                 return Err(DomainError::UndefinedSetting {
                     message: format!("Service {} is not defined in the schema", service_name),
