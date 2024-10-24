@@ -30,8 +30,10 @@ use axum::{
 
 use drasi_comms_abstractions::comms::{Headers, Publisher};
 use drasi_comms_dapr::comms::DaprHttpPublisher;
+use state_manager::{DaprStateManager, StateEntry};
 
 mod change_router_config;
+mod state_manager;
 mod subscriber_map;
 mod subscribers;
 
@@ -44,38 +46,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let node_subscriber = Subscriber::new();
     let rel_subscriber = Subscriber::new();
 
-    let addr = "https://127.0.0.1".to_string();
-    let mut dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
-        .await
-        .expect("Unable to connect to Dapr");
-
     let query_condition = json!({
         "filter": {
-            "EQ": { "type": "SourceSubscription"}
-        },
+            "EQ": { "type": "SourceSubscription" }
+        }
     });
-    let response = match dapr_client
-        .query_state_alpha1(config.clone().subscriber_store, query_condition, None)
+    let mut metadata = std::collections::HashMap::new();
+
+    let topic = format!("{}-dispatch", config.source_id.clone()).to_string();
+    let dapr_port = match config.dapr_port.parse::<u16>() {
+        Ok(port) => port,
+        Err(_e) => {
+            return Err(Box::<dyn std::error::Error>::from(
+                "Error parsing Dapr port",
+            ));
+        }
+    };
+    let publisher = DaprHttpPublisher::new(
+        "127.0.0.1".to_string(),
+        dapr_port,
+        config.pubsub_name.clone(),
+        topic,
+    );
+    let state_manager = DaprStateManager::new("127.0.0.1", dapr_port, &config.subscriber_store);
+
+    metadata.insert("contentType".to_string(), "application/json".to_string());
+    let response = match state_manager
+        .query_state(query_condition, Some(metadata))
         .await
     {
-        Ok(response) => response.results,
+        Ok(response) => response,
         Err(e) => {
-            log::error!("Error querying state: {:?}", e);
+            log::error!("Error querying the Dapr state store: {:?}", e);
             vec![]
         }
     };
-
-    for sub in response {
-        let data: Value = match serde_json::from_slice(&sub.data) {
-            Ok(data) => data,
-            Err(e) => {
-                log::error!(
-                    "Error parsing the response from the Dapr state query: {:?}",
-                    e
-                );
-                continue;
-            }
-        };
+    for data in response {
         // if the data is corrupt for this subscription, this will cause a panic and stop loading all the others... we should probably log an error but continue to load the rest of the subscriptions
         let node_labels: Vec<&str> = match data["nodeLabels"].as_array() {
             Some(labels) => labels
@@ -149,27 +155,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         rel_subscriber.get_label_map()
     );
 
-    let topic = format!("{}-dispatch", config.source_id.clone()).to_string();
-    let dapr_port = match config.dapr_port.parse::<u16>() {
-        Ok(port) => port,
-        Err(_e) => {
-            return Err(Box::<dyn std::error::Error>::from(
-                "Error parsing Dapr port",
-            ));
-        }
-    };
-    let publisher = DaprHttpPublisher::new(
-        "127.0.0.1".to_string(),
-        dapr_port,
-        config.pubsub_name.clone(),
-        topic,
-    );
-
     let shared_state = Arc::new(AppState {
         node_subscriber,
         rel_subscriber,
         config: config.clone(),
         publisher,
+        state_manager,
     });
     let subscriber_server = Router::new()
         .route("/dapr/subscribe", get(subscribe))
@@ -196,11 +187,11 @@ struct AppState {
     rel_subscriber: Subscriber,
     config: ChangeRouterConfig,
     publisher: DaprHttpPublisher,
+    state_manager: DaprStateManager,
 }
 
 async fn subscribe() -> impl IntoResponse {
     let config = ChangeRouterConfig::from_env();
-    // just do a json that is a list of subscriptions
     let subscriptions = vec![json! {
         {
             "pubsubname": config.pubsub_name.clone(),
@@ -231,6 +222,7 @@ async fn receive(
     let json_data = body["data"].clone();
 
     let publisher = &state.publisher;
+    let state_manager = &state.state_manager;
     match process_changes(
         publisher,
         json_data,
@@ -238,6 +230,7 @@ async fn receive(
         node_subscriber,
         rel_subscriber,
         trace_parent,
+        state_manager,
     )
     .await
     {
@@ -260,6 +253,7 @@ async fn process_changes(
     node_subscriber: &Subscriber,
     rel_subscriber: &Subscriber,
     traceparent: String,
+    state_manager: &DaprStateManager,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !changes.is_array() {
         return Err(Box::<dyn std::error::Error>::from(
@@ -277,6 +271,7 @@ async fn process_changes(
             );
             debug!("ChangeEvent: {}", change);
 
+            // Bootstrap
             if change["payload"]["source"]["db"] == "Drasi" {
                 if change["payload"]["source"]["table"] == "SourceSubscription" {
                     if change["op"] == "i" {
@@ -357,7 +352,6 @@ async fn process_changes(
                             }
                         );
 
-                        // let mut dapr_client = dapr_client.clone();
                         let source_subscription_value = json!({
                             "type": "SourceSubscription",
                             "queryId": change["payload"]["after"]["queryId"],
@@ -365,11 +359,31 @@ async fn process_changes(
                             "nodeLabels": change["payload"]["after"]["nodeLabels"],
                             "relLabels": change["payload"]["after"]["relLabels"]
                         });
-                        let mut headers = std::collections::HashMap::new();
-                        headers.insert("traceparent".to_string(), traceparent.clone());
-                        let headers = Headers::new(headers);
-                        match publisher.publish(source_subscription_value, headers).await {
-                            Ok(_) => {}
+
+                        let state_key = format!(
+                            "SourceSubscription-{}-{}",
+                            match change["payload"]["after"]["queryNodeId"].as_str() {
+                                Some(query_node_id) => query_node_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryNodeId from the ChangeEvent"
+                                    )),
+                            },
+                            match change["payload"]["after"]["queryId"].as_str() {
+                                Some(query_id) => query_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryId from the ChangeEvent"
+                                    )),
+                            }
+                        );
+
+                        // combine statekey and source_subscription_value into a json
+                        // where the key is the state key and the value is the source subscription value
+                        let states = vec![StateEntry::new(&state_key, source_subscription_value)];
+
+                        match state_manager.save_state(states).await {
+                            Ok(_) => info!("Saved SourceSubscription to state store"),
                             Err(e) => {
                                 return Err(e);
                             }
@@ -494,7 +508,7 @@ async fn process_changes(
                     let headers = Headers::new(headers);
                     match publisher.publish(change_dispatch_event, headers).await {
                         Ok(_) => {
-                            log::info!("published event to topic: {}", publish_topic);
+                            info!("published event to topic: {}", publish_topic);
                         }
                         Err(e) => {
                             return Err(e);
