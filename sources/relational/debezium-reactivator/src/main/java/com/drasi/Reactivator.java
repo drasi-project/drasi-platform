@@ -24,6 +24,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,7 +52,14 @@ public class Reactivator {
             app.run(args);
         } catch (Exception ex) {
             log.error(ex.getMessage());
-            Files.write(Path.of("/dev/termination-log"), ex.getMessage().getBytes());
+            Path termPath = Path.of("/dev/termination-log");
+            Files.writeString(termPath, ex.getMessage(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            var cause = ex.getCause();
+            while (cause != null) {
+                log.error(cause.getMessage());
+                Files.writeString(termPath, "\n" + cause.getMessage(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                cause = cause.getCause();
+            }
             throw ex;
         }
     }
