@@ -23,6 +23,13 @@ export interface ContinuousQuery extends Resource {
   spec: ContinuousQuerySpec;
 }
 
-interface ContinuousQuerySpec {
+export interface ContinuousQuerySpec {
 
+}
+
+export interface ContinuousQueryStatus {
+  hostName: string;
+  status: string;
+  container: string;
+  errorMessage: string[];
 }

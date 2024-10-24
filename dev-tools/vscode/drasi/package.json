@@ -34,6 +34,10 @@
         {
           "id": "workspace",
           "name": "Workspace"
+        },
+        {
+          "id": "drasi",
+          "name": "Drasi"
         }
       ]
     },
@@ -45,7 +49,15 @@
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
         }
-      },      
+      },
+      {
+        "command": "drasi.refresh",
+        "title": "Refresh",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
       {
         "command": "workspace.query.run",
         "title": "Run"
@@ -57,6 +69,10 @@
       {
         "command": "workspace.reactionProvider.validate",
         "title": "Validate"
+      },
+      {
+        "command": "drasi.query.watch",
+        "title": "Attach"
       }
     ],
     "menus": {
@@ -65,22 +81,32 @@
           "command": "workspace.refresh",
           "when": "view == workspace",
           "group": "navigation"
+        },
+        {
+          "command": "drasi.refresh",
+          "when": "view == drasi",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "workspace.query.run",
-          "when": "view == workspace && viewItem == queryNode",
+          "when": "view == workspace && viewItem == workspace.queryNode",
           "group": "inline"
         },
         {
           "command": "workspace.sourceProvider.validate",
-          "when": "view == workspace && viewItem == sourceProviderNode",
+          "when": "view == workspace && viewItem == workspace.sourceProviderNode",
           "group": "inline"
         },
         {
           "command": "workspace.reactionProvider.validate",
-          "when": "view == workspace && viewItem == reactionProviderNode",
+          "when": "view == workspace && viewItem == workspace.reactionProviderNode",
+          "group": "inline"
+        },
+        {
+          "command": "drasi.query.watch",
+          "when": "view == drasi && viewItem == drasi.queryNode",
           "group": "inline"
         }
       ]
@@ -115,6 +141,7 @@
   "dependencies": {
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "ajv": "^8.12.0",
+    "async-mutex": "^0.5.0",
     "axios": "^1.7.2",
     "braces": "^3.0.3",
     "js-yaml": "^4.1.0",

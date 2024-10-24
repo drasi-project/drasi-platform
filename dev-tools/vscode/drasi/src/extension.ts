@@ -16,10 +16,14 @@
 
 import * as vscode from 'vscode';
 import { WorkspaceExplorer } from './workspace-explorer';
+import { DrasiExplorer } from './drasi-explorer';
 
 export function activate(context: vscode.ExtensionContext) {
 	const workspaceExplorer = new WorkspaceExplorer(context.extensionUri);
 	vscode.window.registerTreeDataProvider('workspace', workspaceExplorer);
+
+	const drasiExplorer = new DrasiExplorer(context.extensionUri);
+	vscode.window.registerTreeDataProvider('drasi', drasiExplorer);
 	
 }
 

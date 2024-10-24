@@ -19,3 +19,9 @@ export interface Resource {
   kind: string;
   name: string;
 }
+
+export interface ResourceDTO<TSpec, TStatus> {
+  id: string;
+  spec: TSpec;
+  status: TStatus;
+}

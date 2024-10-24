@@ -16,12 +16,16 @@
 
 import * as portfinder from 'portfinder';
 import * as cp from 'child_process';
+import { Mutex } from 'async-mutex';
+import { Stoppable } from './models/stoppable';
 
-export class PortForward {
+let portMutex = new Mutex();
+
+export class PortForward implements Stoppable {
   serviceName: string;
   servicePort: number;
   process?: cp.ChildProcess = undefined;
-
+  
   /**
  * @param {string} serviceName
  * @param {number} servicePort
@@ -36,28 +40,36 @@ export class PortForward {
  */
   async start(): Promise<number> {
     let self = this;
-    let localPort = await portfinder.getPortPromise();
+    const release = await portMutex.acquire();
+    try {
+      let localPort = await portfinder.getPortPromise();
 
-    let promise = new Promise<cp.ChildProcess>((resolve, reject) => {
-      let proc = cp.spawn("kubectl", ["port-forward", `services/${this.serviceName}`, `${localPort}:${this.servicePort}`, "-n", "drasi-system"]);
+      let promise = new Promise<cp.ChildProcess>((resolve, reject) => {
+        let proc = cp.spawn("kubectl", ["port-forward", `services/${this.serviceName}`, `${localPort}:${this.servicePort}`, "-n", "drasi-system"]);      
+        
+        proc.stdout.on('data', function(msg: any){         
+          console.log(`PortForward: ${self.serviceName} ${msg.toString()}`);
+          resolve(proc);
+        });
+
+        proc.stderr.on('data', function(err: any){         
+          console.error(`PortForward: ${self.serviceName} ${err.toString()}`);
+          reject(err.toString());
+        });
       
-      proc.stdout.on('data', function(msg: any){         
-        console.log(`PortForward: ${self.serviceName} ${msg.toString()}`);
-        resolve(proc);
       });
 
-      proc.stderr.on('data', function(err: any){         
-        console.error(`PortForward: ${self.serviceName} ${err.toString()}`);
-        reject(err.toString());
-      });
-    });
+      this.process = await promise;
 
-    this.process = await promise;
-
-    return localPort;
+      return localPort;
+    }      
+    finally {
+      release();      
+    }    
   }
 
   stop() {
+    console.log(`Stopping port-forward for ${this.serviceName}`);
     this.process?.kill();
   }
 }

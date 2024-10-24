@@ -20,8 +20,8 @@ import { ContinuousQuery } from './models/continuous-query';
 import { QueryDebugger } from './query-debugger';
 import { SourceProvider } from './models/source-provider';
 import { ReactionProvider } from './models/reaction-provider';
-import { validateSourceProvider } from './source-provider-explorer';
-import { validateReactionProvider } from './reaction-provider-explorer';
+import { validateSourceProvider } from './source-provider-validator';
+import { validateReactionProvider } from './reaction-provider-validator';
 
 export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> {
 	
@@ -148,11 +148,12 @@ class FileNode extends ExplorerNode {
 }
 
 class QueryNode extends ExplorerNode {
-	contextValue = 'queryNode';
+	contextValue = 'workspace.queryNode';
 
+  
   constructor (query: ContinuousQuery, uri: vscode.Uri) {
     super(uri);
-    this.iconPath = new vscode.ThemeIcon('file-code');
+    this.iconPath = new vscode.ThemeIcon('code');
     this.label = query.name;
     this.command = {
       command: "vscode.open",
@@ -163,7 +164,7 @@ class QueryNode extends ExplorerNode {
 }
 
 class SourceProviderNode extends ExplorerNode {
-	contextValue = 'sourceProviderNode';
+	contextValue = 'workspace.sourceProviderNode';
 
   constructor (sp: SourceProvider, uri: vscode.Uri) {
     super(uri);
@@ -177,7 +178,7 @@ class SourceProviderNode extends ExplorerNode {
 }
 
 class ReactionProviderNode extends ExplorerNode {
-	contextValue = 'reactionProviderNode';
+	contextValue = 'workspace.reactionProviderNode';
 
   constructor (query: ReactionProvider, uri: vscode.Uri) {
     super(uri);
