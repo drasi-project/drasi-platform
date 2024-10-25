@@ -22,3 +22,6 @@ drasi-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
 
 [build-dependencies]
 tonic-build = "0.11"
+
+[profile.release]
+lto = true
