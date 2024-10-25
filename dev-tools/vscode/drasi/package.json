@@ -25,19 +25,19 @@
         {
           "id": "drasi-explorer",
           "title": "Drasi Explorer",
-          "icon": "resources/radioactive.svg"
+          "icon": "resources/drasi.svg"
         }
       ]
     },
     "views": {
       "drasi-explorer": [
         {
-          "id": "workspace",
-          "name": "Workspace"
-        },
-        {
           "id": "drasi",
           "name": "Drasi"
+        },
+        {
+          "id": "workspace",
+          "name": "Workspace"
         }
       ]
     },
@@ -57,11 +57,7 @@
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
         }
-      },
-      {
-        "command": "workspace.query.run",
-        "title": "Run"
-      },
+      },      
       {
         "command": "workspace.sourceProvider.validate",
         "title": "Validate"
@@ -72,7 +68,33 @@
       },
       {
         "command": "drasi.query.watch",
-        "title": "Attach"
+        "title": "Attach",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "drasi.resource.delete",
+        "title": "Delete",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "workspace.query.run",
+        "title": "Debug",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "workspace.resource.apply",
+        "title": "Apply",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "editor.query.run",
+        "title": "Debug",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "editor.resource.apply",
+        "title": "Apply",
+        "icon": "$(cloud-upload)"
       }
     ],
     "menus": {
@@ -90,10 +112,15 @@
       ],
       "view/item/context": [
         {
+          "command": "workspace.resource.apply",
+          "when": "view == workspace && (viewItem == workspace.queryNode || viewItem == workspace.sourceNode || viewItem == workspace.reactionNode)",
+          "group": "inline"
+        },
+        {
           "command": "workspace.query.run",
           "when": "view == workspace && viewItem == workspace.queryNode",
           "group": "inline"
-        },
+        },        
         {
           "command": "workspace.sourceProvider.validate",
           "when": "view == workspace && viewItem == workspace.sourceProviderNode",
@@ -107,6 +134,11 @@
         {
           "command": "drasi.query.watch",
           "when": "view == drasi && viewItem == drasi.queryNode",
+          "group": "inline"
+        },
+        {
+          "command": "drasi.resource.delete",
+          "when": "view == drasi && (viewItem == drasi.queryNode || viewItem == drasi.sourceNode || viewItem == drasi.reactionNode)",
           "group": "inline"
         }
       ]
@@ -139,6 +171,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
+    "@kubernetes/client-node": "^0.22.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "ajv": "^8.12.0",
     "async-mutex": "^0.5.0",
@@ -147,6 +180,7 @@
     "js-yaml": "^4.1.0",
     "portfinder": "^1.0.32",
     "strip-ansi": "^7.0.1",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "yaml": "^2.6.0"
   }
 }

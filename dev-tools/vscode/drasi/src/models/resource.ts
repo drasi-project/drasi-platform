@@ -15,9 +15,11 @@
  */
 
 
-export interface Resource {
+export interface Resource<TSpec> {
+  apiVersion: string;
   kind: string;
   name: string;
+  spec: TSpec;
 }
 
 export interface ResourceDTO<TSpec, TStatus> {

@@ -10,20 +10,22 @@ import { randomUUID } from 'crypto';
 import { SourceSpec, SourceStatus } from './models/source';
 import { ReactionSpec, ReactionStatus } from './models/reaction';
 import { QueryWatcher } from './query-watcher';
+import { getCurrentKubeContext } from './utilities/getKubeContext';
 
 export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
 	
 	private _onDidChangeTreeData: vscode.EventEmitter<ExplorerNode | undefined | void> = new vscode.EventEmitter<ExplorerNode | undefined | void>();
 	readonly onDidChangeTreeData: vscode.Event<ExplorerNode | undefined | void> = this._onDidChangeTreeData.event;
-  readonly drasiClient = new DrasiClient();
+  readonly drasiClient: DrasiClient;
   
   private extensionUri: vscode.Uri;
 
-  constructor (extensionUri: vscode.Uri) {
+  constructor (extensionUri: vscode.Uri, drasiClient: DrasiClient) {
     this.extensionUri = extensionUri;
+    this.drasiClient = drasiClient;
     vscode.commands.registerCommand('drasi.refresh', this.refresh.bind(this));
     vscode.commands.registerCommand('drasi.query.watch', this.watchQuery.bind(this));
-        
+    vscode.commands.registerCommand('drasi.resource.delete', this.deleteResource.bind(this));        
   }
 
 	refresh(): void {
@@ -35,18 +37,22 @@ export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
 	}
 	
 	async getChildren(element?: ExplorerNode | undefined): Promise<ExplorerNode[]> {
-   	//let files = await vscode.workspace.findFiles('**/*.yaml');
-		if (!vscode.workspace.workspaceFolders) {
+   	if (!vscode.workspace.workspaceFolders) {
 			return [];
     }
 			
-		if (!element) {			
-			return [
+		if (!element) {
+      let clusterName = getCurrentKubeContext();      
+      return [new TitleNode(`Drasi - (${clusterName})`)];
+		}
+
+    if (element instanceof TitleNode) {
+      return [
         new CategoryNode(Category.sources),
         new CategoryNode(Category.queries),        
         new CategoryNode(Category.reactions)
       ];
-		}
+    }
 
     if (element instanceof CategoryNode) {
       switch ((element as CategoryNode).category) {
@@ -69,10 +75,47 @@ export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
     let watcher = new QueryWatcher(queryNode.queryId, this.extensionUri);
     await watcher.start();    
   }
+
+  async deleteResource(resourceNode: ResourceNode) {
+    if (!resourceNode) {
+      return;
+    }
+    const confirm = await vscode.window.showWarningMessage(
+        `Are you sure you want to delete ${resourceNode.name}?`,
+        'Yes',
+        'No'
+    );
+
+    if (confirm !== 'Yes') {
+        return;
+    }
+
+    await vscode.window.withProgress({
+      title: `Deleting ${resourceNode.name}`,
+      location: vscode.ProgressLocation.Notification,
+    }, async (progress, token) => {
+      progress.report({ message: "Deleting..." });
+      
+      try {      
+        await this.drasiClient.deleteResource(resourceNode.kind, resourceNode.name);
+        vscode.window.showInformationMessage(`Resource ${resourceNode.name} deleted`);
+      }
+      catch (err) {
+        vscode.window.showErrorMessage(`Error deleting resource: ${err}`);
+      }
+    });
+    vscode.commands.executeCommand('drasi.refresh');
+  }
 }
 
 class ExplorerNode extends vscode.TreeItem {
+  
+}
 
+class TitleNode extends ExplorerNode {
+  constructor (label: string) {
+    super(label, vscode.TreeItemCollapsibleState.Expanded);
+  }
 }
 
 enum Category {
@@ -103,22 +146,33 @@ class CategoryNode extends ExplorerNode {
   }
 }
 
-class QueryNode extends ExplorerNode {
+class ResourceNode extends ExplorerNode {
+  kind: string;
+  name: string;
+
+  constructor (kind: string, name: string) {
+    super(name);
+    this.kind = kind;
+    this.name = name;
+  }
+}
+
+class QueryNode extends ResourceNode {
 	contextValue = 'drasi.queryNode';
   queryId: string;
   
   constructor (query: ResourceDTO<ContinuousQuerySpec, ContinuousQueryStatus>) {
-    super(query.id);
+    super("ContinuousQuery", query.id);
     
     switch (query.status.status) {
       case "Running":
-        this.iconPath = new vscode.ThemeIcon('code', new vscode.ThemeColor('problemsInfoIcon.foreground'));
+        this.iconPath = new vscode.ThemeIcon('code', new vscode.ThemeColor('testing.iconPassed'));
         break;
       case "TerminalError":
-        this.iconPath = new vscode.ThemeIcon('code', new vscode.ThemeColor('problemsErrorIcon.foreground'));
+        this.iconPath = new vscode.ThemeIcon('code', new vscode.ThemeColor('testing.iconFailed'));
         break;
       default:
-        this.iconPath = new vscode.ThemeIcon('code', new vscode.ThemeColor('problemsWarningIcon.foreground'));
+        this.iconPath = new vscode.ThemeIcon('code', new vscode.ThemeColor('testing.iconQueued'));
         break;
     }
     
@@ -136,16 +190,16 @@ class QueryNode extends ExplorerNode {
 }
 
 
-class SourceNode extends ExplorerNode {
+class SourceNode extends ResourceNode {
 	contextValue = 'drasi.sourceNode';
   
   constructor (source: ResourceDTO<SourceSpec, SourceStatus>) {
-    super(source.id);
+    super("Source", source.id);
     
     if (source.status.available) {
-      this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('problemsInfoIcon.foreground'));
+      this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('testing.iconPassed'));
     } else {
-      this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('problemsWarningIcon.foreground'));
+      this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('testing.iconFailed'));
     }    
     
     let tmpFile = path.join(os.tmpdir(), randomUUID());    
@@ -160,16 +214,16 @@ class SourceNode extends ExplorerNode {
   }
 }
 
-class ReactionNode extends ExplorerNode {
+class ReactionNode extends ResourceNode {
 	contextValue = 'drasi.reactionNode';
   
   constructor (reaction: ResourceDTO<ReactionSpec, ReactionStatus>) {
-    super(reaction.id);
+    super("Reaction", reaction.id);
     
     if (reaction.status.available) {
-      this.iconPath = new vscode.ThemeIcon('symbol-event', new vscode.ThemeColor('problemsInfoIcon.foreground'));
+      this.iconPath = new vscode.ThemeIcon('symbol-event', new vscode.ThemeColor('testing.iconPassed'));
     } else {
-      this.iconPath = new vscode.ThemeIcon('symbol-event', new vscode.ThemeColor('problemsWarningIcon.foreground'));
+      this.iconPath = new vscode.ThemeIcon('symbol-event', new vscode.ThemeColor('testing.iconFailed'));
     }    
     
     let tmpFile = path.join(os.tmpdir(), randomUUID());    

@@ -17,13 +17,20 @@
 import * as vscode from 'vscode';
 import { WorkspaceExplorer } from './workspace-explorer';
 import { DrasiExplorer } from './drasi-explorer';
+import { DrasiClient } from './drasi-client';
+import { CodeLensProvider } from './codelens-provider';
 
 export function activate(context: vscode.ExtensionContext) {
-	const workspaceExplorer = new WorkspaceExplorer(context.extensionUri);
+	const drasiClient = new DrasiClient();
+	const workspaceExplorer = new WorkspaceExplorer(context.extensionUri, drasiClient);
 	vscode.window.registerTreeDataProvider('workspace', workspaceExplorer);
-
-	const drasiExplorer = new DrasiExplorer(context.extensionUri);
+	
+	const drasiExplorer = new DrasiExplorer(context.extensionUri, drasiClient);
 	vscode.window.registerTreeDataProvider('drasi', drasiExplorer);
+	
+	context.subscriptions.push(
+        vscode.languages.registerCodeLensProvider({ language: 'yaml' }, new CodeLensProvider(context.extensionUri, drasiClient))
+    );
 	
 }
 

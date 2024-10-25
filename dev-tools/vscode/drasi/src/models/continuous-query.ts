@@ -17,10 +17,7 @@
 import { Resource } from "./resource";
 
 
-export interface ContinuousQuery extends Resource {
-  apiVersion: string;
-  name: string;
-  spec: ContinuousQuerySpec;
+export interface ContinuousQuery extends Resource<ContinuousQuerySpec> {  
 }
 
 export interface ContinuousQuerySpec {
