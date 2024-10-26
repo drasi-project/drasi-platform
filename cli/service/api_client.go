@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/phayes/freeport"
 	"io"
 	"log"
 	"net/http"
@@ -41,15 +42,16 @@ import (
 )
 
 func MakeApiClient(namespace string) (*apiClient, error) {
+	port, err := freeport.GetFreePort()
 	result := apiClient{
-		port:   9083,
+		port:   int32(port),
 		stopCh: make(chan struct{}, 1),
 	}
 	if err := result.init(namespace); err != nil {
 		return nil, err
 	}
 
-	err := result.createTunnel()
+	err = result.createTunnel()
 	if err != nil {
 		return nil, err
 	}
@@ -339,32 +341,37 @@ func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output o
 	return nil
 }
 
-func (t *apiClient) Watch(kind string, name string, output chan map[string]interface{}) error {
-
+func (t *apiClient) Watch(kind string, name string, output chan map[string]interface{}, initErr chan error) {
 	defer close(output)
 	url := fmt.Sprintf("%v/%v/%v/%v/watch", t.prefix, "v1", kindRoutes[kind], name)
 	resp, err := t.streamClient.Get(url)
 	if err != nil {
-		return err
+		initErr <- err
+		return
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New(resp.Status)
+		initErr <- errors.New(resp.Status)
+		return
 	}
 
 	decoder := json.NewDecoder(resp.Body)
 
 	if _, err := decoder.Token(); err != nil {
-		log.Fatal(err)
+		initErr <- err
+		return
 	}
+
+	initErr <- nil
 
 	// Iterate through each element in the JSON array
 	for decoder.More() {
 		var item map[string]interface{}
 		if err := decoder.Decode(&item); err != nil {
 			log.Fatal(err)
+			return
 		}
 		output <- item
 	}
@@ -373,8 +380,6 @@ func (t *apiClient) Watch(kind string, name string, output chan map[string]inter
 	if _, err := decoder.Token(); err != nil {
 		log.Fatal(err)
 	}
-
-	return nil
 }
 
 func (t *apiClient) Close() {

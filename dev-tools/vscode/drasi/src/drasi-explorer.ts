@@ -13,43 +13,43 @@ import { QueryWatcher } from './query-watcher';
 import { getCurrentKubeContext } from './utilities/getKubeContext';
 
 export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
-	
-	private _onDidChangeTreeData: vscode.EventEmitter<ExplorerNode | undefined | void> = new vscode.EventEmitter<ExplorerNode | undefined | void>();
-	readonly onDidChangeTreeData: vscode.Event<ExplorerNode | undefined | void> = this._onDidChangeTreeData.event;
+
+  private _onDidChangeTreeData: vscode.EventEmitter<ExplorerNode | undefined | void> = new vscode.EventEmitter<ExplorerNode | undefined | void>();
+  readonly onDidChangeTreeData: vscode.Event<ExplorerNode | undefined | void> = this._onDidChangeTreeData.event;
   readonly drasiClient: DrasiClient;
-  
+
   private extensionUri: vscode.Uri;
 
-  constructor (extensionUri: vscode.Uri, drasiClient: DrasiClient) {
+  constructor(extensionUri: vscode.Uri, drasiClient: DrasiClient) {
     this.extensionUri = extensionUri;
     this.drasiClient = drasiClient;
     vscode.commands.registerCommand('drasi.refresh', this.refresh.bind(this));
     vscode.commands.registerCommand('drasi.query.watch', this.watchQuery.bind(this));
-    vscode.commands.registerCommand('drasi.resource.delete', this.deleteResource.bind(this));        
+    vscode.commands.registerCommand('drasi.resource.delete', this.deleteResource.bind(this));
   }
 
-	refresh(): void {
-		this._onDidChangeTreeData.fire();
-	}
-	
-	getTreeItem(element: ExplorerNode): vscode.TreeItem | Thenable<vscode.TreeItem> {
-		return element;
-	}
-	
-	async getChildren(element?: ExplorerNode | undefined): Promise<ExplorerNode[]> {
-   	if (!vscode.workspace.workspaceFolders) {
-			return [];
+  refresh(): void {
+    this._onDidChangeTreeData.fire();
+  }
+
+  getTreeItem(element: ExplorerNode): vscode.TreeItem | Thenable<vscode.TreeItem> {
+    return element;
+  }
+
+  async getChildren(element?: ExplorerNode | undefined): Promise<ExplorerNode[]> {
+    if (!vscode.workspace.workspaceFolders) {
+      return [];
     }
-			
-		if (!element) {
-      let clusterName = getCurrentKubeContext();      
+
+    if (!element) {
+      let clusterName = getCurrentKubeContext();
       return [new TitleNode(`Drasi - (${clusterName})`)];
-		}
+    }
 
     if (element instanceof TitleNode) {
       return [
         new CategoryNode(Category.sources),
-        new CategoryNode(Category.queries),        
+        new CategoryNode(Category.queries),
         new CategoryNode(Category.reactions)
       ];
     }
@@ -68,12 +68,12 @@ export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
       }
     }
 
-    return [];		
-	}  
+    return [];
+  }
 
   async watchQuery(queryNode: QueryNode) {
     let watcher = new QueryWatcher(queryNode.queryId, this.extensionUri);
-    await watcher.start();    
+    await watcher.start();
   }
 
   async deleteResource(resourceNode: ResourceNode) {
@@ -81,13 +81,13 @@ export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
       return;
     }
     const confirm = await vscode.window.showWarningMessage(
-        `Are you sure you want to delete ${resourceNode.name}?`,
-        'Yes',
-        'No'
+      `Are you sure you want to delete ${resourceNode.name}?`,
+      'Yes',
+      'No'
     );
 
     if (confirm !== 'Yes') {
-        return;
+      return;
     }
 
     await vscode.window.withProgress({
@@ -95,8 +95,8 @@ export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
       location: vscode.ProgressLocation.Notification,
     }, async (progress, token) => {
       progress.report({ message: "Deleting..." });
-      
-      try {      
+
+      try {
         await this.drasiClient.deleteResource(resourceNode.kind, resourceNode.name);
         vscode.window.showInformationMessage(`Resource ${resourceNode.name} deleted`);
       }
@@ -109,12 +109,15 @@ export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
 }
 
 class ExplorerNode extends vscode.TreeItem {
-  
+
 }
 
 class TitleNode extends ExplorerNode {
-  constructor (label: string) {
+  constructor(label: string) {
     super(label, vscode.TreeItemCollapsibleState.Expanded);
+    this.iconPath = vscode.Uri.file(
+      path.join(__filename, '..', '..', 'resources', 'drasi-sm.svg')
+    );
   }
 }
 
@@ -125,10 +128,10 @@ enum Category {
 }
 
 class CategoryNode extends ExplorerNode {
-	contextValue = 'drasi.categoryNode';
+  contextValue = 'drasi.categoryNode';
   category: Category;
 
-  constructor (category: Category) {    
+  constructor(category: Category) {
     let label = "";
     switch (category) {
       case Category.sources:
@@ -136,7 +139,7 @@ class CategoryNode extends ExplorerNode {
         break;
       case Category.queries:
         label = "Queries";
-        break;      
+        break;
       case Category.reactions:
         label = "Reactions";
         break;
@@ -150,7 +153,7 @@ class ResourceNode extends ExplorerNode {
   kind: string;
   name: string;
 
-  constructor (kind: string, name: string) {
+  constructor(kind: string, name: string) {
     super(name);
     this.kind = kind;
     this.name = name;
@@ -158,12 +161,12 @@ class ResourceNode extends ExplorerNode {
 }
 
 class QueryNode extends ResourceNode {
-	contextValue = 'drasi.queryNode';
+  contextValue = 'drasi.queryNode';
   queryId: string;
-  
-  constructor (query: ResourceDTO<ContinuousQuerySpec, ContinuousQueryStatus>) {
+
+  constructor(query: ResourceDTO<ContinuousQuerySpec, ContinuousQueryStatus>) {
     super("ContinuousQuery", query.id);
-    
+
     switch (query.status.status) {
       case "Running":
         this.iconPath = new vscode.ThemeIcon('code', new vscode.ThemeColor('testing.iconPassed'));
@@ -175,8 +178,8 @@ class QueryNode extends ResourceNode {
         this.iconPath = new vscode.ThemeIcon('code', new vscode.ThemeColor('testing.iconQueued'));
         break;
     }
-    
-    let tmpFile = path.join(os.tmpdir(), randomUUID());    
+
+    let tmpFile = path.join(os.tmpdir(), randomUUID());
     fs.writeFileSync(tmpFile, yaml.dump(query));
 
     this.label = query.id;
@@ -191,18 +194,18 @@ class QueryNode extends ResourceNode {
 
 
 class SourceNode extends ResourceNode {
-	contextValue = 'drasi.sourceNode';
-  
-  constructor (source: ResourceDTO<SourceSpec, SourceStatus>) {
+  contextValue = 'drasi.sourceNode';
+
+  constructor(source: ResourceDTO<SourceSpec, SourceStatus>) {
     super("Source", source.id);
-    
+
     if (source.status.available) {
       this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('testing.iconPassed'));
     } else {
       this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('testing.iconFailed'));
-    }    
-    
-    let tmpFile = path.join(os.tmpdir(), randomUUID());    
+    }
+
+    let tmpFile = path.join(os.tmpdir(), randomUUID());
     fs.writeFileSync(tmpFile, yaml.dump(source));
 
     this.label = source.id;
@@ -215,18 +218,18 @@ class SourceNode extends ResourceNode {
 }
 
 class ReactionNode extends ResourceNode {
-	contextValue = 'drasi.reactionNode';
-  
-  constructor (reaction: ResourceDTO<ReactionSpec, ReactionStatus>) {
+  contextValue = 'drasi.reactionNode';
+
+  constructor(reaction: ResourceDTO<ReactionSpec, ReactionStatus>) {
     super("Reaction", reaction.id);
-    
+
     if (reaction.status.available) {
       this.iconPath = new vscode.ThemeIcon('symbol-event', new vscode.ThemeColor('testing.iconPassed'));
     } else {
       this.iconPath = new vscode.ThemeIcon('symbol-event', new vscode.ThemeColor('testing.iconFailed'));
-    }    
-    
-    let tmpFile = path.join(os.tmpdir(), randomUUID());    
+    }
+
+    let tmpFile = path.join(os.tmpdir(), randomUUID());
     fs.writeFileSync(tmpFile, yaml.dump(reaction));
 
     this.label = reaction.id;

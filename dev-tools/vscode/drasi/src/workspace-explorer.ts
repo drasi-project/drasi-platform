@@ -26,13 +26,13 @@ import { Resource } from './models/resource';
 import { DrasiClient } from './drasi-client';
 
 export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> {
-	
-	private _onDidChangeTreeData: vscode.EventEmitter<ExplorerNode | undefined | void> = new vscode.EventEmitter<ExplorerNode | undefined | void>();
-	readonly onDidChangeTreeData: vscode.Event<ExplorerNode | undefined | void> = this._onDidChangeTreeData.event;
+
+  private _onDidChangeTreeData: vscode.EventEmitter<ExplorerNode | undefined | void> = new vscode.EventEmitter<ExplorerNode | undefined | void>();
+  readonly onDidChangeTreeData: vscode.Event<ExplorerNode | undefined | void> = this._onDidChangeTreeData.event;
   private extensionUri: vscode.Uri;
   private drasiClient: DrasiClient;
 
-  constructor (extensionUri: vscode.Uri, drasiClient: DrasiClient) {
+  constructor(extensionUri: vscode.Uri, drasiClient: DrasiClient) {
     this.extensionUri = extensionUri;
     this.drasiClient = drasiClient;
     vscode.commands.registerCommand('workspace.refresh', this.refresh.bind(this));
@@ -47,27 +47,26 @@ export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> 
     });
   }
 
-	refresh(): void {
-		this._onDidChangeTreeData.fire();
-	}
-	
-	getTreeItem(element: ExplorerNode): vscode.TreeItem | Thenable<vscode.TreeItem> {
-		return element;
-	}
-	
-	async getChildren(element?: ExplorerNode | undefined): Promise<ExplorerNode[]> {
-   	if (!vscode.workspace.workspaceFolders) {
-			return [];
-    }
-			
-		if (!element) {
-			let result: any[] = [];
+  refresh(): void {
+    this._onDidChangeTreeData.fire();
+  }
 
-			let files = await vscode.workspace.findFiles('**/*.yaml');
-			
-			for (let f of files.sort()) {
-				try
-        {
+  getTreeItem(element: ExplorerNode): vscode.TreeItem | Thenable<vscode.TreeItem> {
+    return element;
+  }
+
+  async getChildren(element?: ExplorerNode | undefined): Promise<ExplorerNode[]> {
+    if (!vscode.workspace.workspaceFolders) {
+      return [];
+    }
+
+    if (!element) {
+      let result: any[] = [];
+
+      let files = await vscode.workspace.findFiles('**/*.yaml');
+
+      for (let f of files.sort()) {
+        try {
           let content = await vscode.workspace.fs.readFile(f);
           let docs: any[] = yaml.loadAll(content.toString());
           let hasQueries = docs.some(x => !!x && x.kind === "ContinuousQuery");
@@ -83,25 +82,25 @@ export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> 
         catch (err) {
           console.error(err);
         }
-			}
+      }
 
-			return result;
-		}
+      return result;
+    }
 
-		if (!element.resourceUri) {
-			return [];
+    if (!element.resourceUri) {
+      return [];
     }
 
     if (element instanceof ResourceNode) {
       return [];
     }
-		
-    let result: ExplorerNode[] = [];		
 
-		try {
+    let result: ExplorerNode[] = [];
+
+    try {
       let content = await vscode.workspace.fs.readFile(element.resourceUri);
       let docs: any[] = yaml.loadAll(content.toString());
-      
+
       for (let qry of docs.filter(x => !!x && x.kind === "ContinuousQuery" && x.name)) {
         let queryUri = vscode.Uri.parse(element.resourceUri.toString() + "#" + qry.name);
         let node = new QueryNode(qry, queryUri);
@@ -135,9 +134,9 @@ export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> 
     catch (err) {
       console.error(err);
     }
-		
-		return result;
-	}
+
+    return result;
+  }
 
   async runQuery(queryNode: QueryNode) {
     if (!queryNode) {
@@ -148,8 +147,8 @@ export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> 
       return;
     }
 
-    let dbg = new QueryDebugger(queryNode.resource, this.extensionUri, this.drasiClient);    
-    dbg.start();   
+    let dbg = new QueryDebugger(queryNode.resource, this.extensionUri, this.drasiClient);
+    dbg.start();
   }
 
   async applyResource(resourceNode: ResourceNode) {
@@ -162,13 +161,13 @@ export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> 
     }
 
     const confirm = await vscode.window.showWarningMessage(
-        `Are you sure you want to apply ${resourceNode.resource.name}?`,
-        'Yes',
-        'No'
+      `Are you sure you want to apply ${resourceNode.resource.name}?`,
+      'Yes',
+      'No'
     );
 
     if (confirm !== 'Yes') {
-        return;
+      return;
     }
 
     await vscode.window.withProgress({
@@ -176,8 +175,8 @@ export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> 
       location: vscode.ProgressLocation.Notification,
     }, async (progress, token) => {
       progress.report({ message: "Applying..." });
-      
-      try {      
+
+      try {
         await this.drasiClient.applyResource(resourceNode.resource);
         vscode.window.showInformationMessage(`Resource ${resourceNode.resource.name} applied successfully`);
       }
@@ -195,24 +194,24 @@ abstract class ExplorerNode extends vscode.TreeItem {
 abstract class ResourceNode extends ExplorerNode {
   resource: Resource<any>;
 
-  constructor (resource: Resource<any>, uri: vscode.Uri) {
+  constructor(resource: Resource<any>, uri: vscode.Uri) {
     super(uri, vscode.TreeItemCollapsibleState.Expanded);
     this.resource = resource;
   }
 }
 
 class FileNode extends ExplorerNode {
-	contextValue = 'fileNode';
+  contextValue = 'fileNode';
 
-  constructor (uri: vscode.Uri) {
+  constructor(uri: vscode.Uri) {
     super(uri, vscode.TreeItemCollapsibleState.Expanded);
   }
 }
 
 class QueryNode extends ResourceNode {
-	contextValue = 'workspace.queryNode';
-  
-  constructor (query: ContinuousQuery, uri: vscode.Uri) {
+  contextValue = 'workspace.queryNode';
+
+  constructor(query: ContinuousQuery, uri: vscode.Uri) {
     super(query, uri);
     this.iconPath = new vscode.ThemeIcon('code');
     this.label = query.name;
@@ -225,9 +224,9 @@ class QueryNode extends ResourceNode {
 }
 
 class SourceNode extends ResourceNode {
-	contextValue = 'workspace.sourceNode';
-  
-  constructor (resource: Resource<any>, uri: vscode.Uri) {
+  contextValue = 'workspace.sourceNode';
+
+  constructor(resource: Resource<any>, uri: vscode.Uri) {
     super(resource, uri);
     this.iconPath = new vscode.ThemeIcon('database');
     this.label = resource.name;
@@ -240,9 +239,9 @@ class SourceNode extends ResourceNode {
 }
 
 class ReactionNode extends ResourceNode {
-	contextValue = 'workspace.reactionNode';
-  
-  constructor (resource: Resource<any>, uri: vscode.Uri) {
+  contextValue = 'workspace.reactionNode';
+
+  constructor(resource: Resource<any>, uri: vscode.Uri) {
     super(resource, uri);
     this.iconPath = new vscode.ThemeIcon('zap');
     this.label = resource.name;
@@ -255,9 +254,9 @@ class ReactionNode extends ResourceNode {
 }
 
 class SourceProviderNode extends ResourceNode {
-	contextValue = 'workspace.sourceProviderNode';
+  contextValue = 'workspace.sourceProviderNode';
 
-  constructor (sp: SourceProvider, uri: vscode.Uri) {
+  constructor(sp: SourceProvider, uri: vscode.Uri) {
     super(sp, uri);
     this.label = sp.name;
     this.command = {
@@ -269,9 +268,9 @@ class SourceProviderNode extends ResourceNode {
 }
 
 class ReactionProviderNode extends ResourceNode {
-	contextValue = 'workspace.reactionProviderNode';
+  contextValue = 'workspace.reactionProviderNode';
 
-  constructor (resource: ReactionProvider, uri: vscode.Uri) {
+  constructor(resource: ReactionProvider, uri: vscode.Uri) {
     super(resource, uri);
     this.label = resource.name;
     this.command = {

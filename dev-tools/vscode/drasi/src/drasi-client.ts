@@ -57,7 +57,7 @@ export class DrasiClient {
     }
 
     async getSources() {
-        let portFwd = new PortForward("drasi-api", 8080);
+        let portFwd = new PortForward(this.serviceName, this.servicePort);
         let port = await portFwd.start();
         try {
             let res = await axios.get<ResourceDTO<SourceSpec, SourceStatus>[]>(`http://127.0.0.1:${port}/v1/sources`, {
