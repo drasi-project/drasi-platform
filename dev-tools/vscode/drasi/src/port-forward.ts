@@ -18,6 +18,7 @@ import * as portfinder from 'portfinder';
 import * as cp from 'child_process';
 import { Mutex } from 'async-mutex';
 import { Stoppable } from './models/stoppable';
+import { getNamespace } from './utilities/getNamespace';
 
 let portMutex = new Mutex();
 
@@ -45,7 +46,7 @@ export class PortForward implements Stoppable {
       let localPort = await portfinder.getPortPromise();
 
       let promise = new Promise<cp.ChildProcess>((resolve, reject) => {
-        let proc = cp.spawn("kubectl", ["port-forward", `services/${this.serviceName}`, `${localPort}:${this.servicePort}`, "-n", "drasi-system"]);      
+        let proc = cp.spawn("kubectl", ["port-forward", `services/${this.serviceName}`, `${localPort}:${this.servicePort}`, "-n", getNamespace()]);
         
         proc.stdout.on('data', function(msg: any){         
           console.log(`PortForward: ${self.serviceName} ${msg.toString()}`);
