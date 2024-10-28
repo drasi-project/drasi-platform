@@ -1,4 +1,5 @@
 const { build } = require("esbuild");
+const { glob } = require('glob');
 
 //@ts-check
 /** @typedef {import('esbuild').BuildOptions} BuildOptions **/
@@ -31,6 +32,18 @@ const webviewConfig = {
   entryPoints: ["./src/webview/main.ts"],
   outfile: "./out/webview.js",
 };
+
+/** @type BuildOptions */
+const testConfig = {
+  ...baseConfig,
+  target: "es2022",
+  format: "cjs",
+  platform: "node",  
+  entryPoints: glob.sync('./src/test/**/*.ts'),
+  outdir: "./out/test",
+  external: ["vscode"],
+};
+
 
 // This watch config adheres to the conventions of the esbuild-problem-matchers
 // extension (https://github.com/connor4312/esbuild-problem-matchers#esbuild-via-js)
@@ -72,6 +85,7 @@ const watchConfig = {
       // Build extension and webview code
       await build(extensionConfig);
       await build(webviewConfig);
+      await build(testConfig);
       console.log("build complete");
     }
   } catch (err) {
