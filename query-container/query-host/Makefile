@@ -4,11 +4,12 @@ CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
 DOCKERX_OPTS ?= --load --cache-to type=inline,mode=max
+CARGO_DEBUG ?= 0 # if set to 1, it will build with --debug flag, which uses the `dev` profile (LTO set to thin) instead of the `release` profile
 
 default: docker-build
 
 docker-build:
-	docker buildx build . -t $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
+	docker buildx build . --build-arg CARGO_DEBUG=$(CARGO_DEBUG) -t $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
 
 kind-load:
 	kind load docker-image $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
