@@ -72,6 +72,9 @@ public class SqlServerChangeMonitor implements ChangeMonitor {
                 .with("snapshot.mode", "no_data")
                 .with("schema.history.internal", "com.drasi.NoOpSchemaHistory")
                 .with("decimal.handling.mode", "double")
+                .with("time.precision.mode", "adaptive_time_microseconds")
+                .with("converters", "temporalConverter")
+                .with("temporalConverter.type", "com.drasi.TemporalConverter")
                 .with("table.include.list", tableListStr).build();
 
         var sr = new SchemaReader(config);
