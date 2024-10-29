@@ -164,20 +164,26 @@ spec:
   config_schema: 
     type: object
     properties: 
-      SqlCommand:
+      AddedResultCommand:
+        type: string
+      UpdatedResultCommand:
+        type: string
+      DeletedResultCommand:
         type: string
       DatabaseHostname:
         type: string
       DatabasePort:
-        type: string
+        type: number
       DatabaseUser:
         type: string
       DatabaseDbname:
         type: string
       DatabasePassword:
         type: string
+      DatabaseSsl:
+        type: boolean
+        default: false
     required:
-      - SqlCommand
       - DatabaseHostname
       - DatabasePort
       - DatabaseUser

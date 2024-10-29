@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node@sha256:1eabdb1aa3f6e68558c08501572731db560d10c2194a67d3417103b0a9868693
-#node:18-alpine3.16
+FROM node@sha256:09bb03a66e4700aa77306e6ab393f3860e991651635c6ac7b354e7c063935880
+#node:18-alpine3.19
 
 WORKDIR /usr/src/app
 

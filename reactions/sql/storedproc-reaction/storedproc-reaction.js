@@ -23,14 +23,15 @@ const require = createRequire(import.meta.url);
 const pubsubName = process.env["PUBSUB"] ?? "drasi-pubsub";
 const configDirectory = process.env["QueryConfigPath"] ?? "/etc/queries";
 
+// Database configuration settings
 const databaseHostname = process.env["DatabaseHostname"];
 const databasePort = process.env["DatabasePort"];
-const databaseCient = process.env["DatabaseClient"] ?? "pg";// Type of database: pg, mysql, mssql, oracledb...
+const databaseCient = process.env["DatabaseClient"] ?? "pg";// Type of database: pg, mysql 
 const databaseUser = process.env["DatabaseUser"];
 const databaseDbname = process.env["DatabaseDbname"];
 const databasePassword = process.env["DatabasePassword"];
-const sqlCommand = process.env["SqlCommand"] ?? '';
-const sqlLiteFileName = process.env["SqlLiteFileName"] ?? ":memory:"; 
+const databaseSsl = process.env["DatabaseSsl"] ?? false;
+
 
 // Setup knex 
 let knex = require('knex')({
@@ -41,22 +42,22 @@ let knex = require('knex')({
     user :   databaseUser,
     password : databasePassword,
     database : databaseDbname,
-    ssl: { rejectUnauthorized: false } 
+    ssl: databaseSsl
   }
 });
 
+// Regex to extract the parameters from the command (e.g. @param1, @param2)
 const queryParamsRegex = /@\w+/g;
-
 
 const addedResultCommand = process.env["AddedResultCommand"] ?? '';
 console.log(`AddedResultCommand: ${addedResultCommand}`);
 const addedResultCommandParamList = [];
+// Retrieve the parameters from the addedResultCommand
 if (addedResultCommand !== '') {
   const matches = addedResultCommand.match(queryParamsRegex);
   console.log(`Matches: ${matches}`);
   for (const match of matches) {
     const param = match.substring(1);
-    console.log(`Extracted AddedResultCommand Param: ${param}`);
     addedResultCommandParamList.push(param);
   }
 }
@@ -64,11 +65,11 @@ if (addedResultCommand !== '') {
 const updatedResultCommand = process.env["UpdatedResultCommand"] ?? '';
 console.log(`AddedResultCommand: ${addedResultCommand}`);
 const updatedResultCommandParamList = [];
+// Retrieve the parameters from the updatedResultCommand
 if (updatedResultCommand !== '') {
   const matches = updatedResultCommand.match(queryParamsRegex);
   for (const match of matches) {
     const param = match.substring(1);
-    console.log(`Extracted UpdatedResultCommand Param: ${param}`);
     updatedResultCommandParamList.push(param);
   }
 }
@@ -80,7 +81,6 @@ if (deletedResultCommand !== '') {
   const matches = deletedResultCommand.match(queryParamsRegex);
   for (const match of matches) {
     const param = match.substring(1);
-    console.log(`Extracted DeletedResultCommand Param: ${param}`);
     deletedResultCommandParamList.push(param);
   }
 }
@@ -95,6 +95,7 @@ async function main() {
     if (!queryId || queryId.startsWith('.')) 
       continue;
     console.log(`Processing queryId: ${queryId}`);
+    // Set up a dapr subscription for each queryId
     await daprServer.pubsub.subscribe(pubsubName, queryId + "-results", processEvents);
   }
 
@@ -127,11 +128,10 @@ async function processEvents(changeEvent) {
 function processAddedQueryResults(addedResultCommand, addedResultCommandParamList, addedResults) {
   console.log(`Processing ${addedResults.length} Added Results...`);
   for (let res of addedResults) {
-    let newCommand = addedResultCommand;  // Create a new sql command
     const queryArguments = [];
     if (checkSqlCommandParameters(res, addedResultCommandParamList, queryArguments)) { // checks the if the results contain the parameters
-      console.log(`Issuing added command: ${newCommand}`);
-      executeStoredProcedure(newCommand, queryArguments);
+      console.log(`Issuing added command: ${addedResultCommand}`);
+      executeStoredProcedure(addedResultCommand, queryArguments);
     } else {
       throw new Error(`Missing parameters in the added results`);
     } 
@@ -141,13 +141,11 @@ function processAddedQueryResults(addedResultCommand, addedResultCommandParamLis
 function processUpdatedQueryResults(updatedResultCommand, updatedResultCommandParamList, updatedResults) {
   console.log(`Processing ${updatedResults.length} Updated Results...`);
   for (let res of updatedResults) {
-    let newCommand = updatedResultCommand;
-
     let afterResult = res['after'];
     const queryArguments = [];
     if (checkSqlCommandParameters(afterResult, updatedResultCommandParamList,queryArguments)) {
-      console.log(`Issuing updated command: ${newCommand}`);
-      executeStoredProcedure(newCommand, updatedResultCommandParamList);
+      console.log(`Issuing updated command: ${updatedResultCommand}`);
+      executeStoredProcedure(updatedResultCommand, queryArguments);
     } else {
       throw new Error(`Missing parameters in the updated results`);
     }
@@ -158,11 +156,10 @@ function processUpdatedQueryResults(updatedResultCommand, updatedResultCommandPa
 function processDeletedQueryResults(deletedResultCommand, deletedResultCommandParamList, deletedResults) {
   console.log(`Processing ${deletedResults.length} Deleted Results...`);
   for (let res of deletedResults) {
-    let newCommand = deletedResultCommand;
     const queryArguments = [];
     if (checkSqlCommandParameters(res, deletedResultCommandParamList,queryArguments)) {
-      console.log(`Issuing deleted command: ${newCommand}`);
-      executeStoredProcedure(newCommand, deletedResultCommandParamList);
+      console.log(`Issuing deleted command: ${deletedResultCommand}`);
+      executeStoredProcedure(deletedResultCommand, queryArguments);
     } else {
       throw new Error(`Missing parameters in the deleted results`);
     }
@@ -183,8 +180,14 @@ function checkSqlCommandParameters(data, paramList, queryArguments) {
 
 
 function executeStoredProcedure(command, queryArguments) {
+  // Check if the command starts with 'CALL ' and add it if it doesn't
+  if (!command.trim().toUpperCase().startsWith('CALL ')) {
+    command = 'CALL ' + command;
+  }
+  
   const index = command.indexOf("(");
   var query = command.substring(0, index+1);
+  // Replace the parameters with the actual values
   for (let i = 0; i < queryArguments.length; i++) {
     if (typeof queryArguments[i] === 'string') {
       query += `'${queryArguments[i]}'`;
@@ -195,6 +198,8 @@ function executeStoredProcedure(command, queryArguments) {
   }
   query += ")";
   console.log(`Executing the stored proc: ${query}`);
+
+  // Execute the query
   knex.raw(query).then(() => {
     console.log("The query was executed successfully");
   }).catch((error) => {
