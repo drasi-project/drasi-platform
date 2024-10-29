@@ -83,7 +83,7 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" CARGO_DEBUG=0 make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
@@ -134,7 +134,7 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" CARGO_DEBUG=0 make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
@@ -231,7 +231,7 @@ jobs:
       - name: Build
         run: |
           cd ${{ matrix.component.path }}
-          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" CARGO_DEBUG=1 make
+          DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" CARGO_DEBUG=0 make
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
