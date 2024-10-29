@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get c
 WORKDIR /usr/src
 COPY . .
 WORKDIR /usr/src
-RUN if [ "$CARGO_DEBUG" = "0" ]; then cargo install --release --force --path .; else cargo install --force --path .; fi
+RUN if [ "$CARGO_DEBUG" = "0" ]; then cargo install --force --path .; else cargo install --debug --force --path .; fi
 
 FROM gcr.io/distroless/cc@sha256:3b75fdd33932d16e53a461277becf57c4f815c6cee5f6bc8f52457c095e004c8
 # gcr.io/distroless/cc 
