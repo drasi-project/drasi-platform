@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG CARGO_DEBUG=0
+ARG RELEASE=1
 FROM rust@sha256:8fae3b1a63a4dcfb6cf277a49fb5967ccbf479b9e9cee4588a077a9cb216e6d4 as builder
-ARG CARGO_DEBUG
+ARG RELEASE
 # rust:1.81-bullseye
 
 RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get clean
@@ -27,7 +27,7 @@ WORKDIR /usr/src/source/shared/change-router
 COPY ./sources/shared/change-router/Cargo.toml . 
 RUN cargo fetch
 COPY ./sources/shared/change-router . 
-RUN if [ "$CARGO_DEBUG" = "0" ]; then cargo install --force --path .; else cargo install --debug --force --path .; fi
+RUN if [ "$RELEASE" = "1" ]; then cargo install --force --path .; else cargo install --debug --force --path .; fi
 
 
 FROM gcr.io/distroless/cc-debian11@sha256:55a5e011b2c4246b4c51e01fcc2b452d151e03df052e357465f0392fcd59fddf
