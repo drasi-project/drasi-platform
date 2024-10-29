@@ -82,6 +82,8 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache,mode=max
           push: true
+          build-args: |
+            RELEASE=1
 
       - name: Build Publish API
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
@@ -94,6 +96,8 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
           push: true
+          build-args: |
+            RELEASE=1
 
       - name: Build View Service
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
@@ -106,6 +110,8 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
           push: true
+          build-args: |
+            RELEASE=1
 
   build-control-plane:
     runs-on: ubuntu-latest
@@ -143,6 +149,8 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache,mode=max
           push: true
+          build-args: |
+            RELEASE=1
 
       - name: Build k8s Resource Provider
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
@@ -155,6 +163,8 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache,mode=max
           push: true
+          build-args: |
+            RELEASE=1
 
   build-sources:
     runs-on: ubuntu-latest
@@ -276,6 +286,8 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache,mode=max
           push: true
+          build-args: |
+            RELEASE=1
 
   build-reactions:
     needs: validate
@@ -379,6 +391,8 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache,mode=max
           push: true
+          build-args: |
+            RELEASE=1
   
   build-cli:
     runs-on: ubuntu-latest
