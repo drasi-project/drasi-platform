@@ -25,6 +25,12 @@ If you wish to override the default (latest) image tag, you can use the `DOCKER_
 make docker-build DOCKER_TAG_VERSION="v1"
 ```
 
+By default, all our Rust-based images use the `release` profile in builds, which sets Link-time Optimization (LTO) to true. For more information on Rust profiles and the use of LTO in Rust projects, see [Profiles](https://doc.rust-lang.org/cargo/reference/profiles.html#lto). If you wish to use the default LTO setting, you can use the `CARGO_DEBUG` parameter as follows:
+
+```sh
+make docker-build CARGO_DEBUG=1
+```
+
 If you are using Kind in your development workflow, you can load the built images to your kind cluster using the `kind-load` target:
 
 ```sh
