@@ -20,6 +20,8 @@ function storedprocReactionManifest(queryIds) {
       }
     }
   };
+
+  return result;
 }
 
 module.exports = storedprocReactionManifest;
