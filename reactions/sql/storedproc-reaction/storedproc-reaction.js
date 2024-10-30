@@ -30,9 +30,7 @@ const databaseCient = process.env["DatabaseClient"] ?? "pg";// Type of database:
 const databaseUser = process.env["DatabaseUser"];
 const databaseDbname = process.env["DatabaseDbname"];
 const databasePassword = process.env["DatabasePassword"];
-const databaseSsl = process.env["DatabaseSsl"] ?? false;
-
-console.log('Databasessl: ', databaseSsl);
+const databaseSsl = convertConfigValue(process.env["DatabaseSsl"]) ?? false;
 
 // Setup knex 
 let knex = require('knex')({
@@ -43,7 +41,7 @@ let knex = require('knex')({
     user :   databaseUser,
     password : databasePassword,
     database : databaseDbname,
-    ssl: false
+    ssl: databaseSsl
   }
 });
 
@@ -214,3 +212,15 @@ function executeStoredProcedure(command, queryArguments) {
 main().catch((error) => {
   console.error("Error:", error);
 });
+
+/**
+ * @param {string} val
+ */
+function convertConfigValue(val) {
+  if (val === "true")
+    return true;
+  if (val === "false")
+    return false;
+  
+  return val;
+}
