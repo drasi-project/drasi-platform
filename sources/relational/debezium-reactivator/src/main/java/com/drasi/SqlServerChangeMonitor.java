@@ -67,6 +67,8 @@ public class SqlServerChangeMonitor implements ChangeMonitor {
                 .with("database.port", System.getenv("port"))
                 .with("database.user", System.getenv("user"))
                 .with("database.password", System.getenv("password"))
+                .with("database.encrypt", System.getenv("encrypt"))
+                .with("database.trustServerCertificate", System.getenv("trustServerCertificate"))
                 .with("database.names", System.getenv("database"))
                 .with("tombstones.on.delete", false)
                 .with("snapshot.mode", "no_data")
