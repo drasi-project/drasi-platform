@@ -137,4 +137,3 @@ spec:
       i.ItemId AS Id, 
       i.Name as Name,
       i.Category as Category
----

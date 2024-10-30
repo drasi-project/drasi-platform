@@ -78,7 +78,7 @@ test('Test StoredProc Reaction - AddedResultCommand', async () => {
 
   // Verify the results from the CommandResult table
   let result = await dbClient.query(`SELECT * FROM "CommandResult" WHERE "ItemId" = 3`);
-  console.log(result);
+
   expect(result.rows.length == 1).toBeTruthy();
   expect(result.rows[0].Name == "Drasi").toBeTruthy();
   expect(result.rows[0].Category == "1").toBeTruthy();
