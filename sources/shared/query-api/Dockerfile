@@ -27,7 +27,7 @@ WORKDIR /usr/src/source/shared/query-api
 COPY ./sources/shared/query-api/Cargo.toml . 
 RUN cargo fetch
 COPY ./sources/shared/query-api .
-RUN if [ "$RELEASE" = "1" ]; then cargo install --force --path .; else cargo install --force --path --debug .; fi
+RUN if [ "$RELEASE" = "1" ]; then cargo install --force --path .; else cargo install --force --debug  --path .; fi
 
     
 FROM  gcr.io/distroless/cc@sha256:b6e1e913f633495eeb80a41e03de1a41aa863e9b19902309b180ffdc4b99db2c
