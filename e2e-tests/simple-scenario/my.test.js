@@ -21,6 +21,7 @@ const fs = require('fs');
 const deployResources = require("../fixtures/deploy-resources");
 const PortForward = require('../fixtures/port-forward');
 const SignalrFixture = require("../fixtures/signalr-fixture");
+const storedprocReactionManifest = require("../fixtures/storedproc-reaction-manifest");
 const pg = require('pg');
 
 
@@ -62,4 +63,20 @@ test('Initial data', async () => {
   let initData = await signalrFixture.requestReload("query1");
 
   expect(initData.length == 2).toBeTruthy();
+});
+
+
+test('Test StoredProc Reaction - AddedResultCommand', async () => {
+  // add a new item
+  await deployResources([storedprocReactionManifest(["query1"])]);
+
+
+  await dbClient.query(`INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (3, 'Bar', '1')`);
+
+  // Verify the results from the CommandResult table
+  let result = await dbClient.query(`SELECT * FROM "CommandResult" WHERE "Id" = 3`);
+  expect(result.rows.length == 1).toBeTruthy();
+  expect(result.rows[0].Name == "Bar").toBeTruthy();
+  expect(result.rows[0].Category == "1").toBeTruthy();
+
 });

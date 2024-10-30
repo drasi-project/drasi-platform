@@ -29,6 +29,28 @@ data:
 
     INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (1, 'Foo', '1');
     INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (2, 'Foo', '1');
+
+
+
+    CREATE TABLE "CommandResult" (
+        "ItemId" integer NOT NULL,
+        "Name" character varying(100) NOT NULL,
+        "Category" character varying(10) NOT NULL
+    );
+
+    CREATE OR REPLACE PROCEDURE insertCommandResult(
+        p_ItemId integer,
+        p_Name character varying,
+        p_Category character varying
+    )
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+        INSERT INTO "CommandResult" ("ItemId", "Name", "Category")
+        VALUES (p_ItemId, p_Name, p_Category);
+    END;
+    $$;
+
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -115,3 +137,39 @@ spec:
       i.ItemId AS Id, 
       i.Name as Name,
       i.Category as Category
+---
+apiVersion: v1
+kind: ReactionProvider
+name: StoredProc
+spec:
+  config_schema: 
+    type: object
+    properties: 
+      AddedResultCommand:
+        type: string
+      UpdatedResultCommand:
+        type: string
+      DeletedResultCommand:
+        type: string
+      DatabaseHostname:
+        type: string
+      DatabasePort:
+        type: number
+      DatabaseUser:
+        type: string
+      DatabaseDbname:
+        type: string
+      DatabasePassword:
+        type: string
+      DatabaseSsl:
+        type: boolean
+        default: false
+    required:
+      - DatabaseHostname
+      - DatabasePort
+      - DatabaseUser
+      - DatabaseDbname
+      - DatabasePassword
+  services:
+    storedproc:
+      image: reaction-storedproc
