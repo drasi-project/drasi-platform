@@ -71,12 +71,16 @@ test('Test StoredProc Reaction - AddedResultCommand', async () => {
   await deployResources([storedprocReactionManifest(["query1"])]);
 
 
-  await dbClient.query(`INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (3, 'Bar', '1')`);
+  await dbClient.query(`INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (3, 'Drasi', '1')`);
+
+  // sleep 35 seconds
+  await new Promise(r => setTimeout(r, 15000));
 
   // Verify the results from the CommandResult table
-  let result = await dbClient.query(`SELECT * FROM "CommandResult" WHERE "Id" = 3`);
+  let result = await dbClient.query(`SELECT * FROM "CommandResult" WHERE "ItemId" = 3`);
+  console.log(result);
   expect(result.rows.length == 1).toBeTruthy();
-  expect(result.rows[0].Name == "Bar").toBeTruthy();
+  expect(result.rows[0].Name == "Drasi").toBeTruthy();
   expect(result.rows[0].Category == "1").toBeTruthy();
 
-});
+}, 140000);

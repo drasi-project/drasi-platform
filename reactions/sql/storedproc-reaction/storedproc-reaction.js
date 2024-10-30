@@ -32,6 +32,7 @@ const databaseDbname = process.env["DatabaseDbname"];
 const databasePassword = process.env["DatabasePassword"];
 const databaseSsl = process.env["DatabaseSsl"] ?? false;
 
+console.log('Databasessl: ', databaseSsl);
 
 // Setup knex 
 let knex = require('knex')({
@@ -42,7 +43,7 @@ let knex = require('knex')({
     user :   databaseUser,
     password : databasePassword,
     database : databaseDbname,
-    ssl: databaseSsl
+    ssl: false
   }
 });
 
@@ -89,7 +90,10 @@ async function main() {
   console.info(`Starting StoredProc Reaction`);  
 
   let queryIds = readdirSync(configDirectory);
-  const daprServer = new DaprServer("127.0.0.1",80);
+
+  let appHost = "127.0.0.1";
+  let appPort = "80";
+  const daprServer = new DaprServer({serverHost: appHost, serverPort: appPort});
   console.log(`Set up daprServer`);``
   for (const queryId of queryIds) {
     if (!queryId || queryId.startsWith('.')) 

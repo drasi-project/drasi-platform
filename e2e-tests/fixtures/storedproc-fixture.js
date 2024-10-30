@@ -12,11 +12,12 @@ function storedprocReactionManifest(queryIds) {
       "properties": {
         "AddedResultCommand": "public.insertCommandResult(@Id, @Name, @Category)",
         "DatabaseClient": "pg",
-        "DatabaseHostname": "127.0.0.1",
+        "DatabaseHostname": "postgres.default.svc.cluster.local",
         "DatabaseDbname": "test-db",
         "DatabaseUser": "test",
         "DatabasePassword": "test",
-        "DatabasePort": 5432
+        "DatabasePort": 5432,
+        "DatabaseSsl": false
       }
     }
   };
