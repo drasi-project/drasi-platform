@@ -1,0 +1,10 @@
+kind: Reaction
+apiVersion: v1
+name: test-advanced
+spec:
+  kind: Advanced
+  queries:
+    query1: |
+      greeting: "Hello, World!"
+    query2: |
+      greeting: "Howdy!"
