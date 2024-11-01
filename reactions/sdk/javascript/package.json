@@ -1,0 +1,27 @@
+{
+  "name": "@drasi/reaction-sdk",
+  "version": "1.0.0",
+  "description": "Reaction SDK for Project Drasi",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "generate-types": "tsp compile ../../../typespec/query-output && json2ts -i ../../../typespec/query-output/_generated/@typespec/json-schema/ -o src/types/ --cwd ../../../typespec/query-output/_generated/@typespec/json-schema",
+    "build": "tsc && mkdir -p ./dist/types && cp ./src/types/* ./dist/types/",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@microsoft/api-extractor": "^7.47.11",
+    "@types/node": "^22.8.6",
+    "json-schema-to-typescript": "^15.0.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@dapr/dapr": "^3.4.1",
+    "tslib": "^2.8.0"
+  }
+}
