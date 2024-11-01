@@ -1,8 +1,8 @@
-import {DrasiReaction, ChangeEvent} from '@drasi/reaction-sdk';
+import { DrasiReaction, ChangeEvent } from '@drasi/reaction-sdk';
 
 async function main() {
 
-    let myReaction = new DrasiReaction((event: ChangeEvent) => {
+    let myReaction = new DrasiReaction(async (event: ChangeEvent) => {
         
         console.log(`Received change sequence: ${event.sequence} for query ${event.queryId}`);
         
