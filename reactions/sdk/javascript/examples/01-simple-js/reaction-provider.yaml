@@ -3,5 +3,6 @@ kind: ReactionProvider
 name: Simple
 spec:
   services:
-    simple:
+    reaction:
       image: reaction-simple
+      externalImage: true

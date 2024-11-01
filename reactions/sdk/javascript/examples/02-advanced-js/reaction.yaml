@@ -1,8 +1,12 @@
 kind: Reaction
 apiVersion: v1
-name: test-simple
+name: test-advanced
 spec:
-  kind: Simple
+  kind: Advanced
+  properties:
+    MyConnectionString: "some connection string"
   queries:
-    freezer2:
-    query2:
+    query1: |
+      greeting: "Hello, World!"
+    query2: |
+      greeting: "Howdy!"

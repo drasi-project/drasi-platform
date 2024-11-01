@@ -225,6 +225,7 @@ pub struct ReactionProviderMarker;
 #[serde(rename_all = "camelCase")]
 pub struct ProviderService {
     pub image: String,
+    pub external_image: Option<bool>,
     pub dapr: Option<HashMap<String, String>>,
     pub endpoints: Option<HashMap<String, ServiceEndpoint>>,
     pub config_schema: Option<JsonSchema>,
@@ -242,6 +243,7 @@ pub struct ServiceEndpoint {
 pub struct ServiceConfig {
     pub replica: Option<String>,
     pub image: Option<String>,
+    pub external_image: Option<bool>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
     pub endpoints: Option<HashMap<String, Endpoint>>,
     pub properties: Option<HashMap<String, ConfigValue>>,

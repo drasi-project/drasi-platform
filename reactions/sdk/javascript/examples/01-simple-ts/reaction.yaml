@@ -4,5 +4,5 @@ name: test-simple
 spec:
   kind: Simple
   queries:
-    freezer2:
+    query1:
     query2:

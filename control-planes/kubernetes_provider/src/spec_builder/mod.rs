@@ -49,6 +49,7 @@ pub fn build_deployment_spec(
     resource_id: &str,
     service_name: &str,
     image: &str,
+    external_image: bool,
     replicas: i32,
     app_port: Option<u16>,
     env_vars: BTreeMap<String, ConfigValue>,
@@ -154,10 +155,13 @@ pub fn build_deployment_spec(
             spec: Some(PodSpec {
                 containers: vec![Container {
                     name: service_name.to_string(),
-                    image: Some(format!(
-                        "{}{}:{}",
-                        runtime_config.image_prefix, image, runtime_config.image_tag
-                    )),
+                    image: match external_image {
+                        true => Some(image.to_string()),
+                        false => Some(format!(
+                            "{}{}:{}",
+                            runtime_config.image_prefix, image, runtime_config.image_tag
+                        )),
+                    },
                     image_pull_policy: Some(runtime_config.image_pull_policy.clone()),
                     termination_message_policy: Some("FallbackToLogsOnError".to_string()),
                     env: Some(env),

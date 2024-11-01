@@ -5,6 +5,7 @@ spec:
   services:
     reaction:
       image: reaction-advanced
+      externalImage: true
   config_schema:
     type: object
     properties: 

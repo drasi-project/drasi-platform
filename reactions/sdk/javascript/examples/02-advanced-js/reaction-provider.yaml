@@ -1,7 +1,15 @@
 apiVersion: v1
 kind: ReactionProvider
-name: Simple
+name: Advanced
 spec:
   services:
-    simple:
-      image: reaction-simple
+    reaction:
+      image: reaction-advanced
+      externalImage: true
+  config_schema:
+    type: object
+    properties: 
+      MyConnectionString:
+        type: string
+    required:
+      - MyConnectionString
