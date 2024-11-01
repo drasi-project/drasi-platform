@@ -74,7 +74,7 @@ async function onControlEvent(event: ControlEvent, queryConfig?: MyQueryConfig):
 console.log(`Starting Drasi reaction with connection string: ${myConnectionString}`);
 
 // Configure the Reaction with the onChangeEvent and onControlEvent functions
-let myReaction = new DrasiReaction(onChangeEvent, {
+let myReaction = new DrasiReaction<MyQueryConfig>(onChangeEvent, {
     parseQueryConfig: parseYaml,  // Parse the per query configuration from Yaml
     onControlEvent: onControlEvent
 });
