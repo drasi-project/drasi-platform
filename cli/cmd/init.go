@@ -83,7 +83,6 @@ Usage examples:
 				return err
 			}
 
-			// if local flag is set, print a different message
 			if local {
 				fmt.Printf("Installing Drasi with local images\n")
 			} else {
