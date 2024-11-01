@@ -5,6 +5,9 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
+/**
+ * A signal that indicates that the query has completed bootstrapping
+ */
 export type BootstrapCompletedSignal = ControlSignal & {
   kind: "bootstrapCompleted";
   [k: string]: unknown;

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ReactionProvider
+name: Advanced
+spec:
+  services:
+    reaction:
+      image: reaction-advanced
+  config_schema:
+    type: object
+    properties: 
+      MyConnectionString:
+        type: string
+    required:
+      - MyConnectionString

@@ -5,6 +5,9 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
+/**
+ * A signal that indicates that the query is starting to bootstrap
+ */
 export type BootstrapStartedSignal = ControlSignal & {
   kind: "bootstrapStarted";
   [k: string]: unknown;

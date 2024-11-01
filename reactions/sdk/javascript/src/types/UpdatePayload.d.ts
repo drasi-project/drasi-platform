@@ -5,19 +5,22 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
+/**
+ * A payload that represents the before and after snapshots of a result
+ */
 export interface UpdatePayload {
   before: RecordUnknown;
   after: RecordUnknown1;
   [k: string]: unknown;
 }
 /**
- * The result before the change
+ * The snapshot of the result before the change
  */
 export interface RecordUnknown {
   [k: string]: unknown;
 }
 /**
- * The result after the change
+ * The snapshot of the result after the change
  */
 export interface RecordUnknown1 {
   [k: string]: unknown;

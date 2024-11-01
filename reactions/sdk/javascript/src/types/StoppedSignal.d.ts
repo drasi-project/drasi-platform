@@ -5,6 +5,9 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
+/**
+ * A signal that indicates that the query has stopped
+ */
 export type StoppedSignal = ControlSignal & {
   kind: "stopped";
   [k: string]: unknown;

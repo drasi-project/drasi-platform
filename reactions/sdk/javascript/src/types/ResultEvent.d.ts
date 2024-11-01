@@ -6,8 +6,17 @@
  */
 
 export interface ResultEvent {
+  /**
+   * The ID of the query that the event originated from
+   */
   queryId: string;
+  /**
+   * The sequence number of the event
+   */
   sequence: string;
+  /**
+   * The time at which the source change was recorded
+   */
   sourceTimeMs: string;
   metadata?: RecordUnknown;
   [k: string]: unknown;

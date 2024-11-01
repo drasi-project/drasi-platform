@@ -5,6 +5,9 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
+/**
+ * A signal that indicates that the query has entered the running state
+ */
 export type RunningSignal = ControlSignal & {
   kind: "running";
   [k: string]: unknown;
