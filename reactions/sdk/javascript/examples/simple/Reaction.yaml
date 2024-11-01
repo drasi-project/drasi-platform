@@ -1,0 +1,8 @@
+kind: Reaction
+apiVersion: v1
+name: test-simple
+spec:
+  kind: Simple
+  queries:
+    freezer2:
+    query2:
