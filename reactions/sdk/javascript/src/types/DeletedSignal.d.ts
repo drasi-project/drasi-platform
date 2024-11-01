@@ -5,6 +5,9 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
+/**
+ * A signal that indicates that the query has been deleted
+ */
 export type DeletedSignal = ControlSignal & {
   kind: "deleted";
   [k: string]: unknown;

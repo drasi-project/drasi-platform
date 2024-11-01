@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ReactionProvider
-name: Advanced
-spec:
-  services:
-    simple:
-      image: reaction-advanced

@@ -11,6 +11,6 @@
   "license": "Apache-2.0",
   "description": "",
   "dependencies": {
-    "@drasi/reaction-sdk": "file:../../"
+    "@drasi/reaction-sdk": "0.1.0-alpha"
   }
 }

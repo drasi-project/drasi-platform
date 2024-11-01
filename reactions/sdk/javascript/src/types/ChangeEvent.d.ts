@@ -5,26 +5,38 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
+/**
+ * An event that represents a changes in the result set
+ */
 export type ChangeEvent = ResultEvent & {
   kind: "change";
   /**
-   * The results that were added
+   * The results that were added to the result set as a consequence of the change
    */
   addedResults: RecordUnknown1[];
   /**
-   * The results that were updated
+   * The results that were updated on the result set as a consequence of the change
    */
   updatedResults: UpdatePayload[];
   /**
-   * The results that were deleted
+   * The results that were deleted from the result set as a consequence of the change
    */
   deletedResults: RecordUnknown1[];
   [k: string]: unknown;
 };
 
 export interface ResultEvent {
+  /**
+   * The ID of the query that the event originated from
+   */
   queryId: string;
+  /**
+   * The sequence number of the event
+   */
   sequence: string;
+  /**
+   * The time at which the source change was recorded
+   */
   sourceTimeMs: string;
   metadata?: RecordUnknown;
   [k: string]: unknown;
@@ -35,19 +47,22 @@ export interface RecordUnknown {
 export interface RecordUnknown1 {
   [k: string]: unknown;
 }
+/**
+ * A payload that represents the before and after snapshots of a result
+ */
 export interface UpdatePayload {
   before: RecordUnknown2;
   after: RecordUnknown3;
   [k: string]: unknown;
 }
 /**
- * The result before the change
+ * The snapshot of the result before the change
  */
 export interface RecordUnknown2 {
   [k: string]: unknown;
 }
 /**
- * The result after the change
+ * The snapshot of the result after the change
  */
 export interface RecordUnknown3 {
   [k: string]: unknown;

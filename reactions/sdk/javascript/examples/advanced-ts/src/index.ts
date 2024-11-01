@@ -1,22 +1,14 @@
 import { DrasiReaction, ChangeEvent,parseYaml, ControlEvent, getConfigValue } from '@drasi/reaction-sdk';
 
-const myConnectionString = getConfigValue("MyConnectionString", "");
+// Retrieve the connection string from the Reaction configuration
+const myConnectionString = getConfigValue("MyConnectionString");
 
-async function main() {
-    console.log(`Starting Drasi reaction with connection string: ${myConnectionString}`);
-
-    let myReaction = new DrasiReaction(onChangeEvent, {
-        parseQueryConfig: parseYaml,
-        onControlEvent: onControlEvent
-    });
-
-    await myReaction.start();
-}
-
+// Define a custom per query configuration object
 class MyQueryConfig {
     greeting: string = "Default greeting";
 }
 
+// Define the function that will be called when a change event is received
 async function onChangeEvent(event: ChangeEvent, queryConfig?: MyQueryConfig): Promise<void> {
     console.log(queryConfig.greeting);
     console.log(`Received change sequence: ${event.sequence} for query ${event.queryId}`);
@@ -34,8 +26,18 @@ async function onChangeEvent(event: ChangeEvent, queryConfig?: MyQueryConfig): P
     }
 }
 
+// Define the function that will be called when a control event is received
 async function onControlEvent(event: ControlEvent, queryConfig?: MyQueryConfig): Promise<void> {    
     console.log(`Received control signal: ${JSON.stringify(event.controlSignal)} for query ${event.queryId}`);    
 }
 
-main().catch(console.error);
+console.log(`Starting Drasi reaction with connection string: ${myConnectionString}`);
+
+// Configure the Reaction with the onChangeEvent and onControlEvent functions
+let myReaction = new DrasiReaction(onChangeEvent, {
+    parseQueryConfig: parseYaml, // Parse the per query configuration from Yaml
+    onControlEvent: onControlEvent
+});
+
+// Start the Reaction
+myReaction.start();

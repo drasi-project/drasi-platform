@@ -1,6 +1,6 @@
 {
   "name": "@drasi/reaction-sdk",
-  "version": "1.0.0",
+  "version": "0.1.0-alpha",
   "description": "Reaction SDK for Project Drasi",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,8 +12,16 @@
     "build": "tsc && mkdir -p ./dist/types && cp ./src/types/* ./dist/types/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "The Drasi Authors",
   "license": "Apache-2.0",
+  "homepage": "https://drasi.io",  
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drasi-project/drasi-platform"
+  },
+  "publishConfig": {
+    "access": "public"    
+  },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.47.11",
     "@types/node": "^22.8.6",

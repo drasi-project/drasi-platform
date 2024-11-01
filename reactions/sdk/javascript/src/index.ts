@@ -1,11 +1,11 @@
 import { DaprServer } from "@dapr/dapr";
 import { ChangeEvent } from "./types/ChangeEvent";
 import { ControlEvent } from "./types/ControlEvent";
-import { readdirSync, readFileSync } from "fs";
-import YAML from 'yaml'
+import { readdirSync, readFileSync, writeFileSync } from "fs";
+import { ReactionOptions } from "./options";
 
-export type OnChangeEvent<TQueryConfig = any> = (event: ChangeEvent, queryConfig?: TQueryConfig) => Promise<void>;
-export type OnControlEvent<TQueryConfig = any> = (event: ControlEvent, queryConfig?: TQueryConfig) => Promise<void>;
+export { ReactionOptions } from "./options";
+export { getConfigValue, parseJson, parseYaml } from "./utils";
 export { ChangeEvent } from "./types/ChangeEvent";
 export { ControlEvent } from "./types/ControlEvent";
 export { RunningSignal } from "./types/RunningSignal";
@@ -13,20 +13,51 @@ export { BootstrapStartedSignal } from "./types/BootstrapStartedSignal";
 export { BootstrapCompletedSignal } from "./types/BootstrapCompletedSignal";
 export { StoppedSignal } from "./types/StoppedSignal";
 
-export type ReactionOptions<TQueryConfig = any> = {
-    onControlEvent?: OnControlEvent;
-    parseQueryConfig?: (queryId: string, config: string) => TQueryConfig;
-}
+/**
+ * The function signature that is called when a change event is received.
+ * 
+ * @param event The change event from the query
+ * @param queryConfig The configuration object for the query
+ */
+export type OnChangeEvent<TQueryConfig = any> = (event: ChangeEvent, queryConfig?: TQueryConfig) => Promise<void>;
 
+/**
+ * The function signature that is called when a control event is received.
+ * 
+ * @param event The control event from the query
+ * @param queryConfig The configuration object for the query
+ */
+export type OnControlEvent<TQueryConfig = any> = (event: ControlEvent, queryConfig?: TQueryConfig) => Promise<void>;
+
+
+/** 
+ * A class that encapsulates all the functionality for a Drasi Reaction.
+ * 
+ * @template TQueryConfig The type of the query configuration object. This is defined per query in the Reaction manifest.
+ * 
+ * @example
+ * ```typescript
+ * let myReaction = new DrasiReaction(async (event: ChangeEvent) => {
+ *   // Handle the event that describes the changes to the query results
+ * });
+ * myReaction.start();
+ * ```
+ * 
+*/
 export class DrasiReaction<TQueryConfig = any> {
     private onChangeEvent: OnChangeEvent;
     private onControlEvent: OnControlEvent | undefined;
     private daprServer: DaprServer;
-    private pubSubName: string = process.env["PUBSUB"] ?? "drasi-pubsub";
+    private pubSubName: string = process.env["PubsubName"] ?? "drasi-pubsub";
     private configDirectory: string = process.env["QueryConfigPath"] ?? "/etc/queries";
     private queryConfig: Map<string, any> = new Map<string, TQueryConfig>();
     private parseQueryConfig: (queryId: string, config: string) => TQueryConfig | undefined;
 
+    /**
+     * 
+     * @param onChangeEvent {OnChangeEvent} The function that is called when a change event is received.
+     * @param options {ReactionOptions} The options for the Reaction.
+     */
     constructor(onChangeEvent: OnChangeEvent, options?: ReactionOptions<TQueryConfig>) {
         this.onChangeEvent = onChangeEvent;
         this.onControlEvent = options?.onControlEvent;
@@ -36,18 +67,30 @@ export class DrasiReaction<TQueryConfig = any> {
         });
     }
     
+    /**
+     * Starts the Drasi Reaction.
+     */
     public async start() {
-        let queryIds = readdirSync(this.configDirectory);
-        for (let queryId of queryIds) {
-            console.log(`Subscribing to query ${queryId}`);
-            await this.daprServer.pubsub.subscribe(this.pubSubName, `${queryId}-results`, this.onMessage.bind(this));
-            if (this.parseQueryConfig) {
-                let cfgStr = readFileSync(`${this.configDirectory}/${queryId}`, 'utf-8');
-                let cfg = this.parseQueryConfig(queryId, cfgStr);
-                this.queryConfig.set(queryId, cfg);
+        try {
+            let queryIds = readdirSync(this.configDirectory);
+            for (let queryId of queryIds) {
+                if (!queryId || queryId.startsWith('.')) 
+                    continue;
+                console.log(`Subscribing to query ${queryId}`);
+                await this.daprServer.pubsub.subscribe(this.pubSubName, `${queryId}-results`, this.onMessage.bind(this));
+                if (this.parseQueryConfig) {
+                    let cfgStr = readFileSync(`${this.configDirectory}/${queryId}`, 'utf-8');
+                    let cfg = this.parseQueryConfig(queryId, cfgStr);
+                    this.queryConfig.set(queryId, cfg);
+                }
             }
+            await this.daprServer.start();
         }
-        await this.daprServer.start();
+        catch (err) {
+            console.error(err);
+            writeFileSync("/dev/termination-log", err.message);
+            process.exit(1);
+        }
     }
 
     public async stop() {
@@ -72,16 +115,4 @@ export class DrasiReaction<TQueryConfig = any> {
                 console.log("Unknown message kind: " + data.kind);
         }
     }
-}
-
-export function getConfigValue(key: string, defaultValue: string): string {
-    return process.env[key] ?? defaultValue;
-}
-
-export function parseJson(queryId: string, config: string): any {
-    return JSON.parse(config);
-}
-
-export function parseYaml(queryId: string, config: string): any {
-    return YAML.parse(config);
 }
