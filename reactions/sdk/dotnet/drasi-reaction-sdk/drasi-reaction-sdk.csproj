@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    
+    <PackageReference Include="Dapr.AspNetCore" Version="1.14.0" />
+    <PackageReference Include="Dapr.Client" Version="1.14.0" />
+    <PackageReference Include="YamlDotNet" Version="16.1.3" />
   </ItemGroup>
 
 </Project>

@@ -2,14 +2,23 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Drasi.Reaction.SDK.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Drasi.Reaction.SDK.Models;
 
 namespace Drasi.Reaction.SDK
 {
-    public class ReactionBuilder
+    public class ReactionBuilder : ReactionBuilder<object>
+    {
+    }
+
+    public class ReactionBuilder<TQueryConfig> where TQueryConfig : class
     {
         private readonly WebApplicationBuilder _webappBuilder;
 
         public IServiceCollection Services => _webappBuilder.Services;
+
+        public IConfiguration Configuration => _webappBuilder.Configuration;
 
         public ReactionBuilder()
         {
@@ -18,17 +27,24 @@ namespace Drasi.Reaction.SDK
             _webappBuilder.Services.AddControllers();
             _webappBuilder.Services.AddSingleton<IQueryConfigService, QueryConfigService>();
             _webappBuilder.Services.AddSingleton<IConfigDeserializer, NullConfigDeserializer>();
-            _webappBuilder.Services.AddSingleton<IControlEventHandler, DefaultControlEventHandler>();
+            _webappBuilder.Services.AddScoped<IControlEventHandler<TQueryConfig>, DefaultControlEventHandler<TQueryConfig>>();
+            _webappBuilder.Configuration.AddEnvironmentVariables();
+            _webappBuilder.Logging.AddConsole();
         }
 
-        public void UseChangeEventHandler<TChangeEventHandler>() where TChangeEventHandler : class, IChangeEventHandler
+        public void UseChangeEventHandler<TChangeEventHandler>() where TChangeEventHandler : class, IChangeEventHandler<TQueryConfig>
         {
-            _webappBuilder.Services.AddSingleton<IChangeEventHandler, TChangeEventHandler>();
+            _webappBuilder.Services.AddScoped<IChangeEventHandler<TQueryConfig>, TChangeEventHandler>();
         }
 
-        public void UseControlEventHandler<TControlEventHandler>() where TControlEventHandler : class, IControlEventHandler
+        public void UseChangeEventHandler(Func<ChangeEvent, TQueryConfig?, Task> handler)
         {
-            _webappBuilder.Services.AddSingleton<IControlEventHandler, TControlEventHandler>();
+            _webappBuilder.Services.AddScoped<IChangeEventHandler<TQueryConfig>>((sp) => new InlineChangeEventHandler<TQueryConfig>(handler));
+        }
+
+        public void UseControlEventHandler<TControlEventHandler>() where TControlEventHandler : class, IControlEventHandler<TQueryConfig>
+        {
+            _webappBuilder.Services.AddScoped<IControlEventHandler<TQueryConfig>, TControlEventHandler>();
         }
 
         public void UseJsonQueryConfig()
@@ -41,9 +57,9 @@ namespace Drasi.Reaction.SDK
             _webappBuilder.Services.AddSingleton<IConfigDeserializer, YamlConfigDeserializer>();
         }
 
-        public Reaction<TQueryConfig> Build<TQueryConfig>() where TQueryConfig : class
+        public Reaction<TQueryConfig> Build()
         {
-            var hasChangeHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IChangeEventHandler));
+            var hasChangeHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IChangeEventHandler<TQueryConfig>));
             if (!hasChangeHandler)
             {
                 throw new InvalidOperationException("No change event handler registered");
@@ -58,5 +74,6 @@ namespace Drasi.Reaction.SDK
 
             return new Reaction<TQueryConfig>(queryConfigSvc, app);
         }
+
     }
 }

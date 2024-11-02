@@ -2,7 +2,7 @@
 using Drasi.Reaction.SDK.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 
@@ -15,10 +15,11 @@ public class Reaction<TQueryConfig> : IHost
     private readonly Dictionary<string, TQueryConfig?> _queriesConfig;
 
     public IServiceProvider Services => _app.Services;
+    public IConfiguration Configuration => _app.Configuration;
 
     internal Reaction(IQueryConfigService queryConfigService, WebApplication app)
     {
-        _app = app;
+        _app = app;        
         _queriesConfig = [];
         var pubsubName = Environment.GetEnvironmentVariable("PubsubName") ?? "drasi-pubsub";
 
@@ -47,7 +48,7 @@ public class Reaction<TQueryConfig> : IHost
         
     }
 
-    private async Task ProcessEvent(HttpContext context, IChangeEventHandler changeHandler, IControlEventHandler controlEventHandler)
+    private async Task ProcessEvent(HttpContext context, IChangeEventHandler<TQueryConfig> changeHandler, IControlEventHandler<TQueryConfig> controlEventHandler)
     {
         var data = await JsonDocument.ParseAsync(context.Request.Body);
         var evt = data.RootElement;
@@ -56,12 +57,12 @@ public class Reaction<TQueryConfig> : IHost
             case "change":
                 var changeEvt = evt.Deserialize<ChangeEvent>();
                 var queryCfg = _queriesConfig.GetValueOrDefault(changeEvt.QueryId, null);
-                changeHandler.HandleChange<TQueryConfig>(changeEvt, queryCfg);
+                await changeHandler.HandleChange(changeEvt, queryCfg);
                 break;
             case "control":
                 var controlEvt = evt.Deserialize<ControlEvent>();
                 var queryCfg2 = _queriesConfig.GetValueOrDefault(controlEvt.QueryId, null);
-                controlEventHandler.HandleControlSignal<TQueryConfig>(controlEvt, queryCfg2);
+                await controlEventHandler.HandleControlSignal(controlEvt, queryCfg2);
                 break;
             default:
                 break;
