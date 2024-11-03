@@ -55,12 +55,12 @@ public class Reaction<TQueryConfig> : IHost
         switch (evt.GetProperty("kind").GetString())
         {
             case "change":
-                var changeEvt = evt.Deserialize<ChangeEvent>();
+                var changeEvt = evt.Deserialize<ChangeEvent>(ModelOptions.JsonOptions);
                 var queryCfg = _queriesConfig.GetValueOrDefault(changeEvt.QueryId, null);
                 await changeHandler.HandleChange(changeEvt, queryCfg);
                 break;
             case "control":
-                var controlEvt = evt.Deserialize<ControlEvent>();
+                var controlEvt = evt.Deserialize<ControlEvent>(ModelOptions.JsonOptions);
                 var queryCfg2 = _queriesConfig.GetValueOrDefault(controlEvt.QueryId, null);
                 await controlEventHandler.HandleControlSignal(controlEvt, queryCfg2);
                 break;
