@@ -1,0 +1,172 @@
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+syntax = "proto3";
+
+package dapr.proto.operator.v1;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/dapr/dapr/pkg/proto/operator/v1;operator";
+
+service Operator {
+  // Sends events to Dapr sidecars upon component changes.
+  rpc ComponentUpdate (ComponentUpdateRequest) returns (stream ComponentUpdateEvent) {}
+  // Returns a list of available components
+  rpc ListComponents (ListComponentsRequest) returns (ListComponentResponse) {}
+  // Returns a given configuration by name
+  rpc GetConfiguration (GetConfigurationRequest) returns (GetConfigurationResponse) {}
+  // Returns a list of pub/sub subscriptions
+  rpc ListSubscriptions (google.protobuf.Empty) returns (ListSubscriptionsResponse) {}
+  // Returns a given resiliency configuration by name
+  rpc GetResiliency (GetResiliencyRequest) returns (GetResiliencyResponse) {}
+  // Returns a list of resiliency configurations
+  rpc ListResiliency (ListResiliencyRequest) returns (ListResiliencyResponse) {}
+  // Returns a list of pub/sub subscriptions, ListSubscriptionsRequest to expose pod info
+  rpc ListSubscriptionsV2 (ListSubscriptionsRequest) returns (ListSubscriptionsResponse) {}
+  // Sends events to Dapr sidecars upon subscription changes.
+  rpc SubscriptionUpdate (SubscriptionUpdateRequest) returns (stream SubscriptionUpdateEvent) {}
+  // Returns a list of http endpoints
+  rpc ListHTTPEndpoints (ListHTTPEndpointsRequest) returns (ListHTTPEndpointsResponse) {}
+  // Sends events to Dapr sidecars upon http endpoint changes.
+  rpc HTTPEndpointUpdate (HTTPEndpointUpdateRequest) returns (stream HTTPEndpointUpdateEvent) {}
+}
+
+// ResourceEventType is the type of event to a resource.
+enum ResourceEventType {
+  // UNKNOWN indicates that the event type is unknown.
+  UNKNOWN = 0;
+
+  // CREATED indicates that the resource has been created.
+  CREATED = 1;
+
+  // UPDATED indicates that the resource has been updated.
+  UPDATED = 2;
+
+  // DELETED indicates that the resource has been deleted.
+  DELETED = 3;
+}
+
+// ListComponentsRequest is the request to get components for a sidecar in namespace.
+message ListComponentsRequest {
+  string namespace = 1;
+  string podName = 2;
+}
+
+// ComponentUpdateRequest is the request to get updates about new components for a given namespace.
+message ComponentUpdateRequest {
+  string namespace = 1;
+  string podName = 2;
+}
+
+// ComponentUpdateEvent includes the updated component event.
+message ComponentUpdateEvent {
+  bytes component = 1;
+
+  // type is the type of event.
+  ResourceEventType type = 2;
+}
+
+// ListComponentResponse includes the list of available components.
+message ListComponentResponse {
+  repeated bytes components = 1;
+}
+
+// GetConfigurationRequest is the request message to get the configuration.
+message GetConfigurationRequest {
+  string name = 1;
+  string namespace = 2;
+  string podName = 3;
+}
+
+// GetConfigurationResponse includes the requested configuration.
+message GetConfigurationResponse {
+  bytes configuration = 1;
+}
+
+// ListSubscriptionsResponse includes pub/sub subscriptions.
+message ListSubscriptionsResponse {
+  repeated bytes subscriptions = 1;
+}
+
+// SubscriptionUpdateRequest is the request to get updates about new
+// subscriptions for a given namespace.
+message SubscriptionUpdateRequest {
+  string namespace = 1;
+  string podName = 2;
+}
+
+// SubscriptionUpdateEvent includes the updated subscription event.
+message SubscriptionUpdateEvent {
+  bytes subscription = 1;
+
+  // type is the type of event.
+  ResourceEventType type = 2;
+}
+
+// GetResiliencyRequest is the request to get a resiliency configuration.
+message GetResiliencyRequest {
+    string name = 1;
+    string namespace = 2;
+}
+
+// GetResiliencyResponse includes the requested resiliency configuration.
+message GetResiliencyResponse {
+    bytes resiliency = 1;
+}
+
+// ListResiliencyRequest is the requests to get resiliency configurations for a sidecar namespace.
+message ListResiliencyRequest {
+    string namespace = 1;
+}
+
+// ListResiliencyResponse includes the list of available resiliency configurations.
+message ListResiliencyResponse {
+    repeated bytes resiliencies = 1;
+}
+
+message ListSubscriptionsRequest {
+  string podName = 1;
+  string namespace = 2;
+}
+
+// GetHTTPEndpointRequest is the request to get an http endpoint configuration.
+message GetHTTPEndpointRequest {
+  string name = 1;
+  string namespace = 2;
+}
+
+// GetHTTPEndpointResponse includes the requested http endpoint configuration.
+message GetHTTPEndpointResponse {
+  bytes http_endpoint = 1;
+}
+
+// ListHTTPEndpointsResponse includes the list of available http endpoint configurations.
+message ListHTTPEndpointsResponse {
+  repeated bytes http_endpoints = 1;
+}
+
+message ListHTTPEndpointsRequest {
+  string namespace = 1;
+}
+
+// HTTPEndpointsUpdateRequest is the request to get updates about new http endpoints for a given namespace.
+message HTTPEndpointUpdateRequest {
+  string namespace = 1;
+  string pod_name = 2;
+}
+
+// HTTPEndpointsUpdateEvent includes the updated http endpoint event.
+message HTTPEndpointUpdateEvent {
+  bytes http_endpoints = 1;
+}

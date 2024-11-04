@@ -1,0 +1,17 @@
+{
+  "name": "std",
+  "description": "javascript standard library",
+  "version": "0.1.40",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/marcuswestin/std.js.git"
+  },
+  "author": "@marcuswestin",
+  "contributors": ["@kaleb"],
+  "directories": {
+    "lib": "lib"
+  },
+  "engines": {
+    "node": "*"
+  }
+}

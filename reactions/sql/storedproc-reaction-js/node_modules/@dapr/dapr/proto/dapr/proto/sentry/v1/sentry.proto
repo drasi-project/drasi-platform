@@ -1,0 +1,60 @@
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+syntax = "proto3";
+
+package dapr.proto.sentry.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/dapr/dapr/pkg/proto/sentry/v1;sentry";
+
+service CA {
+  // A request for a time-bound certificate to be signed.
+  //
+  // The requesting side must provide an id for both loosely based
+  // And strong based identities.
+  rpc SignCertificate (SignCertificateRequest) returns (SignCertificateResponse) {}
+}
+
+message SignCertificateRequest {
+  enum TokenValidator {
+    // Not specified - use the default value.
+    UNKNOWN = 0;
+    // Insecure validator (default on self-hosted).
+    INSECURE = 1;
+    // Kubernetes validator (default on Kubernetes).
+    KUBERNETES = 2;
+    // JWKS validator.
+    JWKS = 3;
+  }
+  string id = 1;
+  string token = 2;
+  string trust_domain = 3;
+  string namespace = 4;
+  // A PEM-encoded x509 CSR.
+  bytes certificate_signing_request = 5;
+  // Name of the validator to use, if not the default for the environemtn. 
+  TokenValidator token_validator = 6;
+}
+
+message SignCertificateResponse {
+  // A PEM-encoded x509 Certificate.
+  bytes workload_certificate = 1;
+
+  // A list of PEM-encoded x509 Certificates that establish the trust chain
+  // between the workload certificate and the well-known trust root cert.
+  repeated bytes trust_chain_certificates = 2;
+
+  google.protobuf.Timestamp valid_until = 3;
+}
