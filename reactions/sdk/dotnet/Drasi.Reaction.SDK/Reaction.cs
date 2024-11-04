@@ -3,7 +3,9 @@ using Drasi.Reaction.SDK.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace Drasi.Reaction.SDK;
@@ -16,6 +18,8 @@ public class Reaction<TQueryConfig> : IHost
 
     public IServiceProvider Services => _app.Services;
     public IConfiguration Configuration => _app.Configuration;
+
+    public ILogger<Reaction<TQueryConfig>> Logger => _app.Services.GetRequiredService<ILogger<Reaction<TQueryConfig>>>();
 
     internal Reaction(IQueryConfigService queryConfigService, WebApplication app)
     {
@@ -35,11 +39,13 @@ public class Reaction<TQueryConfig> : IHost
     
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        await _app.RunAsync("http://0.0.0.0:80");
+        Logger.LogInformation("Starting reaction");
+        await _app.RunAsync("http://127.0.0.1:80");
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
+        Logger.LogInformation("Stopping reaction");
         await _app.StopAsync(cancellationToken);
     }
 

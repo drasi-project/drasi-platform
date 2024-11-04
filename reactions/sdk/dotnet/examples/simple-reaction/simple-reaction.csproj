@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\drasi-reaction-sdk\drasi-reaction-sdk.csproj" />
+    <ProjectReference Include="..\..\Drasi.Reaction.SDK\Drasi.Reaction.SDK.csproj" />
   </ItemGroup>
 
 </Project>

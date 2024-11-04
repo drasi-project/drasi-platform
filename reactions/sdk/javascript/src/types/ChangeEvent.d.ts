@@ -26,6 +26,7 @@ export type ChangeEvent = ResultEvent & {
 };
 
 export interface ResultEvent {
+  kind: "change" | "control";
   /**
    * The ID of the query that the event originated from
    */
@@ -33,11 +34,11 @@ export interface ResultEvent {
   /**
    * The sequence number of the event
    */
-  sequence: string;
+  sequence: number;
   /**
    * The time at which the source change was recorded
    */
-  sourceTimeMs: string;
+  sourceTimeMs: number;
   metadata?: RecordUnknown;
   [k: string]: unknown;
 }

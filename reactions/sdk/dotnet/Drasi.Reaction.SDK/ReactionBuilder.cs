@@ -32,33 +32,58 @@ namespace Drasi.Reaction.SDK
             _webappBuilder.Logging.AddConsole();
         }
 
-        public void UseChangeEventHandler<TChangeEventHandler>() where TChangeEventHandler : class, IChangeEventHandler<TQueryConfig>
+        public ReactionBuilder<TQueryConfig> UseChangeEventHandler<TChangeEventHandler>() where TChangeEventHandler : class, IChangeEventHandler<TQueryConfig>
         {
             _webappBuilder.Services.AddScoped<IChangeEventHandler<TQueryConfig>, TChangeEventHandler>();
+            return this;
         }
 
-        public void UseChangeEventHandler(Func<ChangeEvent, TQueryConfig?, Task> handler)
+        public ReactionBuilder<TQueryConfig> UseChangeEventHandler(Func<ChangeEvent, TQueryConfig?, Task> handler)
         {
             _webappBuilder.Services.AddScoped<IChangeEventHandler<TQueryConfig>>((sp) => new InlineChangeEventHandler<TQueryConfig>(handler));
+            return this;
         }
 
-        public void UseControlEventHandler<TControlEventHandler>() where TControlEventHandler : class, IControlEventHandler<TQueryConfig>
+        public ReactionBuilder<TQueryConfig> UseControlEventHandler<TControlEventHandler>() where TControlEventHandler : class, IControlEventHandler<TQueryConfig>
         {
             _webappBuilder.Services.AddScoped<IControlEventHandler<TQueryConfig>, TControlEventHandler>();
+            return this;
         }
 
-        public void UseJsonQueryConfig()
+        public ReactionBuilder<TQueryConfig> UseJsonQueryConfig()
         {
             _webappBuilder.Services.AddSingleton<IConfigDeserializer, JsonConfigDeserializer>();
+            return this;
         }
-
-        public void UseYamlQueryConfig()
+        
+        public ReactionBuilder<TQueryConfig> UseYamlQueryConfig()
         {
             _webappBuilder.Services.AddSingleton<IConfigDeserializer, YamlConfigDeserializer>();
+            return this;
         }
+
+        public ReactionBuilder<TQueryConfig> ConfigureServices(Action<IServiceCollection> configureServices)
+        {
+            configureServices(_webappBuilder.Services);
+            return this;
+        }        
 
         public Reaction<TQueryConfig> Build()
         {
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                var message = args.ExceptionObject is Exception exception ? exception.Message : "Unknown error occurred";
+
+                try
+                {
+                    File.WriteAllText("/dev/termination-log", message);
+                }
+                catch (Exception logException)
+                {
+                    Console.Error.WriteLine($"Failed to write to /dev/termination-log: {logException}");
+                }
+            };
+
             var hasChangeHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IChangeEventHandler<TQueryConfig>));
             if (!hasChangeHandler)
             {
