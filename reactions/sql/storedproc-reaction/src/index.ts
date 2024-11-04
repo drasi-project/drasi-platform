@@ -1,15 +1,12 @@
 import { DrasiReaction, ChangeEvent,parseYaml, ControlEvent, getConfigValue } from '@drasi/reaction-sdk';
 
-
-
-const pubsubName = getConfigValue('pubsubName', 'drasi-pubsub');
-const databaseHostname = getConfigValue('databaseHostname');
-const databasePort = getConfigValue('databasePort');
-const databaseUser = getConfigValue('databaseUser');
-const databasePassword = getConfigValue('databasePassword');
-const databaseDbname = getConfigValue('databaseDbname');
-const databaseCient = getConfigValue('databaseCient', 'pg');
-const databaseSsl = convertConfigValue(getConfigValue('databaseSsl', 'false'));
+const databaseHostname = getConfigValue('DatabaseHostname');
+const databasePort = getConfigValue('DatabasePort');
+const databaseUser = getConfigValue('DatabaseUser');
+const databasePassword = getConfigValue('DatabasePassword');
+const databaseDbname = getConfigValue('DatabaseDbname');
+const databaseCient = getConfigValue('DatabaseClient', 'pg');
+const databaseSsl = convertConfigValue(getConfigValue('DatabaseSsl', 'false'));
 
 let knex = require('knex')({
     client: databaseCient,
@@ -159,9 +156,7 @@ function executeStoredProcedure(command: string, queryArguments: string[]) {
     });
   }
 
-async function onControlEvent(event: ControlEvent): Promise<void> {    
-    // The Stored proc reaction should not call any stored procedure on control events
-    console.log(`Received control signal: ${JSON.stringify(event.controlSignal)} for query ${event.queryId}`);    
+async function onControlEvent(_event: ControlEvent): Promise<void> {    
 }
 
 
