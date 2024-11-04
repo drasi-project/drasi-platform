@@ -15,18 +15,10 @@
  */
 
 
-
 const yaml = require('js-yaml');
 const fs = require('fs');
 const deployResources = require("../fixtures/deploy-resources");
-const PortForward = require('../fixtures/port-forward');
-const SignalrFixture = require("../fixtures/signalr-fixture");
-const storedprocReactionManifest = require("../fixtures/storedproc-fixture");
 const pg = require('pg');
-
-
-let signalrFixture = new SignalrFixture(["query1"]);
-let dbPortForward = new PortForward("postgres", 5432);
 
 let dbClient = new pg.Client({
   database: "test-db",
@@ -38,29 +30,25 @@ let dbClient = new pg.Client({
 beforeAll(async () => {
   const resources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
   await deployResources(resources);
-  await signalrFixture.start();
-  dbClient.port = await dbPortForward.start();
   await dbClient.connect();
   await new Promise(r => setTimeout(r, 15000)); // reactivator is slow to startup
 }, 120000);
 
-afterAll(async () => {
-  await signalrFixture.stop();
-  await dbClient.end();
-  dbPortForward.stop();
-});
+test('Test StoredProc Reaction - AddedResultCommand', async () => {
+  // add a new item
+  const storedprocResources = yaml.loadAll(fs.readFileSync(__dirname + '/storedproc-reaction.yaml', 'utf8'));
+  await deployResources(storedprocResources);
 
-test('A row is updated', async () => {
-  let updateCondition = signalrFixture.waitForChange("query1", 
-    change => change.op == "u" && change.payload.after.Name == "Bar" && change.payload.after.Id == 1);
+  await dbClient.query(`INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (3, 'Drasi', '1')`);
 
-  await dbClient.query(`UPDATE "Item" SET "Name" = 'Bar' WHERE "ItemId" = 1`);
+  // sleep 35 seconds
+  await new Promise(r => setTimeout(r, 15000));
 
-  expect(await updateCondition).toBeTruthy();
-});
+  // Verify the results from the CommandResult table
+  let result = await dbClient.query(`SELECT * FROM "CommandResult" WHERE "ItemId" = 3`);
 
-test('Initial data', async () => {
-  let initData = await signalrFixture.requestReload("query1");
+  expect(result.rows.length == 1).toBeTruthy();
+  expect(result.rows[0].Name == "Drasi").toBeTruthy();
+  expect(result.rows[0].Category == "1").toBeTruthy();
 
-  expect(initData.length == 2).toBeTruthy();
-});
+}, 140000);

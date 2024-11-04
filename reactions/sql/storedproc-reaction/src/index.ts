@@ -127,7 +127,6 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
     }
 }
 
-
 function checkSqlCommandParameters(data: Record<string, any>, paramList: string[], queryArguments: string[]): boolean {
     for (const param of paramList) {
         if (data.hasOwnProperty(param)) {
@@ -169,9 +168,6 @@ async function executeStoredProcedure(command: string, queryArguments: string[])
         console.log(error);
       }
   }
-
-async function onControlEvent(_event: ControlEvent): Promise<void> {    
-}
 
 
 function convertConfigValue(val: string): boolean | string {

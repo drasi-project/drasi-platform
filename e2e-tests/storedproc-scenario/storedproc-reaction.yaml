@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Reaction
+name: test-storedproc
+spec:
+  kind: StoredProc
+  queries: 
+    query1:
+  properties:
+    AddedResultCommand: "public.insertCommandResult(@Id, @Name, @Category)"
+    DatabaseClient: "pg"
+    DatabaseHostname: "postgres.default.svc.cluster.local"
+    DatabaseDbname: "test-db"
+    DatabaseUser: "test"
+    DatabasePassword: "test"
+    DatabasePort: 5432
+    DatabaseSsl: false
