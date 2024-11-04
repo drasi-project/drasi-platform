@@ -29,7 +29,7 @@ actix-utils = "3"
 actix-web = "4.3"
 actix-web-actors = "4.1"
 actix-web-lab = "0.19"
-actix-ws = "0.2.5"
+actix-ws = "0.3.0"
 awc = "3"
 
 derive_more = "0.99.7"
@@ -56,6 +56,7 @@ tracing-subscriber = {version = "0.3.17", features = ["env-filter"]}
 cloudevents-sdk = "0.7.0"
 thiserror = "1.0.49"
 jsonschema = "0.17.1"
+reqwest-streams = { version = "0.3", features=["json"] }
 
 [dev-dependencies]
 faux = "^0.1"

@@ -15,25 +15,23 @@
  */
 
 import * as vscode from 'vscode';
-import { createSource } from './create-source';
-import { QueryExplorer } from './query-explorer';
-import { SourceProviderExplorer } from './source-provider-explorer';
-import { ReactionProviderExplorer } from './reaction-provider-explorer';
+import { WorkspaceExplorer } from './workspace-explorer';
+import { DrasiExplorer } from './drasi-explorer';
+import { DrasiClient } from './drasi-client';
+import { CodeLensProvider } from './codelens-provider';
 
 export function activate(context: vscode.ExtensionContext) {
-
-	console.log('Congratulations, your extension "drasi" is now active!');
-
-	const queryExplorer = new QueryExplorer();
-	vscode.window.registerTreeDataProvider('queries', queryExplorer);
-
-	const sourceProviderExplorer = new SourceProviderExplorer();
-	vscode.window.registerTreeDataProvider('sourceProviders', sourceProviderExplorer);
-
-	const reactionProviderExplorer = new ReactionProviderExplorer();
-	vscode.window.registerTreeDataProvider('reactionProviders', reactionProviderExplorer);
-
-	context.subscriptions.push(vscode.commands.registerCommand('drasi.createSource', createSource));
+	const drasiClient = new DrasiClient();
+	const workspaceExplorer = new WorkspaceExplorer(context.extensionUri, drasiClient);
+	vscode.window.registerTreeDataProvider('workspace', workspaceExplorer);
+	
+	const drasiExplorer = new DrasiExplorer(context.extensionUri, drasiClient);
+	vscode.window.registerTreeDataProvider('drasi', drasiExplorer);
+	
+	context.subscriptions.push(
+        vscode.languages.registerCodeLensProvider({ language: 'yaml' }, new CodeLensProvider(context.extensionUri, drasiClient))
+    );
+	
 }
 
 export function deactivate() {}

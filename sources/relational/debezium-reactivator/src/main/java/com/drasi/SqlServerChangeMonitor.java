@@ -22,9 +22,15 @@ import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
 import io.debezium.engine.spi.OffsetCommitPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
@@ -35,10 +41,13 @@ public class SqlServerChangeMonitor implements ChangeMonitor {
     private ChangePublisher publisher;
     private ExecutorService executor;
     private DebeziumEngine<ChangeEvent<String, String>> engine;
+    private ApplicationContext context;
+    private static final Logger log = LoggerFactory.getLogger(SqlServerChangeMonitor.class);
 
-    public SqlServerChangeMonitor(String sourceId, ChangePublisher publisher) {
+    public SqlServerChangeMonitor(String sourceId, ChangePublisher publisher, ApplicationContext context) {
         this.sourceId = sourceId;
         this.publisher = publisher;
+        this.context = context;
         this.executor = Executors.newSingleThreadExecutor();
     }
 
@@ -75,7 +84,18 @@ public class SqlServerChangeMonitor implements ChangeMonitor {
                 .using(OffsetCommitPolicy.always())
                 .notifying(new SqlServerChangeConsumer(mappings, publisher)).build();
 
-        executor.execute(engine);
+        executor.submit(() -> {
+            try {
+                engine.run();
+            } catch (Exception e) {
+                try {
+                    Files.write(Path.of("/dev/termination-log"), e.getMessage().getBytes());
+                } catch (IOException ex) {
+                    log.error(ex.getMessage());
+                }
+                SpringApplication.exit(this.context, () -> 1);
+            }
+        });
     }
 
     public void close() throws Exception {
