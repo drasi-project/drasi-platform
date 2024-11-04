@@ -1,1 +1,0 @@
-{"version":3,"file":"IHttpRetryPolicy.d.ts","sourceRoot":"","sources":["../../src/retry/IHttpRetryPolicy.ts"],"names":[],"mappings":";AAKA,OAAO,IAAI,MAAM,MAAM,CAAC;AAExB,MAAM,WAAW,gBAAgB;IAK7B,aAAa,CACT,cAAc,EAAE,MAAM,EACtB,YAAY,EAAE,MAAM,EACpB,gBAAgB,EAAE,IAAI,CAAC,mBAAmB,CAAC,aAAa,CAAC,GAC1D,OAAO,CAAC,OAAO,CAAC,CAAC;CACvB"}
