@@ -38,7 +38,7 @@ let knex = require('knex')({
 
 
 const queryParamsRegex = /@\w+/g;
-const addedResultCommand: string = process.env["AddedResultCommand"] ?? '';
+const addedResultCommand: string = getConfigValue('AddedResultCommand', '');
 console.log(`AddedResultCommand: ${addedResultCommand}`);
 const addedResultCommandParamList: string[] = [];
 // Retrieve the parameters from the addedResultCommand
@@ -53,7 +53,7 @@ if (addedResultCommand !== '') {
     }
 }
 
-const updatedResultCommand: string = process.env["UpdatedResultCommand"] ?? '';
+const updatedResultCommand: string = getConfigValue("UpdatedResultCommand",'');
 console.log(`UpdatedResultCommand: ${updatedResultCommand}`);
 const updatedResultCommandParamList: string[] = [];
 // Retrieve the parameters from the updatedResultCommand
@@ -67,7 +67,7 @@ if (updatedResultCommand !== '') {
     }
 }
 
-const deletedResultCommand: string = process.env["DeletedResultCommand"] ?? '';
+const deletedResultCommand: string = getConfigValue("DeletedResultCommand",'');
 console.log(`DeletedResultCommand: ${deletedResultCommand}`);
 const deletedResultCommandParamList: string[] = [];
 if (deletedResultCommand !== '') {
@@ -80,10 +80,7 @@ if (deletedResultCommand !== '') {
     }
 }
 
-let storedProcReaction = new DrasiReaction(onChangeEvent,{
-    parseQueryConfig: parseYaml,
-    onControlEvent: onControlEvent
-});
+let storedProcReaction = new DrasiReaction(onChangeEvent);
 
 
 // Start the reaction
@@ -144,7 +141,7 @@ function checkSqlCommandParameters(data: Record<string, any>, paramList: string[
 }
 
 
-function executeStoredProcedure(command: string, queryArguments: string[]) {
+async function executeStoredProcedure(command: string, queryArguments: string[]) {
     // Check if the command starts with 'CALL ' and add it if it doesn't
     if (!command.trim().toUpperCase().startsWith('CALL ')) {
       command = 'CALL ' + command;
@@ -165,11 +162,12 @@ function executeStoredProcedure(command: string, queryArguments: string[]) {
     console.log(`Executing the stored proc: ${query}`);
   
     // Execute the query
-    knex.raw(query).then(() => {
-      console.log("The query was executed successfully");
-    }).catch((error) => {
-      console.log(error);
-    });
+    try {
+        await knex.raw(query);
+        console.log("The query was executed successfully");
+      } catch (error) {
+        console.log(error);
+      }
   }
 
 async function onControlEvent(_event: ControlEvent): Promise<void> {    
