@@ -124,7 +124,7 @@ spec:
 ---
 apiVersion: v1
 kind: ContinuousQuery
-name: query1
+name: query2
 spec:
   mode: query
   sources:    

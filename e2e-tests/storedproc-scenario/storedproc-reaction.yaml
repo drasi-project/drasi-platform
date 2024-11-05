@@ -4,7 +4,7 @@ name: test-storedproc
 spec:
   kind: StoredProc
   queries: 
-    query1:
+    query2:
   properties:
     AddedResultCommand: "public.insertCommandResult(@Id, @Name, @Category)"
     DatabaseClient: "pg"

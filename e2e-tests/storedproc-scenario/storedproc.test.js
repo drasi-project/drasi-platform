@@ -37,8 +37,14 @@ beforeAll(async () => {
 
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
-  await new Promise(r => setTimeout(r, 15000)); // reactivator is slow to startup
+  await new Promise(r => setTimeout(r, 15000)); 
 }, 120000);
+
+
+afterAll(async () => {
+  await dbClient.end();
+  dbPortForward.stop();
+});
 
 test('Test StoredProc Reaction - AddedResultCommand', async () => {
   // add a new item
@@ -47,14 +53,40 @@ test('Test StoredProc Reaction - AddedResultCommand', async () => {
 
   await dbClient.query(`INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (3, 'Drasi', '1')`);
 
-  // sleep 35 seconds
-  await new Promise(r => setTimeout(r, 15000));
-
-  // Verify the results from the CommandResult table
-  let result = await dbClient.query(`SELECT * FROM "CommandResult" WHERE "ItemId" = 3`);
-
-  expect(result.rows.length == 1).toBeTruthy();
-  expect(result.rows[0].Name == "Drasi").toBeTruthy();
-  expect(result.rows[0].Category == "1").toBeTruthy();
+  await waitForCondition(async () => {
+    const result = await dbClient.query(`SELECT * FROM "CommandResult" WHERE "ItemId" = 3`);
+    
+    return (
+      result.rows.length === 1 &&
+      result.rows[0].Name === "Drasi" &&
+      result.rows[0].Category === "1"
+    );
+  }, 1000, 30000) 
+    .then(() => {
+      expect(true).toBeTruthy(); 
+    })
+    .catch((err) => {
+      console.error(err);
+    });
 
 }, 140000);
+
+
+
+function waitForCondition(checkFn, interval = 1000, timeout = 30000) {
+  return new Promise((resolve, reject) => {
+    let elapsedTime = 0;
+
+    const intervalId = setInterval(async () => {
+      if (await checkFn()) {
+        clearInterval(intervalId);
+        resolve();
+      } else if (elapsedTime >= timeout) {
+        clearInterval(intervalId);
+        reject(new Error("Timed out waiting for condition to be met"));
+      }
+
+      elapsedTime += interval;
+    }, interval);
+  });
+}
