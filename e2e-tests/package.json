@@ -4,8 +4,8 @@
   "description": "Folder will contain end-to-end tests",
   "main": "index.js",
   "scripts": {
-    "test": "jest --runInBand --detectOpenHandles",
-    "test:ci": "jest --runInBand --reporters=default --reporters=jest-junit --detectOpenHandles"
+    "test": "jest --detectOpenHandles",
+    "test:ci": "jest --reporters=default --reporters=jest-junit --detectOpenHandles"
   },
   "jest-junit": {
     "suiteNameTemplate": "{filepath}",
