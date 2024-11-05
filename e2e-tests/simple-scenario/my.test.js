@@ -21,7 +21,6 @@ const fs = require('fs');
 const deployResources = require("../fixtures/deploy-resources");
 const PortForward = require('../fixtures/port-forward');
 const SignalrFixture = require("../fixtures/signalr-fixture");
-const storedprocReactionManifest = require("../fixtures/storedproc-fixture");
 const pg = require('pg');
 
 

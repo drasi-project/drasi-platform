@@ -17,8 +17,12 @@
 
 const yaml = require('js-yaml');
 const fs = require('fs');
+const PortForward = require('../fixtures/port-forward');
 const deployResources = require("../fixtures/deploy-resources");
 const pg = require('pg');
+
+
+let dbPortForward = new PortForward("postgres", 5432);
 
 let dbClient = new pg.Client({
   database: "test-db",
@@ -30,6 +34,8 @@ let dbClient = new pg.Client({
 beforeAll(async () => {
   const resources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
   await deployResources(resources);
+
+  dbClient.port = await dbPortForward.start();
   await dbClient.connect();
   await new Promise(r => setTimeout(r, 15000)); // reactivator is slow to startup
 }, 120000);
