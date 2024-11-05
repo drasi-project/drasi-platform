@@ -5,10 +5,24 @@
     <RootNamespace>Drasi.Reaction.SDK</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <PackageId>Drasi.Reaction.SDK</PackageId>
+    <Authors>The Drasi authors</Authors>
+    <Description>Reaction SDK for Drasi</Description>
+    <PackageProjectUrl>https://drasi.io</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/drasi-project/drasi-platform.git</RepositoryUrl>
+    <Version>0.1.0</Version>
+    <PackageIcon>drasi.png</PackageIcon>
+    <PackageVersion>0.1.0-alpha</PackageVersion>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-	<InternalsVisibleTo Include="Drasi.Reaction.SDK.Tests" />
+	  <InternalsVisibleTo Include="Drasi.Reaction.SDK.Tests" />
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+    <None Include="drasi.png" Pack="true" PackagePath="\"/>
     <PackageReference Include="Dapr.AspNetCore" Version="1.14.0" />
     <PackageReference Include="Dapr.Client" Version="1.14.0" />
     <PackageReference Include="YamlDotNet" Version="16.1.3" />
