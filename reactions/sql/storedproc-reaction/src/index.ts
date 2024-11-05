@@ -36,6 +36,23 @@ let knex = require('knex')({
     }
   });
 
+//  mssql requires a different connection object; see https://knexjs.org/faq/recipes.html#connecting-to-mssql-on-azure-sql-database
+if (databaseCient === 'mssql') {
+    knex = require('knex')({
+        client: databaseCient,
+        connection: {
+          server: databaseHostname,
+          user: databaseUser,
+          password: databasePassword,
+          database: databaseDbname,
+          options: {
+            port: Number(databasePort),
+            encrypt: true,
+          },
+        }
+      });
+}
+
 
 const queryParamsRegex = /@\w+/g;
 const addedResultCommand: string = getConfigValue('AddedResultCommand', '');
@@ -154,8 +171,13 @@ function checkSqlCommandParameters(data: Record<string, any>, paramList: string[
 
 async function executeStoredProcedure(command: string, queryArguments: string[]): Promise<void> {
     // Check if the command starts with 'CALL ' and add it if it doesn't
-    if (!command.trim().toUpperCase().startsWith('CALL ')) {
+    if (databaseCient !== 'mssql' && !command.trim().toUpperCase().startsWith('CALL ')) {
       command = 'CALL ' + command;
+    }
+
+    // Check if the command starts with 'EXEC ' and add it if it doesn't
+    if (databaseCient === 'mssql' && !command.trim().toUpperCase().startsWith('EXEC ')) {
+        command = 'EXEC ' + command;
     }
     
     const index = command.indexOf("(");
@@ -170,6 +192,12 @@ async function executeStoredProcedure(command: string, queryArguments: string[])
       query += (i < queryArguments.length - 1) ? ", " : "";
     }
     query += ")";
+
+
+    if (databaseCient === 'mssql') {
+        // mssql syntax requirments
+        query = query.replace('(', ' ').replace(')', '');
+    }
     console.log(`Executing the stored proc: ${query}`);
   
     // Execute the query
