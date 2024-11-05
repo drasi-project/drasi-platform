@@ -65,8 +65,9 @@ test('Test StoredProc Reaction - AddedResultCommand', async () => {
     .then(() => {
       expect(true).toBeTruthy(); 
     })
-    .catch((err) => {
-      console.error(err);
+    .catch(() => {
+      // fail the test
+      expect(false).toBeTruthy();
     });
 
 }, 140000);

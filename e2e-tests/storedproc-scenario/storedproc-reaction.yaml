@@ -8,8 +8,8 @@ spec:
   properties:
     AddedResultCommand: "public.insertCommandResult(@Id, @Name, @Category)"
     DatabaseClient: "pg"
-    DatabaseHostname: "postgre-2.default.svc.cluster.local"
-    DatabaseDbname: "storedproc-test-db"
+    DatabaseHostname: "postgre.default.svc.cluster.local"
+    DatabaseDbname: "test-db"
     DatabaseUser: "test"
     DatabasePassword: "test"
     DatabasePort: 5432
