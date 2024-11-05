@@ -57,7 +57,7 @@ kind: ConfigMap
 metadata:
   name: test-pg-config
   labels:
-    app: postgres
+    app: postgres-2
 data:
   POSTGRES_DB: storedproc-test-db
   POSTGRES_USER: test
@@ -66,16 +66,16 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
+  name: postgres-2-2
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: postgres-2
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgres-2
     spec:
       containers:
         - name: postgres
@@ -97,15 +97,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: postgres-2
   labels:
-    app: postgres
+    app: postgres-2
 spec:
   type: ClusterIP
   ports:
    - port: 5432
   selector:
-   app: postgres
+   app: postgres-2
 ---
 apiVersion: v1
 kind: Source
@@ -113,7 +113,7 @@ name: test-source2
 spec:
   kind: PostgreSQL
   properties:
-    host: postgres.default.svc.cluster.local
+    host: postgres-2.default.svc.cluster.local
     port: 5432
     user: test
     password: test
