@@ -1,9 +1,8 @@
 {
   "name": "drasi",
   "displayName": "drasi",
-  "publisher": "drasi",
-  "description": "",
   "publisher": "drasi-project",
+  "description": "",
   "version": "0.0.3",
   "repository": {
     "type": "git",
@@ -26,37 +25,25 @@
         {
           "id": "drasi-explorer",
           "title": "Drasi Explorer",
-          "icon": "resources/radioactive.svg"
+          "icon": "resources/drasi.svg"
         }
       ]
     },
     "views": {
       "drasi-explorer": [
         {
-          "id": "queries",
-          "name": "Continuous Queries"
+          "id": "drasi",
+          "name": "Drasi"
         },
         {
-          "id": "sourceProviders",
-          "name": "Source Providers"
-        },
-        {
-          "id": "reactionProviders",
-          "name": "Reaction Providers"
+          "id": "workspace",
+          "name": "Workspace"
         }
       ]
     },
     "commands": [
       {
-        "command": "drasi.createSource",
-        "title": "Drasi: Create Source Manifest"
-      },
-      {
-        "command": "drasi.deployTools",
-        "title": "Drasi: Deploy Dev Tools"
-      },
-      {
-        "command": "queries.refresh",
+        "command": "workspace.refresh",
         "title": "Refresh",
         "icon": {
           "light": "resources/light/refresh.svg",
@@ -64,7 +51,7 @@
         }
       },
       {
-        "command": "sourceProviders.refresh",
+        "command": "drasi.refresh",
         "title": "Refresh",
         "icon": {
           "light": "resources/light/refresh.svg",
@@ -72,93 +59,129 @@
         }
       },
       {
-        "command": "queries.run",
-        "title": "Run"
-      },
-      {
-        "command": "sourceProviders.validate",
+        "command": "workspace.sourceProvider.validate",
         "title": "Validate"
       },
       {
-        "command": "reactionProviders.refresh",
-        "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
+        "command": "workspace.reactionProvider.validate",
+        "title": "Validate"
       },
       {
-        "command": "reactionProviders.validate",
-        "title": "Validate"
+        "command": "drasi.query.watch",
+        "title": "Attach",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "drasi.resource.delete",
+        "title": "Delete",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "workspace.query.run",
+        "title": "Debug",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "workspace.resource.apply",
+        "title": "Apply",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "editor.query.run",
+        "title": "Debug",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "editor.resource.apply",
+        "title": "Apply",
+        "icon": "$(cloud-upload)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "queries.refresh",
-          "when": "view == queries",
+          "command": "workspace.refresh",
+          "when": "view == workspace",
           "group": "navigation"
         },
         {
-          "command": "sourceProviders.refresh",
-          "when": "view == sourceProviders",
-          "group": "navigation"
-        },
-        {
-          "command": "reactionProviders.refresh",
-          "when": "view == reactionProviders",
+          "command": "drasi.refresh",
+          "when": "view == drasi",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "queries.run",
-          "when": "view == queries && viewItem == queryNode",
+          "command": "workspace.resource.apply",
+          "when": "view == workspace && (viewItem == workspace.queryNode || viewItem == workspace.sourceNode || viewItem == workspace.reactionNode)",
           "group": "inline"
         },
         {
-          "command": "sourceProviders.validate",
-          "when": "view == sourceProviders && viewItem == sourceProviderNode",
+          "command": "workspace.query.run",
+          "when": "view == workspace && viewItem == workspace.queryNode",
           "group": "inline"
         },
         {
-          "command": "reactionProviders.validate",
-          "when": "view == reactionProviders && viewItem == reactionProviderNode",
+          "command": "workspace.sourceProvider.validate",
+          "when": "view == workspace && viewItem == workspace.sourceProviderNode",
+          "group": "inline"
+        },
+        {
+          "command": "workspace.reactionProvider.validate",
+          "when": "view == workspace && viewItem == workspace.reactionProviderNode",
+          "group": "inline"
+        },
+        {
+          "command": "drasi.query.watch",
+          "when": "view == drasi && viewItem == drasi.queryNode",
+          "group": "inline"
+        },
+        {
+          "command": "drasi.resource.delete",
+          "when": "view == drasi && (viewItem == drasi.queryNode || viewItem == drasi.sourceNode || viewItem == drasi.reactionNode)",
           "group": "inline"
         }
       ]
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "vscode:prepublish": "NODE_ENV=production node ./esbuild.js",
+    "compile": "node ./esbuild.js",
+    "package": "vsce package",
+    "watch": "node ./esbuild.js --watch",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js",
-    "package": "vsce package"
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@types/glob": "^8.0.1",
     "@types/js-yaml": "^4.0.5",
-    "@types/mocha": "^10.0.1",
+    "@types/mocha": "10.0.1",
     "@types/node": "16.x",
     "@types/vscode": "^1.75.0",
+    "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
     "@vscode/test-electron": "^2.2.2",
     "@vscode/vsce": "^2.31.0",
+    "esbuild": "^0.16.10",
     "eslint": "^8.56.0",
     "glob": "^8.1.0",
-    "mocha": "^10.1.0",
+    "mocha": "10.1.0",
+    "ts-mockito": "^2.6.1",
     "typescript": "^4.9.4"
   },
   "dependencies": {
+    "@kubernetes/client-node": "^0.22.1",
+    "@vscode/webview-ui-toolkit": "^1.4.0",
     "ajv": "^8.12.0",
+    "async-mutex": "^0.5.0",
     "axios": "^1.7.2",
     "braces": "^3.0.3",
     "js-yaml": "^4.1.0",
     "portfinder": "^1.0.32",
-    "strip-ansi": "^7.0.1"
+    "strip-ansi": "^7.0.1",
+    "ws": "^8.18.0",
+    "yaml": "^2.6.0"
   }
 }

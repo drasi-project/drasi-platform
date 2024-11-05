@@ -14,8 +14,13 @@
  * limitations under the License.
  */
 
+import { Resource } from "./resource";
 
-export interface Resource {
-  kind: string;
-  name: string;
+
+export interface ReactionProvider extends Resource<ReactionProviderSpec> {
+  
+}
+
+interface ReactionProviderSpec {
+
 }

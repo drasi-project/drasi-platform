@@ -25,6 +25,7 @@ import io.debezium.connector.sqlserver.SqlServerConnectorConfig;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 

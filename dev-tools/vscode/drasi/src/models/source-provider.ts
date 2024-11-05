@@ -17,8 +17,8 @@
 import { Resource } from "./resource";
 
 
-export interface SourceProvider extends Resource {
-  spec: SourceProviderSpec;
+export interface SourceProvider extends Resource<SourceProviderSpec> {
+  
 }
 
 interface SourceProviderSpec {

@@ -108,6 +108,7 @@ function extractConfig(cfg) {
   dbConfig.connection.database = cfg.database;
   dbConfig.connection.ssl = convertConfigValue(cfg.ssl);
   dbConfig.connection.encrypt = convertConfigValue(cfg.encrypt);
+  dbConfig.trustServerCertificate = convertConfigValue(cfg.trustServerCertificate);
 
   console.log("sourceProxy.main - dbConfig:", dbConfig);
   return dbConfig;

@@ -16,76 +16,10 @@
 
 import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
-import { SourceProvider } from './source-provider';
 import Ajv from 'ajv';
 
 
-export class SourceProviderExplorer implements vscode.TreeDataProvider<ExplorerNode> {
-	
-	private _onDidChangeTreeData: vscode.EventEmitter<ExplorerNode | undefined | void> = new vscode.EventEmitter<ExplorerNode | undefined | void>();
-	readonly onDidChangeTreeData: vscode.Event<ExplorerNode | undefined | void> = this._onDidChangeTreeData.event;
-
-  constructor () {
-    vscode.commands.registerCommand('sourceProviders.refresh', this.refresh.bind(this));
-    vscode.commands.registerCommand('sourceProviders.validate', this.validateSourceProvider.bind(this));
-    vscode.workspace.onDidSaveTextDocument((evt) => {
-      if (evt.languageId === "yaml") {
-        this.refresh();
-      }
-    });
-  }
-
-	refresh(): void {
-		this._onDidChangeTreeData.fire();
-	}
-	
-	getTreeItem(element: ExplorerNode): vscode.TreeItem | Thenable<vscode.TreeItem> {
-		return element;
-	}
-
-  async getChildren(element?: ExplorerNode | undefined): Promise<ExplorerNode[]> {
-    if (!vscode.workspace.workspaceFolders)
-      return [];
-    if (!element) {
-      let result: any[] = [];
-
-      let files = await vscode.workspace.findFiles('**/*.yaml');
-      for (let f of files.sort()) {
-        try {
-          let content = await vscode.workspace.fs.readFile(f);
-          let docs: any[] = yaml.loadAll(content.toString());
-          let hasSourceProviders = docs.some(x => !!x && x.kind === "SourceProvider");
-
-          if (hasSourceProviders)
-            result.push(new FileNode(f));
-        } catch (err) {
-          console.error(err);
-        }
-      }
-      return result;
-    }
-
-    let result: ExplorerNode[] = [];
-		if (!element.resourceUri)
-			return result;
-
-    try {
-      let content = await vscode.workspace.fs.readFile(element.resourceUri);
-      let docs: any[] = yaml.loadAll(content.toString());
-
-      for (let sp of docs.filter(x => !!x && x.kind === "SourceProvider")) {
-        let uri = vscode.Uri.parse(element.resourceUri.toString() + "#" + sp.name);
-        let node = new SourceProviderNode(sp, uri);
-        result.push(node);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-    return result;
-  }
-
-
-  async validateSourceProvider(spNode: SourceProviderNode) {
+export async function validateSourceProvider(spNode: vscode.TreeItem) {
     if (!spNode || !spNode.resourceUri)
       return;
 
@@ -379,31 +313,4 @@ export class SourceProviderExplorer implements vscode.TreeDataProvider<ExplorerN
       
     });
   }
-}
 
-
-class ExplorerNode extends vscode.TreeItem {
-
-}
-
-class FileNode extends ExplorerNode {
-	contextValue = 'fileNode';
-
-  constructor (uri: vscode.Uri) {
-    super(uri, vscode.TreeItemCollapsibleState.Expanded);
-  }
-}
-
-class SourceProviderNode extends ExplorerNode {
-	contextValue = 'sourceProviderNode';
-
-  constructor (query: SourceProvider, uri: vscode.Uri) {
-    super(uri);
-    this.label = query.name;
-    this.command = {
-      command: "vscode.open",
-      title: "Open",
-      arguments: [uri]
-    };
-  }
-}

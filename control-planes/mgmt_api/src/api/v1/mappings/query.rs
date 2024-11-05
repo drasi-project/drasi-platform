@@ -43,6 +43,7 @@ impl From<QuerySpecDto> for QuerySpec {
             sources: spec.sources.into(),
             storage_profile: spec.storage_profile,
             view: spec.view.unwrap_or_default().into(),
+            transient: None,
         }
     }
 }
