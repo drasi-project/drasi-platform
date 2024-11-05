@@ -16,9 +16,6 @@
 
 const cp = require('child_process');
 const { loadDrasiImages, installDrasi, tryLoadInfraImages, waitForChildProcess } = require('./infrastructure');
-const deployResources = require('./deploy-resources');
-const yaml = require('js-yaml');
-const fs = require('fs');
 
 module.exports = async function () {
   console.log("Creating cluster...");
