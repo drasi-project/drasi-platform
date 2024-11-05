@@ -9,7 +9,7 @@ spec:
     AddedResultCommand: "public.insertCommandResult(@Id, @Name, @Category)"
     DatabaseClient: "pg"
     DatabaseHostname: "postgres.default.svc.cluster.local"
-    DatabaseDbname: "test-db"
+    DatabaseDbname: "storedproc-test-db"
     DatabaseUser: "test"
     DatabasePassword: "test"
     DatabasePort: 5432

@@ -59,7 +59,7 @@ metadata:
   labels:
     app: postgres
 data:
-  POSTGRES_DB: test-db
+  POSTGRES_DB: storedproc-test-db
   POSTGRES_USER: test
   POSTGRES_PASSWORD: test
 ---
@@ -109,7 +109,7 @@ spec:
 ---
 apiVersion: v1
 kind: Source
-name: test-source
+name: test-source2
 spec:
   kind: PostgreSQL
   properties:
@@ -117,7 +117,7 @@ spec:
     port: 5432
     user: test
     password: test
-    database: test-db
+    database: storedproc-test-db
     ssl: false
     tables:
       - public.Item
@@ -129,7 +129,7 @@ spec:
   mode: query
   sources:    
     subscriptions:
-      - id: test-source
+      - id: test-source2
   query: > 
     MATCH 
       (i:Item {Category: '1'})
