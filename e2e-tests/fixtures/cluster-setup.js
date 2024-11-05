@@ -27,7 +27,7 @@ module.exports = async function () {
 
   await Promise.all([
     tryLoadInfraImages("drasi-test"),
-    loadDrasiImages("drasi-test"),
+    loadDrasiImages("drasi-test")
   ]);
 
   await installPostgres();

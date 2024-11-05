@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 The
+ * Copyright 2024 The Drasi Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,7 +96,11 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
         const queryArguments: any[] = [];
         if (checkSqlCommandParameters(added, addedResultCommandParamList, queryArguments)) { // checks if the results contain the parameters
             console.log(`Issuing added command: ${addedResultCommand}`);
-            executeStoredProcedure(addedResultCommand, queryArguments);
+            try {
+                await executeStoredProcedure(addedResultCommand, queryArguments);
+            } catch (error) {
+                throw new Error(`Failed to execute added stored procedure: ${error.message}`);
+            }
         } else {
             throw new Error(`Missing parameters in the added results`);
         }
@@ -109,7 +113,11 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
 
         if (checkSqlCommandParameters(afterResults, updatedResultCommandParamList, queryArguments)) { // checks if the results contain the parameters
             console.log(`Issuing updated command: ${updatedResultCommand}`);
-            executeStoredProcedure(updatedResultCommand, queryArguments);
+            try {
+                await executeStoredProcedure(updatedResultCommand, queryArguments);
+            } catch (error) {
+                throw new Error(`Failed to execute updated stored procedure: ${error.message}`);
+            }
         } else {
             throw new Error(`Missing parameters in the updated results`);
         }
@@ -120,7 +128,11 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
         const queryArguments: string[] = [];
         if (checkSqlCommandParameters(deleted, deletedResultCommandParamList, queryArguments)) { // checks if the results contain the parameters
             console.log(`Issuing deleted command: ${deletedResultCommand}`);
-            executeStoredProcedure(deletedResultCommand, queryArguments);
+            try {
+                await executeStoredProcedure(deletedResultCommand, queryArguments);
+            } catch (error) {
+                throw new Error(`Failed to execute deleted stored procedure: ${error.message}`);
+            }
         } else {
             throw new Error(`Missing parameters in the deleted results`);
         }
@@ -140,7 +152,7 @@ function checkSqlCommandParameters(data: Record<string, any>, paramList: string[
 }
 
 
-async function executeStoredProcedure(command: string, queryArguments: string[]) {
+async function executeStoredProcedure(command: string, queryArguments: string[]): Promise<void> {
     // Check if the command starts with 'CALL ' and add it if it doesn't
     if (!command.trim().toUpperCase().startsWith('CALL ')) {
       command = 'CALL ' + command;
@@ -166,6 +178,7 @@ async function executeStoredProcedure(command: string, queryArguments: string[])
         console.log("The query was executed successfully");
       } catch (error) {
         console.log(error);
+        throw new Error(`Failed to execute stored procedure: ${error.message}`);
       }
   }
 
