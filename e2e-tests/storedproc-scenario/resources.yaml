@@ -1,35 +1,30 @@
 apiVersion: v1
-kind: ReactionProvider
-name: StoredProc
+kind: Source
+name: test-source-2
 spec:
-  config_schema: 
-    type: object
-    properties: 
-      AddedResultCommand:
-        type: string
-      UpdatedResultCommand:
-        type: string
-      DeletedResultCommand:
-        type: string
-      DatabaseHostname:
-        type: string
-      DatabasePort:
-        type: number
-      DatabaseUser:
-        type: string
-      DatabaseDbname:
-        type: string
-      DatabasePassword:
-        type: string
-      DatabaseSsl:
-        type: boolean
-        default: false
-    required:
-      - DatabaseHostname
-      - DatabasePort
-      - DatabaseUser
-      - DatabaseDbname
-      - DatabasePassword
-  services:
-    storedproc:
-      image: reaction-storedproc
+  kind: PostgreSQL
+  properties:
+    host: postgres.default.svc.cluster.local
+    port: 5432
+    user: test
+    password: test
+    database: test-db
+    ssl: false
+    tables:
+      - public.Item
+---
+apiVersion: v1
+kind: ContinuousQuery
+name: query2
+spec:
+  mode: query
+  sources:    
+    subscriptions:
+      - id: test-source-2
+  query: > 
+    MATCH 
+      (i:Item {Category: '2'})
+    RETURN 
+      i.ItemId AS Id, 
+      i.Name as Name,
+      i.Category as Category

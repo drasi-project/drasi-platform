@@ -16,6 +16,9 @@
 
 const cp = require('child_process');
 const { loadDrasiImages, installDrasi, tryLoadInfraImages, waitForChildProcess } = require('./infrastructure');
+const deployResources = require('./deploy-resources');
+const yaml = require('js-yaml');
+const fs = require('fs');
 
 module.exports = async function () {
   console.log("Creating cluster...");
@@ -24,8 +27,16 @@ module.exports = async function () {
 
   await Promise.all([
     tryLoadInfraImages("drasi-test"),
-    loadDrasiImages("drasi-test")
+    loadDrasiImages("drasi-test"),
   ]);
 
+  await installPostgres();
   await installDrasi();
 };
+
+
+
+async function installPostgres() {
+  const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/postgres.yaml', 'utf8'));
+  await deployResources(postgresResources);
+}

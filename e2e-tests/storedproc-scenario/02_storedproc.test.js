@@ -47,11 +47,11 @@ afterAll(async () => {
 });
 
 test('Test StoredProc Reaction - AddedResultCommand', async () => {
-  // add a new item
   const storedprocResources = yaml.loadAll(fs.readFileSync(__dirname + '/storedproc-reaction.yaml', 'utf8'));
   await deployResources(storedprocResources);
 
-  await dbClient.query(`INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (3, 'Drasi', '1')`);
+  // inserts a row into the Item table
+  await dbClient.query(`INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (3, 'Drasi', '2')`);
 
   await waitForCondition(async () => {
     const result = await dbClient.query(`SELECT * FROM "CommandResult" WHERE "ItemId" = 3`);
@@ -59,14 +59,13 @@ test('Test StoredProc Reaction - AddedResultCommand', async () => {
     return (
       result.rows.length === 1 &&
       result.rows[0].Name === "Drasi" &&
-      result.rows[0].Category === "1"
+      result.rows[0].Category === "2"
     );
   }, 1000, 30000) 
     .then(() => {
       expect(true).toBeTruthy(); 
     })
     .catch(() => {
-      // fail the test
       expect(false).toBeTruthy();
     });
 
