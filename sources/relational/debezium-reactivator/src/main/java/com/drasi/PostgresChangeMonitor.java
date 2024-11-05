@@ -76,6 +76,9 @@ public class PostgresChangeMonitor implements ChangeMonitor {
                 .with("publication.autocreate.mode", "filtered")
                 .with("snapshot.mode", "never")
                 .with("decimal.handling.mode", "double")
+                .with("time.precision.mode", "adaptive_time_microseconds")
+                .with("converters", "temporalConverter")
+                .with("temporalConverter.type", "com.drasi.TemporalConverter")
                 .with("table.include.list", tableListStr).build();
 
         var sr = new SchemaReader(config);

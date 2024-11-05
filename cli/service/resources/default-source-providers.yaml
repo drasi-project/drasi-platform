@@ -104,6 +104,9 @@ spec:
       encrypt:
         type: boolean
         default: false
+      trustServerCertificate:
+        type: boolean
+        default: false
       user:
         type: string
       tables:
