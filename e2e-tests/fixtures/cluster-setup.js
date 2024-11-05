@@ -30,13 +30,5 @@ module.exports = async function () {
     loadDrasiImages("drasi-test")
   ]);
 
-  await installPostgres();
   await installDrasi();
 };
-
-
-
-async function installPostgres() {
-  const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/postgres.yaml', 'utf8'));
-  await deployResources(postgresResources);
-}

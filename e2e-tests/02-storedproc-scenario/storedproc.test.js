@@ -22,7 +22,7 @@ const deployResources = require("../fixtures/deploy-resources");
 const pg = require('pg');
 
 
-let dbPortForward = new PortForward("postgres", 5432);
+let dbPortForward = new PortForward("postgres2", 5432);
 
 let dbClient = new pg.Client({
   database: "test-db",
