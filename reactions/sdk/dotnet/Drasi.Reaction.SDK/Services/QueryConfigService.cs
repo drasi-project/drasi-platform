@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 
 namespace Drasi.Reaction.SDK.Services
 {
-    internal class QueryConfigService(IConfigDeserializer configDeserializer) : IQueryConfigService
+    internal class QueryConfigService(IConfigDeserializer configDeserializer, IConfiguration appConfig) : IQueryConfigService
     {
-        private readonly string _configDirectory = Environment.GetEnvironmentVariable("QueryConfigPath") ?? "/etc/queries";
+        private readonly string _configDirectory = appConfig["QueryConfigPath"] ?? "/etc/queries";
         private readonly IConfigDeserializer _configDeserializer = configDeserializer;
 
         public List<string> GetQueryNames()

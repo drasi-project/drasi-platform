@@ -66,7 +66,13 @@ namespace Drasi.Reaction.SDK
         {
             configureServices(_webappBuilder.Services);
             return this;
-        }        
+        }
+
+        public ReactionBuilder<TQueryConfig> Configure(Action<IConfigurationManager> configure)
+        {
+            configure(_webappBuilder.Configuration);
+            return this;
+        }
 
         public Reaction<TQueryConfig> Build()
         {

@@ -38,9 +38,9 @@ public class Reaction<TQueryConfig> : IHost
     }
     
     public async Task StartAsync(CancellationToken cancellationToken = default)
-    {
+    {   
         Logger.LogInformation("Starting reaction");
-        await _app.RunAsync("http://127.0.0.1:80");
+        await _app.RunAsync($"http://127.0.0.1:{Configuration["APP_PORT"] ?? "80"}");
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
