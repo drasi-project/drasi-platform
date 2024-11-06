@@ -84,7 +84,7 @@ Usage examples:
 			}
 
 			if local {
-				fmt.Printf("Installing Drasi with local images\n")
+				fmt.Printf("Installing Drasi version %s with local images\n", version)
 			} else {
 				fmt.Printf("Installing Drasi with version %s from registry %s\n", version, registry)
 			}
