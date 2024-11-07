@@ -149,13 +149,21 @@ spec:
   config_schema:
     type: object
     properties:
-      StorageConnectionString:
+      accountName:
         type: string
-      QueueName:
+      accountKey:
         type: string
+      queueName:
+        type: string
+      format:
+        type: string
+        enumValues:
+          - "raw"
+          - "debezium"
+        default: "raw"
     required:
-      - StorageConnectionString
-      - QueueName
+      - accountName
+      - queueName
 ---
 apiVersion: v1
 kind: ReactionProvider
