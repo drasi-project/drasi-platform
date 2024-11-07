@@ -19,6 +19,7 @@ const yaml = require('js-yaml');
 const fs = require('fs');
 const PortForward = require('../fixtures/port-forward');
 const deployResources = require("../fixtures/deploy-resources");
+const deleteResources = require("../fixtures/delete-resources");
 const pg = require('pg');
 
 
@@ -44,6 +45,12 @@ beforeAll(async () => {
 afterAll(async () => {
   await dbClient.end();
   dbPortForward.stop();
+
+  const resources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
+  await deleteResources(resources);
+
+  const reactionResources = yaml.loadAll(fs.readFileSync(__dirname + '/storedproc-reaction.yaml', 'utf8'));
+  await deleteResources(reactionResources);
 });
 
 test('Test StoredProc Reaction - AddedResultCommand', async () => {

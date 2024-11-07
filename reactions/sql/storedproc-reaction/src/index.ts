@@ -55,7 +55,7 @@ if (databaseCient === 'mssql') {
 
 
 const queryParamsRegex = /@\w+/g;
-const addedResultCommand: string = getConfigValue('AddedResultCommand', '');
+const addedResultCommand: string = getConfigValue('addedResultCommand', '');
 console.log(`AddedResultCommand: ${addedResultCommand}`);
 const addedResultCommandParamList: string[] = [];
 // Retrieve the parameters from the addedResultCommand
@@ -70,7 +70,7 @@ if (addedResultCommand !== '') {
     }
 }
 
-const updatedResultCommand: string = getConfigValue("UpdatedResultCommand",'');
+const updatedResultCommand: string = getConfigValue("updatedResultCommand", '');
 console.log(`UpdatedResultCommand: ${updatedResultCommand}`);
 const updatedResultCommandParamList: string[] = [];
 // Retrieve the parameters from the updatedResultCommand
@@ -84,7 +84,7 @@ if (updatedResultCommand !== '') {
     }
 }
 
-const deletedResultCommand: string = getConfigValue("DeletedResultCommand",'');
+const deletedResultCommand: string = getConfigValue("deletedResultCommand", '');
 console.log(`DeletedResultCommand: ${deletedResultCommand}`);
 const deletedResultCommandParamList: string[] = [];
 if (deletedResultCommand !== '') {
