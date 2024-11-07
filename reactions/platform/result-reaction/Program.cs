@@ -42,7 +42,6 @@ app.Urls.Add("http://0.0.0.0:8080"); //app
 // Adding an endpoint that supports retrieving all results
 app.MapGet("/{queryId}", async (string queryId) => 
 {
-    Console.WriteLine("Retrieving result for queryId: " + queryId);
     var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
     List<JsonElement> result = new List<JsonElement>();
     await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
@@ -53,8 +52,6 @@ app.MapGet("/{queryId}", async (string queryId) =>
             result.Add(data);
         }
     }
-    // Convert result to a string and print it
-    Console.WriteLine("Result:" + JsonConvert.SerializeObject(result));
     return result;
 });
 
@@ -62,7 +59,6 @@ app.MapGet("/{queryId}", async (string queryId) =>
 // Used to get the last result
 app.MapGet("/{queryId}/last", async (string queryId) => 
 {
-    Console.WriteLine("Retrieving the latest result for queryId: " + queryId);
     var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
     List<JsonElement> result = new List<JsonElement>();
     await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
@@ -73,17 +69,14 @@ app.MapGet("/{queryId}/last", async (string queryId) =>
             result.Add(data);
         }
     }
-    // Convert result to a string and print it
-    Console.WriteLine("Result:" + JsonConvert.SerializeObject(result));
-    return result;
+    return result.Last();
 });
 
+
 // Get a result set at a specific timestamp
-// Ts is in the format of "2023-04-20T00:00:00"
 app.MapGet("/{queryId}/{ts}", async (string queryId, string ts) => 
 {
     var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
-    Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + ts);
     List<JsonElement> result = new List<JsonElement>();
     await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId,ts))
     {
@@ -93,8 +86,7 @@ app.MapGet("/{queryId}/{ts}", async (string queryId, string ts) =>
             result.Add(data);
         }
     }
-    Console.WriteLine("Result:" + JsonConvert.SerializeObject(result.Last()));
-    return result.Last();
+    return result;
 });
 app.Run();
 
