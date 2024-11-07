@@ -69,7 +69,7 @@ namespace ResultReaction.Services
             Stream? stream = null;
             try
             {
-                stream = await _httpClient.GetStreamAsync($"http://{queryContainerId}-view-svc/{queryId}/{ts}", cancellationToken);                
+                stream = await _httpClient.GetStreamAsync($"http://{queryContainerId}-view-svc/{queryId}?timestamp={ts}", cancellationToken);                
             }
             catch (HttpRequestException ex)
             {

@@ -26,50 +26,24 @@ using Newtonsoft.Json.Linq;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = BuildConfiguration();
 
-var pubsubName = configuration.GetValue<string>("PubsubName", "drasi-pubsub");
-var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
-var queryContainerId = configuration.GetValue<string>("QueryContainer", "default");
+var queryContainerId = configuration["QueryContainerId"] ?? "default";
 
 
-
-builder.Services.AddDaprClient();
-builder.Services.AddActors(x => { });
 builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
 
 
 var app = builder.Build();
 app.UseRouting();
-app.UseCloudEvents();
-
-
 
 app.Urls.Add("http://0.0.0.0:80");  //dapr
 app.Urls.Add("http://0.0.0.0:8080"); //app
 
-// Get current result set
-app.MapGet("/{queryId}", async (string queryId) => 
-{
-    Console.WriteLine("Retrieving the current result set");
-    var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
-    List<JsonElement> result = new List<JsonElement>();
-    await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
-    {
-        var element = item.RootElement;
-        if (element.TryGetProperty("data", out var data))
-        {
-            result.Add(data);
-        }
-    }
-    Console.WriteLine("Result:" + result.Last());
-    return result.Last();
-});
 
 // Adding an endpoint that supports retrieving all results
-app.MapGet("/{queryId}/all", async (string queryId) => 
+app.MapGet("/{queryId}", async (string queryId) => 
 {
-    Console.WriteLine("Getting all results");
+    Console.WriteLine("Retrieving result for queryId: " + queryId);
     var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
-    Console.WriteLine("Current result");
     List<JsonElement> result = new List<JsonElement>();
     await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
     {
@@ -79,7 +53,28 @@ app.MapGet("/{queryId}/all", async (string queryId) =>
             result.Add(data);
         }
     }
-    Console.WriteLine("Result:" + result);
+    // Convert result to a string and print it
+    Console.WriteLine("Result:" + JsonConvert.SerializeObject(result));
+    return result;
+});
+
+
+// Used to get the last result
+app.MapGet("/{queryId}/last", async (string queryId) => 
+{
+    Console.WriteLine("Retrieving the latest result for queryId: " + queryId);
+    var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
+    List<JsonElement> result = new List<JsonElement>();
+    await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
+    {
+        var element = item.RootElement;
+        if (element.TryGetProperty("data", out var data))
+        {
+            result.Add(data);
+        }
+    }
+    // Convert result to a string and print it
+    Console.WriteLine("Result:" + JsonConvert.SerializeObject(result));
     return result;
 });
 
@@ -88,7 +83,7 @@ app.MapGet("/{queryId}/all", async (string queryId) =>
 app.MapGet("/{queryId}/{ts}", async (string queryId, string ts) => 
 {
     var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
-    Console.WriteLine($"Result set at {ts}:");
+    Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + ts);
     List<JsonElement> result = new List<JsonElement>();
     await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId,ts))
     {
@@ -98,8 +93,8 @@ app.MapGet("/{queryId}/{ts}", async (string queryId, string ts) =>
             result.Add(data);
         }
     }
-    Console.WriteLine("Result:" + result);
-    return result;
+    Console.WriteLine("Result:" + JsonConvert.SerializeObject(result.Last()));
+    return result.Last();
 });
 app.Run();
 
