@@ -16,13 +16,13 @@
 
 import { DrasiReaction, ChangeEvent,parseYaml, ControlEvent, getConfigValue } from '@drasi/reaction-sdk';
 
-const databaseHostname = getConfigValue('DatabaseHostname');
-const databasePort = getConfigValue('DatabasePort');
-const databaseUser = getConfigValue('DatabaseUser');
-const databasePassword = getConfigValue('DatabasePassword');
-const databaseDbname = getConfigValue('DatabaseDbname');
-const databaseCient = getConfigValue('DatabaseClient', 'pg');
-const databaseSsl = convertConfigValue(getConfigValue('DatabaseSsl', 'false'));
+const databaseHostname = getConfigValue('databaseHostname');
+const databasePort = getConfigValue('databasePort');
+const databaseUser = getConfigValue('databaseUser');
+const databasePassword = getConfigValue('databasePassword');
+const databaseDbname = getConfigValue('databaseDbname');
+const databaseCient = getConfigValue('databaseClient', 'pg');
+const databaseSsl = convertConfigValue(getConfigValue('databaseSsl', 'false'));
 
 let knex = require('knex')({
     client: databaseCient,

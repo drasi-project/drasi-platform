@@ -164,31 +164,34 @@ spec:
   config_schema: 
     type: object
     properties: 
-      AddedResultCommand:
+      addedResultCommand:
         type: string
-      UpdatedResultCommand:
+      updatedResultCommand:
         type: string
-      DeletedResultCommand:
+      deletedResultCommand:
         type: string
-      DatabaseHostname:
+      databaseHostname:
         type: string
-      DatabasePort:
+      databasePort:
         type: number
-      DatabaseUser:
+      databaseUser:
         type: string
-      DatabaseDbname:
+      databaseDbname:
         type: string
-      DatabasePassword:
+      databasePassword:
         type: string
-      DatabaseSsl:
+      databaseClient:
+        type: string
+      databaseSsl:
         type: boolean
         default: false
     required:
-      - DatabaseHostname
-      - DatabasePort
-      - DatabaseUser
-      - DatabaseDbname
-      - DatabasePassword
+      - databaseHostname
+      - databasePort
+      - databaseUser
+      - databaseDbname
+      - databaseClient
+      - databasePassword
   services:
     storedproc:
       image: reaction-storedproc
