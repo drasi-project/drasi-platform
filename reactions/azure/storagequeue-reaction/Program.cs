@@ -46,7 +46,14 @@ var reaction = new ReactionBuilder()
                 Console.WriteLine("Using DefaultAzureCredential authentication");
                 queueServiceClient = new QueueServiceClient(new Uri(serviceUri), new DefaultAzureCredential());
             }
-            return queueServiceClient.GetQueueClient(queueName);
+
+            var result = queueServiceClient.GetQueueClient(queueName);
+            if (!result.Exists())
+            {
+                throw new InvalidOperationException("queue does not exist");
+            }
+
+            return result;
         });
     })
     .Build();
