@@ -76,5 +76,18 @@ public class Reaction<TQueryConfig> : IHost
 
         context.Response.StatusCode = 200;
     }
+
+    public static void TerminateWithError(string message) 
+    {
+        Console.WriteLine(message);
+        try
+        {
+            File.WriteAllText("/dev/termination-log", message);
+        }
+        finally
+        {
+            Environment.Exit(1);
+        }
+    }
 }
 

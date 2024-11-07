@@ -76,20 +76,6 @@ namespace Drasi.Reaction.SDK
 
         public Reaction<TQueryConfig> Build()
         {
-            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
-            {
-                var message = args.ExceptionObject is Exception exception ? exception.Message : "Unknown error occurred";
-
-                try
-                {
-                    File.WriteAllText("/dev/termination-log", message);
-                }
-                catch (Exception logException)
-                {
-                    Console.Error.WriteLine($"Failed to write to /dev/termination-log: {logException}");
-                }
-            };
-
             var hasChangeHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IChangeEventHandler<TQueryConfig>));
             if (!hasChangeHandler)
             {
@@ -106,5 +92,23 @@ namespace Drasi.Reaction.SDK
             return new Reaction<TQueryConfig>(queryConfigSvc, app);
         }
 
+        static ReactionBuilder() 
+        {
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                var message = args.ExceptionObject is Exception exception ? exception.Message : "Unknown error occurred";
+
+                try
+                {
+                    File.WriteAllText("/dev/termination-log", message);
+                }
+                catch (Exception logException)
+                {
+                    Console.Error.WriteLine($"Failed to write to /dev/termination-log: {logException}");
+                }
+            };
+        }
+
     }
+
 }
