@@ -14,12 +14,12 @@
 
 use crate::domain::models::{
     Endpoint, EndpointSetting, JsonSchema, ProviderService, ProviderSpec, ResourceProvider,
-    SchemaType, ServiceConfig, ServiceEndpoint,
+    SchemaType, ServiceConfig, ServiceEndpoint, ServiceIdentity,
 };
 
 use super::{
     EndpointDto, EndpointSettingDto, JsonSchemaDto, ProviderServiceDto, ProviderSpecDto,
-    ResourceProviderDto, SchemaTypeDto, ServiceConfigDto, ServiceEndpointDto,
+    ResourceProviderDto, SchemaTypeDto, ServiceConfigDto, ServiceEndpointDto, ServiceIdentityDto,
 };
 impl<TSpec, TSpecDto> From<ResourceProviderDto<TSpecDto>> for ResourceProvider<TSpec>
 where
@@ -64,6 +64,27 @@ impl From<ServiceConfigDto> for ServiceConfig {
                     .map(|(k, v)| (k, v.unwrap().into()))
                     .collect()
             }),
+            identity: service.identity.map(|identity| identity.into()),
+        }
+    }
+}
+
+impl From<ServiceIdentityDto> for ServiceIdentity {
+    fn from(identity: ServiceIdentityDto) -> Self {
+        match identity {
+            ServiceIdentityDto::MicrosoftManagedIdentity { client_id } => {
+                ServiceIdentity::MicrosoftManagedIdentity { client_id }
+            }
+        }
+    }
+}
+
+impl From<ServiceIdentity> for ServiceIdentityDto {
+    fn from(identity: ServiceIdentity) -> Self {
+        match identity {
+            ServiceIdentity::MicrosoftManagedIdentity { client_id } => {
+                ServiceIdentityDto::MicrosoftManagedIdentity { client_id }
+            }
         }
     }
 }
@@ -119,6 +140,7 @@ impl From<ServiceConfig> for ServiceConfigDto {
                     .map(|(k, v)| (k, Some(v.into())))
                     .collect()
             }),
+            identity: service.identity.map(|identity| identity.into()),
         }
     }
 }

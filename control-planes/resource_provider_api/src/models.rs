@@ -178,6 +178,15 @@ pub struct Service {
     pub endpoints: Option<HashMap<String, Endpoint>>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
+    pub identity: Option<ServiceIdentity>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ServiceIdentity {
+    MicrosoftManagedIdentity {
+        client_id: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

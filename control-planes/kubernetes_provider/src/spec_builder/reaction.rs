@@ -16,7 +16,9 @@ use crate::models::{Component, ComponentSpec};
 
 use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
-    build_deployment_spec, SpecBuilder,
+    build_deployment_spec,
+    identity::apply_identity,
+    SpecBuilder,
 };
 use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::{
@@ -164,7 +166,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 value_from: None,
             });
 
-            specs.push(KubernetesSpec {
+            let mut k8s_spec = KubernetesSpec {
                 resource_id: source.id.to_string(),
                 service_name: "reaction".to_string(),
                 deployment: deployment_spec,
@@ -183,8 +185,15 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                         metadata: pub_sub_metadata,
                     },
                 }),
+                service_account: None,
                 removed: false,
-            });
+            };
+
+            if let Some(identity) = service_spec.identity {
+                apply_identity(&mut k8s_spec, &identity);
+            }
+
+            specs.push(k8s_spec);
         }
 
         specs

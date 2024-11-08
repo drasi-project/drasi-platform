@@ -179,6 +179,19 @@ impl From<ServiceConfig> for resource_provider_api::models::Service {
             properties: service
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            identity: service.identity.map(|identity| identity.into()),
+        }
+    }
+}
+
+impl From<ServiceIdentity> for resource_provider_api::models::ServiceIdentity {
+    fn from(service_identity: ServiceIdentity) -> resource_provider_api::models::ServiceIdentity {
+        match service_identity {
+            ServiceIdentity::MicrosoftManagedIdentity { client_id } => {
+                resource_provider_api::models::ServiceIdentity::MicrosoftManagedIdentity {
+                    client_id,
+                }
+            }
         }
     }
 }

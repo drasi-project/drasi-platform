@@ -14,7 +14,9 @@
 
 use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
-    build_deployment_spec, SpecBuilder,
+    build_deployment_spec,
+    identity::apply_identity,
+    SpecBuilder,
 };
 use k8s_openapi::{
     api::core::v1::{ServicePort, ServiceSpec},
@@ -67,6 +69,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
         });
 
@@ -95,6 +98,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
         });
 
@@ -123,6 +127,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
         });
 
@@ -208,7 +213,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 }
             };
 
-            let k8s_spec = KubernetesSpec {
+            let mut k8s_spec = KubernetesSpec {
                 resource_id: source.id.to_string(),
                 service_name: service_name.to_string(),
                 deployment: build_deployment_spec(
@@ -230,8 +235,14 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 config_maps: BTreeMap::new(),
                 volume_claims: BTreeMap::new(),
                 pub_sub: None,
+                service_account: None,
                 removed: false,
             };
+
+            if let Some(identity) = service_spec.identity {
+                apply_identity(&mut k8s_spec, &identity);
+            }
+
             specs.push(k8s_spec);
         }
         specs

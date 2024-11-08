@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 
 use k8s_openapi::api::{
     apps::v1::DeploymentSpec,
-    core::v1::{ConfigMap, EnvVar, PersistentVolumeClaim, ServiceSpec},
+    core::v1::{ConfigMap, EnvVar, PersistentVolumeClaim, ServiceAccount, ServiceSpec},
 };
 use kube_derive::CustomResource;
 use schemars::JsonSchema;
@@ -31,6 +31,7 @@ pub struct KubernetesSpec {
     pub config_maps: BTreeMap<String, ConfigMap>,
     pub volume_claims: BTreeMap<String, PersistentVolumeClaim>,
     pub pub_sub: Option<Component>,
+    pub service_account: Option<ServiceAccount>,
     pub removed: bool,
 }
 
@@ -48,6 +49,7 @@ impl KubernetesSpec {
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
         }
     }
