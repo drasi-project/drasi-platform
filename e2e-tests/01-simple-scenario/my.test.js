@@ -19,6 +19,7 @@
 const yaml = require('js-yaml');
 const fs = require('fs');
 const deployResources = require("../fixtures/deploy-resources");
+const deleteResources = require("../fixtures/delete-resources");
 const PortForward = require('../fixtures/port-forward');
 const SignalrFixture = require("../fixtures/signalr-fixture");
 const pg = require('pg');
@@ -47,6 +48,9 @@ afterAll(async () => {
   await signalrFixture.stop();
   await dbClient.end();
   dbPortForward.stop();
+
+  const resources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
+  await deleteResources(resources);
 });
 
 test('A row is updated', async () => {
