@@ -169,6 +169,7 @@ impl From<ServiceConfig> for resource_provider_api::models::Service {
         resource_provider_api::models::Service {
             replica: service.replica,
             image: service.image.unwrap(),
+            external_image: service.external_image,
             endpoints: service
                 .endpoints
                 .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),

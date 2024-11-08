@@ -58,6 +58,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                 &source.id,
                 "publish-api",
                 "query-container-publish-api",
+                false,
                 1,
                 Some(4000),
                 hashmap![
@@ -209,6 +210,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                 &source.id,
                 "query-host",
                 "query-container-query-host",
+                false,
                 source.spec.query_host_count as i32,
                 Some(3000),
                 env.clone(),
@@ -233,6 +235,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                 &source.id,
                 "view-svc",
                 "query-container-view-svc",
+                false,
                 1,
                 Some(8080),
                 hashmap![
