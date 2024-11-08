@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::{
-    controller::reconciler::ReconcileStatus, models::RuntimeConfig,
+    controller::reconciler::ReconcileStatus, models::{ResourceType, RuntimeConfig},
     spec_builder::reaction::ReactionSpecBuilder,
 };
 use axum::{response::IntoResponse, Json};
@@ -40,7 +40,7 @@ impl ReactionActor {
             actor_type: actor_type.to_string(),
             id: id.to_string(),
             dapr_client,
-            resource_type: "reaction".to_string(),
+            resource_type: ResourceType::Reaction.to_string(),
             runtime_config,
             spec_builder: Box::new(ReactionSpecBuilder {}),
             controllers: RwLock::new(BTreeMap::new()),
