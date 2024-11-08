@@ -252,9 +252,12 @@ pub struct ServiceConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind")]
 pub enum ServiceIdentity {
-    MicrosoftManagedIdentity { client_id: String },
+    MicrosoftManagedIdentity { 
+        #[serde(rename = "clientId")]
+        client_id: String 
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
