@@ -21,7 +21,7 @@ use resource_provider_api::models::ServiceIdentity;
 use crate::models::KubernetesSpec;
 
 pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
-    if let None = spec.service_account {
+    if spec.service_account.is_none() {
         let service_account_name = format!(
             "{}.{}.{}",
             spec.resource_type, spec.resource_id, spec.service_name
