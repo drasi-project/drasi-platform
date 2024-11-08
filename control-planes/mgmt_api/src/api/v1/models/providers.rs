@@ -52,9 +52,12 @@ pub struct ServiceConfigDto {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind")]
 pub enum ServiceIdentityDto {
-    MicrosoftManagedIdentity { client_id: String },
+    MicrosoftManagedIdentity {
+        #[serde(rename = "clientId")]
+        client_id: String 
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -17,7 +17,7 @@ kind: ReactionProvider
 name: Debug
 spec:
   services:
-    debug:
+    reaction:
       image: reaction-debug
       endpoints:
         gateway:
@@ -35,7 +35,7 @@ kind: ReactionProvider
 name: Debezium
 spec:
   services:
-    debezium: 
+    reaction:
       image: reaction-debezium
   config_schema:
     type: object
@@ -59,7 +59,7 @@ kind: ReactionProvider
 name: EventGrid
 spec:
   services:
-    eventgrid:
+    reaction:
       image: reaction-eventgrid
   config_schema:
     type: object
@@ -100,7 +100,7 @@ spec:
       - DatabaseContainerName
       - DatabasePort
   services:
-    gremlin:
+    reaction:
       image: reaction-gremlin
 ---
 apiVersion: v1
@@ -108,7 +108,7 @@ kind: ReactionProvider
 name: Result
 spec:
   services:
-    result:
+    reaction:
       image: reaction-result
       endpoints:
         gateway:
@@ -126,7 +126,7 @@ kind: ReactionProvider
 name: SignalR
 spec:
   services:
-    signalr:
+    reaction:
       image: reaction-signalr
       endpoints:
         gateway:
@@ -200,7 +200,7 @@ spec:
       - databaseClient
       - databasePassword
   services:
-    storedproc:
+    reaction:
       image: reaction-storedproc
 ---
 apiVersion: v1
@@ -208,7 +208,7 @@ kind: ReactionProvider
 name: Dataverse
 spec:
   services:
-    dataverse:
+    reaction:
       image: reaction-dataverse
   config_schema:
     type: object

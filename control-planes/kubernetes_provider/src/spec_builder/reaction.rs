@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::models::{Component, ComponentSpec};
+use crate::models::{Component, ComponentSpec, ResourceType};
 
 use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
@@ -145,7 +145,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 
             let deployment_spec = build_deployment_spec(
                 runtime_config,
-                "reaction",
+                ResourceType::Reaction,
                 &source.id,
                 "reaction",
                 image.as_str(),
@@ -167,6 +167,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             });
 
             let mut k8s_spec = KubernetesSpec {
+                resource_type: ResourceType::Reaction,
                 resource_id: source.id.to_string(),
                 service_name: "reaction".to_string(),
                 deployment: deployment_spec,

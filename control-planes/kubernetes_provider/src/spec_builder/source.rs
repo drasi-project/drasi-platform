@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::models::ResourceType;
+
 use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
     build_deployment_spec,
@@ -45,11 +47,12 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
         let mut specs = Vec::new();
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::Source,
             resource_id: source.id.to_string(),
             service_name: "change-router".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "source",
+                ResourceType::Source,
                 &source.id,
                 "change-router",
                 "source-change-router",
@@ -74,11 +77,12 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
         });
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::Source,
             resource_id: source.id.to_string(),
             service_name: "change-dispatcher".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "source",
+                ResourceType::Source,
                 &source.id,
                 "change-dispatcher",
                 "source-change-dispatcher",
@@ -103,11 +107,12 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
         });
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::Source,
             resource_id: source.id.to_string(),
             service_name: "query-api".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "source",
+                ResourceType::Source,
                 &source.id,
                 "query-api",
                 "source-query-api",
@@ -214,11 +219,12 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             };
 
             let mut k8s_spec = KubernetesSpec {
+                resource_type: ResourceType::Source,
                 resource_id: source.id.to_string(),
                 service_name: service_name.to_string(),
                 deployment: build_deployment_spec(
                     runtime_config,
-                    "source",
+                    ResourceType::Source,
                     &source.id,
                     &service_name,
                     service_spec.image.as_str(),

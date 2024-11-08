@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::models::ResourceType;
+
 use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
     build_deployment_spec, SpecBuilder,
@@ -50,11 +52,12 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
         let mut specs = Vec::new();
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::QueryContainer,
             resource_id: source.id.to_string(),
             service_name: "publish-api".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "querycontainer",
+                ResourceType::QueryContainer,
                 &source.id,
                 "publish-api",
                 "query-container-publish-api",
@@ -203,11 +206,12 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
         }
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::QueryContainer,
             resource_id: source.id.to_string(),
             service_name: "query-host".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "querycontainer",
+                ResourceType::QueryContainer,
                 &source.id,
                 "query-host",
                 "query-container-query-host",
@@ -229,11 +233,12 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
         });
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::QueryContainer,
             resource_id: source.id.to_string(),
             service_name: "view-svc".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "querycontainer",
+                ResourceType::QueryContainer,
                 &source.id,
                 "view-svc",
                 "query-container-view-svc",

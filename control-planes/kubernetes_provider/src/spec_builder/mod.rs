@@ -28,6 +28,8 @@ use kube::core::ObjectMeta;
 use resource_provider_api::models::{ConfigValue, ResourceRequest};
 use serde_json::json;
 
+use crate::models::ResourceType;
+
 use super::models::{KubernetesSpec, RuntimeConfig};
 pub mod identity;
 pub mod query_container;
@@ -46,7 +48,7 @@ pub trait SpecBuilder<TSpec> {
 #[allow(clippy::too_many_arguments)]
 pub fn build_deployment_spec(
     runtime_config: &RuntimeConfig,
-    resource_type: &str,
+    resource_type: ResourceType,
     resource_id: &str,
     service_name: &str,
     image: &str,

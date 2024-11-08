@@ -22,7 +22,10 @@ use crate::models::KubernetesSpec;
 
 pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
     if let None = spec.service_account {
-        let service_account_name = format!("{}-{}", spec.resource_id, spec.service_name);
+        let service_account_name = format!(
+            "{}.{}.{}",
+            spec.resource_type, spec.resource_id, spec.service_name
+        );
         spec.service_account = Some(ServiceAccount {
             metadata: ObjectMeta {
                 name: Some(service_account_name.clone()),
