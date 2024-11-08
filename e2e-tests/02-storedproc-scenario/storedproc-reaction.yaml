@@ -8,7 +8,7 @@ spec:
   properties:
     addedResultCommand: "public.insertCommandResult(@Id, @Name, @Category)"
     databaseClient: "pg"
-    databaseHostName: "postgres2.default.svc.cluster.local"
+    databaseHostname: "postgres2.default.svc.cluster.local"
     databaseDbname: "test-db"
     databaseUser: "test"
     databasePassword: "test"
