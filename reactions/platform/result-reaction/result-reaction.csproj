@@ -14,7 +14,6 @@
     <PackageReference Include="Dapr.Actors.AspNetCore" Version="1.9.0" />
     <PackageReference Include="Dapr.AspNetCore" Version="1.14.0" />
     <PackageReference Include="Dapr.Client" Version="1.14.0" />
-    <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.0-alpha" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.8" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Http" Version="3.2.0" />
   </ItemGroup>
