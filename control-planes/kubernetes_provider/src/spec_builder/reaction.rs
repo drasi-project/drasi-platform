@@ -69,18 +69,19 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             },
         );
 
-        let mut labels = BTreeMap::new();
-        labels.insert("drasi/type".to_string(), "reaction".to_string());
-        labels.insert("drasi/resource".to_string(), reaction.id.to_string());
-        labels.insert("drasi/service".to_string(), "reaction".to_string());
-
-        let config_name = format!("{}-{}-{}", reaction.id, "reaction", "queries");
-
         let services = reaction.spec.services.clone().unwrap_or_default();
 
         for (service_name, service_spec) in services {
             let mut config_volumes = BTreeMap::new();
             let mut config_maps = BTreeMap::new();
+
+            let mut labels = BTreeMap::new();
+            labels.insert("drasi/type".to_string(), ResourceType::Reaction.to_string());
+            labels.insert("drasi/resource".to_string(), reaction.id.to_string());
+            labels.insert("drasi/service".to_string(), service_name.clone());
+
+            let config_name = format!("{}-{}-{}", reaction.id, service_name, "queries");
+
             config_maps.insert(
                 config_name.clone(),
                 ConfigMap {
@@ -169,7 +170,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             let mut k8s_spec = KubernetesSpec {
                 resource_type: ResourceType::Reaction,
                 resource_id: reaction.id.to_string(),
-                service_name: "reaction".to_string(),
+                service_name: service_name.clone(),
                 deployment: deployment_spec,
                 services: k8s_services,
                 config_maps,

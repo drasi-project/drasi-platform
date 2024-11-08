@@ -261,7 +261,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                 "view-svc".to_string() => ServiceSpec {
                     type_: Some("ClusterIP".to_string()),
                     selector: Some(hashmap![
-                        "drasi/type".to_string() => "querycontainer".to_string(),
+                        "drasi/type".to_string() => ResourceType::QueryContainer.to_string(),
                         "drasi/resource".to_string() => source.id.to_string(),
                         "drasi/service".to_string() => "view-svc".to_string()
                     ]),

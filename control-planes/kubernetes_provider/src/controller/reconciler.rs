@@ -189,8 +189,8 @@ impl ResourceReconciler {
                     if api_err.code != 404 {
                         return Err(Box::new(api_err));
                     }
-                },
-                _ => return Err(Box::new(err)),            
+                }
+                _ => return Err(Box::new(err)),
             },
         }
 
@@ -205,7 +205,7 @@ impl ResourceReconciler {
                         if api_err.code != 404 {
                             return Err(Box::new(api_err));
                         }
-                    },
+                    }
                     _ => return Err(Box::new(err)),
                 }
             }
@@ -220,7 +220,7 @@ impl ResourceReconciler {
                         if api_err.code != 404 {
                             return Err(Box::new(api_err));
                         }
-                    },
+                    }
                     _ => return Err(Box::new(err)),
                 }
             }
@@ -236,7 +236,7 @@ impl ResourceReconciler {
                             if api_err.code != 404 {
                                 return Err(Box::new(api_err));
                             }
-                        },
+                        }
                         _ => return Err(Box::new(err)),
                     }
                 }

@@ -193,7 +193,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                             let service_spec = ServiceSpec {
                                 type_: Some("ClusterIP".to_string()),
                                 selector: Some(hashmap![
-                                    "drasi/type".to_string() => "source".to_string(),
+                                    "drasi/type".to_string() => ResourceType::Source.to_string(),
                                     "drasi/resource".to_string() => source.id.clone(),
                                     "drasi/service".to_string() => service_name.clone()
                                 ]),
