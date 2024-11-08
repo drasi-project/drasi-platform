@@ -246,7 +246,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             };
 
             if let Some(identity) = &source_spec.identity {
-                apply_identity(&mut k8s_spec, &identity);
+                apply_identity(&mut k8s_spec, identity);
             }
 
             specs.push(k8s_spec);

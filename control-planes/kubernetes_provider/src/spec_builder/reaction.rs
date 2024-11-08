@@ -192,7 +192,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             };
 
             if let Some(identity) = &reaction.spec.identity {
-                apply_identity(&mut k8s_spec, &identity);
+                apply_identity(&mut k8s_spec, identity);
             }
 
             specs.push(k8s_spec);
