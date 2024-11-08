@@ -42,6 +42,7 @@ app.Urls.Add("http://0.0.0.0:8080"); //app
 // Adding an endpoint that supports retrieving all results
 app.MapGet("/{queryId}", async (string queryId) => 
 {
+    Console.WriteLine("Retrieving all results for queryId: " + queryId);
     var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
     List<JsonElement> result = new List<JsonElement>();
     await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
@@ -56,29 +57,13 @@ app.MapGet("/{queryId}", async (string queryId) =>
 });
 
 
-// Used to get the last result
-app.MapGet("/{queryId}/last", async (string queryId) => 
-{
-    var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
-    List<JsonElement> result = new List<JsonElement>();
-    await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
-    {
-        var element = item.RootElement;
-        if (element.TryGetProperty("data", out var data))
-        {
-            result.Add(data);
-        }
-    }
-    return result.Last();
-});
-
-
 // Get a result set at a specific timestamp
-app.MapGet("/{queryId}/{ts}", async (string queryId, string ts) => 
+app.MapGet("/{queryId}/{ts}", async (string queryId, long ts) => 
 {
+    Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + timestamp);
     var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
     List<JsonElement> result = new List<JsonElement>();
-    await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId,ts))
+    await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId,timestamp))
     {
         var element = item.RootElement;
         if (element.TryGetProperty("data", out var data))
