@@ -184,7 +184,14 @@ impl ResourceReconciler {
                 Either::Left(dep) => self.update_deployment_status(&dep).await,
                 Either::Right(_) => {}
             },
-            Err(err) => return Err(Box::new(err)),
+            Err(err) => match err {
+                kube::Error::Api(api_err) => {
+                    if api_err.code != 404 {
+                        return Err(Box::new(api_err));
+                    }
+                },
+                _ => return Err(Box::new(err)),            
+            },
         }
 
         // if service exist, delete
@@ -192,20 +199,47 @@ impl ResourceReconciler {
             let name = format!("{}-{}", self.spec.resource_id.clone(), service_name.clone());
             log::info!("Deprovisioning service {}", name);
             let pp = DeleteParams::default();
-            _ = self.service_api.delete(&name, &pp).await?;
+            if let Err(err) = self.service_api.delete(&name, &pp).await {
+                match err {
+                    kube::Error::Api(api_err) => {
+                        if api_err.code != 404 {
+                            return Err(Box::new(api_err));
+                        }
+                    },
+                    _ => return Err(Box::new(err)),
+                }
+            }
         }
 
         for config_name in self.spec.config_maps.keys() {
             log::info!("Deprovisioning config map {}", config_name.clone());
             let pp = DeleteParams::default();
-            _ = self.cm_api.delete(config_name, &pp).await?;
+            if let Err(err) = self.cm_api.delete(config_name, &pp).await {
+                match err {
+                    kube::Error::Api(api_err) => {
+                        if api_err.code != 404 {
+                            return Err(Box::new(api_err));
+                        }
+                    },
+                    _ => return Err(Box::new(err)),
+                }
+            }
         }
 
         if let Some(service_account) = &self.spec.service_account {
             if let Some(name) = &service_account.metadata().name {
                 log::info!("Deprovisioning service account {}", name);
                 let pp = DeleteParams::default();
-                _ = self.account_api.delete(name, &pp).await?;
+                if let Err(err) = self.account_api.delete(name, &pp).await {
+                    match err {
+                        kube::Error::Api(api_err) => {
+                            if api_err.code != 404 {
+                                return Err(Box::new(api_err));
+                            }
+                        },
+                        _ => return Err(Box::new(err)),
+                    }
+                }
             }
         }
 
