@@ -6,11 +6,11 @@ spec:
   queries: 
     query2:
   properties:
-    AddedResultCommand: "public.insertCommandResult(@Id, @Name, @Category)"
-    DatabaseClient: "pg"
-    DatabaseHostname: "postgres2.default.svc.cluster.local"
-    DatabaseDbname: "test-db"
-    DatabaseUser: "test"
-    DatabasePassword: "test"
-    DatabasePort: 5432
-    DatabaseSsl: false
+    addedResultCommand: "public.insertCommandResult(@Id, @Name, @Category)"
+    databaseClient: "pg"
+    databaseHostName: "postgres2.default.svc.cluster.local"
+    databaseDbname: "test-db"
+    databaseUser: "test"
+    databasePassword: "test"
+    databasePort: 5432
+    databaseSsl: false
