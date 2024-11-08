@@ -17,7 +17,6 @@ using Dapr.Actors.Client;
 using Dapr.Client;
 using Microsoft.AspNetCore.Components;
 using System.Net.Http;
-using Microsoft.Extensions.DependencyInjection;
 using ResultReaction.Services;
 using System.Text.Json;
 using Newtonsoft.Json;
@@ -58,12 +57,12 @@ app.MapGet("/{queryId}", async (string queryId) =>
 
 
 // Get a result set at a specific timestamp
-app.MapGet("/{queryId}/{ts}", async (string queryId, long ts) => 
+app.MapGet("/{queryId}/{ts}", async (string queryId, string ts) => 
 {
-    Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + timestamp);
+    Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + ts);
     var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
     List<JsonElement> result = new List<JsonElement>();
-    await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId,timestamp))
+    await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId,ts))
     {
         var element = item.RootElement;
         if (element.TryGetProperty("data", out var data))
