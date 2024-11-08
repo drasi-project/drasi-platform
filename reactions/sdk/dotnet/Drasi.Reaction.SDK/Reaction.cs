@@ -1,4 +1,4 @@
-﻿using Drasi.Reaction.SDK.Models;
+﻿using Drasi.Reaction.SDK.Models.QueryOutput;
 using Drasi.Reaction.SDK.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;

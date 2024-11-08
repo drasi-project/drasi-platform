@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 using Drasi.Reaction.SDK;
-using Drasi.Reaction.SDK.Models;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

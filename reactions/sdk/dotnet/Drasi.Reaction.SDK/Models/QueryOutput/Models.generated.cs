@@ -2,7 +2,7 @@
 //
 // To parse this JSON data, add NuGet 'System.Text.Json' then do one of these:
 //
-//    using Drasi.Reaction.SDK.Models;
+//    using Drasi.Reaction.SDK.Models.QueryOutput;
 //
 //    var bootstrapCompletedSignal = BootstrapCompletedSignal.FromJson(jsonString);
 //    var bootstrapStartedSignal = BootstrapStartedSignal.FromJson(jsonString);
@@ -20,7 +20,7 @@
 #pragma warning disable CS8601
 #pragma warning disable CS8603
 
-namespace Drasi.Reaction.SDK.Models
+namespace Drasi.Reaction.SDK.Models.QueryOutput
 {
     using System;
     using System.Collections.Generic;
@@ -255,72 +255,72 @@ namespace Drasi.Reaction.SDK.Models
 
     public partial class BootstrapCompletedSignal
     {
-        public static BootstrapCompletedSignal FromJson(string json) => JsonSerializer.Deserialize<BootstrapCompletedSignal>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static BootstrapCompletedSignal FromJson(string json) => JsonSerializer.Deserialize<BootstrapCompletedSignal>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public partial class BootstrapStartedSignal
     {
-        public static BootstrapStartedSignal FromJson(string json) => JsonSerializer.Deserialize<BootstrapStartedSignal>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static BootstrapStartedSignal FromJson(string json) => JsonSerializer.Deserialize<BootstrapStartedSignal>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public partial class ChangeEvent
     {
-        public static ChangeEvent FromJson(string json) => JsonSerializer.Deserialize<ChangeEvent>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static ChangeEvent FromJson(string json) => JsonSerializer.Deserialize<ChangeEvent>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public partial class ControlEvent
     {
-        public static ControlEvent FromJson(string json) => JsonSerializer.Deserialize<ControlEvent>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static ControlEvent FromJson(string json) => JsonSerializer.Deserialize<ControlEvent>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public partial class ControlSignal
     {
-        public static ControlSignal FromJson(string json) => JsonSerializer.Deserialize<ControlSignal>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static ControlSignal FromJson(string json) => JsonSerializer.Deserialize<ControlSignal>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public partial class DeletedSignal
     {
-        public static DeletedSignal FromJson(string json) => JsonSerializer.Deserialize<DeletedSignal>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static DeletedSignal FromJson(string json) => JsonSerializer.Deserialize<DeletedSignal>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public partial class ResultEvent
     {
-        public static ResultEvent FromJson(string json) => JsonSerializer.Deserialize<ResultEvent>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static ResultEvent FromJson(string json) => JsonSerializer.Deserialize<ResultEvent>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public partial class RunningSignal
     {
-        public static RunningSignal FromJson(string json) => JsonSerializer.Deserialize<RunningSignal>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static RunningSignal FromJson(string json) => JsonSerializer.Deserialize<RunningSignal>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public partial class StoppedSignal
     {
-        public static StoppedSignal FromJson(string json) => JsonSerializer.Deserialize<StoppedSignal>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static StoppedSignal FromJson(string json) => JsonSerializer.Deserialize<StoppedSignal>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public partial class UpdatePayload
     {
-        public static UpdatePayload FromJson(string json) => JsonSerializer.Deserialize<UpdatePayload>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static UpdatePayload FromJson(string json) => JsonSerializer.Deserialize<UpdatePayload>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public class Versions
     {
-        public static VersionsEnum FromJson(string json) => JsonSerializer.Deserialize<VersionsEnum>(json, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static VersionsEnum FromJson(string json) => JsonSerializer.Deserialize<VersionsEnum>(json, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     public static class Serialize
     {
-        public static string ToJson(this BootstrapCompletedSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this BootstrapStartedSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this ChangeEvent self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this ControlEvent self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this ControlSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this DeletedSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this ResultEvent self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this RunningSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this StoppedSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this UpdatePayload self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
-        public static string ToJson(this VersionsEnum self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.Converter.Settings);
+        public static string ToJson(this BootstrapCompletedSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this BootstrapStartedSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this ChangeEvent self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this ControlEvent self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this ControlSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this DeletedSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this ResultEvent self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this RunningSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this StoppedSignal self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this UpdatePayload self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
+        public static string ToJson(this VersionsEnum self) => JsonSerializer.Serialize(self, Drasi.Reaction.SDK.Models.QueryOutput.Converter.Settings);
     }
 
     internal static class Converter

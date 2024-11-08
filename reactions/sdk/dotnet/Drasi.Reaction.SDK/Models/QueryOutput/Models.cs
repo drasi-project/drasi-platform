@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Drasi.Reaction.SDK.Models 
+namespace Drasi.Reaction.SDK.Models.QueryOutput
 {
     public static class ModelOptions
     {

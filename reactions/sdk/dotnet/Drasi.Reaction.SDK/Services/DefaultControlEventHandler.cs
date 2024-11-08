@@ -1,4 +1,4 @@
-﻿using Drasi.Reaction.SDK.Models;
+﻿using Drasi.Reaction.SDK.Models.QueryOutput;
 using Microsoft.Extensions.Logging;
 using System;
 

@@ -1,9 +1,5 @@
-﻿using Drasi.Reaction.SDK.Models;
+﻿using Drasi.Reaction.SDK.Models.QueryOutput;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Drasi.Reaction.SDK.Services
 {

@@ -1,7 +1,7 @@
 namespace Drasi.Reaction.SDK.Tests;
 
 using Drasi.Reaction.SDK;
-using Drasi.Reaction.SDK.Models;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 using Microsoft.AspNetCore.TestHost;
 using System.Net.Http.Json;
 using System.Threading.Channels;

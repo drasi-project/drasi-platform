@@ -1,5 +1,7 @@
-﻿using Drasi.Reaction.SDK.Models;
+﻿using Drasi.Reaction.SDK.Models.QueryOutput;
 using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading.Channels;
 
 namespace Drasi.Reaction.SDK.Tests
@@ -19,19 +21,24 @@ namespace Drasi.Reaction.SDK.Tests
             QueryDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(QueryDirectory);
             ChangeEventChannel = Channel.CreateUnbounded<ChangeEvent>();
+            var port = GetAvailablePort();
 
             Reaction = new ReactionBuilder<TQueryConfig>()
                 .UseChangeEventHandler(async (evt, config) =>
                 {
                     await ChangeEventChannel.Writer.WriteAsync(evt);
                 })
-                .Configure(x => x["QueryConfigPath"] = QueryDirectory)
+                .Configure(cfg => 
+                {
+                    cfg["QueryConfigPath"] = QueryDirectory;
+                    cfg["APP_PORT"] = port.ToString();
+                })
                 .Build();
 
             _ = Reaction.StartAsync();
 
             Client = new HttpClient();
-            Client.BaseAddress = new Uri("http://localhost:80");
+            Client.BaseAddress = new Uri("http://localhost:" + port);
         }
 
         public void ClearChannels()
@@ -47,5 +54,20 @@ namespace Drasi.Reaction.SDK.Tests
             Directory.Delete(QueryDirectory, true);
             _ = Reaction.StopAsync();
         }
-    }
+
+        public static int GetAvailablePort()
+        {
+            // Create a TcpListener on port 0 (let OS select an available port)
+            TcpListener listener = new(IPAddress.Loopback, 0);
+            listener.Start();
+            
+            // Retrieve the assigned port number
+            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            
+            // Stop the listener immediately to free up the port
+            listener.Stop();
+            
+            return port;
+        }
+    }    
 }

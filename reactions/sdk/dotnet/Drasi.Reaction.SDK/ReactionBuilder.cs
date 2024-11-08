@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Drasi.Reaction.SDK.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Drasi.Reaction.SDK.Models;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 
 namespace Drasi.Reaction.SDK
 {
@@ -27,6 +27,7 @@ namespace Drasi.Reaction.SDK
             _webappBuilder.Services.AddControllers();
             _webappBuilder.Services.AddSingleton<IQueryConfigService, QueryConfigService>();
             _webappBuilder.Services.AddSingleton<IConfigDeserializer, NullConfigDeserializer>();
+            _webappBuilder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
             _webappBuilder.Services.AddScoped<IControlEventHandler<TQueryConfig>, DefaultControlEventHandler<TQueryConfig>>();
             _webappBuilder.Configuration.AddEnvironmentVariables();
             _webappBuilder.Logging.AddConsole();
