@@ -175,6 +175,7 @@ pub struct QuerySpec {
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
+    pub transient: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -312,8 +313,11 @@ pub enum DomainError {
     #[error("InvalidSpec: {message}")]
     InvalidSpec { message: String },
 
-    #[error("JsonParseError")]
+    #[error("JsonParseError: {message}")]
     JsonParseError { message: String },
+
+    #[error("Cancelled")]
+    Cancelled,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

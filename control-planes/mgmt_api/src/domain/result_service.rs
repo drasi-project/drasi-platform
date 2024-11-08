@@ -1,19 +1,3 @@
-// Copyright 2024 The Drasi Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-use std::time::Duration;
-
 use self::api::ResultEvent;
 use super::models::{ChangeStreamConfig, DomainError};
 use crate::change_stream::{
@@ -21,18 +5,25 @@ use crate::change_stream::{
     SequentialChangeStream,
 };
 use async_stream::stream;
+use futures::StreamExt;
 use futures_util::Stream;
+use reqwest_streams::*;
+use std::time::Duration;
 
 pub struct ResultService {
     stream_config: ChangeStreamConfig,
+    http_client: reqwest::Client,
 }
 
 impl ResultService {
     pub fn new(stream_config: ChangeStreamConfig) -> Self {
-        ResultService { stream_config }
+        ResultService {
+            stream_config,
+            http_client: reqwest::Client::new(),
+        }
     }
 
-    pub async fn stream(
+    pub async fn stream_from_start(
         &self,
         query_id: &str,
         consumer_id: &str,
@@ -80,15 +71,114 @@ impl ResultService {
 
         Ok(result)
     }
+
+    pub async fn snapshot_stream_from_now(
+        &self,
+        query_container_id: &str,
+        query_id: &str,
+        consumer_id: &str,
+    ) -> Result<impl Stream<Item = ResultEvent> + Send, DomainError> {
+        let mut snapshot_stream = match self
+            .http_client
+            .get(format!(
+                "http://{}-view-svc/{}",
+                query_container_id, query_id
+            ))
+            .send()
+            .await
+        {
+            Ok(r) => {
+                if !r.status().is_success() {
+                    log::error!("Error getting view: {}", r.status());
+                    return Err(DomainError::Internal {
+                        inner: Box::new(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            "Error getting view",
+                        )),
+                    });
+                }
+                r.json_array_stream::<api::ViewElement>(usize::MAX)
+            }
+            Err(e) => {
+                log::error!("Error getting view: {}", e);
+                return Err(DomainError::Internal { inner: Box::new(e) });
+            }
+        };
+
+        let topic = format!("{}-results", query_id);
+        let change_stream = match RedisChangeStream::new(
+            &self.stream_config.redis_url,
+            &topic,
+            consumer_id,
+            consumer_id,
+            self.stream_config.buffer_size,
+            self.stream_config.fetch_batch_size,
+            InitialCursor::End,
+        )
+        .await
+        {
+            Ok(cs) => cs,
+            Err(err) => {
+                log::error!("Error creating change stream: {}", err);
+                return Err(DomainError::Internal {
+                    inner: Box::new(err),
+                });
+            }
+        };
+
+        let query_id = query_id.to_string();
+
+        let result = stream! {
+            while let Some(item) = snapshot_stream.next().await {
+                match item {
+                    Ok(api::ViewElement::Data(data)) => {
+                        let event = ResultEvent::Change(api::ResultChangeEvent {
+                            query_id: query_id.clone(),
+                            sequence: 0,  //todo
+                            source_time_ms: 0,
+                            added_results: vec![data],
+                            updated_results: vec![],
+                            deleted_results: vec![],
+                            metadata: None,
+                        });
+                        yield event;
+                    },
+                    Err(e) => {
+                        log::error!("Error getting view: {}", e);
+                    },
+                    _ => (),
+                }
+            }
+            loop {
+                let msg = match change_stream.recv::<ResultEvent>().await {
+                    Ok(msg) => msg,
+                    Err(err) => {
+                        log::error!("Error receiving message from change stream: {}", err);
+                        break;
+                    },
+                };
+
+                match msg {
+                    Some(msg) => {
+                        _ = change_stream.ack(&msg.id).await;
+                        yield msg.data;
+                    },
+                    None => tokio::time::sleep(Duration::from_millis(100)).await,
+                };
+            }
+        };
+
+        Ok(result)
+    }
 }
 
 pub mod api {
     use std::fmt::{Display, Formatter};
 
-    use serde::Deserialize;
+    use serde::{Deserialize, Serialize};
     use serde_json::{Map, Value};
 
-    #[derive(Deserialize, Debug, Clone)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(tag = "kind")]
     pub enum ControlSignal {
         #[serde(rename = "bootstrapStarted")]
@@ -119,7 +209,7 @@ pub mod api {
         }
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     #[serde(tag = "kind")]
     pub enum ResultEvent {
         #[serde(rename = "change")]
@@ -129,7 +219,7 @@ pub mod api {
         Control(ResultControlEvent),
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     #[serde(rename_all = "camelCase")]
     pub struct ResultChangeEvent {
         pub query_id: String,
@@ -141,7 +231,7 @@ pub mod api {
         pub metadata: Option<Map<String, Value>>,
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     #[serde(rename_all = "camelCase")]
     pub struct ResultControlEvent {
         pub query_id: String,
@@ -151,10 +241,21 @@ pub mod api {
         pub control_signal: ControlSignal,
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdatePayload {
         pub before: Option<Map<String, Value>>,
         pub after: Option<Map<String, Value>>,
         pub grouping_keys: Option<Vec<String>>,
+    }
+
+    #[derive(Serialize, Deserialize, Debug)]
+    #[serde(rename_all = "camelCase")]
+    pub enum ViewElement {
+        Header {
+            sequence: u64,
+            timestamp: u64,
+            state: Option<String>,
+        },
+        Data(Map<String, Value>),
     }
 }

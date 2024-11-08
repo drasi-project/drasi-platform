@@ -1,0 +1,124 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-data-init-postgres2
+data:
+  init.sql: >
+    CREATE TABLE "Item" (
+        "ItemId" integer NOT NULL,
+        "Name" character varying(100) NOT NULL,
+        "Category" character varying(10) NOT NULL
+    );
+
+    ALTER TABLE "Item" ADD CONSTRAINT pk_item
+      PRIMARY KEY ("ItemId");
+
+    INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (1, 'Foo', '1');
+
+
+    CREATE TABLE "CommandResult" (
+        "ItemId" integer NOT NULL,
+        "Name" character varying(100) NOT NULL,
+        "Category" character varying(10) NOT NULL
+    );
+
+    CREATE OR REPLACE PROCEDURE insertCommandResult(
+        p_ItemId integer,
+        p_Name character varying,
+        p_Category character varying
+    )
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+        INSERT INTO "CommandResult" ("ItemId", "Name", "Category")
+        VALUES (p_ItemId, p_Name, p_Category);
+    END;
+    $$;
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-pg-config
+  labels:
+    app: postgres2
+data:
+  POSTGRES_DB: test-db
+  POSTGRES_USER: test
+  POSTGRES_PASSWORD: test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres2
+  template:
+    metadata:
+      labels:
+        app: postgres2
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          args: ["-c", "wal_level=logical"]
+          volumeMounts:
+          - name: init
+            mountPath: "/docker-entrypoint-initdb.d"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: test-pg-config
+      volumes:
+        - name: init
+          configMap:
+            name: test-data-init-postgres2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres2
+  labels:
+    app: postgres2
+spec:
+  type: ClusterIP
+  ports:
+   - port: 5432
+  selector:
+   app: postgres2
+---
+apiVersion: v1
+kind: Source
+name: test-source-2
+spec:
+  kind: PostgreSQL
+  properties:
+    host: postgres2.default.svc.cluster.local
+    port: 5432
+    user: test
+    password: test
+    database: test-db
+    ssl: false
+    tables:
+      - public.Item
+---
+apiVersion: v1
+kind: ContinuousQuery
+name: query2
+spec:
+  mode: query
+  sources:    
+    subscriptions:
+      - id: test-source-2
+  query: > 
+    MATCH 
+      (i:Item {Category: '2'})
+    RETURN 
+      i.ItemId AS Id, 
+      i.Name as Name,
+      i.Category as Category

@@ -22,11 +22,17 @@ import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
 import io.debezium.engine.spi.OffsetCommitPolicy;
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -35,10 +41,13 @@ public class PostgresChangeMonitor implements ChangeMonitor {
     private ChangePublisher publisher;
     private ExecutorService executor;
     private DebeziumEngine<ChangeEvent<String, String>> engine;
+    private ApplicationContext context;
+    private static final Logger log = LoggerFactory.getLogger(PostgresChangeMonitor.class);
 
-    public PostgresChangeMonitor(String sourceId, ChangePublisher publisher) {
+    public PostgresChangeMonitor(String sourceId, ChangePublisher publisher, ApplicationContext context) {
         this.sourceId = sourceId;
         this.publisher = publisher;
+        this.context = context;
         this.executor = Executors.newSingleThreadExecutor();
     }
 
@@ -67,6 +76,9 @@ public class PostgresChangeMonitor implements ChangeMonitor {
                 .with("publication.autocreate.mode", "filtered")
                 .with("snapshot.mode", "never")
                 .with("decimal.handling.mode", "double")
+                .with("time.precision.mode", "adaptive_time_microseconds")
+                .with("converters", "temporalConverter")
+                .with("temporalConverter.type", "com.drasi.TemporalConverter")
                 .with("table.include.list", tableListStr).build();
 
         var sr = new SchemaReader(config);
@@ -82,7 +94,18 @@ public class PostgresChangeMonitor implements ChangeMonitor {
                 .using(OffsetCommitPolicy.always())
                 .notifying(new PostgresChangeConsumer(mappings, publisher)).build();
 
-        executor.execute(engine);
+        executor.submit(() -> {
+            try {
+                engine.run();
+            } catch (Exception e) {
+                try {
+                    Files.write(Path.of("/dev/termination-log"), e.getMessage().getBytes());
+                } catch (IOException ex) {
+                    log.error(ex.getMessage());
+                }
+                SpringApplication.exit(this.context, () -> 1);
+            }
+        });
     }
 
     public void close() throws Exception {

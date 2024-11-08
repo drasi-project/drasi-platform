@@ -36,6 +36,7 @@ const images = [
   "drasi-project/query-container-view-svc",
 
   "drasi-project/reaction-signalr",
+  "drasi-project/reaction-storedproc",
   //"drasi-project/reaction-gremlin",
 ];
 
