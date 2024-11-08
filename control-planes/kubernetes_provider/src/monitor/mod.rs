@@ -27,11 +27,13 @@ use tokio::{
     task::JoinHandle,
 };
 
+use crate::models::ResourceType;
+
 pub fn start_monitor(kube_client: kube::Client, dapr_client: dapr::Client<TonicClient>) {
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<(String, String)>();
 
     _ = spawn_handler_task(rx, dapr_client);
-    _ = spawn_montitor_task(tx, kube_client);
+    _ = spawn_monitor_task(tx, kube_client);
 }
 
 fn spawn_handler_task(
@@ -53,7 +55,7 @@ fn spawn_handler_task(
     })
 }
 
-fn spawn_montitor_task(
+fn spawn_monitor_task(
     tx: UnboundedSender<(String, String)>,
     kube_client: kube::Client,
 ) -> JoinHandle<()> {
@@ -64,21 +66,22 @@ fn spawn_montitor_task(
             log::info!("starting watcher task");
             let api = Api::<Deployment>::default_namespaced(kube_client.clone());
             let cfg = watcher::Config::default()
-                .labels("drasi/type in (source, querycontainer,reaction)");
+                .labels(format!("drasi/type in ({},{},{})", ResourceType::Source, ResourceType::QueryContainer, ResourceType::Reaction).as_str());
             let watch = watcher(api, cfg)
                 .touched_objects()
                 .try_for_each(|p| {
-                    let resource_id = p.labels().get("drasi/resource").unwrap();
-                    let resource_type = p.labels().get("drasi/type").unwrap();
-
-                    let actor_type = match resource_type.as_str() {
-                        "source" => "SourceResource",
-                        "querycontainer" => "QueryContainerResource",
-                        "reaction" => "ReactionResource",
-                        _ => "",
-                    };
-
-                    _ = tx.send((actor_type.to_string(), resource_id.to_string()));
+                    let empty_str: String = "".to_string();
+                    let resource_id = p.labels().get("drasi/resource").unwrap_or(&empty_str);
+                    let resource_type = p.labels().get("drasi/type").unwrap_or(&empty_str);
+                    if let Some(resource_type) = ResourceType::parse(resource_type) {
+                        let actor_type = match resource_type {
+                            ResourceType::Source => "SourceResource",
+                            ResourceType::QueryContainer => "QueryContainerResource",
+                            ResourceType::Reaction => "ReactionResource",
+                        };
+    
+                        _ = tx.send((actor_type.to_string(), resource_id.to_string()));
+                    }
 
                     futures::future::ok(())
                 })

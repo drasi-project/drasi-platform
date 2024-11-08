@@ -69,6 +69,17 @@ pub enum ResourceType {
     QueryContainer,
 }
 
+impl ResourceType {
+    pub fn parse(s: &str) -> Option<ResourceType> {
+        match s {
+            "source" => Some(ResourceType::Source),
+            "reaction" => Some(ResourceType::Reaction),
+            "query-container" => Some(ResourceType::QueryContainer),
+            _ => None,
+        }
+    }
+}
+
 impl Display for ResourceType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
