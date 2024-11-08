@@ -18,7 +18,7 @@ using System;
 using System.Threading.Tasks;
 using Azure.Storage.Queues;
 using Drasi.Reaction.SDK;
-using Drasi.Reaction.SDK.Models;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 using Drasi.Reactions.StorageQueue.Models.Debezium;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

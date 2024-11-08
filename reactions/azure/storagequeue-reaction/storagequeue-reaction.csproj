@@ -13,7 +13,7 @@
   <ItemGroup>    
     <PackageReference Include="Azure.Identity" Version="1.13.1" />    
     <PackageReference Include="Azure.Storage.Queues" Version="12.20.1" />    
-    <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.0-alpha" />    
+    <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.2-alpha" />    
   </ItemGroup>
 
 </Project>

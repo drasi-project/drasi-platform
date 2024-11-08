@@ -47,16 +47,15 @@ var reaction = new ReactionBuilder()
                 queueServiceClient = new QueueServiceClient(new Uri(serviceUri), new DefaultAzureCredential());
             }
 
-            var result = queueServiceClient.GetQueueClient(queueName);
-            if (!result.Exists())
-            {
-                throw new InvalidOperationException("queue does not exist");
-            }
-
-            return result;
+            return queueServiceClient.GetQueueClient(queueName);
         });
     })
     .Build();
+
+if (!await reaction.Services.GetRequiredService<QueueClient>().ExistsAsync())
+{
+    Reaction<object>.TerminateWithError("queue does not exist");
+}
 
 await reaction.StartAsync();
 

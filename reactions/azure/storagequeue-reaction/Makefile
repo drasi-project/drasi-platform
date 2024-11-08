@@ -20,4 +20,6 @@ lint-check:
 	@echo "No lint checks to run yet"
 
 generate-types:
+	npm run clean --prefix ../../../typespec
+	npm run build ./output-debezium --prefix ../../../typespec
 	quicktype --src-lang schema -l cs -o Models/Debezium.generated.cs ../../../typespec/output-debezium/_generated/@typespec/json-schema/*.yaml --framework SystemTextJson --namespace Drasi.Reactions.StorageQueue.Models.Debezium

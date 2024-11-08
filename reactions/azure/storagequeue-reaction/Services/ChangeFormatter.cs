@@ -14,7 +14,7 @@
 
 ﻿
 using System.Text.Json;
-using Drasi.Reaction.SDK.Models;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 using Drasi.Reactions.StorageQueue.Models.Debezium;
 
 namespace Drasi.Reactions.StorageQueue.Services

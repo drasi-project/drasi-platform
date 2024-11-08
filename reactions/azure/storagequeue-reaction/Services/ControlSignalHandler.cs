@@ -19,7 +19,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Azure.Storage.Queues;
 using Drasi.Reaction.SDK;
-using Drasi.Reaction.SDK.Models;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 using Drasi.Reactions.StorageQueue.Models.Debezium;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -52,7 +52,7 @@ public class ControlSignalHandler : IControlEventHandler
                     TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                     Payload = new ControlSignalNotificationPayload()
                     {
-                        Kind = JsonSerializer.Serialize(evt.ControlSignal.Kind, Reaction.SDK.Models.ModelOptions.JsonOptions).Trim('"'),
+                        Kind = JsonSerializer.Serialize(evt.ControlSignal.Kind, Reaction.SDK.Models.QueryOutput.ModelOptions.JsonOptions).Trim('"'),
                         Source = new SourceClass()
                         {
                             QueryId = evt.QueryId,
