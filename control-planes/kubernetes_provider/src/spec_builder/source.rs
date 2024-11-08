@@ -245,7 +245,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 removed: false,
             };
 
-            if let Some(identity) = service_spec.identity {
+            if let Some(identity) = &source_spec.identity {
                 apply_identity(&mut k8s_spec, &identity);
             }
 

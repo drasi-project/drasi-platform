@@ -395,7 +395,6 @@ fn merge_spec(
                 dapr: None,
                 properties: None,
                 deprovision_handler: None,
-                identity: None,
             },
         };
 
@@ -542,7 +541,6 @@ fn merge_spec(
             dapr,
             properties: service_properties,
             deprovision_handler: service_config.deprovision_handler,
-            identity: curr_service.identity.clone(),
         };
 
         services.insert(service_name.clone(), new_service);

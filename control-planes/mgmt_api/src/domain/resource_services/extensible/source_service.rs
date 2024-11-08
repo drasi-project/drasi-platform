@@ -321,5 +321,6 @@ fn populate_default_values(
         kind: source.kind.clone(),
         properties: Some(properties),
         services: Some(services),
+        identity: source.identity.clone(),
     })
 }

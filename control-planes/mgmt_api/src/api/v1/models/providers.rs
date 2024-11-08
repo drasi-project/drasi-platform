@@ -48,7 +48,6 @@ pub struct ServiceConfigDto {
     pub endpoints: Option<HashMap<String, EndpointDto>>,
     pub dapr: Option<HashMap<String, ConfigValueDto>>,
     pub properties: Option<HashMap<String, Option<ConfigValueDto>>>,
-    pub identity: Option<ServiceIdentityDto>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -56,7 +55,7 @@ pub struct ServiceConfigDto {
 pub enum ServiceIdentityDto {
     MicrosoftManagedIdentity {
         #[serde(rename = "clientId")]
-        client_id: String 
+        client_id: String,
     },
 }
 

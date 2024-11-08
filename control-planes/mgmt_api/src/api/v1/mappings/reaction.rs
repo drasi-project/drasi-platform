@@ -41,6 +41,7 @@ impl From<ReactionSpecDto> for ReactionSpec {
                 .into_iter()
                 .map(|(k, v)| (k, v.unwrap_or_default()))
                 .collect(),
+            identity: spec.identity.map(|identity| identity.into()),
         }
     }
 }
@@ -61,6 +62,7 @@ impl From<ReactionSpec> for ReactionSpecDto {
                 .into_iter()
                 .map(|(k, v)| (k, Some(v)))
                 .collect(),
+            identity: spec.identity.map(|identity| identity.into()),
         }
     }
 }

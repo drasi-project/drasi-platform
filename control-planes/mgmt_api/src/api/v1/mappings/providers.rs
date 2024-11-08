@@ -64,7 +64,6 @@ impl From<ServiceConfigDto> for ServiceConfig {
                     .map(|(k, v)| (k, v.unwrap().into()))
                     .collect()
             }),
-            identity: service.identity.map(|identity| identity.into()),
         }
     }
 }
@@ -140,7 +139,6 @@ impl From<ServiceConfig> for ServiceConfigDto {
                     .map(|(k, v)| (k, Some(v.into())))
                     .collect()
             }),
-            identity: service.identity.map(|identity| identity.into()),
         }
     }
 }

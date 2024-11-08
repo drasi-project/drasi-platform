@@ -102,6 +102,7 @@ pub struct SourceSpec {
     pub kind: String,
     pub services: Option<HashMap<String, Service>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
+    pub identity: Option<ServiceIdentity>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -150,6 +151,7 @@ pub struct ReactionSpec {
     pub services: Option<HashMap<String, Service>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
     pub queries: HashMap<String, String>,
+    pub identity: Option<ServiceIdentity>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -178,7 +180,6 @@ pub struct Service {
     pub endpoints: Option<HashMap<String, Endpoint>>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
-    pub identity: Option<ServiceIdentity>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

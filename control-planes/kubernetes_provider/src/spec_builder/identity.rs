@@ -22,15 +22,17 @@ use crate::models::KubernetesSpec;
 
 pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
     if spec.service_account.is_none() {
-        let service_account_name = format!(
-            "{}.{}.{}",
-            spec.resource_type, spec.resource_id, spec.service_name
-        );
+        let service_account_name = format!("{}.{}", spec.resource_type, spec.resource_id);
+        
+        let mut labels = BTreeMap::new();
+        labels.insert("drasi/type".to_string(), spec.resource_type.to_string());
+        labels.insert("drasi/resource".to_string(), spec.resource_id.to_string());
+        
         spec.service_account = Some(ServiceAccount {
             metadata: ObjectMeta {
                 name: Some(service_account_name.clone()),
                 annotations: Some(BTreeMap::new()),
-                labels: spec.deployment.selector.match_labels.clone(),
+                labels: Some(labels),
                 ..Default::default()
             },
             ..Default::default()

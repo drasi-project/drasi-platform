@@ -66,6 +66,7 @@ impl From<SourceSpec> for resource_provider_api::models::SourceSpec {
             properties: source_spec
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            identity: source_spec.identity.map(|identity| identity.into()),
         }
     }
 }
@@ -129,6 +130,7 @@ impl From<ReactionSpec> for resource_provider_api::models::ReactionSpec {
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
             queries: reaction_spec.queries,
+            identity: reaction_spec.identity.map(|identity| identity.into()),
         }
     }
 }
@@ -179,7 +181,6 @@ impl From<ServiceConfig> for resource_provider_api::models::Service {
             properties: service
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            identity: service.identity.map(|identity| identity.into()),
         }
     }
 }

@@ -39,7 +39,8 @@ use super::super::models::KubernetesSpec;
 
 pub struct ResourceReconciler {
     spec: KubernetesSpec,
-    hash: String,
+    deployment_hash: String,
+    service_account_hash: String,
     component_api: Api<Component>,
     deployment_api: Api<Deployment>,
     pod_api: Api<Pod>,
@@ -73,7 +74,8 @@ impl ResourceReconciler {
         let client = kube::Client::try_from(kube_config).unwrap();
 
         Self {
-            hash: calc_hash(&spec),
+            deployment_hash: calc_deployment_hash(&spec),
+            service_account_hash: calc_service_account_hash(&spec),
             spec,
             component_api: Api::default_namespaced(client.clone()),
             deployment_api: Api::default_namespaced(client.clone()),
@@ -249,9 +251,9 @@ impl ResourceReconciler {
         );
         log::info!("Reconciling deployment {}", name);
         let mut annotations = BTreeMap::new();
-        annotations.insert("drasi/spechash".to_string(), self.hash.clone());
+        annotations.insert("drasi/spechash".to_string(), self.deployment_hash.clone());
 
-        let mut dep = Deployment {
+        let dep = Deployment {
             metadata: ObjectMeta {
                 name: Some(name.clone()),
                 labels: Some(self.labels.clone()),
@@ -272,7 +274,7 @@ impl ResourceReconciler {
             Ok(current) => {
                 self.update_deployment_status(&current).await;
                 let current_hash = current.metadata.annotations.unwrap()["drasi/spechash"].clone();
-                if current_hash != self.hash {
+                if current_hash != self.deployment_hash {
                     log::info!("Updating deployment {}", name);
                     let pp = PatchParams::default();
                     let pat = Patch::Merge(&dep);
@@ -350,7 +352,7 @@ impl ResourceReconciler {
                 Ok(current) => {
                     let current_hash =
                         current.metadata.annotations.unwrap()["drasi/spechash"].clone();
-                    if current_hash != self.hash {
+                    if current_hash != self.deployment_hash {
                         log::info!("Updating service {}", name);
                         let pp = PostParams::default();
                         self.service_api.replace(name, &pp, &svc).await?;
@@ -399,16 +401,17 @@ impl ResourceReconciler {
         if let Some(service_account) = &self.spec.service_account {
             log::info!("Reconciling service account {}", self.spec.resource_id);
             let mut new_service_account = service_account.clone();
-            new_service_account
-                .annotations_mut()
-                .insert("drasi/spechash".to_string(), self.hash.clone());
+            new_service_account.annotations_mut().insert(
+                "drasi/spechash".to_string(),
+                self.service_account_hash.clone(),
+            );
 
             let name = service_account.metadata.name.clone().unwrap();
             match self.account_api.get(&name).await {
                 Ok(current) => {
                     let current_hash =
                         current.metadata.annotations.unwrap()["drasi/spechash"].clone();
-                    if current_hash != self.hash {
+                    if current_hash != self.service_account_hash {
                         log::info!("Updating service account {}", name);
                         let pp = PostParams::default();
                         self.account_api
@@ -474,17 +477,24 @@ impl ResourceReconciler {
     }
 }
 
-fn calc_hash(spec: &KubernetesSpec) -> String {
+fn calc_deployment_hash(spec: &KubernetesSpec) -> String {
     let mut hash = SpookyHasher::default();
 
     let dep_data = serde_json::to_vec(&spec.deployment).unwrap();
     dep_data.hash(&mut hash);
 
-    let sa_data = serde_json::to_vec(&spec.service_account).unwrap();
-    sa_data.hash(&mut hash);
-
     let cm_data = serde_json::to_vec(&spec.config_maps).unwrap();
     cm_data.hash(&mut hash);
+
+    let hsh = hash.finish();
+    format!("{:02x}", hsh)
+}
+
+fn calc_service_account_hash(spec: &KubernetesSpec) -> String {
+    let mut hash = SpookyHasher::default();
+
+    let sa_data = serde_json::to_vec(&spec.service_account).unwrap();
+    sa_data.hash(&mut hash);
 
     let hsh = hash.finish();
     format!("{:02x}", hsh)
