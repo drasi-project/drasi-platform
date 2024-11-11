@@ -83,7 +83,12 @@ Usage examples:
 				return err
 			}
 
-			fmt.Printf("Installing Drasi with version %s from registry %s\n", version, registry)
+			if local {
+				fmt.Printf("Installing Drasi version %s with local images\n", version)
+			} else {
+				fmt.Printf("Installing Drasi with version %s from registry %s\n", version, registry)
+			}
+
 			output := output.NewTaskOutput()
 			defer output.Close()
 
