@@ -21,7 +21,7 @@ use k8s_openapi::{
     apimachinery::pkg::util::intstr::IntOrString,
 };
 use resource_provider_api::models::{ConfigValue, EndpointSetting, ResourceRequest, SourceSpec};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 macro_rules! hashmap {
   ($( $key: expr => $val: expr ),*) => {{
@@ -51,6 +51,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 &source.id,
                 "change-router",
                 "source-change-router",
+                false,
                 1,
                 Some(3000),
                 hashmap![
@@ -78,6 +79,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 &source.id,
                 "change-dispatcher",
                 "source-change-dispatcher",
+                false,
                 1,
                 Some(3000),
                 hashmap![
@@ -105,6 +107,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 &source.id,
                 "query-api",
                 "source-query-api",
+                false,
                 1,
                 Some(4001),
                 hashmap![
@@ -214,6 +217,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                     &source.id,
                     &service_name,
                     service_spec.image.as_str(),
+                    service_spec.external_image.unwrap_or(false),
                     replica,
                     app_port,
                     env_var_map.clone(),

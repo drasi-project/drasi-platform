@@ -21,7 +21,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/phayes/freeport"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,15 +42,16 @@ import (
 )
 
 func MakeApiClient(namespace string) (*apiClient, error) {
+	port, err := freeport.GetFreePort()
 	result := apiClient{
-		port:   9083,
+		port:   int32(port),
 		stopCh: make(chan struct{}, 1),
 	}
 	if err := result.init(namespace); err != nil {
 		return nil, err
 	}
 
-	err := result.createTunnel()
+	err = result.createTunnel()
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +60,7 @@ func MakeApiClient(namespace string) (*apiClient, error) {
 	result.client = &http.Client{
 		Timeout: 30 * time.Second,
 	}
+	result.streamClient = &http.Client{}
 
 	return &result, nil
 }
@@ -68,6 +72,7 @@ type apiClient struct {
 	stopCh        chan struct{}
 	port          int32
 	client        *http.Client
+	streamClient  *http.Client
 	prefix        string
 }
 
@@ -334,6 +339,47 @@ func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output o
 		output.SucceedTask(subject, fmt.Sprintf("%v online", subject))
 	}
 	return nil
+}
+
+func (t *apiClient) Watch(kind string, name string, output chan map[string]interface{}, initErr chan error) {
+	defer close(output)
+	url := fmt.Sprintf("%v/%v/%v/%v/watch", t.prefix, "v1", kindRoutes[kind], name)
+	resp, err := t.streamClient.Get(url)
+	if err != nil {
+		initErr <- err
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		initErr <- errors.New(resp.Status)
+		return
+	}
+
+	decoder := json.NewDecoder(resp.Body)
+
+	if _, err := decoder.Token(); err != nil {
+		initErr <- err
+		return
+	}
+
+	initErr <- nil
+
+	// Iterate through each element in the JSON array
+	for decoder.More() {
+		var item map[string]interface{}
+		if err := decoder.Decode(&item); err != nil {
+			log.Fatal(err)
+			return
+		}
+		output <- item
+	}
+
+	// Decode the closing bracket for the array `]`
+	if _, err := decoder.Token(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (t *apiClient) Close() {

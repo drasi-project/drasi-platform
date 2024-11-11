@@ -28,8 +28,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
     <version.debezium>2.6.2.Final</version.debezium>
   </properties>
 
@@ -181,8 +181,8 @@
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-compiler-plugin</artifactId>
               <configuration>
-                  <source>17</source>
-                  <target>17</target>
+                  <source>21</source>
+                  <target>21</target>
               </configuration>
           </plugin>
         <plugin>

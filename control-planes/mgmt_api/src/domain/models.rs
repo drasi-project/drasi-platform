@@ -175,6 +175,7 @@ pub struct QuerySpec {
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
+    pub transient: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -224,6 +225,7 @@ pub struct ReactionProviderMarker;
 #[serde(rename_all = "camelCase")]
 pub struct ProviderService {
     pub image: String,
+    pub external_image: Option<bool>,
     pub dapr: Option<HashMap<String, String>>,
     pub endpoints: Option<HashMap<String, ServiceEndpoint>>,
     pub config_schema: Option<JsonSchema>,
@@ -241,6 +243,7 @@ pub struct ServiceEndpoint {
 pub struct ServiceConfig {
     pub replica: Option<String>,
     pub image: Option<String>,
+    pub external_image: Option<bool>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
     pub endpoints: Option<HashMap<String, Endpoint>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
@@ -310,8 +313,11 @@ pub enum DomainError {
     #[error("InvalidSpec: {message}")]
     InvalidSpec { message: String },
 
-    #[error("JsonParseError")]
+    #[error("JsonParseError: {message}")]
     JsonParseError { message: String },
+
+    #[error("Cancelled")]
+    Cancelled,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

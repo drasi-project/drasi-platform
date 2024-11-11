@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ReactionProvider
+name: Simple
+spec:
+  services:
+    reaction:
+      image: reaction-simple
+      externalImage: true

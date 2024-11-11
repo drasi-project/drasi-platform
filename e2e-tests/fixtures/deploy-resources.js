@@ -29,6 +29,8 @@ async function deployResources(resources) {
   let reactions = [];
   let containers = [];
 
+  let reactionProviders = [];
+
   let promises = [];
 
   for (let resource of resources) {
@@ -47,6 +49,9 @@ async function deployResources(resources) {
         break;
       case "Reaction":
         reactions.push(resource);
+        break;
+      case "ReactionProvider":
+        reactionProviders.push(resource);
         break;
       default:
         console.info(cp.execSync(`kubectl apply -f - `, { input: yaml.dump(resource), encoding: 'utf-8', stdio: 'pipe' }));
@@ -81,6 +86,10 @@ async function deployResources(resources) {
   for (let reaction of reactions) {
     console.info(cp.execSync(`drasi apply`, { input: yaml.dump(reaction), encoding: 'utf-8', stdio: 'pipe' }));
     await waitForChildProcess(cp.exec(`drasi wait ${reaction.kind} ${reaction.name}`, { encoding: 'utf-8' }), reaction.name);
+  }
+
+  for (let provider of reactionProviders) {
+    console.info(cp.execSync(`drasi apply`, { input: yaml.dump(provider), encoding: 'utf-8', stdio: 'pipe' }));
   }
 }
 

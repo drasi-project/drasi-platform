@@ -135,7 +135,14 @@ impl QueryWorker {
                 builder = builder.with_source_pipeline(subscription.id.to_string(), &pipeline);
             }
 
-            let continuous_query = builder.build().await;
+            let continuous_query = match builder.try_build().await {
+                Ok(cq) => cq,
+                Err(err) => {
+                    log::error!("Error building query: {}", err);
+                    lifecycle.change_state(QueryState::TerminalError(err.to_string()));
+                    return;
+                }
+            };
 
             fill_default_source_labels(&mut modified_config, &continuous_query.get_query());
 
