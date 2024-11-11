@@ -50,6 +50,7 @@ impl From<ServiceConfigDto> for ServiceConfig {
         ServiceConfig {
             replica: None,
             image: None,
+            external_image: None,
             deprovision_handler: None,
             endpoints: service
                 .endpoints
@@ -152,6 +153,7 @@ impl From<ProviderServiceDto> for ProviderService {
     fn from(provider_service: ProviderServiceDto) -> Self {
         ProviderService {
             image: provider_service.image,
+            external_image: provider_service.external_image,
             dapr: provider_service.dapr,
             endpoints: provider_service
                 .endpoints
@@ -166,6 +168,7 @@ impl From<ProviderService> for ProviderServiceDto {
     fn from(provider_service: ProviderService) -> Self {
         ProviderServiceDto {
             image: provider_service.image,
+            external_image: provider_service.external_image,
             dapr: provider_service.dapr,
             endpoints: provider_service
                 .endpoints

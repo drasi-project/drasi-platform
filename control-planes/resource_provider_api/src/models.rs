@@ -174,6 +174,7 @@ pub enum DefaultValue {
 pub struct Service {
     pub replica: Option<String>,
     pub image: String,
+    pub external_image: Option<bool>,
     pub endpoints: Option<HashMap<String, Endpoint>>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
     pub properties: Option<HashMap<String, ConfigValue>>,

@@ -390,6 +390,7 @@ fn merge_spec(
             _ => ServiceConfig {
                 replica: None,
                 image: None,
+                external_image: None,
                 endpoints: None,
                 dapr: None,
                 properties: None,
@@ -535,6 +536,7 @@ fn merge_spec(
         let new_service = ServiceConfig {
             replica: None,
             image: Some(service_config.image.clone()),
+            external_image: service_config.external_image,
             endpoints,
             dapr,
             properties: service_properties,
