@@ -28,6 +28,8 @@ pub struct ProviderSpecDto {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProviderServiceDto {
     pub image: String,
+    #[serde(rename = "externalImage")]
+    pub external_image: Option<bool>,
     pub dapr: Option<HashMap<String, String>>,
     pub endpoints: Option<HashMap<String, ServiceEndpointDto>>,
     pub config_schema: Option<JsonSchemaDto>,

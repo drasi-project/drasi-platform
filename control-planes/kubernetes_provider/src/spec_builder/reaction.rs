@@ -147,6 +147,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 &source.id,
                 "reaction",
                 image.as_str(),
+                service_spec.external_image.unwrap_or(false),
                 replica.parse::<i32>().unwrap(),
                 Some(app_port.unwrap_or(80)),
                 env.clone(),

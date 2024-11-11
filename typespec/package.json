@@ -1,0 +1,26 @@
+{
+  "name": "drasi",
+  "version": "0.1.0",
+  "type": "module",
+  "peerDependencies": {
+    "@azure-tools/typespec-autorest": "latest",
+    "@azure-tools/typespec-azure-core": "latest",
+    "@azure-tools/typespec-azure-resource-manager": "latest",
+    "@azure-tools/typespec-providerhub": "latest",
+    "@typespec/compiler": "latest",
+    "@typespec/http": "latest",
+    "@typespec/openapi": "latest",
+    "@typespec/rest": "latest",
+    "@typespec/versioning": "^0.61.0"
+  },
+  "devDependencies": {
+    "@typespec/compiler": "latest"
+  },
+  "private": true,
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@azure-tools/typespec-ts": "^0.33.0",
+    "@typespec/json-schema": "^0.61.0",
+    "@typespec/openapi3": "^0.61.0"
+  }
+}
