@@ -1,0 +1,12 @@
+kind: Reaction
+apiVersion: v1
+name: test-advanced
+spec:
+  kind: Advanced
+  properties:
+    MyConnectionString: "some connection string"
+  queries:
+    query1: |
+      greeting: "Hello, World!"
+    query2: |
+      greeting: "Howdy!"
