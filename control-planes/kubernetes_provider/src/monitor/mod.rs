@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::time::Duration;
+use std::{collections::{HashMap, HashSet}, time::Duration};
 
 use dapr::client::TonicClient;
 use futures::TryStreamExt;
-use k8s_openapi::api::apps::v1::Deployment;
+use k8s_openapi::api::core::v1::Pod;
 use kube::{
     api::{Api, ResourceExt},
     runtime::{watcher, WatchStreamExt},
 };
 
 use tokio::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    task::JoinHandle,
+    select, sync::mpsc::{UnboundedReceiver, UnboundedSender}, task::JoinHandle
 };
 
 use crate::models::ResourceType;
@@ -41,16 +40,45 @@ fn spawn_handler_task(
     mut dapr_client: dapr::Client<TonicClient>,
 ) -> JoinHandle<()> {
     tokio::spawn(async move {
-        while let Some(evt) = rx.recv().await {
-            let _: () = match dapr_client
-                .invoke_actor(evt.0, evt.1, "reconcile", (), None)
-                .await
-            {
-                Ok(r) => r,
-                Err(e) => {
-                    log::error!("error invoking actor: {}", e);
+        let mut debounce_set: HashSet<(String, String)> = HashSet::new();
+        let mut last_debounce = std::time::Instant::now();
+        loop {
+            if last_debounce.elapsed() > Duration::from_millis(500) {
+                for (actor_type, resource_id) in debounce_set.drain() {
+                    let _: () = match dapr_client
+                        .invoke_actor(actor_type.clone(), resource_id.clone(), "reconcile", (), None)
+                        .await {
+                            Ok(r) => r,
+                            Err(e) => log::error!("Failed to invoke actor: {}", e),
+                        };
                 }
-            };
+                last_debounce = std::time::Instant::now();
+            }
+
+            select! {
+                _ = tokio::time::sleep(Duration::from_millis(500)) => continue,
+                evt = rx.recv() => {
+                    match evt {
+                        Some(evt) => {
+                            if debounce_set.contains(&(evt.0.clone(), evt.1.clone())) {
+                                log::info!("debounce reconcile: {} {}", evt.0, evt.1);
+                                continue;
+                            }
+                            let _: () = match dapr_client
+                                .invoke_actor(evt.0.clone(), evt.1.clone(), "reconcile", (), None)
+                                .await {
+                                    Ok(r) => r,
+                                    Err(e) => log::error!("Failed to invoke actor: {}", e),
+                                };
+                            debounce_set.insert((evt.0, evt.1));
+                        }
+                        None => {
+                            log::info!("channel closed");
+                            break;
+                        }
+                    }
+                }
+            }
         }
     })
 }
@@ -64,7 +92,7 @@ fn spawn_monitor_task(
             // give actor server a chance to start first
             tokio::time::sleep(Duration::from_secs(5)).await;
             log::info!("starting watcher task");
-            let api = Api::<Deployment>::default_namespaced(kube_client.clone());
+            let api = Api::<Pod>::default_namespaced(kube_client.clone());
             let cfg = watcher::Config::default()
                 .labels(format!("drasi/type in ({},{},{})", ResourceType::Source, ResourceType::QueryContainer, ResourceType::Reaction).as_str());
             let watch = watcher(api, cfg)
