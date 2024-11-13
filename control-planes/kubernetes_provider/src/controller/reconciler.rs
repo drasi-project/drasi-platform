@@ -307,7 +307,6 @@ impl ResourceReconciler {
                     type_: Some("RollingUpdate".to_string()),
                     ..Default::default()
                 }),
-
                 ..self.spec.deployment.clone()
             }),
             ..Default::default()

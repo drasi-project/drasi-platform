@@ -27,7 +27,6 @@ use k8s_openapi::{
 use kube::core::ObjectMeta;
 use resource_provider_api::models::{ConfigValue, ResourceRequest};
 use serde_json::json;
-use uuid::Uuid;
 
 use crate::models::ResourceType;
 
@@ -64,7 +63,6 @@ pub fn build_deployment_spec(
     app_protocol: Option<String>,
 ) -> DeploymentSpec {
     let app_id = format!("{}-{}", resource_id, service_name);
-    let generation_id = Uuid::new_v4().to_string();
 
     let mut env = map_env_vars(env_vars);
     let mut ports = Vec::new();
@@ -93,7 +91,6 @@ pub fn build_deployment_spec(
     match_labels.insert("drasi/type".to_string(), resource_type.to_string());
     match_labels.insert("drasi/resource".to_string(), resource_id.to_string());
     match_labels.insert("drasi/service".to_string(), service_name.to_string());
-    match_labels.insert("drasi/generation".to_string(), generation_id);
 
     if let Some(endpoints) = endpoints {
         for (name, port) in endpoints {
