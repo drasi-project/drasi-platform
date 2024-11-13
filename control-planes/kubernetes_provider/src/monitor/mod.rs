@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::{HashMap, HashSet}, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
 use dapr::client::TonicClient;
 use futures::TryStreamExt;
@@ -23,7 +26,9 @@ use kube::{
 };
 
 use tokio::{
-    select, sync::mpsc::{UnboundedReceiver, UnboundedSender}, task::JoinHandle
+    select,
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    task::JoinHandle,
 };
 
 use crate::models::ResourceType;
@@ -46,11 +51,18 @@ fn spawn_handler_task(
             if last_debounce.elapsed() > Duration::from_millis(500) {
                 for (actor_type, resource_id) in debounce_set.drain() {
                     let _: () = match dapr_client
-                        .invoke_actor(actor_type.clone(), resource_id.clone(), "reconcile", (), None)
-                        .await {
-                            Ok(r) => r,
-                            Err(e) => log::error!("Failed to invoke actor: {}", e),
-                        };
+                        .invoke_actor(
+                            actor_type.clone(),
+                            resource_id.clone(),
+                            "reconcile",
+                            (),
+                            None,
+                        )
+                        .await
+                    {
+                        Ok(r) => r,
+                        Err(e) => log::error!("Failed to invoke actor: {}", e),
+                    };
                 }
                 last_debounce = std::time::Instant::now();
             }
@@ -93,8 +105,15 @@ fn spawn_monitor_task(
             tokio::time::sleep(Duration::from_secs(5)).await;
             log::info!("starting watcher task");
             let api = Api::<Pod>::default_namespaced(kube_client.clone());
-            let cfg = watcher::Config::default()
-                .labels(format!("drasi/type in ({},{},{})", ResourceType::Source, ResourceType::QueryContainer, ResourceType::Reaction).as_str());
+            let cfg = watcher::Config::default().labels(
+                format!(
+                    "drasi/type in ({},{},{})",
+                    ResourceType::Source,
+                    ResourceType::QueryContainer,
+                    ResourceType::Reaction
+                )
+                .as_str(),
+            );
             let watch = watcher(api, cfg)
                 .touched_objects()
                 .try_for_each(|p| {
@@ -107,7 +126,7 @@ fn spawn_monitor_task(
                             ResourceType::QueryContainer => "QueryContainerResource",
                             ResourceType::Reaction => "ReactionResource",
                         };
-    
+
                         _ = tx.send((actor_type.to_string(), resource_id.to_string()));
                     }
 

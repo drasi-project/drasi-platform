@@ -129,8 +129,16 @@ impl ResourceReconciler {
                         match pod.status {
                             Some(pod_status) => match pod_status.container_statuses {
                                 Some(container_statuses) => {
+                                    let not_ready = container_statuses.iter().any(|x| !x.ready);
+
                                     for container_status in container_statuses {
-                                        match container_status.state {
+                                        let state = match not_ready {
+                                            false => container_status.state,
+                                            true => container_status
+                                                .last_state
+                                                .or(container_status.state),
+                                        };
+                                        match state {
                                             Some(state) => {
                                                 if let Some(terminated) = state.terminated {
                                                     errors.push(format!(

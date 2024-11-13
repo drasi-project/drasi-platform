@@ -13,7 +13,8 @@
 // limitations under the License.
 
 use crate::{
-    controller::reconciler::ReconcileStatus, models::{ResourceType, RuntimeConfig},
+    controller::reconciler::ReconcileStatus,
+    models::{ResourceType, RuntimeConfig},
     spec_builder::source::SourceSpecBuilder,
 };
 use axum::{response::IntoResponse, Json};
