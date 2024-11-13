@@ -53,9 +53,30 @@ pub struct ServiceConfigDto {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "kind")]
 pub enum ServiceIdentityDto {
-    MicrosoftManagedIdentity {
+    MicrosoftEntraWorkloadID {
         #[serde(rename = "clientId")]
         client_id: String,
+    },
+    MicrosoftEntraApplication {
+        #[serde(rename = "tenantId")]
+        tenant_id: ConfigValueDto,
+
+        #[serde(rename = "clientId")]
+        client_id: ConfigValueDto,
+
+        secret: Option<ConfigValueDto>,
+
+        certificate: Option<ConfigValueDto>,
+    },
+    ConnectionString {
+        #[serde(rename = "connectionString")]
+        connection_string: ConfigValueDto,
+    },
+    AccessKey {
+        endpoint: ConfigValueDto,
+
+        #[serde(rename = "accessKey")]
+        access_key: ConfigValueDto,
     },
 }
 

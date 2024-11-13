@@ -255,9 +255,30 @@ pub struct ServiceConfig {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "kind")]
 pub enum ServiceIdentity {
-    MicrosoftManagedIdentity {
+    MicrosoftEntraWorkloadID {
         #[serde(rename = "clientId")]
         client_id: String,
+    },
+    MicrosoftEntraApplication {
+        #[serde(rename = "tenantId")]
+        tenant_id: ConfigValue,
+
+        #[serde(rename = "clientId")]
+        client_id: ConfigValue,
+
+        secret: Option<ConfigValue>,
+
+        certificate: Option<ConfigValue>,
+    },
+    ConnectionString {
+        #[serde(rename = "connectionString")]
+        connection_string: ConfigValue,
+    },
+    AccessKey {
+        endpoint: ConfigValue,
+
+        #[serde(rename = "accessKey")]
+        access_key: ConfigValue,
     },
 }
 

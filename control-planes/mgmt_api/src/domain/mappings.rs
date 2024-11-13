@@ -188,11 +188,34 @@ impl From<ServiceConfig> for resource_provider_api::models::Service {
 impl From<ServiceIdentity> for resource_provider_api::models::ServiceIdentity {
     fn from(service_identity: ServiceIdentity) -> resource_provider_api::models::ServiceIdentity {
         match service_identity {
-            ServiceIdentity::MicrosoftManagedIdentity { client_id } => {
-                resource_provider_api::models::ServiceIdentity::MicrosoftManagedIdentity {
-                    client_id,
+            ServiceIdentity::MicrosoftEntraWorkloadID { client_id } => {
+                resource_provider_api::models::ServiceIdentity::MicrosoftEntraWorkloadID {
+                    client_id: client_id.into(),
                 }
             }
+            ServiceIdentity::MicrosoftEntraApplication {
+                tenant_id,
+                client_id,
+                secret,
+                certificate,
+            } => resource_provider_api::models::ServiceIdentity::MicrosoftEntraApplication {
+                tenant_id: tenant_id.into(),
+                client_id: client_id.into(),
+                secret: secret.map(|v| v.into()),
+                certificate: certificate.map(|v| v.into()),
+            },
+            ServiceIdentity::ConnectionString { connection_string } => {
+                resource_provider_api::models::ServiceIdentity::ConnectionString {
+                    connection_string: connection_string.into(),
+                }
+            }
+            ServiceIdentity::AccessKey {
+                endpoint,
+                access_key,
+            } => resource_provider_api::models::ServiceIdentity::AccessKey {
+                endpoint: endpoint.into(),
+                access_key: access_key.into(),
+            },
         }
     }
 }

@@ -71,9 +71,34 @@ impl From<ServiceConfigDto> for ServiceConfig {
 impl From<ServiceIdentityDto> for ServiceIdentity {
     fn from(identity: ServiceIdentityDto) -> Self {
         match identity {
-            ServiceIdentityDto::MicrosoftManagedIdentity { client_id } => {
-                ServiceIdentity::MicrosoftManagedIdentity { client_id }
+            ServiceIdentityDto::MicrosoftEntraWorkloadID { client_id } => {
+                ServiceIdentity::MicrosoftEntraWorkloadID {
+                    client_id: client_id.into(),
+                }
             }
+            ServiceIdentityDto::MicrosoftEntraApplication {
+                tenant_id,
+                client_id,
+                secret,
+                certificate,
+            } => ServiceIdentity::MicrosoftEntraApplication {
+                tenant_id: tenant_id.into(),
+                client_id: client_id.into(),
+                secret: secret.map(|secret| secret.into()),
+                certificate: certificate.map(|certificate| certificate.into()),
+            },
+            ServiceIdentityDto::ConnectionString { connection_string } => {
+                ServiceIdentity::ConnectionString {
+                    connection_string: connection_string.into(),
+                }
+            }
+            ServiceIdentityDto::AccessKey {
+                endpoint,
+                access_key,
+            } => ServiceIdentity::AccessKey {
+                endpoint: endpoint.into(),
+                access_key: access_key.into(),
+            },
         }
     }
 }
@@ -81,9 +106,34 @@ impl From<ServiceIdentityDto> for ServiceIdentity {
 impl From<ServiceIdentity> for ServiceIdentityDto {
     fn from(identity: ServiceIdentity) -> Self {
         match identity {
-            ServiceIdentity::MicrosoftManagedIdentity { client_id } => {
-                ServiceIdentityDto::MicrosoftManagedIdentity { client_id }
+            ServiceIdentity::MicrosoftEntraWorkloadID { client_id } => {
+                ServiceIdentityDto::MicrosoftEntraWorkloadID {
+                    client_id: client_id.into(),
+                }
             }
+            ServiceIdentity::MicrosoftEntraApplication {
+                tenant_id,
+                client_id,
+                secret,
+                certificate,
+            } => ServiceIdentityDto::MicrosoftEntraApplication {
+                tenant_id: tenant_id.into(),
+                client_id: client_id.into(),
+                secret: secret.map(|secret| secret.into()),
+                certificate: certificate.map(|certificate| certificate.into()),
+            },
+            ServiceIdentity::ConnectionString { connection_string } => {
+                ServiceIdentityDto::ConnectionString {
+                    connection_string: connection_string.into(),
+                }
+            }
+            ServiceIdentity::AccessKey {
+                endpoint,
+                access_key,
+            } => ServiceIdentityDto::AccessKey {
+                endpoint: endpoint.into(),
+                access_key: access_key.into(),
+            },
         }
     }
 }

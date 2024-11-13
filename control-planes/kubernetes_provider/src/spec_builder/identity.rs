@@ -20,6 +20,8 @@ use resource_provider_api::models::ServiceIdentity;
 
 use crate::models::KubernetesSpec;
 
+use super::map_env_vars;
+
 pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
     if spec.service_account.is_none() {
         let service_account_name = format!("{}.{}", spec.resource_type, spec.resource_id);
@@ -43,8 +45,10 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
     }
     let service_account = spec.service_account.as_mut().unwrap(); //asserted above
 
+    let mut env_vars = BTreeMap::new();
+
     match identity {
-        ServiceIdentity::MicrosoftManagedIdentity { client_id } => {
+        ServiceIdentity::MicrosoftEntraWorkloadID { client_id } => {
             //set the client id annotation on service account
             service_account.annotations_mut().insert(
                 "azure.workload.identity/client-id".to_string(),
@@ -58,6 +62,39 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
                     "true".to_string(),
                 );
             }
+        }
+        ServiceIdentity::MicrosoftEntraApplication {
+            tenant_id,
+            client_id,
+            secret,
+            certificate,
+        } => {
+            env_vars.insert("AZURE_TENANT_ID".to_string(), tenant_id.clone());
+            env_vars.insert("AZURE_CLIENT_ID".to_string(), client_id.clone());
+
+            if let Some(secret) = secret {
+                env_vars.insert("AZURE_CLIENT_SECRET".to_string(), secret.clone());
+            }
+            if let Some(certificate) = certificate {
+                env_vars.insert("AZURE_CLIENT_CERTIFICATE".to_string(), certificate.clone());
+            }
+        }
+        ServiceIdentity::ConnectionString { connection_string } => {
+            env_vars.insert("CONNECTION_STRING".to_string(), connection_string.clone());
+        }
+        ServiceIdentity::AccessKey {
+            endpoint,
+            access_key,
+        } => {
+            env_vars.insert("ENDPOINT".to_string(), endpoint.clone());
+            env_vars.insert("ACCESS_KEY".to_string(), access_key.clone());
+        }
+    }
+
+    if let Some(pod_spec) = &mut spec.deployment.template.spec {
+        for container_spec in &mut pod_spec.containers {
+            let env = container_spec.env.get_or_insert(Vec::new());
+            env.extend(map_env_vars(env_vars.clone()));
         }
     }
 }
