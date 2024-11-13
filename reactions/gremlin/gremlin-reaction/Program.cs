@@ -49,6 +49,7 @@ class GremlinService
 		var databaseContainerName = configuration["databaseContainerName"];
 		var databaseEnableSSL = !bool.TryParse(configuration["databaseEnableSSL"], out var enableSSL) || enableSSL;
 		var databasePort = int.TryParse(configuration["databasePort"], out var port) ? port : 443;
+		var useCosmos = bool.TryParse(configuration["useCosmos"], out var cosmos) && cosmos;
 
 		var containerLink = $"/dbs/{databaseName}/colls/{databaseContainerName}";
 
@@ -65,14 +66,25 @@ class GremlinService
 			options.KeepAliveInterval = TimeSpan.FromSeconds(10);
 		});
 
-		_gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: containerLink, password: databasePrimaryKey);
-		_gremlinClient = new GremlinClient(
-			_gremlinServer,
-			new CustomGraphSON2Reader(),
-			new GraphSON2Writer(),
-			"application/vnd.gremlin-v2.0+json",
-			connectionPoolSettings,
-			webSocketConfiguration);
+		if (useCosmos)
+		{
+			// CosmosDB requires the container link as the username and the primary key as the password
+			containerLink = $"/dbs/{databaseName}/colls/{databaseContainerName}";
+			_gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: containerLink, password: databasePrimaryKey);
+			_gremlinClient = new GremlinClient(
+				_gremlinServer,
+				new CustomGraphSON2Reader(),
+				new GraphSON2Writer(),
+				"application/vnd.gremlin-v2.0+json",
+				connectionPoolSettings,
+				webSocketConfiguration);
+		} else {
+			Console.WriteLine("Using Gremlin Server");
+			_gremlinServer = new GremlinServer(databaseHost, databasePort);
+			_gremlinClient = new GremlinClient(
+				_gremlinServer);
+		}
+		
 
 
 		_addedResultCommand = configuration["addedResultCommand"];
@@ -123,8 +135,6 @@ class GremlinService
 
 	public void ProcessAddedQueryResults(Dictionary<string, object> res)
 	{
-		Console.WriteLine($"Added Result {res}");
-
 		string newCmd = _addedResultCommand;
 
 		foreach (var param in _addedResultCommandParamList)
@@ -211,7 +221,7 @@ class GremlinService
 		if (queryResult.TryGetValue(param, out var value))
 		{
 			Console.WriteLine($"Adding param: {param} = {value}");
-
+			Console.WriteLine($"Type: {value.GetType()}");
 			switch (value)
 			{
 				case string strValue:
@@ -226,6 +236,8 @@ class GremlinService
 					return doubleValue.ToString();
 				case decimal decimalValue:
 					return decimalValue.ToString();
+				case JsonElement jsonElementValue:
+					return jsonElementValue.ToString();
 				default:
 					throw new InvalidDataException($"Unsupported data type for param: {param}");
 			}
@@ -316,7 +328,7 @@ class GremlinChangeHandler : IChangeEventHandler
 
 		foreach (var deletedResult in evt.DeletedResults)
 		{
-
+			_gremlinService.ProcessDeletedQueryResults(deletedResult);
 		}
 	}
 }
