@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use k8s_openapi::api::core::v1::ServiceAccount;
+use k8s_openapi::api::core::v1::{EnvVar, ServiceAccount};
 use kube::{api::ObjectMeta, ResourceExt};
 use resource_provider_api::models::ServiceIdentity;
 
@@ -46,6 +46,7 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
     let service_account = spec.service_account.as_mut().unwrap(); //asserted above
 
     let mut env_vars = BTreeMap::new();
+    let id_type;
 
     match identity {
         ServiceIdentity::MicrosoftEntraWorkloadID { client_id } => {
@@ -62,6 +63,7 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
                     "true".to_string(),
                 );
             }
+            id_type = "MicrosoftEntraWorkloadID";
         }
         ServiceIdentity::MicrosoftEntraApplication {
             tenant_id,
@@ -78,9 +80,11 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
             if let Some(certificate) = certificate {
                 env_vars.insert("AZURE_CLIENT_CERTIFICATE".to_string(), certificate.clone());
             }
+            id_type = "MicrosoftEntraApplication";
         }
         ServiceIdentity::ConnectionString { connection_string } => {
             env_vars.insert("CONNECTION_STRING".to_string(), connection_string.clone());
+            id_type = "ConnectionString";
         }
         ServiceIdentity::AccessKey {
             endpoint,
@@ -88,12 +92,18 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
         } => {
             env_vars.insert("ENDPOINT".to_string(), endpoint.clone());
             env_vars.insert("ACCESS_KEY".to_string(), access_key.clone());
+            id_type = "AccessKey";
         }
     }
 
     if let Some(pod_spec) = &mut spec.deployment.template.spec {
         for container_spec in &mut pod_spec.containers {
             let env = container_spec.env.get_or_insert(Vec::new());
+            env.push(EnvVar {
+                name: "IDENTITY_TYPE".to_string(),
+                value: Some(id_type.to_string()),
+                ..Default::default()
+            });
             env.extend(map_env_vars(env_vars.clone()));
         }
     }
