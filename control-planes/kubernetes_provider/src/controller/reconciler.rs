@@ -126,6 +126,9 @@ impl ResourceReconciler {
 
                     let mut errors = Vec::new();
                     for pod in pod_list.items {
+                        if pod.metadata.deletion_timestamp.is_some() {
+                            continue;
+                        }
                         match pod.status {
                             Some(pod_status) => match pod_status.container_statuses {
                                 Some(container_statuses) => {
