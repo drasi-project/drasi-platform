@@ -42,7 +42,7 @@ The following example illustrates
  - Retrieving a configuration value from the Reaction manifest
  - Defining a custom per query configuration object
  - Parsing the per query configuration object from Yaml
- - Process change events form thw query
+ - Process change events from the query
  - Process control events (start, stop, etc.) from the query
 
 
