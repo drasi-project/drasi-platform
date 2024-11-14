@@ -66,11 +66,11 @@ jobs:
          if: steps.copa.conclusion == 'success' 
          id: login 
          uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0 
-         with: 
-           registry: ghcr.io 
-           username: ${{ github.actor }} 
-           password: ${{ secrets.GITHUB_TOKEN }} 
-  
+         with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
        - name: Push patched image 
          if: steps.login.conclusion == 'success' 
          run: | 
