@@ -56,6 +56,8 @@ jobs:
            ignore-unfixed: true 
            vuln-type: "os" 
            image-ref: ${{ matrix.images }} 
+        env:
+            TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
   
          # check whether there are any OS package vulnerabilities 
        - name: Check vulnerability count 
