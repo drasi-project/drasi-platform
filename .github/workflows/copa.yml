@@ -1,4 +1,4 @@
-name: Patch vulnerable images 
+name: Patch vulnerabilities with COPA
 on: 
    # change these to your preferred event triggers 
    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows 
