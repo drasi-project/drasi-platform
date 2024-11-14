@@ -53,7 +53,7 @@ beforeAll(async () => {
   await deployResources(gremlinResources);
   await new Promise(r => setTimeout(r, 10000));
 
-  let gremlinPortForward = new PortForward("gremlin-server", 8182);
+  let gremlinPortForward = new PortForward("gremlin-server-service", 8182);
   let gremlinPort = await gremlinPortForward.start();
 
   // gremlin-server-service.default.svc.cluster.local
