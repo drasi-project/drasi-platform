@@ -30,21 +30,24 @@ var reaction = new ReactionBuilder()
         services.AddSingleton<QueueClient>(sp => 
         {
             var config = sp.GetRequiredService<IConfiguration>();
-            var accountName = config.GetValue<string>("accountName");
-            var accountKey = config.GetValue<string>("accountKey");
+            var connectionString = config.GetValue<string>("connectionString");
+            var endpoint = config.GetValue<string>("endpoint");            
             var queueName = config.GetValue<string>("queueName");
-            var serviceUri = $"https://{accountName}.queue.core.windows.net";            
 
             QueueServiceClient queueServiceClient;
-            if (!String.IsNullOrEmpty(accountKey)) 
+            if (!String.IsNullOrEmpty(connectionString)) 
             {
-                Console.WriteLine("Using Shared Key authentication");
-                queueServiceClient = new QueueServiceClient(new Uri(serviceUri), new StorageSharedKeyCredential(accountName, accountKey));
+                Console.WriteLine("Using connection string");
+                queueServiceClient = new QueueServiceClient(connectionString);
             }
             else
             {
                 Console.WriteLine("Using DefaultAzureCredential authentication");
-                queueServiceClient = new QueueServiceClient(new Uri(serviceUri), new DefaultAzureCredential());
+                if (String.IsNullOrEmpty(endpoint))
+                {
+                    throw new Exception("Either connection string or endpoint must be provided");
+                }
+                queueServiceClient = new QueueServiceClient(new Uri(endpoint), new DefaultAzureCredential());
             }
 
             return queueServiceClient.GetQueueClient(queueName);

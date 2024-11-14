@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Drasi.Reactions.StorageQueue.Models.Debezium;
+namespace Drasi.Reactions.StorageQueue.Models.Unpacked;
 
 public static class ModelOptions
 {

@@ -1,6 +1,6 @@
 # Drasi: Azure Storage Queue Reaction
 
-The Azure Storage Queue Reaction enqueues messages on [Azure Storage Queues](https://learn.microsoft.com/en-us/azure/storage/queues/storage-queues-introduction) in response to changes to the result set of a Drasi Continuous Query.  The output format can either be the raw query output or a Debezium style format.
+The Azure Storage Queue Reaction enqueues messages on [Azure Storage Queues](https://learn.microsoft.com/en-us/azure/storage/queues/storage-queues-introduction) in response to changes to the result set of a Drasi Continuous Query.  The output format can either be the packed format of the raw query output or an unpacked format, where a single message represents one change to the result set.
 
 ## Getting started
 
@@ -8,10 +8,10 @@ The reaction takes the following configuration properties:
 
 | Property | Description |
 |-|-|
-| accountName | Name of Azure Storage Account. |
-| accountKey | Access Key for Azure Storage Account. |
+| endpoint | Endpoint of the Storage Account queue service, in the form https://{account-name}.queue.core.windows.net, if not using connection string|
+| connectionString | Connection String of Azure Storage Account, if using connection string based authentication. |
 | queueName | Name of Queue. It should already exist on your storage account. |
-| format | The output format for the messages that are enqueued. The can either be `raw` for the raw query output or `debezium` for a Debezium style format. |
+| format | The output format for the messages that are enqueued. The can either be `packed` for the raw query output or `unpacked` for a message per result set change. |
 
 ### Example
 
@@ -22,10 +22,9 @@ name: my-reaction
 spec:
   kind: StorageQueue
   properties:
-    accountName: <Name of Azure Storage Account>
-    accountKey: <Access Key for Azure Storage Account>
+    connectionString: <Connection String of Azure Storage Account>
     queueName: <Name of Queue>
-    format: <raw | debezium>
+    format: <packed | unpacked>
   queries:
     query1:
     query2:
@@ -33,9 +32,9 @@ spec:
 
 ## Output formats
 
-### Raw Format
+### Packed Format
 
-The raw query output format produces one message per source change that includes all changes to the result set and looks as follows:
+The packed format produces one message per source change that includes all changes to the result set and looks as follows:
 
 ```json
 {
@@ -57,9 +56,9 @@ The raw query output format produces one message per source change that includes
 ```
 
 
-### Debezium Format
+### Unpacked Format
 
-The Debezium format flattens all the changed result set items into one message per item and looks as follows:
+The Unpacked format flattens all the changed result set items into one message per item and looks as follows:
 
 ```json
 {

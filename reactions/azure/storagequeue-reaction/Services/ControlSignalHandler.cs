@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 using Azure.Storage.Queues;
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
-using Drasi.Reactions.StorageQueue.Models.Debezium;
+using Drasi.Reactions.StorageQueue.Models.Unpacked;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -41,11 +41,11 @@ public class ControlSignalHandler : IControlEventHandler
     {
         switch (_format)
         {
-            case OutputFormat.Raw:
+            case OutputFormat.Packed:
                 var resp = await _queueClient.SendMessageAsync(evt.ToJson());
                 _logger.LogInformation($"Sent message to queue: {resp.Value.MessageId}");
                 break;
-            case OutputFormat.Debezium:
+            case OutputFormat.Unpacked:
                 var notification = new ControlSignalNotification
                 {
                     Op = ControlSignalNotificationOp.X,

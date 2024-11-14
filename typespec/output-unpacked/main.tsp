@@ -5,8 +5,8 @@ using TypeSpec.JsonSchema;
 using TypeSpec.Versioning;
 
 @jsonSchema
-@versioned(Drasi.Debezium.Versions)
-namespace Drasi.Debezium;
+@versioned(Drasi.Unpacked.Versions)
+namespace Drasi.Unpacked;
 
 @extension("title", "Versions")
 enum Versions {

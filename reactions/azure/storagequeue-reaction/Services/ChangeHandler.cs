@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 using Azure.Storage.Queues;
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
-using Drasi.Reactions.StorageQueue.Models.Debezium;
+using Drasi.Reactions.StorageQueue.Models.Unpacked;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -33,7 +33,7 @@ public class ChangeHandler : IChangeEventHandler
     public ChangeHandler(QueueClient queueClient, IConfiguration config, IChangeFormatter changeFormatter, ILogger<ChangeHandler> logger)
     {
         _queueClient = queueClient;
-        _format = Enum.Parse<OutputFormat>(config.GetValue("format", "raw") ?? "raw", true);
+        _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _logger = logger;
         _formatter = changeFormatter;
     }
@@ -42,11 +42,11 @@ public class ChangeHandler : IChangeEventHandler
     {
         switch (_format)
         {
-            case OutputFormat.Raw:
+            case OutputFormat.Packed:
                 var resp = await _queueClient.SendMessageAsync(evt.ToJson());
                 _logger.LogInformation($"Sent message to queue: {resp.Value.MessageId}");
                 break;
-            case OutputFormat.Debezium:
+            case OutputFormat.Unpacked:
                 var notifications = _formatter.Format(evt);
                 foreach (var notification in notifications)
                 {
@@ -62,6 +62,6 @@ public class ChangeHandler : IChangeEventHandler
 
 enum OutputFormat
 {
-    Raw,
-    Debezium
+    Packed,
+    Unpacked
 }

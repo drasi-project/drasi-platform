@@ -2,7 +2,7 @@
 //
 // To parse this JSON data, add NuGet 'System.Text.Json' then do one of these:
 //
-//    using Drasi.Reactions.StorageQueue.Models.Debezium;
+//    using Drasi.Reactions.StorageQueue.Models.Unpacked;
 //
 //    var changeNotification = ChangeNotification.FromJson(jsonString);
 //    var changePayload = ChangePayload.FromJson(jsonString);
@@ -17,7 +17,7 @@
 #pragma warning disable CS8601
 #pragma warning disable CS8603
 
-namespace Drasi.Reactions.StorageQueue.Models.Debezium
+namespace Drasi.Reactions.StorageQueue.Models.Unpacked
 {
     using System;
     using System.Collections.Generic;
@@ -151,54 +151,54 @@ namespace Drasi.Reactions.StorageQueue.Models.Debezium
 
     public partial class ChangeNotification
     {
-        public static ChangeNotification FromJson(string json) => JsonSerializer.Deserialize<ChangeNotification>(json, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
+        public static ChangeNotification FromJson(string json) => JsonSerializer.Deserialize<ChangeNotification>(json, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
     }
 
     public partial class ChangePayload
     {
-        public static ChangePayload FromJson(string json) => JsonSerializer.Deserialize<ChangePayload>(json, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
+        public static ChangePayload FromJson(string json) => JsonSerializer.Deserialize<ChangePayload>(json, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
     }
 
     public partial class ChangeSource
     {
-        public static ChangeSource FromJson(string json) => JsonSerializer.Deserialize<ChangeSource>(json, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
+        public static ChangeSource FromJson(string json) => JsonSerializer.Deserialize<ChangeSource>(json, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
     }
 
     public partial class ControlPayload
     {
-        public static ControlPayload FromJson(string json) => JsonSerializer.Deserialize<ControlPayload>(json, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
+        public static ControlPayload FromJson(string json) => JsonSerializer.Deserialize<ControlPayload>(json, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
     }
 
     public partial class ControlSignalNotification
     {
-        public static ControlSignalNotification FromJson(string json) => JsonSerializer.Deserialize<ControlSignalNotification>(json, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
+        public static ControlSignalNotification FromJson(string json) => JsonSerializer.Deserialize<ControlSignalNotification>(json, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
     }
 
     public partial class Notification
     {
-        public static Notification FromJson(string json) => JsonSerializer.Deserialize<Notification>(json, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
+        public static Notification FromJson(string json) => JsonSerializer.Deserialize<Notification>(json, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
     }
 
     public class Op
     {
-        public static OpEnum FromJson(string json) => JsonSerializer.Deserialize<OpEnum>(json, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
+        public static OpEnum FromJson(string json) => JsonSerializer.Deserialize<OpEnum>(json, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
     }
 
     public class Versions
     {
-        public static VersionsEnum FromJson(string json) => JsonSerializer.Deserialize<VersionsEnum>(json, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
+        public static VersionsEnum FromJson(string json) => JsonSerializer.Deserialize<VersionsEnum>(json, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
     }
 
     public static class Serialize
     {
-        public static string ToJson(this ChangeNotification self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
-        public static string ToJson(this ChangePayload self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
-        public static string ToJson(this ChangeSource self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
-        public static string ToJson(this ControlPayload self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
-        public static string ToJson(this ControlSignalNotification self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
-        public static string ToJson(this Notification self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
-        public static string ToJson(this OpEnum self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
-        public static string ToJson(this VersionsEnum self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Debezium.Converter.Settings);
+        public static string ToJson(this ChangeNotification self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
+        public static string ToJson(this ChangePayload self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
+        public static string ToJson(this ChangeSource self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
+        public static string ToJson(this ControlPayload self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
+        public static string ToJson(this ControlSignalNotification self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
+        public static string ToJson(this Notification self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
+        public static string ToJson(this OpEnum self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
+        public static string ToJson(this VersionsEnum self) => JsonSerializer.Serialize(self, Drasi.Reactions.StorageQueue.Models.Unpacked.Converter.Settings);
     }
 
     internal static class Converter
