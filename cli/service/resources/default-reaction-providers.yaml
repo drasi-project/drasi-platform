@@ -144,25 +144,24 @@ kind: ReactionProvider
 name: StorageQueue
 spec:
   services:
-    storage_queue:
+    reaction:
       image: reaction-storage-queue
   config_schema:
     type: object
     properties:
-      accountName:
+      connectionString:
         type: string
-      accountKey:
+      endpoint:
         type: string
       queueName:
         type: string
       format:
         type: string
         enumValues:
-          - "raw"
-          - "debezium"
-        default: "raw"
+          - "packed"
+          - "unpacked"
+        default: "packed"
     required:
-      - accountName
       - queueName
 ---
 apiVersion: v1
