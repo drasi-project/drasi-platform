@@ -16,6 +16,7 @@ enum Versions {
 @discriminator("kind")
 @extension("title", "ResultEvent")
 model ResultEvent {
+    kind: "change" | "control";
     
     @doc("The ID of the query that the event originated from")
     queryId: string;
@@ -25,7 +26,7 @@ model ResultEvent {
 
     @doc("The time at which the source change was recorded")
     sourceTimeMs: int64;
-    
+
     metadata?: Record<unknown>
 }
 
@@ -64,6 +65,7 @@ model ControlEvent extends ResultEvent {
 @discriminator("kind")
 @extension("title", "ControlSignal")
 model ControlSignal {
+    kind: "bootstrapStarted" | "bootstrapCompleted" | "running" | "stopped" | "deleted";
 }
 
 @extension("title", "BootstrapStartedSignal")
