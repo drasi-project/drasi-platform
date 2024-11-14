@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: SourceProvider
+name: PostgreSQL
+spec:
+  services:
+    proxy:
+      image: source-sql-proxy
+      dapr:
+        app-port: "4002"
+      config_schema:
+        type: object
+        properties:
+          client:
+            type: string
+            default: pg
+    reactivator: 
+      image: source-debezium-reactivator
+      deprovisionHandler: true
+      config_schema:
+        type: object
+        properties:
+          connector:
+            type: string
+            default: PostgreSQL
+  config_schema:
+    type: object
+    properties:
+      database:
+        type: string
+      host:
+        type: string
+      password:
+        type: string
+      port:
+        type: number
+      ssl:
+        type: boolean
+        default: false
+      user:
+        type: string
+      tables:
+        type: array
+    required:
+      - database
+      - host
+      - port
+      - password
+      - user
+      - tables
+---

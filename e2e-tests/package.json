@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --detectOpenHandles",
-    "test:ci": "jest --reporters=default --reporters=jest-junit --detectOpenHandles"
+    "test:ci": "jest --reporters=default --reporters=jest-junit --detectOpenHandles",
+    "test:gremlin": "jest 03-gremlin-reaction-scenario/gremlin-reaction.test.js --detectOpenHandles",
+    "test:storedproc": "jest 02-storedproc-scenario/storedproc.test.js --detectOpenHandles"
   },
   "jest-junit": {
     "suiteNameTemplate": "{filepath}",
@@ -26,6 +28,7 @@
   },
   "dependencies": {
     "@microsoft/signalr": "^7.0.2",
+    "gremlin": "^3.7.3",
     "jest-junit": "^16.0.0",
     "js-yaml": "^4.1.0",
     "knex": "^2.4.2",

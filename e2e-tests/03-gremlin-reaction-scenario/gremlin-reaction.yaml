@@ -1,0 +1,15 @@
+kind: Reaction
+apiVersion: v1
+name: e2e-gremlin-reaction
+spec:
+  kind: Gremlin
+  queries:
+    query2:
+  properties: 
+    addedResultCommand: g.addV('Item').property('ItemId', '@Id').property('Name','@Name')
+    databaseHost: gremlin-server-service.default.svc.cluster.local
+    databasePrimaryKey: key
+    databaseName: gremlin-reaction-test
+    databaseContainerName: Gremlin-Reaction
+    databasePort: "8182"
+    useCosmos: false
