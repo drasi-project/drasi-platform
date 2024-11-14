@@ -57,9 +57,8 @@ beforeAll(async () => {
   let gremlinPort = await gremlinPortForward.start();
 
   // gremlin-server-service.default.svc.cluster.local
-  const connection = new gremlin.driver.DriverRemoteConnection(`ws://localhost:${gremlinPort}/gremlin`);
-  const graph = new gremlin.structure.Graph();
-  gremlinClient = graph.traversal().withRemote(connection)
+  const traversal = gremlin.process.AnonymousTraversalSource.traversal;
+  gremlinClient = traversal().withRemote(new gremlin.driver.DriverRemoteConnection(`ws://localhost:${gremlinPort}/gremlin`, {}));
 }, 150000);
 
 
