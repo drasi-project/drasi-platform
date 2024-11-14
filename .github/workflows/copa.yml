@@ -2,11 +2,6 @@ name: Patch vulnerable images
 on: 
    # change these to your preferred event triggers 
    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows 
-    push: 
-     branches: 
-       - main
-     paths-ignore: 
-       - '**.md' 
     workflow_dispatch:
       inputs:
         tag:
