@@ -33,7 +33,7 @@ public class ControlSignalHandler : IControlEventHandler
     public ControlSignalHandler(QueueClient queueClient, IConfiguration config, ILogger<ControlSignalHandler> logger)
     {
         _queueClient = queueClient;
-        _format = Enum.Parse<OutputFormat>(config.GetValue("Format", "raw") ?? "raw", true);
+        _format = Enum.Parse<OutputFormat>(config.GetValue("Format", "packed") ?? "packed", true);
         _logger = logger;
     }
 
