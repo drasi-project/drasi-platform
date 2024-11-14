@@ -5,13 +5,14 @@ on:
     push: 
      branches: 
        - main
-       - copa-workflow
      paths-ignore: 
        - '**.md' 
     workflow_dispatch:
-    schedule:
-        - cron: '0 0 * * 0'
-        # Execute every Sunday at 00:00 UTC
+      inputs:
+        tag:
+            description: 'Version Tag'
+            required: true  
+            default: '0.1.4'  
 jobs: 
    patch: 
      runs-on: ubuntu-latest 
@@ -22,7 +23,34 @@ jobs:
        fail-fast: false 
        matrix: 
          images: 
-           - "ghcr.io/drasi-project/reaction-result:0.1.5"
+           - "ghcr.io/drasi-project/source-change-router:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-change-dispatcher:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-query-api:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-debezium-reactivator:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-gremlin-proxy:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-sql-proxy:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-cosmosdb-reactivator:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-dataverse-reactivator:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-dataverse-proxy:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-eventhub-reactivator:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/source-eventhub-reactivator:${{ github.event.inputs.tag }}"
+
+           - "ghcr.io/drasi-project/api:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/kubernetes-provider:${{ github.event.inputs.tag }}"
+
+           - "ghcr.io/drasi-project/query-container-query-host:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/query-container-publish-api:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/query-container-view-svc:${{ github.event.inputs.tag }}"
+
+           - "ghcr.io/drasi-project/reaction-result:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/reaction-signalr:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/reaction-dataverse:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/reaction-debezium:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/reaction-debug:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/reaction-eventgrid:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/reaction-gremlin:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/reaction-storagequeue:${{ github.event.inputs.tag }}"
+           - "ghcr.io/drasi-project/reaction-storedproc:${{ github.event.inputs.tag }}"
      steps: 
        - name: Generate Trivy Report 
          uses: aquasecurity/trivy-action@d43c1f16c00cfd3978dde6c07f4bbcf9eb6993ca # 0.16.1 
@@ -54,7 +82,7 @@ jobs:
          with: 
            image: ${{ matrix.images }} 
            image-report: "report.json" 
-           patched-tag: "0.1.5" 
+           patched-tag: "${{ github.event.inputs.tag }}"
            timeout: "5m" # optional, default is 5m 
            output: vex.json # optional 
            # copa-version: "0.6.0" # optional, default is latest 
