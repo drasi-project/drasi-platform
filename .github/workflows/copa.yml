@@ -70,10 +70,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
        - name: Push patched image 
          if: steps.login.conclusion == 'success' 
          run: | 
            # retag if needed 
-           docker tag ${{ steps.copa.outputs.patched-image }} ghcr.io/project-copacetic/copa-action/test/${{ steps.copa.outputs.patched-image }} 
-           docker push ghcr.io/project-copacetic/copa-action/test/${{ steps.copa.outputs.patched-image }} 
+           docker tag ${{ steps.copa.outputs.patched-image }} ghcr.io/drasi-project/reaction-result:0.1.5
+           docker push ghcr.io/drasi-project/reaction-result:0.1.5
