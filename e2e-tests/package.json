@@ -4,7 +4,7 @@
   "description": "Folder will contain end-to-end tests",
   "main": "index.js",
   "scripts": {
-    "test": "jest --detectOpenHandles",
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest --detectOpenHandles",
     "test:ci": "jest --reporters=default --reporters=jest-junit --detectOpenHandles",
     "test:gremlin": "jest 03-gremlin-reaction-scenario/gremlin-reaction.test.js --detectOpenHandles",
     "test:storedproc": "jest 02-storedproc-scenario/storedproc.test.js --detectOpenHandles"
