@@ -37,7 +37,7 @@ drasi apply -f https://raw.githubusercontent.com/drasi-project/drasi-platform/ma
 drasi wait reaction quick-result-reaction -t 120
 
 # Run the kubectl command and capture the output
-$initial_output = & kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm --attach -q -- sh -c 'curl -X GET -s http://quick-result-reaction-gateway:8080/quick-query' 2>$null
+$initial_output = & kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm --attach -q -- sh -c 'curl -X GET -s http://quick-result-reaction-gateway:8080/quick-query/data' 2>$null
 
 # Extract the portion of the output that matches the pattern [.*]
 if ($initial_output -match '\[.*\]') {
@@ -72,7 +72,7 @@ Write-Host "Retrieving the current result from the debug reaction"
 
 Start-Sleep -Seconds 20
 
-$final_output = & kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm --attach -q -- sh -c 'curl -X GET -s http://quick-result-reaction-gateway:8080/quick-query' 2>$null
+$final_output = & kubectl run curl-pod --image=curlimages/curl -n $namespace --restart=Never --rm --attach -q -- sh -c 'curl -X GET -s http://quick-result-reaction-gateway:8080/quick-query/data' 2>$null
 
 # Extract the portion of the output that matches the pattern [.*]
 if ($final_output -match '\[.*\]') {
