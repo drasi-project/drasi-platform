@@ -54,6 +54,7 @@ jobs:
            format: "json" 
            output: "report.json" 
            ignore-unfixed: true 
+           severity: 'HIGH,CRITICAL'
            vuln-type: "os" 
            image-ref: ${{ matrix.images }} 
          env:
