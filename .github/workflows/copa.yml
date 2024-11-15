@@ -101,5 +101,5 @@ jobs:
          if: steps.login.conclusion == 'success' 
          run: | 
            # retag if needed 
-           docker tag ${{ steps.copa.outputs.patched-image }} ghcr.io/drasi-project/reaction-result:0.1.5
-           docker push ghcr.io/drasi-project/reaction-result:0.1.5
+           docker tag ${{ steps.copa.outputs.patched-image }} ghcr.io/drasi-project/reaction-result:${{ github.event.inputs.tag }}
+           docker push ghcr.io/drasi-project/reaction-result:${{ github.event.inputs.tag }}
