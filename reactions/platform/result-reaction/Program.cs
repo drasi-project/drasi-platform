@@ -39,38 +39,80 @@ app.Urls.Add("http://0.0.0.0:8080"); //app
 
 
 // Adding an endpoint that supports retrieving all results
-app.MapGet("/{queryId}", async (string queryId) => 
+app.MapGet("/{queryId}", async (string queryId) =>
 {
-    Console.WriteLine("Retrieving all results for queryId: " + queryId);
-    var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
-    List<JsonElement> result = new List<JsonElement>();
-    await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
-    {
-        var element = item.RootElement;
-        if (element.TryGetProperty("data", out var data))
-        {
-            result.Add(data);
-        }
-    }
-    return result;
+	async IAsyncEnumerable<JsonDocument> GetCurrentResult()
+	{
+		Console.WriteLine("Current Timestamp: " + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+		Console.WriteLine("Retrieving all results for queryId: " + queryId);
+		var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
+
+		await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
+		{
+			yield return item;
+		}
+
+	}
+
+	return GetCurrentResult();
 });
 
+// Adding an endpoint that supports retrieving all results, returning only the data field
+app.MapGet("/{queryId}/data", async (string queryId) =>
+{
+	async IAsyncEnumerable<JsonElement> GetCurrentResult()
+	{
+		Console.WriteLine("Current Timestamp: " + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+		Console.WriteLine("Retrieving all results for queryId: " + queryId);
+		var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
+
+		await foreach (var item in resultViewClient.GetCurrentResult(queryContainerId, queryId))
+		{
+			var element = item.RootElement;
+			if (element.TryGetProperty("data", out var data))
+			{
+				yield return data;
+			}
+		}
+	}
+
+	return GetCurrentResult();
+});
 
 // Get a result set at a specific timestamp
-app.MapGet("/{queryId}/{ts}", async (string queryId, string ts) => 
+app.MapGet("/{queryId}/{ts}", async (string queryId, string ts) =>
 {
-    Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + ts);
-    var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
-    List<JsonElement> result = new List<JsonElement>();
-    await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId,ts))
-    {
-        var element = item.RootElement;
-        if (element.TryGetProperty("data", out var data))
-        {
-            result.Add(data);
-        }
-    }
-    return result;
+	async IAsyncEnumerable<JsonDocument> GetCurrentResultAtTimeStamp()
+	{
+		Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + ts);
+		var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
+		await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId, ts))
+		{
+			yield return item;
+		}
+	}
+
+	return GetCurrentResultAtTimeStamp();
+});
+
+// Get a result set at a specific timestamp, returning only the data field
+app.MapGet("/{queryId}/{ts}/data", async (string queryId, string ts) =>
+{
+	async IAsyncEnumerable<JsonElement> GetCurrentResultAtTimeStamp()
+	{
+		Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + ts);
+		var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
+		await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId, ts))
+		{
+			var element = item.RootElement;
+			if (element.TryGetProperty("data", out var data))
+			{
+				yield return data;
+			}
+		}
+	}
+
+	return GetCurrentResultAtTimeStamp();
 });
 app.Run();
 
@@ -78,9 +120,9 @@ app.Run();
 
 static IConfiguration BuildConfiguration()
 {
-    return new ConfigurationBuilder()
-        .SetBasePath(Directory.GetCurrentDirectory())
-        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-        .AddEnvironmentVariables()
-        .Build();
+	return new ConfigurationBuilder()
+		.SetBasePath(Directory.GetCurrentDirectory())
+		.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+		.AddEnvironmentVariables()
+		.Build();
 }
