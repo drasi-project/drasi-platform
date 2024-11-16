@@ -82,6 +82,7 @@ pub struct JsonSchemaDto {
     pub items: Option<Box<JsonSchemaDto>>, // For array types
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "enum")]
     pub enum_values: Option<Vec<serde_json::Value>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]

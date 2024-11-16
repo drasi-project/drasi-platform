@@ -157,7 +157,7 @@ spec:
         type: string
       format:
         type: string
-        enumValues:
+        enum:
           - "packed"
           - "unpacked"
         default: "packed"
