@@ -205,8 +205,6 @@ pub enum ServiceIdentity {
         connection_string: ConfigValue,
     },
     AccessKey {
-        endpoint: ConfigValue,
-        
         #[serde(rename = "accessKey")]
         access_key: ConfigValue,
     },

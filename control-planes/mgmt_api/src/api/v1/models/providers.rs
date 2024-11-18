@@ -73,8 +73,6 @@ pub enum ServiceIdentityDto {
         connection_string: ConfigValueDto,
     },
     AccessKey {
-        endpoint: ConfigValueDto,
-
         #[serde(rename = "accessKey")]
         access_key: ConfigValueDto,
     },

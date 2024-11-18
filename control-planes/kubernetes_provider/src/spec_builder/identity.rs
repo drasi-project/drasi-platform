@@ -87,10 +87,8 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
             id_type = "ConnectionString";
         }
         ServiceIdentity::AccessKey {
-            endpoint,
             access_key,
         } => {
-            env_vars.insert("ENDPOINT".to_string(), endpoint.clone());
             env_vars.insert("ACCESS_KEY".to_string(), access_key.clone());
             id_type = "AccessKey";
         }

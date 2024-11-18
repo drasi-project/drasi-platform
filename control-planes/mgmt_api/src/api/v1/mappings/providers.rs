@@ -93,10 +93,8 @@ impl From<ServiceIdentityDto> for ServiceIdentity {
                 }
             }
             ServiceIdentityDto::AccessKey {
-                endpoint,
                 access_key,
             } => ServiceIdentity::AccessKey {
-                endpoint: endpoint.into(),
                 access_key: access_key.into(),
             },
         }
@@ -128,10 +126,8 @@ impl From<ServiceIdentity> for ServiceIdentityDto {
                 }
             }
             ServiceIdentity::AccessKey {
-                endpoint,
                 access_key,
             } => ServiceIdentityDto::AccessKey {
-                endpoint: endpoint.into(),
                 access_key: access_key.into(),
             },
         }

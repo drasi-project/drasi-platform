@@ -210,10 +210,8 @@ impl From<ServiceIdentity> for resource_provider_api::models::ServiceIdentity {
                 }
             }
             ServiceIdentity::AccessKey {
-                endpoint,
                 access_key,
             } => resource_provider_api::models::ServiceIdentity::AccessKey {
-                endpoint: endpoint.into(),
                 access_key: access_key.into(),
             },
         }
