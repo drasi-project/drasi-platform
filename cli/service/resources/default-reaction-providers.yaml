@@ -149,8 +149,6 @@ spec:
   config_schema:
     type: object
     properties:
-      connectionString:
-        type: string
       endpoint:
         type: string
       queueName:
