@@ -35,11 +35,8 @@ let postgresClient = new pg.Client({
 let gremlinClient;
 
 beforeAll(async () => {
-  const drasiResources = yaml.loadAll(fs.readFileSync(__dirname + '/drasi-resources.yaml', 'utf8'));
-  await deployResources(drasiResources);
-
   // Setting up the postgres database for the Source
-  const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/postgres-resources.yaml', 'utf8'));
+  const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
   await deployResources(postgresResources);
 
   postgresClient.port = await postgresPortForward.start();
@@ -53,7 +50,7 @@ beforeAll(async () => {
   await deployResources(gremlinResources);
   await new Promise(r => setTimeout(r, 10000));
 
-  let gremlinPortForward = new PortForward("gremlin-server-service", 8182);
+  let gremlinPortForward = new PortForward("gremlin-server", 8182);
   let gremlinPort = await gremlinPortForward.start();
 
   // gremlin-server-service.default.svc.cluster.local
@@ -68,7 +65,24 @@ test('Test Gremlin Reaction - AddedResultCommand', async () => {
 
   await postgresClient.query(`INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (4, 'Drasi', '3')`);
   await waitForCondition(async () => {
-    const result = await gremlinClient.V().has('Id', '4').hasNext();
+    const result = await gremlinClient.V().has('ItemId', '4').hasNext();
+    return result;
+  }, 1000,30000)
+  .then(() => {
+    expect(true).toBeTruthy(); 
+  })
+  .catch(() => {
+    expect(false).toBeTruthy();
+  });
+}, 140000);
+
+test('Test Gremlin Reaction - deletedResultCommand', async () => {
+  const gremlinReaction = yaml.loadAll(fs.readFileSync(__dirname + '/gremlin-reaction-deletion.yaml', 'utf8'));
+  await deployResources(gremlinReaction);
+
+  await postgresClient.query(`DELETE FROM "Item" WHERE "ItemId" = 5`);
+  await waitForCondition(async () => {
+    const result = await gremlinClient.V().has('ItemId', '5').hasNext();
     return result;
   }, 1000,30000)
   .then(() => {
@@ -81,19 +95,21 @@ test('Test Gremlin Reaction - AddedResultCommand', async () => {
 
 
 afterAll(async () => {
-  // await postgresClient.end();
-  // postgresPortForward.stop();
+  await postgresClient.end();
+  postgresPortForward.stop();
 
-  // const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/postgres-resources.yaml', 'utf8'));
-  // await deleteResources(postgresResources);
+  const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
+  await deleteResources(postgresResources);
 
-  // const drasiResources = yaml.loadAll(fs.readFileSync(__dirname + '/drasi-resources.yaml', 'utf8'));
-  // await deleteResources(drasiResources);
 
-  // await gremlinClient.close();
+  const gremlinResources = yaml.loadAll(fs.readFileSync(__dirname + '/gremlin-resources.yaml', 'utf8'));
+  await deleteResources(gremlinResources);
 
-  // const gremlinResources = yaml.loadAll(fs.readFileSync(__dirname + '/gremlin-resources.yaml', 'utf8'));
-  // await deleteResources(gremlinResources);
+  const gremlinReaction = yaml.loadAll(fs.readFileSync(__dirname + '/gremlin-reaction.yaml', 'utf8'));
+  await deleteResources(gremlinReaction);
+
+  const gremlinReactionDeletion = yaml.loadAll(fs.readFileSync(__dirname + '/gremlin-reaction-deletion.yaml', 'utf8'));
+  await deleteResources(gremlinReactionDeletion);
 });
 
 
