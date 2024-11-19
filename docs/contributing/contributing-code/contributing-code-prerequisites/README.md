@@ -75,15 +75,6 @@ choco install make
     git config core.hooksPath .githooks
     ```
 
-### Enable Git Hooks
-
-We use pre-commit hooks to catch some issues early, enable the local git hooks using the following commands
-
-```
-chmod +x .githooks/pre-commit
-git config core.hooksPath .githooks
-```
-
 ### Additional tools
 
 The following tools are required depending on the task at hand.

@@ -19,5 +19,6 @@ emit:
 options:
   "@typespec/json-schema":
     file-type: "yaml"
+    int64-strategy: "number"
 
 output-dir: "{project-root}/_generated"       # Configure the base output directory for all emitters

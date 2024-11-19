@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Drasi.Reaction.SDK", "Drasi.Reaction.SDK\Drasi.Reaction.SDK.csproj", "{E63E1B5E-61C8-4A5B-B7E0-5E3859C8E6B2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{561184F7-D4CC-4392-934F-C725FE595D4C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "simple-reaction", "examples\simple-reaction\simple-reaction.csproj", "{AF6F510D-FCBD-4F18-8D1F-F1ED0261A979}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "advanced-reaction", "examples\advanced-reaction\advanced-reaction.csproj", "{FA13C8A9-8513-4985-897F-F728C79C4DAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Drasi.Reaction.SDK.Tests", "Drasi.Reaction.SDK.Tests\Drasi.Reaction.SDK.Tests.csproj", "{69BF4350-D8F9-4FEB-8DCC-3E4AC1F8322B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E63E1B5E-61C8-4A5B-B7E0-5E3859C8E6B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E63E1B5E-61C8-4A5B-B7E0-5E3859C8E6B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E63E1B5E-61C8-4A5B-B7E0-5E3859C8E6B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E63E1B5E-61C8-4A5B-B7E0-5E3859C8E6B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF6F510D-FCBD-4F18-8D1F-F1ED0261A979}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF6F510D-FCBD-4F18-8D1F-F1ED0261A979}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF6F510D-FCBD-4F18-8D1F-F1ED0261A979}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF6F510D-FCBD-4F18-8D1F-F1ED0261A979}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA13C8A9-8513-4985-897F-F728C79C4DAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA13C8A9-8513-4985-897F-F728C79C4DAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA13C8A9-8513-4985-897F-F728C79C4DAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA13C8A9-8513-4985-897F-F728C79C4DAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69BF4350-D8F9-4FEB-8DCC-3E4AC1F8322B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69BF4350-D8F9-4FEB-8DCC-3E4AC1F8322B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69BF4350-D8F9-4FEB-8DCC-3E4AC1F8322B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69BF4350-D8F9-4FEB-8DCC-3E4AC1F8322B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AF6F510D-FCBD-4F18-8D1F-F1ED0261A979} = {561184F7-D4CC-4392-934F-C725FE595D4C}
+		{FA13C8A9-8513-4985-897F-F728C79C4DAC} = {561184F7-D4CC-4392-934F-C725FE595D4C}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D9F15981-EA51-4A5A-B943-5691552B8081}
+	EndGlobalSection
+EndGlobal

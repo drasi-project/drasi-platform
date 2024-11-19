@@ -13,6 +13,8 @@ The CLI tool will be required in your development workflow to manage a Drasi ins
 
 All the services in Drasi are distributed as container images.  The Makefile in the root directory of the repo will build all of the services, or you can build the `Control Plane`, `Query Container`, `Sources` and `Reactions` separately using the Makefile in each subdirectory. 
 
+#### Steps to build
+
 You can use the `docker-build` target to build the container images.
 
 ```sh
@@ -35,6 +37,32 @@ If you are using a different cluster name from the default (kind), you can overr
 
 ```sh
 make kind-load CLUSTER_NAME="my-cluster"
+```
+
+#### Steps to run
+
+To run Drasi with the container images you've built and loaded locally, use the following command. Replace `--version latest` with your `--version DOCKER_TAG_VERSION` if you used one when building the images.
+
+```sh
+drasi init --local --version latest
+```
+
+All components for Drasi live in the `drasi-system` namespace.
+
+```sh
+kubectl get pods --namespace drasi-system
+```
+
+To uninstall any previous version of Drasi using the following command.
+
+```sh
+drasi uninstall
+```
+
+To do a force cleanup, you can also manually remove all entities deployed in the `drasi-system` namespace of your cluster.
+
+```sh
+kubectl delete namespace drasi-system --force
 ```
 
 #### Control Plane
