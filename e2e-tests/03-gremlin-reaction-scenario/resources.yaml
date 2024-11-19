@@ -121,37 +121,37 @@ spec:
       i.Name as Name,
       i.Category as Category
 ---
-# apiVersion: v1
-# kind: ReactionProvider
-# name: Gremlin
-# spec:
-#   config_schema:
-#     type: object
-#     properties: 
-#       addedResultCommand:
-#         type: string
-#       updatedResultCommand: 
-#         type: string
-#       deletedResultCommand:
-#         type: string
-#       databaseHost:
-#         type: string
-#       databasePrimaryKey:
-#         type: string
-#       databaseName:
-#         type: string
-#       databaseContainerName:
-#         type: string
-#       useCosmos:
-#         type: boolean
-#         default: false
-#     required:
-#       - databaseHost
-#       - databasePrimaryKey
-#       - databaseName
-#       - databaseContainerName
-#       - databasePort 
-#   services:
-#     gremlin:
-#       image: reaction-gremlin
-# ---
+apiVersion: v1
+kind: ReactionProvider
+name: Gremlin
+spec:
+  config_schema:
+    type: object
+    properties: 
+      addedResultCommand:
+        type: string
+      updatedResultCommand: 
+        type: string
+      deletedResultCommand:
+        type: string
+      databaseHost:
+        type: string
+      databasePrimaryKey:
+        type: string
+      databaseName:
+        type: string
+      databaseContainerName:
+        type: string
+      useCosmos:
+        type: boolean
+        default: false
+    required:
+      - databaseHost
+      - databasePrimaryKey
+      - databaseName
+      - databaseContainerName
+      - databasePort 
+  services:
+    gremlin:
+      image: reaction-gremlin
+---
