@@ -79,26 +79,26 @@ spec:
   config_schema:
     type: object
     properties: 
-      AddedResultCommand:
+      addedResultCommand:
         type: string
-      UpdatedResultCommand: 
+      updatedResultCommand: 
         type: string
-      DatabaseHost:
+      deletedResultCommand:
         type: string
-      DatabasePrimaryKey:
+      databaseHost:
         type: string
-      DatabaseName:
+      databasePrimaryKey:
         type: string
-      DatabaseContainerName:
+      cosmosDatabaseName:
         type: string
-      DatabasePort:
+      cosmosDatabaseContainerName:
         type: string
+      useCosmos:
+        type: boolean
+        default: false
     required:
-      - DatabaseHost
-      - DatabasePrimaryKey
-      - DatabaseName
-      - DatabaseContainerName
-      - DatabasePort
+      - databaseHost
+      - databasePort 
   services:
     gremlin:
       image: reaction-gremlin

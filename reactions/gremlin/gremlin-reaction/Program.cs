@@ -11,7 +11,6 @@ using Gremlin.Net.Driver.Exceptions;
 using System.Net.WebSockets;
 using Newtonsoft.Json;
 
-
 var reaction = new ReactionBuilder()
 				.UseChangeEventHandler<GremlinChangeHandler>()
 				.ConfigureServices((services) =>
@@ -42,34 +41,32 @@ class GremlinService
 
 	public GremlinService(IConfiguration configuration)
 	{
-		// _pubsubName = configuration["PubsubName"] ?? "drasi-pubsub";
 		var databaseHost = configuration["databaseHost"];
-		var databasePrimaryKey = configuration["databasePrimaryKey"];
-		var databaseName = configuration["databaseName"];
-		var databaseContainerName = configuration["databaseContainerName"];
-		var databaseEnableSSL = !bool.TryParse(configuration["databaseEnableSSL"], out var enableSSL) || enableSSL;
 		var databasePort = int.TryParse(configuration["databasePort"], out var port) ? port : 443;
+		var databaseEnableSSL = !bool.TryParse(configuration["databaseEnableSSL"], out var enableSSL) || enableSSL;
+		
 		var useCosmos = bool.TryParse(configuration["useCosmos"], out var cosmos) && cosmos;
 
-		var containerLink = $"/dbs/{databaseName}/colls/{databaseContainerName}";
+		var databasePrimaryKey = configuration["databasePrimaryKey"];
 
-		var connectionPoolSettings = new ConnectionPoolSettings()
-		{
-			MaxInProcessPerConnection = 10,
-			PoolSize = 30,
-			ReconnectionAttempts = 3,
-			ReconnectionBaseDelay = TimeSpan.FromMilliseconds(500)
-		};
+		if (useCosmos) {
+			var databaseName = configuration["cosmosDatabaseName"];
+		    var databaseContainerName = configuration["cosmosDatabaseContainerName"];
 
-		var webSocketConfiguration = new Action<ClientWebSocketOptions>(options =>
-		{
-			options.KeepAliveInterval = TimeSpan.FromSeconds(10);
-		});
+			var containerLink = $"/dbs/{databaseName}/colls/{databaseContainerName}";
 
-		if (useCosmos)
-		{
-			// CosmosDB requires the container link as the username and the primary key as the password
-			containerLink = $"/dbs/{databaseName}/colls/{databaseContainerName}";
+			var connectionPoolSettings = new ConnectionPoolSettings()
+			{
+				MaxInProcessPerConnection = 10,
+				PoolSize = 30,
+				ReconnectionAttempts = 3,
+				ReconnectionBaseDelay = TimeSpan.FromMilliseconds(500)
+			};
+
+			var webSocketConfiguration = new Action<ClientWebSocketOptions>(options =>
+			{
+				options.KeepAliveInterval = TimeSpan.FromSeconds(10);
+			});
 			_gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: containerLink, password: databasePrimaryKey);
 			_gremlinClient = new GremlinClient(
 				_gremlinServer,
@@ -79,7 +76,6 @@ class GremlinService
 				connectionPoolSettings,
 				webSocketConfiguration);
 		} else {
-			Console.WriteLine("Using Gremlin Server");
 			_gremlinServer = new GremlinServer(databaseHost, databasePort);
 			_gremlinClient = new GremlinClient(
 				_gremlinServer);
@@ -95,6 +91,9 @@ class GremlinService
 		// Regex used to extract parameters from the Gremlin commands
 		// Finds any string starting with @ and ending with a-zA-Z0-9-_. (e.g. @param_1-2.3)
 		var paramMatcher = new Regex("@[a-zA-Z0-9-_.]*");
+
+
+		// Extract the parameters from the Gremlin commands
 
 		_addedResultCommandParamList = new List<string>();
 		if (!string.IsNullOrEmpty(_addedResultCommand))
