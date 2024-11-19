@@ -2,6 +2,10 @@
   "name": "drasi",
   "version": "0.1.0",
   "type": "module",
+  "scripts": {
+    "clean": "rimraf **/_generated/@typespec",
+    "build": "tsp compile"
+  },
   "peerDependencies": {
     "@azure-tools/typespec-autorest": "latest",
     "@azure-tools/typespec-azure-core": "latest",
@@ -14,7 +18,8 @@
     "@typespec/versioning": "^0.61.0"
   },
   "devDependencies": {
-    "@typespec/compiler": "latest"
+    "@typespec/compiler": "latest",
+    "rimraf": "^6.0.1"
   },
   "private": true,
   "license": "Apache-2.0",

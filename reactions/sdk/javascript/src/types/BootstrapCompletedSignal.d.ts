@@ -14,5 +14,6 @@ export type BootstrapCompletedSignal = ControlSignal & {
 };
 
 export interface ControlSignal {
+  kind: "bootstrapStarted" | "bootstrapCompleted" | "running" | "stopped" | "deleted";
   [k: string]: unknown;
 }
