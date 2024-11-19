@@ -8,8 +8,5 @@ spec:
   properties: 
     deletedResultCommand: g.addV('Item').property('ItemId', '@Id').property('Name','@Name')
     databaseHost: gremlin-server.default.svc.cluster.local
-    databasePrimaryKey: key
-    databaseName: gremlin-reaction-test
-    databaseContainerName: Gremlin-Reaction
     databasePort: "8182"
     useCosmos: false

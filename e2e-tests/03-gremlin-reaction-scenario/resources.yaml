@@ -138,20 +138,16 @@ spec:
         type: string
       databasePrimaryKey:
         type: string
-      databaseName:
+      cosmosDatabaseName:
         type: string
-      databaseContainerName:
+      cosmosDatabaseContainerName:
         type: string
       useCosmos:
         type: boolean
         default: false
     required:
       - databaseHost
-      - databasePrimaryKey
-      - databaseName
-      - databaseContainerName
       - databasePort 
   services:
     gremlin:
       image: reaction-gremlin
----

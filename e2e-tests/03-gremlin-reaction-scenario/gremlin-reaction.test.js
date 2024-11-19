@@ -31,10 +31,15 @@ let postgresClient = new pg.Client({
   user: "test",
   password: "test",
 });
-
+let gremlinPortForward = new PortForward("gremlin-server", 8182);
 let gremlinClient;
+let gremlinDriverConnection;
 
 beforeAll(async () => {
+  const drasiResources = yaml.loadAll(fs.readFileSync(__dirname + '/drasi-resources.yaml', 'utf8'));
+  await deployResources(drasiResources);
+
+
   // Setting up the postgres database for the Source
   const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
   await deployResources(postgresResources);
@@ -48,14 +53,15 @@ beforeAll(async () => {
   // Setting up the Gremlin database
   const gremlinResources = yaml.loadAll(fs.readFileSync(__dirname + '/gremlin-resources.yaml', 'utf8'));
   await deployResources(gremlinResources);
-  await new Promise(r => setTimeout(r, 10000));
+  await new Promise(r => setTimeout(r, 15000));
 
-  let gremlinPortForward = new PortForward("gremlin-server", 8182);
+  
   let gremlinPort = await gremlinPortForward.start();
 
   // gremlin-server-service.default.svc.cluster.local
   const traversal = gremlin.process.AnonymousTraversalSource.traversal;
-  gremlinClient = traversal().withRemote(new gremlin.driver.DriverRemoteConnection(`ws://localhost:${gremlinPort}/gremlin`, {}));
+  gremlinDriverConnection = new gremlin.driver.DriverRemoteConnection(`ws://localhost:${gremlinPort}/gremlin`, {});
+  gremlinClient = traversal().withRemote(gremlinDriverConnection);
 }, 150000);
 
 
@@ -97,6 +103,9 @@ test('Test Gremlin Reaction - deletedResultCommand', async () => {
 afterAll(async () => {
   await postgresClient.end();
   postgresPortForward.stop();
+  
+  gremlinPortForward.stop();
+  gremlinDriverConnection.close();
 
   const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
   await deleteResources(postgresResources);
