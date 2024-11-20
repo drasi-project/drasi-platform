@@ -23,7 +23,7 @@ const pg = require('pg');
 const gremlin = require('gremlin');
 
 
-let postgresPortForward = new PortForward("postgres2", 5432);
+let postgresPortForward = new PortForward("postgres03", 5432);
 
 let postgresClient = new pg.Client({
   database: "test-db",
