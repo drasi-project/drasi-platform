@@ -11,6 +11,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="Drasi.Reactions.SignalR.Tests" />
 		<PackageReference Include="Azure.Identity" Version="1.13.1" />
 		<PackageReference Include="Drasi.Reaction.SDK" Version="0.1.5-alpha" />
 		<PackageReference Include="Microsoft.Azure.SignalR" Version="1.28.0" />

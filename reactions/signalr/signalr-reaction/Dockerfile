@@ -22,4 +22,4 @@ RUN dotnet build -c $BUILD_CONFIGURATION -o /app/build
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-cbl-mariner2.0 AS final
 WORKDIR /app
 COPY --from=build /app/build .
-ENTRYPOINT ["/app/signalr-reaction"]
+ENTRYPOINT ["/app/Drasi.Reactions.SignalR"]
