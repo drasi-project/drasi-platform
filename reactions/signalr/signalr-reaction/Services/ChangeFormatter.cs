@@ -14,93 +14,72 @@
 
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
+using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.SignalR.Models.Unpacked;
 using Newtonsoft.Json.Linq;
 
-namespace SignalrReaction.Services
+namespace Drasi.Reactions.SignalR.Services
 {
     public class ChangeFormatter : IChangeFormatter
     {
-        public IEnumerable<JObject> FormatAdd(string queryId, ulong sequence, ulong timestamp, IEnumerable<JToken> input)
+        public IEnumerable<ChangeNotification> Format(ChangeEvent evt)
         {
-            var result = new List<JObject>();
-            foreach (var inputItem in input)
+            var result = new List<ChangeNotification>();
+            foreach (var inputItem in evt.AddedResults)
             {
-                var outputItem = new JObject
+                var outputItem = new ChangeNotification
                 {
-                    ["op"] = "i",
-                    ["ts_ms"] = timestamp,
-                    ["seq"] = sequence
+                    Op = ChangeNotificationOp.I,
+                    TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    Payload = new PayloadClass()
+                    {
+                        Source = new SourceClass()
+                        {
+                            QueryId = evt.QueryId,
+                            TsMs = evt.SourceTimeMs
+                        },
+                        After = inputItem
+                    }
                 };
-
-                var source = new JObject();
-                source["db"] = "Drasi";
-                source["table"] = queryId;
-
-                var payload = new JObject();
-                payload["source"] = source;
-                payload["before"] = null;
-                payload["after"] = inputItem;
-
-                outputItem["payload"] = payload;
-
                 result.Add(outputItem);
             }
 
-            return result;
-        }
-
-        public IEnumerable<JObject> FormatUpdate(string queryId, ulong sequence, ulong timestamp, IEnumerable<JToken> input)
-        {
-            var result = new List<JObject>();
-            foreach (var inputItem in input)
+            foreach (var inputItem in evt.UpdatedResults)
             {
-                var outputItem = new JObject
+                var outputItem = new ChangeNotification
                 {
-                    ["op"] = "u",
-                    ["ts_ms"] = timestamp,
-                    ["seq"] = sequence
+                    Op = ChangeNotificationOp.U,
+                    TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    Payload = new PayloadClass()
+                    {
+                        Source = new SourceClass()
+                        {
+                            QueryId = evt.QueryId,
+                            TsMs = evt.SourceTimeMs
+                        },
+                        Before = inputItem.Before,
+                        After = inputItem.After
+                    }
                 };
-
-                var source = new JObject();
-                source["db"] = "Drasi";
-                source["table"] = queryId;
-
-                var payload = new JObject();
-                payload["source"] = source;
-                payload["before"] = inputItem["before"];
-                payload["after"] = inputItem["after"];
-
-                outputItem["payload"] = payload;
-
                 result.Add(outputItem);
             }
 
-            return result;
-        }
-
-        public IEnumerable<JObject> FormatDelete(string queryId, ulong sequence, ulong timestamp, IEnumerable<JToken> input)
-        {
-            var result = new List<JObject>();
-            foreach (var inputItem in input)
+            foreach (var inputItem in evt.DeletedResults)
             {
-                var outputItem = new JObject
+                var outputItem = new ChangeNotification
                 {
-                    ["op"] = "d",
-                    ["ts_ms"] = timestamp,
-                    ["seq"] = sequence
+                    Op = ChangeNotificationOp.D,
+                    TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    Payload = new PayloadClass()
+                    {
+                        Source = new SourceClass()
+                        {
+                            QueryId = evt.QueryId,
+                            TsMs = evt.SourceTimeMs
+                        },
+                        Before = inputItem
+                    }
                 };
-
-                var source = new JObject();
-                source["db"] = "Drasi";
-                source["table"] = queryId;
-
-                var payload = new JObject();
-                payload["source"] = source;
-                payload["before"] = inputItem;
-                payload["after"] = null;
-
-                outputItem["payload"] = payload;
-
                 result.Add(outputItem);
             }
 
@@ -156,6 +135,24 @@ namespace SignalrReaction.Services
             };
 
             return outputItem;
+        }
+
+        public ControlSignalNotification Format(ControlEvent evt)
+        {
+            return new ControlSignalNotification
+            {
+                Op = ControlSignalNotificationOp.X,
+                TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                Payload = new ControlSignalNotificationPayload()
+                {
+                    Kind = JsonSerializer.Serialize(evt.ControlSignal.Kind, Reaction.SDK.Models.QueryOutput.ModelOptions.JsonOptions).Trim('"'),
+                    Source = new SourceClass()
+                    {
+                        QueryId = evt.QueryId,
+                        TsMs = evt.SourceTimeMs
+                    },
+                }
+            };
         }
     }
 }

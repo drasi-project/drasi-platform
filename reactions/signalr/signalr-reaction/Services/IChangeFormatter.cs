@@ -12,20 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.SignalR.Models.Unpacked;
 using Newtonsoft.Json.Linq;
 
-namespace SignalrReaction.Services
+namespace Drasi.Reactions.SignalR.Services
 {
     public interface IChangeFormatter
     {
-        IEnumerable<JObject> FormatAdd(string queryId, ulong sequence, ulong timestamp, IEnumerable<JToken> input);
-        IEnumerable<JObject> FormatDelete(string queryId, ulong sequence, ulong timestamp, IEnumerable<JToken> input);
-        IEnumerable<JObject> FormatUpdate(string queryId, ulong sequence, ulong timestamp, IEnumerable<JToken> input);
+        IEnumerable<ChangeNotification> Format(ChangeEvent evt);
 
-        JObject FormatReloadRow(string queryId, JsonDocument input);
+        ControlSignalNotification Format(ControlEvent evt);
 
-        JObject FormatControlSignal(string queryId, ulong sequence, ulong timestamp, JToken input);
     }
 }

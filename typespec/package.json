@@ -19,7 +19,8 @@
   },
   "devDependencies": {
     "@typespec/compiler": "latest",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "quicktype": "23.0.170"
   },
   "private": true,
   "license": "Apache-2.0",

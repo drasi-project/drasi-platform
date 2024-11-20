@@ -21,9 +21,11 @@ namespace Drasi.Reaction.SDK.Services;
 public class ResultViewClient : IResultViewClient
 {
     private readonly HttpClient _httpClient;
+    private readonly IManagementClient _managementClient;
 
-    public ResultViewClient()
+    public ResultViewClient(IManagementClient managementClient)
     {
+        _managementClient = managementClient;
         _httpClient = new HttpClient();
     }
 
@@ -52,6 +54,15 @@ public class ResultViewClient : IResultViewClient
             {
                 yield return item;
             }
+        }
+    }
+
+    public async IAsyncEnumerable<ViewItem> GetCurrentResult(string queryId, [EnumeratorCancellation]CancellationToken cancellationToken = default)
+    {
+        var queryContainerId = await _managementClient.GetQueryContainerId(queryId);
+        await foreach (var item in GetCurrentResult(queryContainerId, queryId, cancellationToken))
+        {
+            yield return item;
         }
     }
 }
