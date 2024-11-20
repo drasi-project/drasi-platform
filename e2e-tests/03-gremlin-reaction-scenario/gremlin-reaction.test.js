@@ -36,10 +36,6 @@ let gremlinClient;
 let gremlinDriverConnection;
 
 beforeAll(async () => {
-  const drasiResources = yaml.loadAll(fs.readFileSync(__dirname + '/drasi-resources.yaml', 'utf8'));
-  await deployResources(drasiResources);
-
-
   // Setting up the postgres database for the Source
   const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
   await deployResources(postgresResources);

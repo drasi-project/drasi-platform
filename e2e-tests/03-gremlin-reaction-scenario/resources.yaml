@@ -112,7 +112,7 @@ spec:
   mode: query
   sources:    
     subscriptions:
-      - id: test-source-2
+      - id: test-source-3
   query: > 
     MATCH 
       (i:Item {Category: '4'})
@@ -120,34 +120,3 @@ spec:
       i.ItemId AS Id, 
       i.Name as Name,
       i.Category as Category
----
-# apiVersion: v1
-# kind: ReactionProvider
-# name: Gremlin
-# spec:
-#   config_schema:
-#     type: object
-#     properties: 
-#       addedResultCommand:
-#         type: string
-#       updatedResultCommand: 
-#         type: string
-#       deletedResultCommand:
-#         type: string
-#       databaseHost:
-#         type: string
-#       databasePrimaryKey:
-#         type: string
-#       cosmosDatabaseName:
-#         type: string
-#       cosmosDatabaseContainerName:
-#         type: string
-#       useCosmos:
-#         type: boolean
-#         default: false
-#     required:
-#       - databaseHost
-#       - databasePort 
-#   services:
-#     gremlin:
-#       image: reaction-gremlin
