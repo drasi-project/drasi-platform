@@ -87,15 +87,10 @@ spec:
         type: string
       databaseHost:
         type: string
-      databasePrimaryKey:
+      cosmosPassword:
         type: string
-      cosmosDatabaseName:
+      cosmosUsername:
         type: string
-      cosmosDatabaseContainerName:
-        type: string
-      useCosmos:
-        type: boolean
-        default: false
     required:
       - databaseHost
       - databasePort 
