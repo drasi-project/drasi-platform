@@ -14,5 +14,6 @@ export type DeletedSignal = ControlSignal & {
 };
 
 export interface ControlSignal {
+  kind: "bootstrapStarted" | "bootstrapCompleted" | "running" | "stopped" | "deleted";
   [k: string]: unknown;
 }
