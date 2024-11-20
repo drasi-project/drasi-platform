@@ -4,7 +4,7 @@ name: e2e-gremlin-reaction-deletion
 spec:
   kind: Gremlin
   queries:
-    query2:
+    query3:
   properties: 
     addedResultCommand: g.addV('Item').property('ItemId', '@Id').property('Name','@Name')
     databaseHost: gremlin-server.default.svc.cluster.local

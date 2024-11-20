@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: test-data-init-postgres2
+  name: test-data-init-postgres03
 data:
   init.sql: >
     CREATE TABLE "Item" (
@@ -24,7 +24,7 @@ kind: ConfigMap
 metadata:
   name: test-pg-config
   labels:
-    app: postgres2
+    app: postgres03
 data:
   POSTGRES_DB: test-db
   POSTGRES_USER: test
@@ -33,16 +33,16 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres2
+  name: postgres03
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres2
+      app: postgres03
   template:
     metadata:
       labels:
-        app: postgres2
+        app: postgres03
     spec:
       containers:
         - name: postgres
@@ -59,28 +59,28 @@ spec:
       volumes:
         - name: init
           configMap:
-            name: test-data-init-postgres2
+            name: test-data-init-postgres03
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres2
+  name: postgres03
   labels:
-    app: postgres2
+    app: postgres03
 spec:
   type: ClusterIP
   ports:
    - port: 5432
   selector:
-   app: postgres2
+   app: postgres03
 ---
 apiVersion: v1
 kind: Source
-name: test-source-2
+name: test-source-3
 spec:
   kind: PostgreSQL
   properties:
-    host: postgres2.default.svc.cluster.local
+    host: postgres03.default.svc.cluster.local
     port: 5432
     user: test
     password: test
@@ -91,12 +91,12 @@ spec:
 ---
 apiVersion: v1
 kind: ContinuousQuery
-name: query2
+name: query3
 spec:
   mode: query
   sources:    
     subscriptions:
-      - id: test-source-2
+      - id: test-source-3
   query: > 
     MATCH 
       (i:Item {Category: '3'})
@@ -107,7 +107,7 @@ spec:
 ---
 apiVersion: v1
 kind: ContinuousQuery
-name: query2-deletion
+name: query3-deletion
 spec:
   mode: query
   sources:    
@@ -121,33 +121,33 @@ spec:
       i.Name as Name,
       i.Category as Category
 ---
-apiVersion: v1
-kind: ReactionProvider
-name: Gremlin
-spec:
-  config_schema:
-    type: object
-    properties: 
-      addedResultCommand:
-        type: string
-      updatedResultCommand: 
-        type: string
-      deletedResultCommand:
-        type: string
-      databaseHost:
-        type: string
-      databasePrimaryKey:
-        type: string
-      cosmosDatabaseName:
-        type: string
-      cosmosDatabaseContainerName:
-        type: string
-      useCosmos:
-        type: boolean
-        default: false
-    required:
-      - databaseHost
-      - databasePort 
-  services:
-    gremlin:
-      image: reaction-gremlin
+# apiVersion: v1
+# kind: ReactionProvider
+# name: Gremlin
+# spec:
+#   config_schema:
+#     type: object
+#     properties: 
+#       addedResultCommand:
+#         type: string
+#       updatedResultCommand: 
+#         type: string
+#       deletedResultCommand:
+#         type: string
+#       databaseHost:
+#         type: string
+#       databasePrimaryKey:
+#         type: string
+#       cosmosDatabaseName:
+#         type: string
+#       cosmosDatabaseContainerName:
+#         type: string
+#       useCosmos:
+#         type: boolean
+#         default: false
+#     required:
+#       - databaseHost
+#       - databasePort 
+#   services:
+#     gremlin:
+#       image: reaction-gremlin
