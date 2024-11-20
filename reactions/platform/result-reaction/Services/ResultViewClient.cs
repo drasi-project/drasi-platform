@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Dapr;
-using Dapr.Actors;
-using Dapr.Actors.Client;
-using Dapr.Client;
 using System;
 using System.Runtime.CompilerServices;
 using System.Text.Json;

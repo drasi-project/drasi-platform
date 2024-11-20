@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Dapr;
-using Dapr.Actors.Client;
-using Dapr.Client;
 using Microsoft.AspNetCore.Components;
 using System.Net.Http;
 using ResultReaction.Services;
