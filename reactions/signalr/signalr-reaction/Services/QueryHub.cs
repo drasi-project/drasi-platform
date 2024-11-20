@@ -13,11 +13,9 @@
 // limitations under the License.
 
 ﻿using System.Runtime.CompilerServices;
-using System.Text.Json.Nodes;
 using Drasi.Reaction.SDK.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 namespace Drasi.Reactions.SignalR.Services
 {
@@ -46,15 +44,15 @@ namespace Drasi.Reactions.SignalR.Services
             _logger.LogInformation($"Client connected {Context.ConnectionId}");
         }
 
-        public async IAsyncEnumerable<JObject> Reload(string queryId, [EnumeratorCancellation]CancellationToken cancellationToken)
+        public async IAsyncEnumerable<object> Reload(string queryId, [EnumeratorCancellation]CancellationToken cancellationToken)
         {
-            _logger.LogInformation("reload request for " + queryId);
+            _logger.LogInformation($"reload request for {queryId}");
             await foreach (var item in _viewClient.GetCurrentResult(queryId, cancellationToken))
             {                
-                JObject? output = null;
+                object? output = null;
                 try
                 {
-                    output = _changeFormatter.FormatReloadRow(queryId, item);
+                    output = _changeFormatter.Format(item);
                     
                 }
                 catch (Exception ex)
@@ -63,8 +61,7 @@ namespace Drasi.Reactions.SignalR.Services
                 }
 
                 if (output != null)
-                    yield return output;
-                
+                    yield return output;                
             }
             
         }

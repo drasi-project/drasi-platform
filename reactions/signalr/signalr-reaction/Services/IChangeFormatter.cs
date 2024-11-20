@@ -15,6 +15,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reaction.SDK.Models.ViewService;
 using Drasi.Reactions.SignalR.Models.Unpacked;
 using Newtonsoft.Json.Linq;
 
@@ -25,6 +26,8 @@ namespace Drasi.Reactions.SignalR.Services
         IEnumerable<ChangeNotification> Format(ChangeEvent evt);
 
         ControlSignalNotification Format(ControlEvent evt);
+
+        object Format(ViewItem item);
 
     }
 }

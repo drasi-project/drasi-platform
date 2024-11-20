@@ -11,6 +11,8 @@
 //    var controlSignalNotification = ControlSignalNotification.FromJson(jsonString);
 //    var notification = Notification.FromJson(jsonString);
 //    var op = Op.FromJson(jsonString);
+//    var reloadHeader = ReloadHeader.FromJson(jsonString);
+//    var reloadItem = ReloadItem.FromJson(jsonString);
 //    var versions = Versions.FromJson(jsonString);
 #nullable enable
 #pragma warning disable CS8618
@@ -33,6 +35,12 @@ namespace Drasi.Reactions.SignalR.Models.Unpacked
 
         [JsonPropertyName("payload")]
         public PayloadClass Payload { get; set; }
+
+        /// <summary>
+        /// The sequence number of the source change
+        /// </summary>
+        [JsonPropertyName("seq")]
+        public long Seq { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [JsonPropertyName("metadata")]
@@ -111,6 +119,12 @@ namespace Drasi.Reactions.SignalR.Models.Unpacked
         [JsonPropertyName("payload")]
         public ControlSignalNotificationPayload Payload { get; set; }
 
+        /// <summary>
+        /// The sequence number of the control signal
+        /// </summary>
+        [JsonPropertyName("seq")]
+        public long Seq { get; set; }
+
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [JsonPropertyName("metadata")]
         public Dictionary<string, object> Metadata { get; set; }
@@ -141,11 +155,50 @@ namespace Drasi.Reactions.SignalR.Models.Unpacked
         public long TsMs { get; set; }
     }
 
+    public partial class ReloadHeader
+    {
+        [JsonPropertyName("op")]
+        public ReloadHeaderOp Op { get; set; }
+
+        /// <summary>
+        /// The sequence number of last known source change
+        /// </summary>
+        [JsonPropertyName("seq")]
+        public long Seq { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("metadata")]
+        public Dictionary<string, object> Metadata { get; set; }
+
+        [JsonPropertyName("ts_ms")]
+        public long TsMs { get; set; }
+    }
+
+    public partial class ReloadItem
+    {
+        [JsonPropertyName("op")]
+        public ReloadItemOp Op { get; set; }
+
+        [JsonPropertyName("payload")]
+        public PayloadClass Payload { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("metadata")]
+        public Dictionary<string, object> Metadata { get; set; }
+
+        [JsonPropertyName("ts_ms")]
+        public long TsMs { get; set; }
+    }
+
     public enum ChangeNotificationOp { D, I, U };
 
     public enum ControlSignalNotificationOp { X };
 
-    public enum OpEnum { D, I, U, X };
+    public enum OpEnum { D, H, I, R, U, X };
+
+    public enum ReloadHeaderOp { H };
+
+    public enum ReloadItemOp { R };
 
     public enum VersionsEnum { V1 };
 
@@ -184,6 +237,16 @@ namespace Drasi.Reactions.SignalR.Models.Unpacked
         public static OpEnum FromJson(string json) => JsonSerializer.Deserialize<OpEnum>(json, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
     }
 
+    public partial class ReloadHeader
+    {
+        public static ReloadHeader FromJson(string json) => JsonSerializer.Deserialize<ReloadHeader>(json, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
+    }
+
+    public partial class ReloadItem
+    {
+        public static ReloadItem FromJson(string json) => JsonSerializer.Deserialize<ReloadItem>(json, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
+    }
+
     public class Versions
     {
         public static VersionsEnum FromJson(string json) => JsonSerializer.Deserialize<VersionsEnum>(json, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
@@ -198,6 +261,8 @@ namespace Drasi.Reactions.SignalR.Models.Unpacked
         public static string ToJson(this ControlSignalNotification self) => JsonSerializer.Serialize(self, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
         public static string ToJson(this Notification self) => JsonSerializer.Serialize(self, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
         public static string ToJson(this OpEnum self) => JsonSerializer.Serialize(self, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
+        public static string ToJson(this ReloadHeader self) => JsonSerializer.Serialize(self, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
+        public static string ToJson(this ReloadItem self) => JsonSerializer.Serialize(self, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
         public static string ToJson(this VersionsEnum self) => JsonSerializer.Serialize(self, Drasi.Reactions.SignalR.Models.Unpacked.Converter.Settings);
     }
 
@@ -210,6 +275,8 @@ namespace Drasi.Reactions.SignalR.Models.Unpacked
                 ChangeNotificationOpConverter.Singleton,
                 ControlSignalNotificationOpConverter.Singleton,
                 OpEnumConverter.Singleton,
+                ReloadHeaderOpConverter.Singleton,
+                ReloadItemOpConverter.Singleton,
                 VersionsEnumConverter.Singleton,
                 new DateOnlyConverter(),
                 new TimeOnlyConverter(),
@@ -295,8 +362,12 @@ namespace Drasi.Reactions.SignalR.Models.Unpacked
             {
                 case "d":
                     return OpEnum.D;
+                case "h":
+                    return OpEnum.H;
                 case "i":
                     return OpEnum.I;
+                case "r":
+                    return OpEnum.R;
                 case "u":
                     return OpEnum.U;
                 case "x":
@@ -312,8 +383,14 @@ namespace Drasi.Reactions.SignalR.Models.Unpacked
                 case OpEnum.D:
                     JsonSerializer.Serialize(writer, "d", options);
                     return;
+                case OpEnum.H:
+                    JsonSerializer.Serialize(writer, "h", options);
+                    return;
                 case OpEnum.I:
                     JsonSerializer.Serialize(writer, "i", options);
+                    return;
+                case OpEnum.R:
+                    JsonSerializer.Serialize(writer, "r", options);
                     return;
                 case OpEnum.U:
                     JsonSerializer.Serialize(writer, "u", options);
@@ -326,6 +403,60 @@ namespace Drasi.Reactions.SignalR.Models.Unpacked
         }
 
         public static readonly OpEnumConverter Singleton = new OpEnumConverter();
+    }
+
+    internal class ReloadHeaderOpConverter : JsonConverter<ReloadHeaderOp>
+    {
+        public override bool CanConvert(Type t) => t == typeof(ReloadHeaderOp);
+
+        public override ReloadHeaderOp Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var value = reader.GetString();
+            if (value == "h")
+            {
+                return ReloadHeaderOp.H;
+            }
+            throw new Exception("Cannot unmarshal type ReloadHeaderOp");
+        }
+
+        public override void Write(Utf8JsonWriter writer, ReloadHeaderOp value, JsonSerializerOptions options)
+        {
+            if (value == ReloadHeaderOp.H)
+            {
+                JsonSerializer.Serialize(writer, "h", options);
+                return;
+            }
+            throw new Exception("Cannot marshal type ReloadHeaderOp");
+        }
+
+        public static readonly ReloadHeaderOpConverter Singleton = new ReloadHeaderOpConverter();
+    }
+
+    internal class ReloadItemOpConverter : JsonConverter<ReloadItemOp>
+    {
+        public override bool CanConvert(Type t) => t == typeof(ReloadItemOp);
+
+        public override ReloadItemOp Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var value = reader.GetString();
+            if (value == "r")
+            {
+                return ReloadItemOp.R;
+            }
+            throw new Exception("Cannot unmarshal type ReloadItemOp");
+        }
+
+        public override void Write(Utf8JsonWriter writer, ReloadItemOp value, JsonSerializerOptions options)
+        {
+            if (value == ReloadItemOp.R)
+            {
+                JsonSerializer.Serialize(writer, "r", options);
+                return;
+            }
+            throw new Exception("Cannot marshal type ReloadItemOp");
+        }
+
+        public static readonly ReloadItemOpConverter Singleton = new ReloadItemOpConverter();
     }
 
     internal class VersionsEnumConverter : JsonConverter<VersionsEnum>

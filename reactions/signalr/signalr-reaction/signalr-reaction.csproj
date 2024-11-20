@@ -14,7 +14,6 @@
 		<PackageReference Include="Azure.Identity" Version="1.13.1" />
 		<PackageReference Include="Drasi.Reaction.SDK" Version="0.1.5-alpha" />
 		<PackageReference Include="Microsoft.Azure.SignalR" Version="1.28.0" />
-		<PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Http" Version="3.2.0" />
 	</ItemGroup>
 
 </Project>

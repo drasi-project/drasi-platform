@@ -13,10 +13,9 @@
 // limitations under the License.
 
 ﻿using System.Text.Json;
-using System.Text.Json.Nodes;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reaction.SDK.Models.ViewService;
 using Drasi.Reactions.SignalR.Models.Unpacked;
-using Newtonsoft.Json.Linq;
 
 namespace Drasi.Reactions.SignalR.Services
 {
@@ -86,57 +85,6 @@ namespace Drasi.Reactions.SignalR.Services
             return result;
         }
 
-        public JObject FormatReloadRow(string queryId, JsonDocument input) 
-        {
-            if (input.RootElement.TryGetProperty("header", out var header))
-            {
-                
-                var outputItem = new JObject
-                {
-                    ["op"] = "h",
-                    ["ts_ms"] = header.GetProperty("timestamp").GetUInt64(),
-                    ["seq"] = header.GetProperty("sequence").GetUInt64()
-                };
-
-                return outputItem;
-            }
-
-            if (input.RootElement.TryGetProperty("data", out var data))
-            {   
-                var outputItem = new JObject
-                {
-                    ["op"] = "r",
-                    ["payload"] = new JObject
-                    {
-                        ["source"] = new JObject
-                        {
-                            ["db"] = "Drasi",
-                            ["table"] = queryId
-                        },
-                        ["before"] = null,
-                        ["after"] = JObject.Parse(data.GetRawText()) //temp workaround
-                    }
-                };
-
-                return outputItem;
-            }
-
-            throw new NotSupportedException($"Unknown message type");
-        }
-
-        public JObject FormatControlSignal(string queryId, ulong sequence, ulong timestamp, JToken input)
-        {
-            var outputItem = new JObject
-            {
-                ["op"] = "x",
-                ["ts_ms"] = timestamp,
-                ["seq"] = sequence,
-                ["payload"] = input
-            };
-
-            return outputItem;
-        }
-
         public ControlSignalNotification Format(ControlEvent evt)
         {
             return new ControlSignalNotification
@@ -151,6 +99,29 @@ namespace Drasi.Reactions.SignalR.Services
                         QueryId = evt.QueryId,
                         TsMs = evt.SourceTimeMs
                     },
+                }
+            };
+        }
+
+        public object Format(ViewItem item)
+        {
+            if (item.Header != null)
+            {
+                return new ReloadHeader
+                {
+                    Op = ReloadHeaderOp.H,
+                    Seq = item.Header.Sequence,
+                    TsMs = item.Header.Timestamp
+                };
+            }
+
+            return new ReloadItem
+            {
+                Op = ReloadItemOp.R,
+                TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                Payload = new PayloadClass()
+                {                    
+                    After = item.Data
                 }
             };
         }

@@ -1,6 +1,5 @@
 ﻿using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
-using Drasi.Reactions.SignalR.Models.Unpacked;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using System;
