@@ -8,4 +8,4 @@ spec:
   properties: 
     addedResultCommand: g.addV('Item').property('ItemId', '@Id').property('Name','@Name')
     gremlinHost: gremlin-server.default.svc.cluster.local
-    gremlinPort: "8182"
+    gremlinPort: 8182
