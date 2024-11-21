@@ -29,7 +29,6 @@ class GremlinChangeHandler : IChangeEventHandler
 		_logger = logger;
 	}
 
-	// TODO review query config param
 	public async Task HandleChange(ChangeEvent evt, object? queryConfig)
 	{
 		_logger.LogInformation($"Received change event from query {evt.QueryId} sequence {evt.Sequence}");
