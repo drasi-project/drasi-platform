@@ -40,6 +40,7 @@ namespace Drasi.Reactions.Gremlin.Services {
 
         private List<string> _addedResultCommandParamList;
 
+
         private List<string> _updatedResultCommandParamList;
 
         private List<string> _deletedResultCommandParamList;
@@ -48,8 +49,8 @@ namespace Drasi.Reactions.Gremlin.Services {
 
         public GremlinService(IConfiguration configuration, ILogger<GremlinService> logger)
         {
-            var databaseHost = configuration["databaseHost"];
-            var databasePort = int.TryParse(configuration["databasePort"], out var port) ? port : 443;
+            var databaseHost = configuration["gremlinHost"];
+            var databasePort = int.TryParse(configuration["gremlinPort"], out var port) ? port : 443;
             var databaseEnableSSL = !bool.TryParse(configuration["databaseEnableSSL"], out var enableSSL) || enableSSL;
             
             // if databasehost ends with .gremlin.cosmos.azure.com, set useCosmos to true
@@ -142,13 +143,20 @@ namespace Drasi.Reactions.Gremlin.Services {
         {
             string newCmd = _addedResultCommand;
 
+            // Dictionary to hold the parameters for the command
+            Dictionary<string, object> addedResultCommandParams = new Dictionary<string, object>();
+
+
             foreach (var param in _addedResultCommandParamList)
             {
-                newCmd = newCmd.Replace($"@{param}", ExtractQueryResultValue(param, res));
+                // Prepare the parameterized query by removing the @ sign
+                newCmd = newCmd.Replace($"@{param}", param);
+                var queryResultValue = ExtractQueryResultValue(param, res);
+                addedResultCommandParams.Add(param, queryResultValue);
             }
             _logger.LogInformation($"Issuing added result command: {newCmd}");
 
-            var resultSet = SubmitRequest(_gremlinClient, newCmd).Result;
+            var resultSet = SubmitRequest(_gremlinClient, newCmd, addedResultCommandParams).Result;
             if (resultSet.Count > 0)
             {
                 _logger.LogInformation("Added Command Result:");
@@ -167,24 +175,32 @@ namespace Drasi.Reactions.Gremlin.Services {
 
             string newCmd = _updatedResultCommand;
 
+            Dictionary<string, object> updatedResultCommandParams = new Dictionary<string, object>();
+
             foreach (var param in _updatedResultCommandParamList)
             {
                 if (param.StartsWith("before"))
                 {
-                    newCmd = newCmd.Replace($"@{param}", ExtractQueryResultValue(param.Substring(7), updatedResult.Before));
+                    // Prepare the parameterized query by removing the @ sign
+                    newCmd = newCmd.Replace($"@{param}", param);
+                    updatedResultCommandParams.Add(param, ExtractQueryResultValue(param.Substring(7), updatedResult.Before));
                 }
                 else if (param.StartsWith("after"))
                 {
-                    newCmd = newCmd.Replace($"@{param}", ExtractQueryResultValue(param.Substring(6), updatedResult.After));
+                    // Prepare the parameterized query by removing the @ sign
+                    newCmd = newCmd.Replace($"@{param}", param);
+                    updatedResultCommandParams.Add(param, ExtractQueryResultValue(param.Substring(6), updatedResult.After));
                 }
                 else
                 {
-                    newCmd = newCmd.Replace($"@{param}", ExtractQueryResultValue(param, updatedResult.After));
+                    // Prepare the parameterized query by removing the @ sign
+                    newCmd = newCmd.Replace($"@{param}", param);
+                    updatedResultCommandParams.Add(param, ExtractQueryResultValue(param, updatedResult.After));
                 }
             }
             _logger.LogInformation($"Issuing updated result command: {newCmd}");
 
-            var resultSet = SubmitRequest(_gremlinClient, newCmd).Result;
+            var resultSet = SubmitRequest(_gremlinClient, newCmd, updatedResultCommandParams).Result;
             if (resultSet.Count > 0)
             {
                 _logger.LogInformation("Updated Command Result:");
@@ -202,14 +218,18 @@ namespace Drasi.Reactions.Gremlin.Services {
             _logger.LogInformation($"Deleted Result {deletedResults}");
 
             string newCmd = _deletedResultCommand;
+            Dictionary<string, object> deletedResultCommandParams = new Dictionary<string, object>();
+
 
             foreach (var param in _deletedResultCommandParamList)
             {
-                newCmd = newCmd.Replace($"@{param}", ExtractQueryResultValue(param, deletedResults));
+                // Prepare the parameterized query by removing the @ sign
+                newCmd = newCmd.Replace($"@{param}", param);
+                deletedResultCommandParams.Add(param, ExtractQueryResultValue(param, deletedResults));
             }
             _logger.LogInformation($"Issuing deleted result command: {newCmd}");
 
-            var resultSet = SubmitRequest(_gremlinClient, newCmd).Result;
+            var resultSet = SubmitRequest(_gremlinClient, newCmd, deletedResultCommandParams).Result;
             if (resultSet.Count > 0)
             {
                 _logger.LogInformation("Deleted Command Result:");
@@ -254,11 +274,13 @@ namespace Drasi.Reactions.Gremlin.Services {
             }
         }
 
-        private Task<ResultSet<dynamic>> SubmitRequest(GremlinClient gremlinClient, string cmd)
+        private async Task<ResultSet<dynamic>> SubmitRequest(GremlinClient gremlinClient, string cmd, Dictionary<string, object> parameters)
         {
+            _logger.LogInformation($"Submitting request: {cmd}");
+            _logger.LogInformation($"Parameters: {JsonSerializer.Serialize(parameters)}");
             try
             {
-                return gremlinClient.SubmitAsync<dynamic>(cmd);
+                return await gremlinClient.SubmitAsync<dynamic>(cmd, parameters);
             }
             catch (ResponseException e)
             {

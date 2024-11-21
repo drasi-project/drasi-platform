@@ -85,15 +85,17 @@ spec:
         type: string
       deletedResultCommand:
         type: string
-      databaseHost:
+      gremlinHost:
         type: string
-      cosmosPassword:
+      gremlinPort:
+        type: number
+      gremlinPassword:
         type: string
-      cosmosUsername:
+      gremlinUsername:
         type: string
     required:
-      - databaseHost
-      - databasePort 
+      - gremlinHost
+      - gremlinPort 
   services:
     gremlin:
       image: reaction-gremlin

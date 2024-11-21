@@ -7,6 +7,5 @@ spec:
     query3:
   properties: 
     addedResultCommand: g.addV('Item').property('ItemId', '@Id').property('Name','@Name')
-    databaseHost: gremlin-server.default.svc.cluster.local
-    databasePort: "8182"
-    useCosmos: false
+    gremlinHost: gremlin-server.default.svc.cluster.local
+    gremlinPort: "8182"
