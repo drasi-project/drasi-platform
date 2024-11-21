@@ -12,16 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-﻿using StorageQueueReaction.Models;
-using Newtonsoft.Json.Linq;
-using System.Text.Json;
+using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.StorageQueue.Models.Unpacked;
 
-namespace StorageQueueReaction.Services
+namespace Drasi.Reactions.StorageQueue.Services
 {
     public interface IChangeFormatter
     {
-        IEnumerable<ChangeNotification> FormatAdd(string queryId, JsonElement.ArrayEnumerator input);
-        IEnumerable<ChangeNotification> FormatDelete(string queryId, JsonElement.ArrayEnumerator input);
-        IEnumerable<ChangeNotification> FormatUpdate(string queryId, JsonElement.ArrayEnumerator input);
+        IEnumerable<ChangeNotification> Format(ChangeEvent evt);
     }
 }

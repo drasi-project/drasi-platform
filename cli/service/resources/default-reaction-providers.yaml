@@ -144,18 +144,25 @@ kind: ReactionProvider
 name: StorageQueue
 spec:
   services:
-    storage_queue:
+    reaction:
       image: reaction-storage-queue
   config_schema:
     type: object
     properties:
-      StorageConnectionString:
+      connectionString:
         type: string
-      QueueName:
+      endpoint:
         type: string
+      queueName:
+        type: string
+      format:
+        type: string
+        enum:
+          - "packed"
+          - "unpacked"
+        default: "packed"
     required:
-      - StorageConnectionString
-      - QueueName
+      - queueName
 ---
 apiVersion: v1
 kind: ReactionProvider
