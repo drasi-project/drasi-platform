@@ -6,6 +6,6 @@ spec:
   queries:
     query3:
   properties: 
-    addedResultCommand: g.addV('Item').property('ItemId', '@Id').property('Name','@Name')
+    addedResultCommand: g.addV('Item').property('ItemId', @Id).property('Name',@Name)
     gremlinHost: gremlin-server.default.svc.cluster.local
     gremlinPort: 8182
