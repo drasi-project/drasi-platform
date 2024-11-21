@@ -15,7 +15,6 @@
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Gremlin.Net.Driver;
@@ -45,7 +44,9 @@ namespace Drasi.Reactions.Gremlin.Services {
 
         private List<string> _deletedResultCommandParamList;
 
-        public GremlinService(IConfiguration configuration)
+        private readonly ILogger<GremlinService> _logger;
+
+        public GremlinService(IConfiguration configuration, ILogger<GremlinService> logger)
         {
             var databaseHost = configuration["databaseHost"];
             var databasePort = int.TryParse(configuration["databasePort"], out var port) ? port : 443;
@@ -57,13 +58,8 @@ namespace Drasi.Reactions.Gremlin.Services {
             var password = configuration["gremlinPassword"];
             var username = configuration["gremlinUsername"];
 
-
+            _logger = logger;
             if (useCosmos) {
-                var databaseName = configuration["cosmosDatabaseName"];
-                var databaseContainerName = configuration["cosmosDatabaseContainerName"];
-
-                var containerLink = $"/dbs/{databaseName}/colls/{databaseContainerName}";
-
                 var connectionPoolSettings = new ConnectionPoolSettings()
                 {
                     MaxInProcessPerConnection = 10,
@@ -76,7 +72,7 @@ namespace Drasi.Reactions.Gremlin.Services {
                 {
                     options.KeepAliveInterval = TimeSpan.FromSeconds(10);
                 });
-                _gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: containerLink, password: password);
+                _gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: username, password: password);
                 _gremlinClient = new GremlinClient(
                     _gremlinServer,
                     new CustomGraphSON2Reader(),
@@ -112,7 +108,7 @@ namespace Drasi.Reactions.Gremlin.Services {
                 {
                     var param = match.Value.Substring(1);
 
-                    Console.WriteLine($"Extracted AddedResultCommand Param: {param}");
+                    _logger.LogInformation($"Extracted AddedResultCommand Param: {param}");
                     _addedResultCommandParamList.Add(param);
                 }
             }
@@ -124,7 +120,7 @@ namespace Drasi.Reactions.Gremlin.Services {
                 {
                     var param = match.Value.Substring(1);
 
-                    Console.WriteLine($"Extracted UpdatedResultCommand Param: {param}");
+                    _logger.LogInformation($"Extracted UpdatedResultCommand Param: {param}");
                     _updatedResultCommandParamList.Add(param);
                 }
             }
@@ -136,7 +132,7 @@ namespace Drasi.Reactions.Gremlin.Services {
                 {
                     var param = match.Value.Substring(1);
 
-                    Console.WriteLine($"Extracted DeletedResultCommand Param: {param}");
+                    _logger.LogInformation($"Extracted DeletedResultCommand Param: {param}");
                     _deletedResultCommandParamList.Add(param);
                 }
             }
@@ -150,24 +146,24 @@ namespace Drasi.Reactions.Gremlin.Services {
             {
                 newCmd = newCmd.Replace($"@{param}", ExtractQueryResultValue(param, res));
             }
-            Console.WriteLine($"Issuing added result command: {newCmd}");
+            _logger.LogInformation($"Issuing added result command: {newCmd}");
 
             var resultSet = SubmitRequest(_gremlinClient, newCmd).Result;
             if (resultSet.Count > 0)
             {
-                Console.WriteLine("Added Command Result:");
+                _logger.LogInformation("Added Command Result:");
                 foreach (var r in resultSet)
                 {
                     // The vertex results are formed as Dictionaries with a nested dictionary for their properties
-                    string output = JsonConvert.SerializeObject(r);
-                    Console.WriteLine($"\t{output}");
+                    string output = JsonSerializer.Serialize(r);
+                    _logger.LogInformation($"\t{output}");
                 }
             }
         }
 
         public void ProcessUpdatedQueryResults(UpdatedResultElement updatedResult)
         {
-            Console.WriteLine($"Updated Result {updatedResult}");
+            _logger.LogInformation($"Updated Result {updatedResult}");
 
             string newCmd = _updatedResultCommand;
 
@@ -186,24 +182,24 @@ namespace Drasi.Reactions.Gremlin.Services {
                     newCmd = newCmd.Replace($"@{param}", ExtractQueryResultValue(param, updatedResult.After));
                 }
             }
-            Console.WriteLine($"Issuing updated result command: {newCmd}");
+            _logger.LogInformation($"Issuing updated result command: {newCmd}");
 
             var resultSet = SubmitRequest(_gremlinClient, newCmd).Result;
             if (resultSet.Count > 0)
             {
-                Console.WriteLine("Updated Command Result:");
+                _logger.LogInformation("Updated Command Result:");
                 foreach (var r in resultSet)
                 {
                     // The vertex results are formed as Dictionaries with a nested dictionary for their properties
-                    string output = JsonConvert.SerializeObject(r);
-                    Console.WriteLine($"\t{output}");
+                    string output = JsonSerializer.Serialize(r);
+                    _logger.LogInformation($"\t{output}");
                 }
             }
         }
 
         public void ProcessDeletedQueryResults(Dictionary<string, object> deletedResults)
         {
-            Console.WriteLine($"Deleted Result {deletedResults}");
+            _logger.LogInformation($"Deleted Result {deletedResults}");
 
             string newCmd = _deletedResultCommand;
 
@@ -211,26 +207,26 @@ namespace Drasi.Reactions.Gremlin.Services {
             {
                 newCmd = newCmd.Replace($"@{param}", ExtractQueryResultValue(param, deletedResults));
             }
-            Console.WriteLine($"Issuing deleted result command: {newCmd}");
+            _logger.LogInformation($"Issuing deleted result command: {newCmd}");
 
             var resultSet = SubmitRequest(_gremlinClient, newCmd).Result;
             if (resultSet.Count > 0)
             {
-                Console.WriteLine("Deleted Command Result:");
+                _logger.LogInformation("Deleted Command Result:");
                 foreach (var r in resultSet)
                 {
                     // The vertex results are formed as Dictionaries with a nested dictionary for their properties
-                    string output = JsonConvert.SerializeObject(r);
-                    Console.WriteLine($"\t{output}");
+                    string output = JsonSerializer.Serialize(r);
+                    _logger.LogInformation($"\t{output}");
                 }
             }
         }
-        private static string ExtractQueryResultValue(string param, Dictionary<string, object> queryResult)
+        private string ExtractQueryResultValue(string param, Dictionary<string, object> queryResult)
         {
             if (queryResult.TryGetValue(param, out var value))
             {
-                Console.WriteLine($"Adding param: {param} = {value}");
-                Console.WriteLine($"Type: {value.GetType()}");
+                _logger.LogInformation($"Adding param: {param} = {value}");
+                _logger.LogInformation($"Type: {value.GetType()}");
                 switch (value)
                 {
                     case string strValue:
@@ -253,12 +249,12 @@ namespace Drasi.Reactions.Gremlin.Services {
             }
             else
             {
-                Console.WriteLine($"Missing param: {param}");
+                _logger.LogInformation($"Missing param: {param}");
                 throw new InvalidDataException($"Missing param: {param}");
             }
         }
 
-        private static Task<ResultSet<dynamic>> SubmitRequest(GremlinClient gremlinClient, string cmd)
+        private Task<ResultSet<dynamic>> SubmitRequest(GremlinClient gremlinClient, string cmd)
         {
             try
             {
@@ -266,10 +262,10 @@ namespace Drasi.Reactions.Gremlin.Services {
             }
             catch (ResponseException e)
             {
-                Console.WriteLine("\tRequest Error!");
+                _logger.LogInformation("\tRequest Error!");
 
                 // Print the Gremlin status code.
-                Console.WriteLine($"\tStatusCode: {e.StatusCode}");
+                _logger.LogInformation($"\tStatusCode: {e.StatusCode}");
 
                 // On error, ResponseException.StatusAttributes will include the common StatusAttributes for successful requests, as well as
                 // additional attributes for retry handling and diagnostics.
@@ -278,27 +274,27 @@ namespace Drasi.Reactions.Gremlin.Services {
                 //                              : attribute 'x-ms-status-code' returns 429.
                 //  x-ms-activity-id            : Represents a unique identifier for the operation. Commonly used for troubleshooting purposes.
                 PrintStatusAttributes(e.StatusAttributes);
-                Console.WriteLine($"\t[\"x-ms-retry-after-ms\"] : {GetValueAsString(e.StatusAttributes, "x-ms-retry-after-ms")}");
-                Console.WriteLine($"\t[\"x-ms-activity-id\"] : {GetValueAsString(e.StatusAttributes, "x-ms-activity-id")}");
+                _logger.LogInformation($"\t[\"x-ms-retry-after-ms\"] : {GetValueAsString(e.StatusAttributes, "x-ms-retry-after-ms")}");
+                _logger.LogInformation($"\t[\"x-ms-activity-id\"] : {GetValueAsString(e.StatusAttributes, "x-ms-activity-id")}");
 
                 throw;
             }
         }
 
-        static string GetValueAsString(IReadOnlyDictionary<string, object> dictionary, string key)
+        string GetValueAsString(IReadOnlyDictionary<string, object> dictionary, string key)
         {
-            return JsonConvert.SerializeObject(GetValueOrDefault(dictionary, key));
+            return JsonSerializer.Serialize(GetValueOrDefault(dictionary, key));
         }
 
         // Print the common StatusAttributes from a ResponseException
-        static void PrintStatusAttributes(IReadOnlyDictionary<string, object> attributes)
+        void PrintStatusAttributes(IReadOnlyDictionary<string, object> attributes)
         {
-            Console.WriteLine($"\tStatusAttributes:");
-            Console.WriteLine($"\t[\"x-ms-status-code\"] : {GetValueAsString(attributes, "x-ms-status-code")}");
-            Console.WriteLine($"\t[\"x-ms-total-server-time-ms\"] : {GetValueAsString(attributes, "x-ms-total-server-time-ms")}");
-            Console.WriteLine($"\t[\"x-ms-total-request-charge\"] : {GetValueAsString(attributes, "x-ms-total-request-charge")}");
+            _logger.LogInformation($"\tStatusAttributes:");
+            _logger.LogInformation($"\t[\"x-ms-status-code\"] : {GetValueAsString(attributes, "x-ms-status-code")}");
+            _logger.LogInformation($"\t[\"x-ms-total-server-time-ms\"] : {GetValueAsString(attributes, "x-ms-total-server-time-ms")}");
+            _logger.LogInformation($"\t[\"x-ms-total-request-charge\"] : {GetValueAsString(attributes, "x-ms-total-request-charge")}");
         }
-        static object GetValueOrDefault(IReadOnlyDictionary<string, object> dictionary, string key)
+        object GetValueOrDefault(IReadOnlyDictionary<string, object> dictionary, string key)
         {
             if (dictionary.ContainsKey(key))
             {

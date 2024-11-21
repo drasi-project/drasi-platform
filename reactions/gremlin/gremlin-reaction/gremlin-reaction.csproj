@@ -12,7 +12,6 @@
     <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.2-alpha" />
     <PackageReference Include="Gremlin.Net" Version="3.7.3" />
     <PackageReference Include="JanusGraph.Net" Version="1.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 </Project>
