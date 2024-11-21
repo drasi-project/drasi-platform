@@ -34,7 +34,6 @@ public class Program
         builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
         builder.Services.AddSingleton<IManagementClient, ManagementClient>();
         builder.Services.AddSingleton<IChangeFormatter, ChangeFormatter>();
-
         builder.Services.AddCors(options =>
         {
             options.AddDefaultPolicy(
@@ -88,10 +87,7 @@ public class Program
             .Build();
 
         hub.Lifetime.ApplicationStarted.Register(() => StartupTask.SetResult());
-
-        await Task.WhenAny(
-            reaction.StartAsync(ShutdownToken.Token),
-            hub.StartAsync(ShutdownToken.Token));
+        await Task.WhenAny(reaction.StartAsync(ShutdownToken.Token), hub.RunAsync());        
     }
 
     public static CancellationTokenSource ShutdownToken { get; } = new();

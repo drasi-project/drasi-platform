@@ -29,6 +29,7 @@ namespace Drasi.Reactions.SignalR.Services
                 var outputItem = new ChangeNotification
                 {
                     Op = ChangeNotificationOp.I,
+                    Seq = evt.Sequence,
                     TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                     Payload = new PayloadClass()
                     {
@@ -48,6 +49,7 @@ namespace Drasi.Reactions.SignalR.Services
                 var outputItem = new ChangeNotification
                 {
                     Op = ChangeNotificationOp.U,
+                    Seq = evt.Sequence,
                     TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                     Payload = new PayloadClass()
                     {
@@ -68,6 +70,7 @@ namespace Drasi.Reactions.SignalR.Services
                 var outputItem = new ChangeNotification
                 {
                     Op = ChangeNotificationOp.D,
+                    Seq = evt.Sequence,
                     TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                     Payload = new PayloadClass()
                     {
@@ -90,6 +93,7 @@ namespace Drasi.Reactions.SignalR.Services
             return new ControlSignalNotification
             {
                 Op = ControlSignalNotificationOp.X,
+                Seq = evt.Sequence,
                 TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 Payload = new ControlSignalNotificationPayload()
                 {
