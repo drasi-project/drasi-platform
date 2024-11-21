@@ -21,8 +21,8 @@ using Gremlin.Net.Driver;
 using Gremlin.Net.Structure.IO.GraphSON;
 using Gremlin.Net.Driver.Exceptions;
 using System.Net.WebSockets;
-using JanusGraph.Net;
-using JanusGraph.Net.IO.GraphSON;
+// using JanusGraph.Net;
+// using JanusGraph.Net.IO.GraphSON;
 using System.Text.Json;
 
 namespace Drasi.Reactions.Gremlin.Services {
@@ -84,8 +84,7 @@ namespace Drasi.Reactions.Gremlin.Services {
             } else {
                 _gremlinServer = new GremlinServer(databaseHost, databasePort);
                 _gremlinClient = new GremlinClient(
-                    _gremlinServer,
-                    new JanusGraphGraphSONMessageSerializer());
+                    _gremlinServer);
             }
             
 
