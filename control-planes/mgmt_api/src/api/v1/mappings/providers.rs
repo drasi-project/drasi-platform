@@ -73,7 +73,7 @@ impl From<ServiceIdentityDto> for ServiceIdentity {
         match identity {
             ServiceIdentityDto::MicrosoftEntraWorkloadID { client_id } => {
                 ServiceIdentity::MicrosoftEntraWorkloadID {
-                    client_id: client_id.into(),
+                    client_id,
                 }
             }
             ServiceIdentityDto::MicrosoftEntraApplication {
@@ -92,9 +92,7 @@ impl From<ServiceIdentityDto> for ServiceIdentity {
                     connection_string: connection_string.into(),
                 }
             }
-            ServiceIdentityDto::AccessKey {
-                access_key,
-            } => ServiceIdentity::AccessKey {
+            ServiceIdentityDto::AccessKey { access_key } => ServiceIdentity::AccessKey {
                 access_key: access_key.into(),
             },
         }
@@ -106,7 +104,7 @@ impl From<ServiceIdentity> for ServiceIdentityDto {
         match identity {
             ServiceIdentity::MicrosoftEntraWorkloadID { client_id } => {
                 ServiceIdentityDto::MicrosoftEntraWorkloadID {
-                    client_id: client_id.into(),
+                    client_id,
                 }
             }
             ServiceIdentity::MicrosoftEntraApplication {
@@ -125,9 +123,7 @@ impl From<ServiceIdentity> for ServiceIdentityDto {
                     connection_string: connection_string.into(),
                 }
             }
-            ServiceIdentity::AccessKey {
-                access_key,
-            } => ServiceIdentityDto::AccessKey {
+            ServiceIdentity::AccessKey { access_key } => ServiceIdentityDto::AccessKey {
                 access_key: access_key.into(),
             },
         }
