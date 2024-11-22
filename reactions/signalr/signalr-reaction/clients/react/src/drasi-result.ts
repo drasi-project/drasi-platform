@@ -1,4 +1,4 @@
-import React, { Key } from 'react';
+import React from 'react';
 import { getConnection } from './connection-pool'
 import { ChangeNotification, ChangeNotificationOp, ControlSignalNotification, ReloadHeader, ReloadHeaderOp, ReloadItem, ReloadItemOp } from './unpacked-generated';
 import murmurhash from 'murmurhash';
@@ -10,12 +10,23 @@ interface Props {
   /** Query ID to subscribe to */
   queryId: string,
   onReloadItem?: (item: any) => void,
+
+  /** Callback for change notifications */
   onChange?: (event: ChangeNotification) => void,
+
+  /** Callback for control signal notifications */
   onControlSignal?: (event: ControlSignalNotification) => void,
 
+  /** Disable automatic reload */
   noReload?: boolean,
+
+  /** Ignore delete notifications */
   ignoreDeletes?: boolean,
-  sortBy?: string,
+
+  /** Sort items by a function */
+  sortBy?: (item: any) => any,
+
+  /** Reverse the order of items */
   reverse?: boolean
 }
 
@@ -34,8 +45,6 @@ export default class DrasiResult extends React.Component<Props> {
     let self = this;
 
     this.onUpdate = async (item: ChangeNotification | ControlSignalNotification) => {
-      console.log("update: " + JSON.stringify(item));
-
       if (item.seq) {
         self.state.seq = item.seq;
       }
@@ -75,8 +84,6 @@ export default class DrasiResult extends React.Component<Props> {
       }
 
       if (self.mounted) {
-        console.log("updating state");
-        console.log(self.state.data.size);
         self.setState({
           data: self.state.data,
           seq: self.state.seq
@@ -87,7 +94,6 @@ export default class DrasiResult extends React.Component<Props> {
 
   componentDidMount() {
     let self = this;
-    console.log("mount");
     this.sigRConn.started
       .then(() => {
         self.sigRConn.connection.on(self.props.queryId, self.onUpdate);
@@ -100,13 +106,10 @@ export default class DrasiResult extends React.Component<Props> {
   }
 
   reload() {
-    console.log("requesting reload for " + this.props.queryId);
     let self = this;
-
     this.sigRConn.connection.stream("reload", this.props.queryId)
       .subscribe({
         next: async (item: ReloadHeader | ReloadItem) => {
-          console.log(self.props.queryId + " reload next: " + JSON.stringify(item));
           switch (item.op) {
             case ReloadHeaderOp.H:
               self.state.data = new Map();
@@ -114,9 +117,7 @@ export default class DrasiResult extends React.Component<Props> {
               break;
             case ReloadItemOp.R:
               if (item.payload.after) {
-                console.log("reloading item: " + JSON.stringify(item.payload.after));
                 self.state.data.set(hash(item.payload.after), item.payload.after);
-                console.log(self.state.data.size);
                 if (self.props.onReloadItem) {
                   self.props.onReloadItem(item.payload.after);
                 }
@@ -125,18 +126,14 @@ export default class DrasiResult extends React.Component<Props> {
           }
         },
         complete: () => {
-          console.log(self.props.queryId + " reload complete");
           if (self.mounted) {
-            console.log("updating state");
-            console.log(self.state.data.size);
             self.setState({
               data: self.state.data,
               seq: self.state.seq
             });
           }
-          console.log(self.props.queryId + " reload stream completed");
         },
-        error: (err: any) => console.error(self.props.queryId + err)
+        error: (err: any) => console.error(self.props.queryId + ": " + err)
       });
   }
 
@@ -144,7 +141,6 @@ export default class DrasiResult extends React.Component<Props> {
     this.sigRConn.connection.off(this.props.queryId, this.onUpdate);
     this.mounted = false;
   }
-
 
   render() {
     let self = this;
@@ -154,10 +150,10 @@ export default class DrasiResult extends React.Component<Props> {
     }
 
     if (self.props.sortBy) {
-      let sortKey = self.props.sortBy;
+      let sortFn = self.props.sortBy;
       keys = keys.sort((a, b) => {
-        let aVal = self.state.data.get(a)[sortKey];
-        let bVal = self.state.data.get(b)[sortKey];
+        let aVal = sortFn(self.state.data.get(a));
+        let bVal = sortFn(self.state.data.get(b));
         if (aVal < bVal) return -1;
         if (aVal > bVal) return 1;
         return 0;

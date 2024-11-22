@@ -1,51 +1,48 @@
 import { getConnection } from './connection-pool'
-/*
+import { ChangeNotification, ControlSignalNotification } from './unpacked-generated';
+
 export default class ReactionListener {
-    constructor(url, queryId, onMessage) {
+    private url: string;
+    private queryId: string;
+    private onMessage: (event: ChangeNotification | ControlSignalNotification) => void;
+    private sigRConn: any;
+    private reloadData: any[];
+
+    constructor(url: string, queryId: string, onMessage: (event: ChangeNotification | ControlSignalNotification) => void) {
         this.url = url;
         this.queryId = queryId;
         this.onMessage = onMessage;
-        this.sigRConn = getConnection(url);     
-        this.reloadData = []; 
-        
+        this.sigRConn = getConnection(url);
+        this.reloadData = [];
         let self = this;
-
         this.sigRConn.started
-        .then(result => {
-            self.sigRConn.connection.on(self.queryId, self.onMessage);            
-            }
-        );
+            .then(() => self.sigRConn.connection.on(self.queryId, self.onMessage));
     }
 
-    reload(callback) {
-        console.log("requesting reload for " + this.queryId);
+    reload(callback: (data: any[]) => void) {
         let self = this;
 
         this.sigRConn.started
-        .then(_ => {
-            self.sigRConn.connection.stream("reload", this.queryId)
-            .subscribe({
-                next: item => {
-                console.log(self.queryId + " reload next: " + JSON.stringify(item));
-                switch (item['op']) {
-                    case 'h':
-                    self.reloadData = [];                  
-                    break;
-                    case 'r':
-                    self.reloadData.push(item.payload.after);
-                    break;
-                }
-                },
-                complete: () => {
-                console.log(self.queryId + " reload complete");
-                if (callback) {
-                    callback(self.reloadData);
-                }
-                
-                },
-                error: err => console.error(self.queryId + err)
+            .then((_: any) => {
+                self.sigRConn.connection.stream("reload", this.queryId)
+                    .subscribe({
+                        next: (item: { [x: string]: any; payload: { after: any; }; }) => {
+                            switch (item['op']) {
+                                case 'h':
+                                    self.reloadData = [];
+                                    break;
+                                case 'r':
+                                    self.reloadData.push(item.payload.after);
+                                    break;
+                            }
+                        },
+                        complete: () => {
+                            if (callback) {
+                                callback(self.reloadData);
+                            }
+                        },
+                        error: (err: any) => console.error(self.queryId + ": " + err)
+                    });
             });
-        });
-      }
+    }
 }
-*/
