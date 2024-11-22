@@ -72,9 +72,7 @@ impl From<ServiceIdentityDto> for ServiceIdentity {
     fn from(identity: ServiceIdentityDto) -> Self {
         match identity {
             ServiceIdentityDto::MicrosoftEntraWorkloadID { client_id } => {
-                ServiceIdentity::MicrosoftEntraWorkloadID {
-                    client_id,
-                }
+                ServiceIdentity::MicrosoftEntraWorkloadID { client_id }
             }
             ServiceIdentityDto::MicrosoftEntraApplication {
                 tenant_id,
@@ -103,9 +101,7 @@ impl From<ServiceIdentity> for ServiceIdentityDto {
     fn from(identity: ServiceIdentity) -> Self {
         match identity {
             ServiceIdentity::MicrosoftEntraWorkloadID { client_id } => {
-                ServiceIdentityDto::MicrosoftEntraWorkloadID {
-                    client_id,
-                }
+                ServiceIdentityDto::MicrosoftEntraWorkloadID { client_id }
             }
             ServiceIdentity::MicrosoftEntraApplication {
                 tenant_id,
