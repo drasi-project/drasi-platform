@@ -1,4 +1,4 @@
-import DrasiResult from './drasi-result';
+import ResultSet from './result-set';
 import ReactionListener from './reaction-listener';
 
-export { DrasiResult, ReactionListener };
+export { ResultSet, ReactionListener };

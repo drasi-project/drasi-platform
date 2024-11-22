@@ -28,20 +28,35 @@ interface Props {
 
   /** Reverse the order of items */
   reverse?: boolean
+
+  children?: React.ReactNode | ((item: any) => React.ReactNode);
 }
 
-export default class DrasiResult extends React.Component<Props> {
-  mounted: boolean;
-  sigRConn: any;
-  needsReload: boolean;
-  onUpdate: (item: any) => Promise<void>;
-  state: { data: Map<number, any>, seq?: number } = { data: new Map() };
+/**
+ * A React component that listens to a SignalR query and renders the results.
+ */
+export default class ResultSet extends React.Component<Props> {
+  
+  public state: { data: Map<number, any>, seq?: number } = { data: new Map() };
+  
+  private mounted: boolean;
+  private sigRConn: any;
+  private needsReload: boolean;
+  private onUpdate: (item: any) => Promise<void>;  
+  private childFn?: (item: any) => React.ReactNode;
+  private children?: React.ReactNode;
 
   constructor(props: Props) {
     super(props);
     this.mounted = false;
     this.sigRConn = getConnection(props.url);
     this.needsReload = !(props.noReload);
+    if (typeof props.children === 'function') {
+      this.childFn = props.children as (item: any) => React.ReactNode;
+    } else {
+      this.children = props.children;
+    }
+
     let self = this;
 
     this.onUpdate = async (item: ChangeNotification | ControlSignalNotification) => {
@@ -167,18 +182,18 @@ export default class DrasiResult extends React.Component<Props> {
     for (let k of keys) {
       let item = self.state.data.get(k);
 
-      if (typeof self.props.children === 'function') {
+      if (self.childFn) {
         listItems.push(React.createElement(React.Fragment, {
           key: k,
         },
-          self.props.children(item)
+          self.childFn(item)
         ));
       }
       else {
         listItems.push(React.createElement(React.Fragment, {
           key: k,
         },
-          React.Children.map(self.props.children, (child) => {
+          React.Children.map(self.children, (child) => {
             if (React.isValidElement(child)) {
               return React.cloneElement(child, {
                 key: k,

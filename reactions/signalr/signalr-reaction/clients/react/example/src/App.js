@@ -1,15 +1,6 @@
 import './App.css';
-import { DrasiResult, ReactionListener } from '@drasi/react-signalr-client';
+import { ResultSet } from '@drasi/signalr-react';
 import React from 'react';
-
-let rl = new ReactionListener('http://localhost:8082/hub', 'message-count', (evt) => {
-  console.log(evt.op);
-  console.log(JSON.stringify(evt.payload));
-});
-rl.reload(data => {
-  console.log("reload");
-  console.log(JSON.stringify(data));
-})
 
 function App() {
   return (
@@ -23,8 +14,8 @@ function App() {
             </tr>  
           </thead>
           <tbody>
-            <DrasiResult
-              url='http://localhost:8082/hub'              
+            <ResultSet
+              url='http://localhost:8080/hub'              
               queryId='hello-world-from'
               sortBy={item => item.MessageFrom}>
               {item => 
@@ -33,7 +24,7 @@ function App() {
                   <td>{item.MessageFrom}</td>
                 </tr>
               }
-            </DrasiResult>
+            </ResultSet>
           </tbody>
         </table>
       </header>

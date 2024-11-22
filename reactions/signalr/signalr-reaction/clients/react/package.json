@@ -1,11 +1,22 @@
 {
-  "name": "@drasi/react-signalr-client",
-  "version": "1.0.0",
-  "description": "Made with create-react-library",
-  "author": "Drasi",
-  "license": "MIT",
-  "repository": "Drasi/@drasi/react-signalr-client",
+  "name": "@drasi/signalr-react",
+  "version": "0.1.0-alpha",
+  "description": "React components for Drasi SignalR",
+  "author": "The Drasi Authors",
+  "license": "Apache-2.0",
+  "homepage": "https://drasi.io",  
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drasi-project/drasi-platform"
+  },
+  "publishConfig": {
+    "access": "public"    
+  },
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
   "module": "dist/index.modern.js",
   "source": "src/index.tsx",
   "engines": {
@@ -19,21 +30,16 @@
     "test:build": "run-s build",
     "test:lint": "eslint .",
     "test:unit": "cross-env CI=1 react-scripts test --env=jsdom",
-    "test:watch": "react-scripts test --env=jsdom",
-    "predeploy": "cd example && npm install && npm run build",
-    "deploy": "gh-pages -d example/build"
+    "test:watch": "react-scripts test --env=jsdom"
   },
   "peerDependencies": {
     "react": "^18.3.1"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/react": "^9.5.0",
-    "@testing-library/user-event": "^7.2.1",
-    "@types/jest": "^25.1.4",
-    "@types/node": "^12.12.38",
-    "@types/react": "^16.9.27",
-    "@types/react-dom": "^16.9.7",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.9.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "@typescript-eslint/eslint-plugin": "^2.26.0",
     "@typescript-eslint/parser": "^2.26.0",
     "babel-eslint": "^10.0.3",
@@ -57,9 +63,6 @@
     "react-scripts": "^5.0.1",
     "typescript": "^3.7.5"
   },
-  "files": [
-    "dist"
-  ],
   "dependencies": {
     "@microsoft/signalr": "^8.0.7",
     "murmurhash": "^2.0.1"
