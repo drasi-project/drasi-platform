@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "drasi-reaction-sdk"
+version = "0.1.0-alpha"
+description = "Reaction SDK for Project Drasi"
+license = "Apache-2.0"
+homepage = "https://drasi.io" 
+authors = ["Steve Russo <64294847+sjrusso8@users.noreply.github.com>"]
+readme = "README.md"
+repository = "https://github.com/drasi-project/drasi-platform"
+packages = [{include = "drasi_reaction"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+dapr = "^1.14.0"
+dapr-ext-fastapi = "^1.14.0"
+fastapi = {extras = ["standard"], version = "^0.115.4"}
+PyYAML = "6.0.2"
+pydantic = "^2.10.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+datamodel-code-generator = "0.26.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
