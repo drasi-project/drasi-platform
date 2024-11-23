@@ -25,3 +25,19 @@ This folder contains a basic React application that illustrates basic usage of t
     </tbody>
 </table>
 ```
+
+## Running the example
+
+Install the dependencies:
+
+```
+npm install
+```
+
+Start the development server:
+
+```
+npm start
+```
+
+Browse to http://localhost:3000
