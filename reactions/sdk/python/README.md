@@ -19,7 +19,7 @@ from drasi_reaction.models.ChangeEvent import ChangeEvent
 from drasi_reaction.sdk import DrasiReaction
 
 
-async def change_event(data: ChangeEvent, query_configs: dict[Any, Any] | None = None):
+async def change_event(data: ChangeEvent, query_configs: dict[str, Any] | None = None):
     print("handling change event")
     print(data)
 

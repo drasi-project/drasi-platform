@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Reaction
+name: python-reaction-simple
+spec:
+  kind: Python-Reaction
+  queries:
+    query1:
+    query2:
