@@ -100,18 +100,22 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string) error {
-	daprInstalled, err := t.checkDaprInstallation(output)
-	if err != nil {
-		return err
-	}
-	if !daprInstalled {
-		if err = t.installDapr(output); err != nil {
+func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string, skipDaprInstall bool) error {
+
+	if !skipDaprInstall {
+		daprInstalled, err := t.checkDaprInstallation(output)
+		if err != nil {
 			return err
+		}
+		if !daprInstalled {
+			if err = t.installDapr(output); err != nil {
+				return err
+			}
 		}
 	}
 
-	if err = t.createConfig(localMode, acr, version); err != nil {
+	err := t.createConfig(localMode, acr, version)
+	if err != nil {
 		return err
 	}
 
