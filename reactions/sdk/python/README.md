@@ -1,6 +1,6 @@
 # Reaction SDK for Python
 
-This library provides the building blocks and infrastructure to implement a [Drasi](https://drasi.io/) Reaction in Python
+This library provides the building blocks and infrastructure to implement a [Drasi](https://drasi.io/) Reaction in python.
 
 ## Getting started
 
@@ -19,9 +19,9 @@ from drasi_reaction.models.ChangeEvent import ChangeEvent
 from drasi_reaction.sdk import DrasiReaction
 
 
-async def change_event(data: ChangeEvent, query_configs: dict[str, Any] | None = None):
-    print("handling change event")
-    print(data)
+async def change_event(event: ChangeEvent, query_configs: dict[str, Any] | None = None):
+    print(f"Received change sequence {event.sequence} for query {event.queryId}")
+    print(event)
 
 
 reaction = DrasiReaction(on_change_event=change_event)
@@ -41,7 +41,7 @@ The following example illustrates
 from drasi_reaction.models.ChangeEvent import ChangeEvent
 from drasi_reaction.models.ControlEvent import ControlEvent
 from drasi_reaction.sdk import DrasiReaction 
-from drasi_reaction.utils import parse_yaml, get_config_value
+from drasi_reaction.utils import get_config_value, parse_yaml
 
 # Retrieve the connection string from the Reaction configuration
 my_connection_string = get_config_value("MyConnectionString")
