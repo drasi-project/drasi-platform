@@ -12,7 +12,7 @@ import { ResultSet } from '@drasi/signalr-vue';
         </tr>
       </thead>
       <tbody>
-        <ResultSet url="http://localhost:8082/hub" queryId="hello-world-from" :sortBy="x => x.MessageFrom">
+        <ResultSet url="http://localhost:8080/hub" queryId="hello-world-from" :sortBy="x => x.MessageFrom">
           <template #default="{ item, index }">
             <tr>              
               <td>{{ item.MessageId }}</td>
