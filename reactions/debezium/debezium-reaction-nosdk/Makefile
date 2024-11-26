@@ -1,4 +1,3 @@
-
 .PHONY: default docker-build kind-load
 
 CLUSTER_NAME ?= kind

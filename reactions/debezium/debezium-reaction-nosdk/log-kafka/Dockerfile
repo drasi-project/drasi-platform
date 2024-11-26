@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright 2024 The Drasi Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# usage: ./remote-build.sh <acr> <tag>
-# example: ./remote-build.sh drasitest latest
-
-az acr login --name $1
-
-az acr build --registry $1 --image reactive-graph/log-kafka-topic:$2 .
+FROM bitnami/kafka:3.2.3
+COPY log-kafka-topic.sh /log-kafka-topic.sh
+ENV LOG_KAFKA_BROKERS="kafka:9092"
+ENTRYPOINT ["/log-kafka-topic.sh"]

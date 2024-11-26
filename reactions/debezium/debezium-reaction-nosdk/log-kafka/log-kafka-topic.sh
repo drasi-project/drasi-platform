@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2024 The Drasi Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +14,19 @@
 # limitations under the License.
 
 
-# usage: ./remote-build.sh <acr> <tag>
-# example: ./remote-build.sh drasitest latest
+# usage: ./log-kafka-topic.sh
 
-az acr login --name $1
+if [ -z "$LOG_KAFKA_BROKERS" ]; then
+  echo "Environment variable LOG_KAFKA_BROKERS is not set"
+  exit 1
+fi
+if [ -z "$LOG_KAFKA_TOPIC" ]; then
+  echo "Environment variable LOG_KAFKA_TOPIC is not set"
+  exit 1
+fi
+echo "Messages in topic $LOG_KAFKA_TOPIC on $LOG_KAFKA_BROKERS:"
+/opt/bitnami/kafka/bin/kafka-console-consumer.sh \
+  --bootstrap-server "$LOG_KAFKA_BROKERS" \
+  --topic "$LOG_KAFKA_TOPIC" \
+  --from-beginning
 
-az acr build --registry $1 --image reactive-graph/log-kafka-topic:$2 .
