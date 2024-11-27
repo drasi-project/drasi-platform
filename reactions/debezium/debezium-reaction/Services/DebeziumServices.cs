@@ -21,20 +21,20 @@ namespace Drasi.Reactions.Debezium.Services
 {
 	public class DebeziumService
 	{
-		private string _topic;
+		private readonly string _topic;
 
-		private bool _includeSchemas;
+		private readonly bool _includeSchemas;
 
-		private bool _includeKey;
+		private readonly bool _includeKey;
 
-		private ProducerConfig _config;
+		private readonly ProducerConfig _config;
 
 
 		public DebeziumService(IConfiguration configuration, ILogger<DebeziumService> logger)
 		{
 			var brokers = configuration["brokers"];
             Console.WriteLine("Brokers: " + brokers);
-			_topic = configuration["topic"];
+			_topic = configuration["topic"] ?? throw new ArgumentNullException("Debezium topic is required");
             _includeSchemas = configuration.GetValue<bool?>("includeSchemas") ?? true;
             _includeKey = configuration.GetValue<bool?>("includeKey") ?? true;
 

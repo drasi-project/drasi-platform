@@ -18,7 +18,7 @@ name: test-debezium
 spec:
   kind: Debezium
   queries:
-    message-count:
+    hello-world-from:
   properties:
     brokers: test-kafka:9092
     topic: my-kafka-topic

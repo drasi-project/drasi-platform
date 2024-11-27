@@ -21,7 +21,6 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 
 class DebeziumChangeHandler : IChangeEventHandler
 {
@@ -40,27 +39,26 @@ class DebeziumChangeHandler : IChangeEventHandler
 
 		_logger.LogInformation("Processing {QueryId}", metadata.QueryId);
 
-		using (var producer = new ProducerBuilder<Null, string>(_debeziumService.Config).Build())
-		{
-			ProcessResults(producer, metadata, evt.AddedResults, "c");
-			
-			var updatedResults = new List<Dictionary<string, object>>();
-			// Convert the updated results to the Dictionary
-			for (int i = 0; i < evt.UpdatedResults.Length; i++)
-			{
-				var currResultDict = new Dictionary<string, object>();
-				currResultDict["before"] = evt.UpdatedResults[i].Before;
-				currResultDict["after"] = evt.UpdatedResults[i].After;
-				updatedResults.Add(currResultDict);
-			}
-			ProcessResults(producer, metadata, [.. updatedResults], "u");
-			ProcessResults(producer, metadata, evt.DeletedResults, "d");
+		using var producer = new ProducerBuilder<Null, string>(_debeziumService.Config).Build();
+		await ProcessResults(producer, metadata, evt.AddedResults, "c");
 
-			producer.Flush();
+		var updatedResults = new List<Dictionary<string, object>>();
+		for (int i = 0; i < evt.UpdatedResults.Length; i++)
+		{
+			var currResultDict = new Dictionary<string, object>
+			{
+				["before"] = evt.UpdatedResults[i].Before,
+				["after"] = evt.UpdatedResults[i].After
+			};
+			updatedResults.Add(currResultDict);
 		}
+		await ProcessResults(producer, metadata, [.. updatedResults], "u");
+		await ProcessResults(producer, metadata, evt.DeletedResults, "d");
+
+		producer.Flush();
 	}
 
-	private void ProcessResults(IProducer<Null, string> producer, EventMetadata metadata, Dictionary<string, object>[] results, string op)
+	private async Task ProcessResults(IProducer<Null, string> producer, EventMetadata metadata, Dictionary<string, object>[] results, string op)
 	{
 		var noIndent = new JsonSerializerOptions { WriteIndented = false };
 		foreach (var res in results)
@@ -92,27 +90,27 @@ class DebeziumChangeHandler : IChangeEventHandler
 				dataChangeEvent.Append($"\"schema\":{valueSchemaString},");
 			}
 			dataChangeEvent.Append($"\"payload\":{valuePayloadString}");
-			dataChangeEvent.Append("}");
+			_ = dataChangeEvent.Append("}");
 
 			var eventString = dataChangeEvent.ToString();
-			Console.WriteLine("dataChangeEvent:" + eventString);
+			_logger.LogInformation($"dataChangeEvent: {eventString}");
 			try
 			{
-				producer.Produce(_debeziumService.Topic, new Message<Null, string> { Value = eventString }, deliveryReport =>
+				var deliveryReport = await producer.ProduceAsync(_debeziumService.Topic, new Message<Null, string> { Value = eventString }, CancellationToken.None);
+
+				if (deliveryReport.Status != PersistenceStatus.Persisted)
 				{
-					if (deliveryReport.Error.Code != ErrorCode.NoError)
-					{
-						Console.WriteLine($"Delivery failed: {deliveryReport.Error.Reason}");
-					}
-					else
-					{
-						Console.WriteLine($"Message delivered to {deliveryReport.TopicPartitionOffset}");
-					}
-				});
+					_logger.LogInformation($"Delivery failed: {deliveryReport.Message.Value}");
+				}
+				else
+				{
+					_logger.LogInformation($"Message delivered to {deliveryReport.TopicPartitionOffset}");
+				}
+			
 			}
 			catch (ProduceException<Null, string> ex)
 			{
-				Console.WriteLine($"ProduceException: {ex.Error.Reason}");
+				_logger.LogInformation($"ProduceException: {ex.Error.Reason}");
 			}
 		}
 	}
@@ -132,7 +130,6 @@ class DebeziumChangeHandler : IChangeEventHandler
 		{
 			{ "type", "struct" },
 			{ "name", $"{metadata.Connector}.{metadata.QueryId}.Key" },
-			// { "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Key" },
 			{ "optional", false }
 		};
 		var fields = new JsonArray
@@ -163,8 +160,6 @@ class DebeziumChangeHandler : IChangeEventHandler
 		{
 			{ "version", metadata.Version },
 			{ "connector", metadata.Connector },
-			// { "container", metadata.Container },
-			// { "hostname", metadata.Hostname },
 			{ "ts_ms", metadata.TsMs },
 			{ "seq", metadata.Seq }
 		};
@@ -201,88 +196,88 @@ class DebeziumChangeHandler : IChangeEventHandler
 
 	static JsonObject GetValueSchema(EventMetadata metadata, JsonElement res)
 	{
-		JsonElement changeData;
-		Console.WriteLine("res:" + res.ToString());
 		var changeDataFields = GetChangeDataFields(res);
 		var changeDataFields2 = GetChangeDataFields(res);
 
-		var sourceFields = new JsonArray();
-		sourceFields.Add(new JsonObject
+		var sourceFields = new JsonArray
+		{
+			new JsonObject
 			{
 				{ "field", "version" },
 				{ "type", "string" },
 				{ "optional", false }
-			});
-		sourceFields.Add(new JsonObject
+			},
+			new JsonObject
 			{
 				{ "field", "connector" },
 				{ "type", "string" },
 				{ "optional", false }
-			});
-		sourceFields.Add(new JsonObject
+			},
+			new JsonObject
 			{
 				{ "field", "container" },
 				{ "type", "string" },
 				{ "optional", false }
-			});
-		sourceFields.Add(new JsonObject
+			},
+			new JsonObject
 			{
 				{ "field", "hostname" },
 				{ "type", "string" },
 				{ "optional", false }
-			});
-		sourceFields.Add(new JsonObject
+			},
+			new JsonObject
 			{
 				{ "field", "ts_ms" },
 				{ "type", "int64" },
 				{ "optional", false }
-			});
-		sourceFields.Add(new JsonObject
+			},
+			new JsonObject
 			{
 				{ "field", "seq" },
 				{ "type", "int64" },
 				{ "optional", false }
-			});
+			}
+		};
 
-		var valueFields = new JsonArray();
-		valueFields.Add(new JsonObject
+		var valueFields = new JsonArray
+		{
+			new JsonObject
 			{
 				{ "type", "struct" },
 				{ "fields", changeDataFields },
 				{ "optional", true},
 				{ "name", $"{metadata.Connector}.{metadata.QueryId}.Value" },
-				// { "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Value" },
 				{ "field", "before" }
-			});
-		valueFields.Add(new JsonObject
+			},
+			new JsonObject
 			{
 				{ "type", "struct" },
 				{ "fields", changeDataFields2 },
 				{ "optional", true},
-				// { "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Value" },
 				{ "name", $"{metadata.Connector}.{metadata.QueryId}.Value" },
 				{ "field", "after" }
-			});
-		valueFields.Add(new JsonObject
+			},
+			new JsonObject
 			{
 				{ "type", "struct" },
 				{ "fields", sourceFields },
 				{ "optional", false},
 				{ "name", $"io.debezium.connector.{metadata.Connector}.Source" },
 				{ "field", "source" }
-			});
-		valueFields.Add(new JsonObject
+			},
+			new JsonObject
 			{
 				{ "type", "string" },
 				{ "optional", false},
 				{ "field", "op" }
-			});
-		valueFields.Add(new JsonObject
+			},
+			new JsonObject
 			{
 				{ "type", "int64" },
 				{ "optional", true},
 				{ "field", "ts_ms" }
-			});
+			}
+		};
 
 		var valueSchema = new JsonObject
 		{
@@ -290,7 +285,6 @@ class DebeziumChangeHandler : IChangeEventHandler
 			{ "fields", valueFields },
 			{ "optional", false },
 			{ "name", $"{metadata.Connector}.{metadata.QueryId}.Envelope" }
-			// { "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Envelope" }
 		};
 
 		return valueSchema;

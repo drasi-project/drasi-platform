@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Diagnostics.Tracing;
 using System.Text.Json;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 namespace Drasi.Reactions.Debezium.Services;
@@ -27,7 +26,6 @@ class EventMetadata
 	public EventMetadata(ChangeEvent evt)
 	{
 		var queryId = evt.QueryId;
-		// Extract metadata from the event
 		var tracking = (JsonElement)evt.Metadata["tracking"];
 		var query = tracking.GetProperty("query");
 		var ts_ms = query.GetProperty("queryEnd_ms").GetInt64();
@@ -40,6 +38,6 @@ class EventMetadata
 		QueryId = queryId ?? throw new Exception("QueryId is null");
 		Seq = seq;
 		TsMs = ts_ms;
-		Version = "preview.1";
+		Version = "0.1.6";
 	}
 }
