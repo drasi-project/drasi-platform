@@ -40,19 +40,19 @@ spec:
   config_schema:
     type: object
     properties: 
-      Brokers:
+      brokers:
         type: string
-      Topic:
+      topic:
         type: string
-      IncludeKey:
+      includeKey:
         type: boolean
         default: true
-      IncludeSchemas:
+      includeSchemas:
         type: boolean
         default: true
     required:
-      - Brokers
-      - Topic
+      - brokers
+      - topic
 ---
 apiVersion: v1
 kind: ReactionProvider
