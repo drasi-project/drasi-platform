@@ -15,8 +15,8 @@ pip install drasi_reaction_sdk
 The following example logs the various parts of the incoming change event from a [Continuous Query](https://drasi.io/concepts/continuous-queries/).
 
 ```python
-from drasi_reaction.models.ChangeEvent import ChangeEvent
-from drasi_reaction.sdk import DrasiReaction
+from drasi.reaction.models.ChangeEvent import ChangeEvent
+from drasi.reaction.sdk import DrasiReaction
 
 
 async def change_event(event: ChangeEvent, query_configs: dict[str, Any] | None = None):
@@ -38,10 +38,10 @@ The following example illustrates
  - Process control events (start, stop, etc.) from the query
 
 ```python
-from drasi_reaction.models.ChangeEvent import ChangeEvent
-from drasi_reaction.models.ControlEvent import ControlEvent
-from drasi_reaction.sdk import DrasiReaction 
-from drasi_reaction.utils import get_config_value, parse_yaml
+from drasi.reaction.models.ChangeEvent import ChangeEvent
+from drasi.reaction.models.ControlEvent import ControlEvent
+from drasi.reaction.sdk import DrasiReaction 
+from drasi.reaction.utils import get_config_value, parse_yaml
 
 # Retrieve the connection string from the Reaction configuration
 my_connection_string = get_config_value("MyConnectionString")

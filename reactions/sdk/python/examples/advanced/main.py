@@ -1,10 +1,10 @@
 import logging
 from typing import Any
 
-from drasi_reaction.models.ChangeEvent import ChangeEvent
-from drasi_reaction.models.ControlEvent import ControlEvent
-from drasi_reaction.sdk import DrasiReaction
-from drasi_reaction.utils import get_config_value, yaml_query_configs
+from drasi.reaction.models.ChangeEvent import ChangeEvent
+from drasi.reaction.models.ControlEvent import ControlEvent
+from drasi.reaction.sdk import DrasiReaction
+from drasi.reaction.utils import get_config_value, yaml_query_configs
 
 logging.basicConfig(level=logging.INFO)
 

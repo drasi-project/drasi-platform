@@ -2,7 +2,8 @@
 
 Typical usage example:
     
-    from drasi_reaction.models.ChangeEvent import ChangeEvent
+    from drasi.reaction.models.ChangeEvent import ChangeEvent
+    from drasi.reaction.sdk import DrasiReaction
 
     async def change_func(data: ChangeEvent, query_config: dict[str, Any]):
         print("my custom function")
@@ -12,27 +13,27 @@ Typical usage example:
     df.start()
 """
 
-import logging
 import os
+import sys
 from io import TextIOWrapper
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, TypeVar
 
 import uvicorn
 from dapr.ext.fastapi import DaprApp
 from fastapi import FastAPI, Request
 
-from drasi_reaction.logger import config_logging
-from drasi_reaction.models.ChangeEvent import ChangeEvent
-from drasi_reaction.models.ControlEvent import ControlEvent
+from drasi.reaction.logger import config_logging
+from drasi.reaction.models.ChangeEvent import ChangeEvent
+from drasi.reaction.models.ControlEvent import ControlEvent
 
-AsyncChangeEventFunc = Callable[[ChangeEvent, dict[str, Any] | None], Awaitable[Any]]
-AsyncControlEventFunc = Callable[[ControlEvent, dict[str, Any] | None], Awaitable[Any]]
+T = TypeVar("T")
+
+AsyncChangeEventFunc = Callable[[ChangeEvent, T | None], Awaitable[Any]]
+AsyncControlEventFunc = Callable[[ControlEvent, T | None], Awaitable[Any]]
 
 
-config_logging()
-
-logger = logging.getLogger("reaction.sdk")
+logger = config_logging()
 
 
 class DrasiReaction:
@@ -103,19 +104,21 @@ class DrasiReaction:
         return self._query_configs
 
     def start(self):
-        """Starts the application by subscribing to queries and running the FastAPI application."""
+        """Starts the Drasi Reaction."""
 
         try:
             self.subscribe()
             logger.info("starting python reaction app")
-            uvicorn.run(self._app, host="0.0.0.0", port=self.port)
+            uvicorn.run(self._app, host="127.0.0.1", port=self.port)
 
         except Exception as err:
-            logger.exception("error while running app:", err)
-            exit(1)
+            logger.error(err)
+            with open("/dev/termination-log", "w") as f:
+                f.write(str(err))
+            sys.exit(1)
 
     def register_handler(self, query_id: str):
-        """Registers a Dapr handler for a specific drasi query.
+        """Registers a handler for a specific Drasi Query.
 
         Args:
             query_id (str): The ID of the query.

@@ -7,7 +7,8 @@ homepage = "https://drasi.io"
 authors = ["Steve Russo <64294847+sjrusso8@users.noreply.github.com>"]
 readme = "README.md"
 repository = "https://github.com/drasi-project/drasi-platform"
-packages = [{include = "drasi_reaction"}]
+packages = [{include = "drasi"}]
+exclude = ["examples/**"]
 
 [tool.poetry.dependencies]
 python = "^3.10"

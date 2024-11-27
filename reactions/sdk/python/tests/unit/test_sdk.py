@@ -3,8 +3,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from drasi_reaction.sdk import DrasiReaction
-from drasi_reaction.utils import yaml_query_configs
+from drasi.reaction.sdk import DrasiReaction
+from drasi.reaction.utils import yaml_query_configs
 
 SUBSCRIBE_QUERIES = {"query1": "foo: bar", "query2": ""}
 

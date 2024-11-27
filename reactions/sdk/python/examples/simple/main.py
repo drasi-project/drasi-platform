@@ -1,8 +1,8 @@
 import logging
 from typing import Any
 
-from drasi_reaction.models.ChangeEvent import ChangeEvent
-from drasi_reaction.sdk import DrasiReaction
+from drasi.reaction.models.ChangeEvent import ChangeEvent
+from drasi.reaction.sdk import DrasiReaction
 
 logging.basicConfig(level=logging.INFO)
 

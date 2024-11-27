@@ -15,19 +15,11 @@ LOGGING_CONFIG: dict[str, Any] = {
             "level": "INFO",
             "formatter": "default",
             "stream": "ext://sys.stdout",
-        },
-        "stderr": {
-            "class": "logging.FileHandler",
-            "level": "ERROR",
-            "formatter": "default",
-            "filename": "/dev/termination-log",
-            "formatter": "default",
-            "mode": "w",
-        },
+        }
     },
     "loggers": {
         "reaction.sdk": {
-            "handlers": ["stdout", "stderr"],
+            "handlers": ["stdout"],
             "level": "INFO",
             "propagate": False,
         },
@@ -36,8 +28,5 @@ LOGGING_CONFIG: dict[str, Any] = {
 
 
 def config_logging():
-    try:
-        logging.config.dictConfig(LOGGING_CONFIG)
-    except ValueError as _:
-        LOGGING_CONFIG["handlers"]["stderr"]["filename"] = "termination-log"
-        logging.config.dictConfig(LOGGING_CONFIG)
+    logging.config.dictConfig(LOGGING_CONFIG)
+    return logging.getLogger("reaction.sdk")
