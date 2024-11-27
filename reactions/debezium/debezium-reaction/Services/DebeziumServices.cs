@@ -17,7 +17,7 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace Drasi.Reactions.Debezium
+namespace Drasi.Reactions.Debezium.Services
 {
 	public class DebeziumService
 	{
@@ -32,10 +32,11 @@ namespace Drasi.Reactions.Debezium
 
 		public DebeziumService(IConfiguration configuration, ILogger<DebeziumService> logger)
 		{
-			var brokers = configuration["Brokers"];
-			_topic = configuration["Topic"];
-			_includeSchemas = bool.Parse(configuration["IncludeSchemas"]);
-			_includeKey = bool.Parse(configuration["IncludeKey"]);
+			var brokers = configuration["brokers"];
+            Console.WriteLine("Brokers: " + brokers);
+			_topic = configuration["topic"];
+            _includeSchemas = configuration.GetValue<bool?>("includeSchemas") ?? true;
+            _includeKey = configuration.GetValue<bool?>("includeKey") ?? true;
 
 			_config = new ProducerConfig
 			{

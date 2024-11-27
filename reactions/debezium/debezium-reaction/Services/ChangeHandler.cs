@@ -55,6 +55,8 @@ class DebeziumChangeHandler : IChangeEventHandler
 			}
 			ProcessResults(producer, metadata, [.. updatedResults], "u");
 			ProcessResults(producer, metadata, evt.DeletedResults, "d");
+
+			producer.Flush();
 		}
 	}
 
@@ -63,8 +65,6 @@ class DebeziumChangeHandler : IChangeEventHandler
 		var noIndent = new JsonSerializerOptions { WriteIndented = false };
 		foreach (var res in results)
 		{
-			Console.WriteLine($"Op:{op} Result {res}");
-
 			// Debezium data change event format has duplicate property names, so we need to serialize manually
 			var dataChangeEvent = new StringBuilder("{");
 			if (_debeziumService.IncludeKey)
@@ -96,7 +96,24 @@ class DebeziumChangeHandler : IChangeEventHandler
 
 			var eventString = dataChangeEvent.ToString();
 			Console.WriteLine("dataChangeEvent:" + eventString);
-			producer.Produce(_debeziumService.Topic, new Message<Null, string> { Value = eventString });
+			try
+			{
+				producer.Produce(_debeziumService.Topic, new Message<Null, string> { Value = eventString }, deliveryReport =>
+				{
+					if (deliveryReport.Error.Code != ErrorCode.NoError)
+					{
+						Console.WriteLine($"Delivery failed: {deliveryReport.Error.Reason}");
+					}
+					else
+					{
+						Console.WriteLine($"Message delivered to {deliveryReport.TopicPartitionOffset}");
+					}
+				});
+			}
+			catch (ProduceException<Null, string> ex)
+			{
+				Console.WriteLine($"ProduceException: {ex.Error.Reason}");
+			}
 		}
 	}
 
@@ -114,7 +131,8 @@ class DebeziumChangeHandler : IChangeEventHandler
 		var keySchema = new JsonObject
 		{
 			{ "type", "struct" },
-			{ "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Key" },
+			{ "name", $"{metadata.Connector}.{metadata.QueryId}.Key" },
+			// { "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Key" },
 			{ "optional", false }
 		};
 		var fields = new JsonArray
@@ -145,8 +163,8 @@ class DebeziumChangeHandler : IChangeEventHandler
 		{
 			{ "version", metadata.Version },
 			{ "connector", metadata.Connector },
-			{ "container", metadata.Container },
-			{ "hostname", metadata.Hostname },
+			// { "container", metadata.Container },
+			// { "hostname", metadata.Hostname },
 			{ "ts_ms", metadata.TsMs },
 			{ "seq", metadata.Seq }
 		};
@@ -184,15 +202,9 @@ class DebeziumChangeHandler : IChangeEventHandler
 	static JsonObject GetValueSchema(EventMetadata metadata, JsonElement res)
 	{
 		JsonElement changeData;
-		if (!res.TryGetProperty("before", out changeData))
-		{
-			if (!res.TryGetProperty("after", out changeData))
-			{
-				throw new Exception("Neither before nor after values found in res");
-			}
-		}
-		var changeDataFields = GetChangeDataFields(changeData);
-		var changeDataFields2 = GetChangeDataFields(changeData);
+		Console.WriteLine("res:" + res.ToString());
+		var changeDataFields = GetChangeDataFields(res);
+		var changeDataFields2 = GetChangeDataFields(res);
 
 		var sourceFields = new JsonArray();
 		sourceFields.Add(new JsonObject
@@ -238,7 +250,8 @@ class DebeziumChangeHandler : IChangeEventHandler
 				{ "type", "struct" },
 				{ "fields", changeDataFields },
 				{ "optional", true},
-				{ "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Value" },
+				{ "name", $"{metadata.Connector}.{metadata.QueryId}.Value" },
+				// { "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Value" },
 				{ "field", "before" }
 			});
 		valueFields.Add(new JsonObject
@@ -246,7 +259,8 @@ class DebeziumChangeHandler : IChangeEventHandler
 				{ "type", "struct" },
 				{ "fields", changeDataFields2 },
 				{ "optional", true},
-				{ "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Value" },
+				// { "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Value" },
+				{ "name", $"{metadata.Connector}.{metadata.QueryId}.Value" },
 				{ "field", "after" }
 			});
 		valueFields.Add(new JsonObject
@@ -270,11 +284,14 @@ class DebeziumChangeHandler : IChangeEventHandler
 				{ "field", "ts_ms" }
 			});
 
-		var valueSchema = new JsonObject();
-		valueSchema.Add("type", "struct");
-		valueSchema.Add("fields", valueFields);
-		valueSchema.Add("optional", false);
-		valueSchema.Add("name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Envelope");
+		var valueSchema = new JsonObject
+		{
+			{ "type", "struct" },
+			{ "fields", valueFields },
+			{ "optional", false },
+			{ "name", $"{metadata.Connector}.{metadata.QueryId}.Envelope" }
+			// { "name", $"{metadata.Connector}.{metadata.Container}.{metadata.QueryId}.Envelope" }
+		};
 
 		return valueSchema;
 	}

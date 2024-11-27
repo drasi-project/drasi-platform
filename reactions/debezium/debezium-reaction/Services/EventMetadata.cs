@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics.Tracing;
 using System.Text.Json;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 namespace Drasi.Reactions.Debezium.Services;
 class EventMetadata
 {
 	public string Connector { get; }
-	public string Container { get; }
-	public string Hostname { get; }
 	public string QueryId { get; }
 	public long Seq { get; }
 	public long TsMs { get; }
@@ -28,21 +27,16 @@ class EventMetadata
 	public EventMetadata(ChangeEvent evt)
 	{
 		var queryId = evt.QueryId;
-
 		// Extract metadata from the event
 		var tracking = (JsonElement)evt.Metadata["tracking"];
 		var query = tracking.GetProperty("query");
-		var container = query.GetProperty("container").GetString();
-		var hostname = query.GetProperty("hostName").GetString();
 		var ts_ms = query.GetProperty("queryEnd_ms").GetInt64();
 
+		
 		var source = tracking.GetProperty("source");
 		var seq = source.GetProperty("seq").GetInt64();
 
-
 		Connector = "drasi";
-		Container = container ?? throw new Exception("Container is null");
-		Hostname = hostname ?? throw new Exception("Hostname is null");
 		QueryId = queryId ?? throw new Exception("QueryId is null");
 		Seq = seq;
 		TsMs = ts_ms;
