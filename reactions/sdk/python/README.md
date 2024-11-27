@@ -21,7 +21,17 @@ from drasi.reaction.sdk import DrasiReaction
 
 async def change_event(event: ChangeEvent, query_configs: dict[str, Any] | None = None):
     print(f"Received change sequence {event.sequence} for query {event.queryId}")
-    print(event)
+
+    if event.addedResults:
+        print(f"Added result: {event.addedResults}")
+
+    if event.deletedResults:
+        print(f"Removed result: {event.deletedResults}")
+
+    if event.updatedResults:
+        print(
+            f"Updated result - before: {event.updatedResults[0].before}, after {event.updatedResults[0].after}"
+        )
 
 
 reaction = DrasiReaction(on_change_event=change_event)

@@ -23,14 +23,14 @@ def change_event_wrapper(conn_str: str):
         )
 
         if event.addedResults:
-            logger.info(f"Added Results: {event.addedResults}")
+            logger.info(f"Added result: {event.addedResults}")
 
         if event.deletedResults:
-            logger.info(f"Removed Results: {event.deletedResults}")
+            logger.info(f"Removed result: {event.deletedResults}")
 
         if event.updatedResults:
             logger.info(
-                f"Updated Results - before: {event.updatedResults[0].before}, after {event.updatedResults[0].after}"
+                f"Updated result - before: {event.updatedResults[0].before}, after {event.updatedResults[0].after}"
             )
 
     return change_event
