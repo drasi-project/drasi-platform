@@ -54,11 +54,11 @@ public class PostgresChangeMonitor implements ChangeMonitor {
                 .with("publication.name", "rg_" + CleanPublicationName(sourceId))
                 .with("topic.prefix", CleanPublicationName(sourceId))
                 .with("database.server.name", sourceId)
-                .with("database.hostname", System.getenv("host"))
-                .with("database.port", System.getenv("port"))
-                .with("database.user", System.getenv("user"))
-                .with("database.password", System.getenv("password"))
-                .with("database.dbname", System.getenv("database"))
+                .with("database.hostname", Reactivator.GetConfigValue("host"))
+                .with("database.port", Reactivator.GetConfigValue("port"))
+                .with("database.user", Reactivator.GetConfigValue("user"))
+                .with("database.password", Reactivator.GetConfigValue("password"))
+                .with("database.dbname", Reactivator.GetConfigValue("database"))
                 .with("plugin.name", "pgoutput")
                 .with("tombstones.on.delete", false)
                 .with("publication.autocreate.mode", "filtered")
@@ -80,6 +80,13 @@ public class PostgresChangeMonitor implements ChangeMonitor {
         engine = DebeziumEngine.create(Json.class)
                 .using(props)
                 .using(OffsetCommitPolicy.always())
+                .using(
+                        (success, message, error) -> {
+                            if (!success && (error != null)) {
+                                Reactivator.TerminalError(error);
+                            }
+                        }
+                )
                 .notifying(new PostgresChangeConsumer(mappings, changePublisher)).build();
 
         engine.run();

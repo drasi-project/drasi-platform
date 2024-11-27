@@ -16,63 +16,37 @@
 
 package io.drasi;
 
+import io.drasi.source.sdk.ChangeMonitor;
 import io.drasi.source.sdk.Reactivator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 
-@SpringBootApplication
 public class DebeziumReactivator {
 
     private static final Logger log = LoggerFactory.getLogger(DebeziumReactivator.class);
 
     public static void main(String[] args) throws IOException, SQLException {
 
-        var reactivator = Reactivator.builder()
-                .withChangeMonitor()
-
-    }
-
-
-    public static void main2(String[] args) throws IOException, SQLException {
-
-        try {
-            var sourceId = System.getenv("SOURCE_ID");
-            var connector = System.getenv("connector");
-            var instanceId = System.getenv("INSTANCE_ID");
-            SpringApplication app = new SpringApplication(DebeziumReactivator.class);
-            Map<String, Object> defaultProperties = new HashMap<>();
-            defaultProperties.put("server.port", "80");
-            defaultProperties.put("drasi.sourceid", sourceId);
-            defaultProperties.put("drasi.connector", connector);
-            defaultProperties.put("drasi.instanceid", instanceId);
-            defaultProperties.put("server.shutdown", "graceful");
-            defaultProperties.put("spring.lifecycle.timeout-per-shutdown-phase", "20s");
-            app.setDefaultProperties(defaultProperties);
-            app.run(args);
-        } catch (Exception ex) {
-            log.error(ex.getMessage());
-            Path termPath = Path.of("/dev/termination-log");
-            Files.writeString(termPath, ex.getMessage(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            var cause = ex.getCause();
-            while (cause != null) {
-                log.error(cause.getMessage());
-                Files.writeString(termPath, "\n" + cause.getMessage(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-                cause = cause.getCause();
-            }
-            throw ex;
+        ChangeMonitor monitor;
+        switch (Reactivator.GetConfigValue("connector")) {
+            case "PostgreSQL":
+                monitor = new PostgresChangeMonitor();
+                break;
+            case "SQLServer":
+                monitor = new SqlServerChangeMonitor();
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown connector");
         }
+        var reactivator = Reactivator.builder()
+                .withChangeMonitor(monitor)
+                .withDeprovisionHandler((statestore) -> statestore.delete("offset"))
+                .build();
+
+        reactivator.start();
     }
-
-
 
 }

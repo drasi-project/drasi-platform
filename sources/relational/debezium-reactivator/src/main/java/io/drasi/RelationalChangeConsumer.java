@@ -19,6 +19,7 @@ package io.drasi;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.drasi.models.NodeMapping;
 import io.drasi.models.RelationalGraphMapping;
 import io.drasi.models.RelationshipMapping;
@@ -65,7 +66,7 @@ abstract class RelationalChangeConsumer implements DebeziumEngine.ChangeConsumer
 
             try {
                 var pgChange = objectMapper.readTree(record.value());
-                var drasiChange = ExtractNodeChanges(pgChange);
+                var drasiChange = ExtractNodeChange(pgChange);
                 if (drasiChange != null) {
                     changePublisher.Publish(drasiChange);
                 }
@@ -77,7 +78,7 @@ abstract class RelationalChangeConsumer implements DebeziumEngine.ChangeConsumer
         committer.markBatchFinished();
     }
 
-    private SourceChangeContainer ExtractNodeChanges(JsonNode sourceChange) {
+    private SourceChange ExtractNodeChange(JsonNode sourceChange) {
         var pgPayload = sourceChange.path("payload");
 
         if (!pgPayload.has("op"))
@@ -90,92 +91,37 @@ abstract class RelationalChangeConsumer implements DebeziumEngine.ChangeConsumer
             return null;
 
         var mapping = tableToNodeMap.get(tableName);
-        var source = new SourceClass();
-        source.setDB(Reactivator.SourceId());
-        source.setTable(Table.NODE);
-        source.setLsn(ExtractLsn(pgSource));
-        source.setTsMS(pgSource.path("ts_ms").asLong());
+
+        JsonNode item;
+        switch (pgPayload.path("op").asText()) {
+            case "c", "u":
+                item = pgPayload.path("after");
+                break;
+            case "d":
+                item = pgPayload.path("before");
+                break;
+            default:
+                return null;
+        }
+        var nodeId = SanitizeNodeId(mapping.tableName + ":" + item.path(mapping.keyField).asText());
+        if (!item.has(mapping.keyField)) {
+            return null;
+        }
+        var tsMs = pgPayload.path("ts_ms").asLong();
 
         switch (pgPayload.path("op").asText()) {
             case "c":
-                var si = new SourceInsert();
-                si.setOp(SourceInsertOp.I);
-                si.setTsMS(pgPayload.path("ts_ms").asLong());
-                var sip = new SourceInsertPayload();
-                sip.setSource(source);
-                sip.setAfter(ConvertRow(pgPayload.path("after"), mapping));
-                si.setPayload(sip);
-
-                return new SourceChangeContainer(si);
+                return new SourceInsert(nodeId, tsMs, item, null, mapping.labels.stream().toList(), tsMs, ExtractLsn(pgSource));
             case "u":
-                var su = new SourceUpdate();
-                su.setOp(SourceUpdateOp.U);
-                su.setTsMS(pgPayload.path("ts_ms").asLong());
-                var sup = new SourceInsertPayload();
-                sup.setSource(source);
-                sup.setAfter(ConvertRow(pgPayload.path("after"), mapping));
-                su.setPayload(sup);
-
-                return new SourceChangeContainer(su);
+                return new SourceUpdate(nodeId, tsMs, item, null, mapping.labels.stream().toList(), tsMs, ExtractLsn(pgSource));
             case "d":
-                var sd = new SourceDelete();
-                sd.setOp(SourceDeleteOp.D);
-                sd.setTsMS(pgPayload.path("ts_ms").asLong());
-                var sdp = new PayloadClass();
-                sdp.setSource(source);
-                sdp.setBefore(ConvertRow(pgPayload.path("before"), mapping));
-                sd.setPayload(sdp);
-
-                return new SourceChangeContainer(sd);
+                return new SourceDelete(nodeId, tsMs, item, null, mapping.labels.stream().toList(), tsMs, ExtractLsn(pgSource));
         }
 
         return null;
     }
 
     protected abstract long ExtractLsn(JsonNode sourceChange);
-
-    private String ConvertOp(String op) {
-        switch (op) {
-            case "c":
-                return "i";
-        }
-        return op;
-    }
-
-    private AfterClass ConvertRow(JsonNode pgRow, NodeMapping mapping) {
-        var result = new AfterClass();
-        var nodeId = SanitizeNodeId(mapping.tableName + ":" + pgRow.path(mapping.keyField).asText());
-        if (pgRow.has(mapping.keyField)) {
-            result.setID(nodeId);
-            result.setLabels(mapping.labels.stream().toList());
-
-            var properties = new HashMap<String, Object>();
-            var pgFields = pgRow.fields();
-            while (pgFields.hasNext()) {
-                var field = pgFields.next();
-                var value = field.getValue();
-                switch (value.getNodeType()) {
-                    case NULL:
-                        properties.put(field.getKey(), null);
-                        break;
-                    case BOOLEAN:
-                        properties.put(field.getKey(), value.asBoolean());
-                        break;
-                    case NUMBER:
-                        properties.put(field.getKey(), value.asDouble());
-                        break;
-                    case STRING, BINARY:
-                        properties.put(field.getKey(), value.asText());
-                        break;
-                    default:
-                        return null;
-                }
-            }
-            result.setProperties(properties);
-        }
-
-        return result;
-    }
 
     private String SanitizeNodeId(String nodeId) {
         return nodeId.replace('.', ':');

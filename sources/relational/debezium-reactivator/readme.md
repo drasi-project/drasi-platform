@@ -12,3 +12,6 @@
 |database.password|Password of PostgreSQL server|
 |database.dbname|Database Name of PostgreSQL server|
 
+
+https://learn.microsoft.com/en-us/sql/connect/jdbc/connecting-using-azure-active-directory-authentication?view=sql-server-ver16
+

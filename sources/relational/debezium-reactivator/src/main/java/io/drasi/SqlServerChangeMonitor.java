@@ -22,21 +22,13 @@ import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
 import io.debezium.engine.spi.OffsetCommitPolicy;
+import io.drasi.source.sdk.ChangeMonitor;
 import io.drasi.source.sdk.ChangePublisher;
 import io.drasi.source.sdk.Reactivator;
 import io.drasi.source.sdk.StateStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ApplicationContext;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.SQLException;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class SqlServerChangeMonitor implements ChangeMonitor {
     private DebeziumEngine<ChangeEvent<String, String>> engine;
@@ -58,16 +50,17 @@ public class SqlServerChangeMonitor implements ChangeMonitor {
                 .with("offset.flush.interval.ms", 5000)
                 .with("name", sourceId)
                 .with("topic.prefix", CleanPublicationName(sourceId))
-                .with("database.hostname", System.getenv("host"))
-                .with("database.port", System.getenv("port"))
-                .with("database.user", System.getenv("user"))
-                .with("database.password", System.getenv("password"))
-                .with("database.encrypt", System.getenv("encrypt"))
-                .with("database.trustServerCertificate", System.getenv("trustServerCertificate"))
-                .with("database.names", System.getenv("database"))
+                .with("database.hostname", Reactivator.GetConfigValue("host"))
+                .with("database.port", Reactivator.GetConfigValue("port"))
+                .with("database.user", Reactivator.GetConfigValue("user", ""))
+                .with("database.password", Reactivator.GetConfigValue("password", ""))
+                .with("database.encrypt", Reactivator.GetConfigValue("encrypt"))
+                .with("database.trustServerCertificate", Reactivator.GetConfigValue("trustServerCertificate", "false"))
+                .with("driver.authentication", Reactivator.GetConfigValue("authentication", "NotSpecified"))
+                .with("database.names", Reactivator.GetConfigValue("database"))
                 .with("tombstones.on.delete", false)
                 .with("snapshot.mode", "no_data")
-                .with("schema.history.internal", "com.drasi.NoOpSchemaHistory")
+                .with("schema.history.internal", "io.drasi.NoOpSchemaHistory")
                 .with("decimal.handling.mode", "double")
                 .with("time.precision.mode", "adaptive_time_microseconds")
                 .with("converters", "temporalConverter")
@@ -82,6 +75,13 @@ public class SqlServerChangeMonitor implements ChangeMonitor {
         engine = DebeziumEngine.create(Json.class)
                 .using(props)
                 .using(OffsetCommitPolicy.always())
+                .using(
+                        (success, message, error) -> {
+                            if (!success && (error != null)) {
+                                Reactivator.TerminalError(error);
+                            }
+                        }
+                )
                 .notifying(new SqlServerChangeConsumer(mappings, changePublisher)).build();
 
         engine.run();
