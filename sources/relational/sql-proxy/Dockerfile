@@ -12,15 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node@sha256:1eabdb1aa3f6e68558c08501572731db560d10c2194a67d3417103b0a9868693
-#node:18-alpine3.16
+#
+# Build stage
+#
+FROM --platform=$BUILDPLATFORM maven:3.9.9-amazoncorretto-21 AS build
+COPY src /home/app/src
+COPY pom.xml /home/app
+RUN mvn -f /home/app/pom.xml clean package
+# RUN cd /home/app && mvn clean package
+# RUN mvn -f /home/app/pom.xml clean package
 
-WORKDIR /usr/src/app
-
-COPY package*.json ./
-
-RUN npm install
-
-COPY . .
-
-CMD ["node", "sourceProxy.js"]
+RUN cd /home/app && mvn dependency:tree
+#
+# Package stage
+#
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/openjdk/jdk:21-distroless
+COPY --from=build /home/app/target /home/app
+CMD ["-jar","/home/app/sql-proxy-1.0.jar"]
