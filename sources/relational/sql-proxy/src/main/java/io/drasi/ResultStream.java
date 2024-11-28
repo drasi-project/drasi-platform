@@ -31,11 +31,6 @@ public class ResultStream implements BootstrapStream {
         }
     }
 
-    @Override
-    public boolean hasNext() {
-        return cursors.stream().anyMatch(x -> x.hasNext(connection));
-    }
-
     public SourceElement next() {
         var cursor = cursors.peek();
         if (cursor == null) {

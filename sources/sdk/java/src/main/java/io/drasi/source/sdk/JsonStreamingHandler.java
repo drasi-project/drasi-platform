@@ -49,8 +49,7 @@ public class JsonStreamingHandler implements HttpHandler {
             exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
             exchange.getResponseHeaders().remove(Headers.CONTENT_LENGTH);
 
-
-            exchange.getResponseSender().send("[", new IoCallback() {
+            exchange.getResponseSender().send("", new IoCallback() {
                 @Override
                 public void onComplete(HttpServerExchange exchange, io.undertow.io.Sender sender) {
                     streamJsonArray(exchange, stream);
@@ -72,8 +71,9 @@ public class JsonStreamingHandler implements HttpHandler {
     }
 
     private void streamJsonArray(HttpServerExchange exchange, BootstrapStream stream) {
-        if (!stream.hasNext()) {
-            exchange.getResponseSender().send("]", IoCallback.END_EXCHANGE);
+        var next = stream.next();
+        if (next == null) {
+            exchange.endExchange();
             try {
                 stream.close();
             } catch (Exception e) {
@@ -82,12 +82,8 @@ public class JsonStreamingHandler implements HttpHandler {
             return;
         }
 
-        var next = stream.next();
-
         String chunk = next.toJson();
-        if (stream.hasNext()) {
-            chunk += ", ";
-        }
+        chunk += "\n";
 
         exchange.getResponseSender().send(chunk, new IoCallback() {
             @Override

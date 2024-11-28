@@ -35,20 +35,6 @@ class TableCursor {
         }
     }
 
-    public boolean hasNext(Connection connection) {
-        try {
-            Init(connection);
-            if (resultSet.isClosed()) {
-                return false;
-            }
-            return !resultSet.isLast();
-        }
-        catch (SQLException e) {
-            log.error("Error reading from database", e);
-            throw new RuntimeException(e);
-        }
-    }
-
     public SourceElement next(Connection connection) {
         try {
             Init(connection);
