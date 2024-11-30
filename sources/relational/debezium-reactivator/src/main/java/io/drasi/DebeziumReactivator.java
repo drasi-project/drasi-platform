@@ -30,17 +30,14 @@ public class DebeziumReactivator {
 
     public static void main(String[] args) throws IOException, SQLException {
 
-        ChangeMonitor monitor;
-        switch (Reactivator.GetConfigValue("connector")) {
-            case "PostgreSQL":
-                monitor = new PostgresChangeMonitor();
-                break;
-            case "SQLServer":
-                monitor = new SqlServerChangeMonitor();
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown connector");
-        }
+        log.info("Starting Debezium Reactivator");
+
+        ChangeMonitor monitor = switch (Reactivator.GetConfigValue("connector")) {
+            case "PostgreSQL" -> new PostgresChangeMonitor();
+            case "SQLServer" -> new SqlServerChangeMonitor();
+            default -> throw new IllegalArgumentException("Unknown connector");
+        };
+
         var reactivator = Reactivator.builder()
                 .withChangeMonitor(monitor)
                 .withDeprovisionHandler((statestore) -> statestore.delete("offset"))

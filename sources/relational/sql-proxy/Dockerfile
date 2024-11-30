@@ -16,6 +16,9 @@
 # Build stage
 #
 FROM --platform=$BUILDPLATFORM maven:3.9.9-amazoncorretto-21 AS build
+COPY temp/sdk /home/app/sdk
+WORKDIR /home/app/sdk
+RUN mvn install
 COPY src /home/app/src
 COPY pom.xml /home/app
 RUN mvn -f /home/app/pom.xml clean package

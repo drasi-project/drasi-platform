@@ -2,10 +2,10 @@ package io.drasi.source.sdk;
 
 import io.drasi.source.sdk.models.SourceElement;
 
-import java.util.Iterator;
+import java.io.Closeable;
 import java.util.List;
 
-public interface BootstrapStream extends AutoCloseable {
+public interface BootstrapStream extends Closeable {
     List<String> validate();
     SourceElement next();
 }

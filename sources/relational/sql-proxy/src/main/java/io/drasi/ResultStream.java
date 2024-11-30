@@ -50,9 +50,13 @@ public class ResultStream implements BootstrapStream {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         log.info("Closing ResultStream");
-        connection.close();
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static Connection getConnection() throws SQLException {

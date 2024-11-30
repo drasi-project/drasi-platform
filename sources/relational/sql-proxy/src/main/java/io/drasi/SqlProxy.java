@@ -29,7 +29,7 @@ public class SqlProxy {
         log.info("Starting SQL Proxy for {}", SourceProxy.SourceId());
 
         var proxy = SourceProxy.builder()
-                .withStreamFunction((request) -> new ResultStream(request))
+                .withStreamFunction(ResultStream::new)
                 .withPort(4002)
                 .build();
 

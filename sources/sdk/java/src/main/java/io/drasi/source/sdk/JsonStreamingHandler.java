@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.function.Function;
 
 public class JsonStreamingHandler implements HttpHandler {
@@ -36,37 +35,46 @@ public class JsonStreamingHandler implements HttpHandler {
                 httpServerExchange.endExchange();
                 return;
             }
-            var stream = streamFunction.apply(req);
-            var errors = stream.validate();
-            if (!errors.isEmpty()) {
-                var msg = String.join(", ", errors);
-                httpServerExchange.setStatusCode(400);
-                httpServerExchange.getResponseSender().send("Error validating request: " + msg);
-                httpServerExchange.endExchange();
-                return;
-            }
-
-            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
-            exchange.getResponseHeaders().remove(Headers.CONTENT_LENGTH);
-
-            exchange.getResponseSender().send("", new IoCallback() {
-                @Override
-                public void onComplete(HttpServerExchange exchange, io.undertow.io.Sender sender) {
-                    streamJsonArray(exchange, stream);
+            try {
+                var stream = streamFunction.apply(req);
+                var errors = stream.validate();
+                if (!errors.isEmpty()) {
+                    var msg = String.join(", ", errors);
+                    httpServerExchange.setStatusCode(400);
+                    httpServerExchange.getResponseSender().send("Error validating request: " + msg);
+                    httpServerExchange.endExchange();
+                    return;
                 }
 
-                @Override
-                public void onException(HttpServerExchange exchange, io.undertow.io.Sender sender, IOException exception) {
-                    log.error("Error sending response", exception);
-                    exchange.setStatusCode(500);
-                    exchange.endExchange();
-                    try {
-                        stream.close();
-                    } catch (Exception e) {
-                        log.error("Error closing stream", e);
+                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+                exchange.getResponseHeaders().remove(Headers.CONTENT_LENGTH);
+
+                exchange.getResponseSender().send("", new IoCallback() {
+                    @Override
+                    public void onComplete(HttpServerExchange exchange, io.undertow.io.Sender sender) {
+                        streamJsonArray(exchange, stream);
                     }
-                }
-            });
+
+                    @Override
+                    public void onException(HttpServerExchange exchange, io.undertow.io.Sender sender, IOException exception) {
+                        log.error("Error sending response", exception);
+                        exchange.setStatusCode(500);
+                        exchange.getResponseSender().send(exception.getMessage());
+                        exchange.endExchange();
+                        try {
+                            stream.close();
+                        } catch (Exception e) {
+                            log.error("Error closing stream", e);
+                        }
+                    }
+                });
+            }
+            catch (Exception e) {
+                log.error("Error creating stream", e);
+                httpServerExchange.setStatusCode(500);
+                httpServerExchange.getResponseSender().send(e.getMessage());
+                httpServerExchange.endExchange();
+            }
         });
     }
 
@@ -95,6 +103,7 @@ public class JsonStreamingHandler implements HttpHandler {
             public void onException(HttpServerExchange exchange, io.undertow.io.Sender sender, IOException exception) {
                 log.error("Error sending response", exception);
                 exchange.setStatusCode(500);
+                exchange.getResponseSender().send(exception.getMessage());
                 exchange.endExchange();
                 try {
                     stream.close();

@@ -37,6 +37,12 @@ public class SourceProxy {
                                 exchange.setStatusCode(204);
                             }
                         })
+                        .post("supports-stream", new HttpHandler() {
+                            @Override
+                            public void handleRequest(HttpServerExchange exchange) throws Exception {
+                                exchange.setStatusCode(204);
+                            }
+                        })
                 )
                 .build();
         server.start();

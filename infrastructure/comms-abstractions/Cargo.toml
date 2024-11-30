@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1.80"
 bytes = "1.7.1"
-reqwest = { version = "0.12.7", features = ["blocking"]}
+futures = "0.3.28"
+futures-util = "0.3.28"
 serde_json = "1.0.117"
