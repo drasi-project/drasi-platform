@@ -22,7 +22,7 @@ name: my-reaction
 spec:
   kind: SignalR
   properties:
-    endpoint: Endpoint=https://<resource_name>.service.signalr.net;AccessKey=<access_key>;Version=1.0;
+    connectionString: Endpoint=https://<resource_name>.service.signalr.net;AccessKey=<access_key>;Version=1.0;
   queries:
     query1:
     query2:
@@ -87,7 +87,7 @@ spec:
     kind: MicrosoftEntraWorkloadID
     clientId: <Client ID of Managed Identity>
   properties:
-    endpoint: Endpoint=https://<resource_name>.service.signalr.net;AuthType=azure
+    connectionString: Endpoint=https://<resource_name>.service.signalr.net;AuthType=azure
   queries:
     query1:
     query2:
@@ -128,7 +128,7 @@ spec:
       name: ***
       value: ***
   properties:
-    endpoint: Endpoint=https://<resource_name>.service.signalr.net;AuthType=azure
+    connectionString: Endpoint=https://<resource_name>.service.signalr.net;AuthType=azure
 ```
 
 
