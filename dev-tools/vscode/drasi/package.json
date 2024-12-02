@@ -1,9 +1,10 @@
 {
   "name": "drasi",
   "displayName": "drasi",
-  "publisher": "drasi-project",
-  "description": "",
-  "version": "0.0.3",
+  "publisher": "DrasiProject",
+  "description": "The Drasi Visual Studio Code Extension",
+  "version": "0.1.0",
+  "icon": "resources/drasi.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/drasi-project/drasi-platform.git"
@@ -151,7 +152,8 @@
     "watch": "node ./esbuild.js --watch",
     "lint": "eslint src --ext ts",
     "pretest": "npm run compile",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "deploy": "vsce publish"
   },
   "devDependencies": {
     "@types/glob": "^8.0.1",
