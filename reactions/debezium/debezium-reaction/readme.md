@@ -224,7 +224,7 @@ The `test-debezium-reaction.yaml` file in the `devops` folder can be used to dep
 |Property|Description
 |--- |---
 |`queries`| The list of continuous queries you would like the Debezium Reaction to listen to and publish change events for.
-|`properties.brokers`| The comma-separated list of Kafka brokers to write to, for example `test-kakfa:9092` which is the name of the server set up by applying the `test-kafka.yaml` file.
+|`properties.brokers`| The Kafka broker to write to, for example `test-kakfa:9092` which is the name of the server set up by applying the `test-kafka.yaml` file.
 |`properties.topic`| The name of the Kafka topic to write to, for example `my-kafka-topic`.
 |`properties.includeKey`| Whether to include the `key` in the resulting event. This defaults to `false` so only the value is included by default.
 |`properties.includeSchemas`| Whether to include the `schema` in the resulting event. If `includeSchemas` is set to `true` this will also include the key schema, otherwise only the value schema is included. This defaults to `false`.
