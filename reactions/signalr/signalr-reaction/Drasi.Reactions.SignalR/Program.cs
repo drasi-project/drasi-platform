@@ -46,7 +46,7 @@ public class Program
                 });
         });
 
-        var azConnStr = Environment.GetEnvironmentVariable("azureSignalRConnectionString");
+        var azConnStr = Environment.GetEnvironmentVariable("connectionString");
         var signalRBuilder = builder.Services
             .AddSignalR()
             .AddJsonProtocol(cfg => cfg.PayloadSerializerOptions = ModelOptions.JsonOptions);
