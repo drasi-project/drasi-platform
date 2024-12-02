@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Reaction
+name: python-reaction-advanced
+spec:
+  kind: Python-Reaction
+  properties:
+    MyConnectionString: "some connection string"
+  queries:
+    query1: |
+      greeting: "Hello, World!"
+    query2: |
+      greeting: "Howdy!"
