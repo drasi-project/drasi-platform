@@ -1,6 +1,6 @@
 # Drasi: SignalR Reaction
 
-The SignalR Reaction 
+The SignalR Reaction exposes a SignalR endpoint where changes to the result sets of the queries it is subscribed to will be published. The details of this format are described below.  Together with the SignalR Reaction, there are also several client libraries that can be used to connect to it.
 
 ## Getting started
 
@@ -10,7 +10,37 @@ The reaction takes the following configuration properties:
 
 | Property | Description |
 |-|-|
-|||
+|connectionString|(optional) If you wish to use the Azure SignalR service to host the client connections, specify the connection string here. If this is omitted, the client connections will be hosted within the Reaction process itself. A typical connection string takes the format of `Endpoint=https://<resource_name>.service.signalr.net;AccessKey=<access_key>;Version=1.0;`. If you wish to leverage an identity provider, then the connection string should be `Endpoint=https://<resource_name>.service.signalr.net;AuthType=azure`|
+
+
+#### Example with Azure SignalR
+
+```yaml
+kind: Reaction
+apiVersion: v1
+name: my-reaction
+spec:
+  kind: SignalR
+  properties:
+    endpoint: Endpoint=https://<resource_name>.service.signalr.net;AccessKey=<access_key>;Version=1.0;
+  queries:
+    query1:
+    query2:
+```
+
+#### Example without Azure SignalR
+
+```yaml
+kind: Reaction
+apiVersion: v1
+name: my-reaction
+spec:
+  kind: SignalR
+  queries:
+    query1:
+    query2:
+```
+
 
 ### Identity
 
@@ -32,7 +62,7 @@ Microsoft Entra Workload Identity enables your reaction to authenticate to Azure
 1. Take note of the `Issuer URL` under OIDC.
 1. Create or use an existing `User Assigned Managed Identity`.
 1. Take note of the `Client ID` an the `Overview` pane of the Managed Identity.
-1. Grant the `Storage Queue Data Contributor` role to the managed identity in the `Access Control (IAM)` pane of the storage account.
+1. Grant the `SignalR App Server` role to the managed identity in the `Access Control (IAM)` pane of the SignalR resource.
 1. Create a federated credential between the managed identity and the reaction.
     ```bash
     az identity federated-credential create \
@@ -44,6 +74,25 @@ Microsoft Entra Workload Identity enables your reaction to authenticate to Azure
         --audience api://AzureADTokenExchange
     ```
 
+##### Example 
+
+
+```yaml
+kind: Reaction
+apiVersion: v1
+name: my-reaction
+spec:
+  kind: SignalR
+  identity:
+    kind: MicrosoftEntraWorkloadID
+    clientId: <Client ID of Managed Identity>
+  properties:
+    endpoint: Endpoint=https://<resource_name>.service.signalr.net;AuthType=azure
+  queries:
+    query1:
+    query2:
+```
+
 
 ##### Related links
 * [What are managed identities for Azure resources](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview)
@@ -52,57 +101,42 @@ Microsoft Entra Workload Identity enables your reaction to authenticate to Azure
 * [Deploy and configure workload identity on an Azure Kubernetes Service (AKS) cluster](https://learn.microsoft.com/en-us/azure/aks/workload-identity-deploy-cluster)
 * [Use Microsoft Entra Workload ID with Azure Kubernetes Service (AKS)](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview)
 
-
-#### Connection String
-
-An Azure Storage Account connection string.
+#### Microsoft Entra Application
+Microsoft Entra Application Identity enables your reaction to authenticate as an Entra application. 
+This provider will mount to appropriate environment variables and key files used by the Azure.Identity SDKs, according to https://learn.microsoft.com/en-us/dotnet/api/azure.identity.environmentcredential
 
 | Property | Description |
 |-|-|
-| kind | ConnectionString |
-| connectionString | Connection String of Azure Storage Account.|
+| kind | MicrosoftEntraApplication |
+| tenantId | The Microsoft Entra tenant (directory) ID.|
+| clientId | The client (application) ID of an App Registration in the tenant.|
+| secret | A client secret that was generated for the App Registration.|
 
-##### Related links
-* [Configure Azure Storage connection strings](https://learn.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string)
-
-### Examples
-
+##### Example
 ```yaml
 kind: Reaction
 apiVersion: v1
 name: my-reaction
 spec:
-  kind: StorageQueue
-  properties:    
-    queueName: <Name of Queue>
-    format: <packed | unpacked>
-  queries:
-    query1:
-    query2:
-```
-
-```yaml
-kind: Reaction
-apiVersion: v1
-name: my-reaction
-spec:
-  kind: StorageQueue
+  kind: SignalR
   identity:
-    kind: MicrosoftEntraWorkloadID
-    clientId: <Client ID of Managed Identity>
+    kind: MicrosoftEntraApplication
+    tenantId: <The Microsoft Entra tenant (directory) ID>
+    clientId: <The client (application) ID of an App Registration in the tenant>
+    secret: 
+      kind: Secret
+      name: ***
+      value: ***
   properties:
-    endpoint: https://{account-name}.queue.core.windows.net
-    queueName: <Name of Queue>
-    format: <packed | unpacked>
-  queries:
-    query1:
-    query2:
+    endpoint: Endpoint=https://<resource_name>.service.signalr.net;AuthType=azure
 ```
+
 
 ## Output format
 
-The Unpacked format flattens all the changed result set items into one message per item and looks as follows:
+The reaction flattens all the changed result set items into one message per item and looks as follows:
 
+An item was added to the result set:
 ```json
 {
     "op": "i",
@@ -119,6 +153,8 @@ The Unpacked format flattens all the changed result set items into one message p
     }
 }
 ```
+
+An item was updated in the result set:
 ```json
 {
     "op": "u",
@@ -139,6 +175,8 @@ The Unpacked format flattens all the changed result set items into one message p
     }
 }
 ```
+
+An item was removed from the result set:
 ```json
 {
     "op": "d",
@@ -156,3 +194,112 @@ The Unpacked format flattens all the changed result set items into one message p
 }
 ```
 
+## Client libraries
+
+You can also use one of the client libraries in your front end application to connect to the SignalR endpoint.
+
+### React
+
+#### Install the package
+
+```
+npm install --save @drasi/signalr-react
+```
+
+#### ResultSet Component
+
+The `ResultSet` component requires an endpoint to the SignalR reaction and a query ID. It will render a copy of it's children for every item in the result set of that query, and keep the data up to date via the SignalR connection.
+
+```jsx
+<ResultSet url='<Your Drasi SignalR endpoint>' queryId='<query name>' sortBy={item => item.field1}>
+    {item => 
+        <div>
+            <span>{item.field1}</span>
+            <span>{item.field2}</span>
+        </div>
+    }
+</ResultSet>
+```
+
+#### Basic example
+
+```javascript
+function App() {
+  return (
+    <div className="App">
+      <header className="App-header">
+        <table>
+          <thead>
+            <tr>
+              <th>Message ID</th>
+              <th>Message From</th>
+            </tr>  
+          </thead>
+          <tbody>
+            <ResultSet url='http://localhost:8080/hub' queryId='hello-world-from'>
+              {item => 
+                <tr>
+                  <td>{item.MessageId}</td>
+                  <td>{item.MessageFrom}</td>
+                </tr>
+              }
+            </ResultSet>
+          </tbody>
+        </table>
+      </header>
+    </div>
+  );
+}
+```
+
+### Vue
+
+#### Install the package
+
+```
+npm install --save @drasi/signalr-vue
+```
+
+#### ResultSet Component
+
+The `ResultSet` component requires an endpoint to the SignalR reaction and a query ID. It will render a copy of it's children for every item in the result set of that query, and keep the data up to date via the SignalR connection.
+
+```vue
+<ResultSet url="<your signalr endpoint>" queryId="<query name>" :sortBy="item => item.field1">
+    <template #default="{ item, index }">
+        <span>{{ item.field1 }}</span>
+        <span>{{ item.field2 }}</span>
+    </template>
+</ResultSet>
+```
+
+#### Basic example
+
+```vue
+<script setup>
+import { ResultSet } from '@drasi/signalr-vue';
+</script>
+
+<template>
+  <main>
+    <table>
+      <thead>
+        <tr>
+          <th>Message ID</th>
+          <th>Message From</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ResultSet url="http://localhost:8080/hub" queryId="hello-world-from" :sortBy="x => x.MessageFrom">
+          <template #default="{ item, index }">
+            <tr>              
+              <td>{{ item.MessageId }}</td>
+              <td>{{ item.MessageFrom }}</td>
+            </tr>
+          </template>
+        </ResultSet>
+      </tbody>
+    </table>
+  </main>
+</template>
+```
