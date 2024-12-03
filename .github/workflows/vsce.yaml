@@ -36,10 +36,9 @@ jobs:
               run: npm install @vscode/vsce --save-dev
             - name: Download VSIX from GitHub Release
               run: |
-                curl -L -o drasi.vsix https://github.com/drasi-project/drasi-platform/releases/download/${{ github.event.inputs.version }}/drasi-${{ github.event.inputs.version }}.vsix
+                curl -L -o drasi.vsix https://github.com/drasi-project/drasi-platform/releases/download/${{ github.event.inputs.version }}/drasi-0.1.6.vsix
             - name: Publish
               run: |
-                ls
                 npx vsce publish -p ${{ secrets.VSCE_TOKEN }} --packagePath drasi.vsix
 
               
