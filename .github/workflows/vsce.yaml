@@ -15,7 +15,11 @@
 name: Build and Publish Visual Studio Code Extension
 
 on:
-  workflow_dispatch:   
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version of the extension'
+        required: true        
 
 
 jobs:
@@ -30,11 +34,11 @@ jobs:
                   node-version: 20
             - name: Install VSCE
               run: npm install @vscode/vsce --save-dev
-            - name: npm install
-              working-directory: dev-tools/vscode/drasi
-              run: npm install
+            - name: Download VSIX from GitHub Release
+              run: |
+                curl -L -o drasi.vsix https://github.com/drasi-project/drasi-platform/releases/download/${{ github.event.inputs.version }}/drasi-${{ github.event.inputs.version }}.vsix
             - name: Publish
-              working-directory: dev-tools/vscode/drasi
               run: npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
 
+              
             
