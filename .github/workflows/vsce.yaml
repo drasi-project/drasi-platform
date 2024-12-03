@@ -37,9 +37,11 @@ jobs:
             - name: npm install
               working-directory: dev-tools/vscode/drasi
               run: npm install
-            - name: Build 
+            - name: Build
+              working-directory: dev-tools/vscode/drasi 
               run: npx vsce package
             - name: Publish
+              working-directory: dev-tools/vscode/drasi
               run: npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
 
             
