@@ -8,3 +8,6 @@ test:
 
 package:
 	mvn package
+
+deploy:
+	mvn deploy
