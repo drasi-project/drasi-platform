@@ -38,7 +38,9 @@ jobs:
               run: |
                 curl -L -o drasi.vsix https://github.com/drasi-project/drasi-platform/releases/download/${{ github.event.inputs.version }}/drasi-${{ github.event.inputs.version }}.vsix
             - name: Publish
-              run: npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
+              run: |
+                ls
+                npx vsce publish -p ${{ secrets.VSCE_TOKEN }} --packagePath drasi-${{ github.event.inputs.version }}.vsix
 
               
             
