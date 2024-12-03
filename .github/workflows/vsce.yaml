@@ -31,19 +31,15 @@ jobs:
             - name: Install Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: 18.x
-            # - name: Install VSCE
-            #   run: npm install @vscode/vsce --save-dev
-            - name: Install dependencies
+                  node-version: 20
+            - name: Install VSCE
+              run: npm install @vscode/vsce --save-dev
+            - name: npm install
+              working-directory: dev-tools/vscode/drasi
               run: npm install
-            - uses: lannonbr/vsce-action@4.0.0
-              with:
-                args: "publish -p $VSCE_TOKEN"
-              env:
-                VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
-            # - name: Build 
-            #   run: vsce package
-            # - name: Publish
-            #   run: vsce publish -p ${{ secrets.VSCE_TOKEN }} -v ${{ github.event.inputs.version }} 
+            - name: Build 
+              run: npx vsce package
+            - name: Publish
+              run: npx vsce publish -p ${{ secrets.VSCE_TOKEN }}
 
             
