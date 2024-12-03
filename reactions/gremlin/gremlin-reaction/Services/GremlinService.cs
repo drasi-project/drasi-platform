@@ -144,7 +144,7 @@ namespace Drasi.Reactions.Gremlin.Services {
             Dictionary<string, object> addedResultCommandParams = new Dictionary<string, object>();
 
 
-            foreach (var param in _addedResultCommandParamList)
+            foreach (string param in _addedResultCommandParamList)
             {
                 // Prepare the parameterized query by removing the @ sign
                 newCmd = newCmd.Replace($"@{param}", param);
@@ -174,7 +174,7 @@ namespace Drasi.Reactions.Gremlin.Services {
 
             Dictionary<string, object> updatedResultCommandParams = new Dictionary<string, object>();
 
-            foreach (var param in _updatedResultCommandParamList)
+            foreach (string param in _updatedResultCommandParamList)
             {
                 if (param.StartsWith("before"))
                 {
@@ -218,7 +218,7 @@ namespace Drasi.Reactions.Gremlin.Services {
             Dictionary<string, object> deletedResultCommandParams = new Dictionary<string, object>();
 
 
-            foreach (var param in _deletedResultCommandParamList)
+            foreach (string param in _deletedResultCommandParamList)
             {
                 // Prepare the parameterized query by removing the @ sign
                 newCmd = newCmd.Replace($"@{param}", param);
@@ -292,7 +292,6 @@ namespace Drasi.Reactions.Gremlin.Services {
                 //  x-ms-retry-after-ms         : The number of milliseconds to wait to retry the operation after an initial operation was throttled. This will be populated when
                 //                              : attribute 'x-ms-status-code' returns 429.
                 //  x-ms-activity-id            : Represents a unique identifier for the operation. Commonly used for troubleshooting purposes.
-                PrintStatusAttributes(e.StatusAttributes);
                 _logger.LogInformation($"\t[\"x-ms-retry-after-ms\"] : {GetValueAsString(e.StatusAttributes, "x-ms-retry-after-ms")}");
                 _logger.LogInformation($"\t[\"x-ms-activity-id\"] : {GetValueAsString(e.StatusAttributes, "x-ms-activity-id")}");
 
@@ -305,14 +304,6 @@ namespace Drasi.Reactions.Gremlin.Services {
             return JsonSerializer.Serialize(GetValueOrDefault(dictionary, key));
         }
 
-        // Print the common StatusAttributes from a ResponseException
-        void PrintStatusAttributes(IReadOnlyDictionary<string, object> attributes)
-        {
-            _logger.LogInformation($"\tStatusAttributes:");
-            _logger.LogInformation($"\t[\"x-ms-status-code\"] : {GetValueAsString(attributes, "x-ms-status-code")}");
-            _logger.LogInformation($"\t[\"x-ms-total-server-time-ms\"] : {GetValueAsString(attributes, "x-ms-total-server-time-ms")}");
-            _logger.LogInformation($"\t[\"x-ms-total-request-charge\"] : {GetValueAsString(attributes, "x-ms-total-request-charge")}");
-        }
         object GetValueOrDefault(IReadOnlyDictionary<string, object> dictionary, string key)
         {
             if (dictionary.ContainsKey(key))
