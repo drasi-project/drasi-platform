@@ -15,11 +15,7 @@
 name: Build and Publish Visual Studio Code Extension
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version of the extension'
-        required: true        
+  workflow_dispatch:   
 
 
 jobs:
