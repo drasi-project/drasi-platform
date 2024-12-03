@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build and Publish Visual Studio Code Extension
+name: Download and Publish Visual Studio Code Extension
 
 on:
   workflow_dispatch:
@@ -36,7 +36,7 @@ jobs:
               run: npm install @vscode/vsce --save-dev
             - name: Download VSIX from GitHub Release
               run: |
-                curl -L -o drasi.vsix https://github.com/drasi-project/drasi-platform/releases/download/${{ github.event.inputs.version }}/drasi-0.1.6.vsix
+                curl -L -o drasi.vsix https://github.com/drasi-project/drasi-platform/releases/download/${{ github.event.inputs.version }}/drasi-${{ github.event.inputs.version }}.vsix
             - name: Publish
               run: |
                 npx vsce publish -p ${{ secrets.VSCE_TOKEN }} --packagePath drasi.vsix
