@@ -15,6 +15,7 @@
 name: Build and Publish Visual Studio Code Extension
 
 on:
+  push:
   workflow_dispatch:
     inputs:
       version:
