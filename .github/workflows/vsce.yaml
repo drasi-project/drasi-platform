@@ -36,9 +36,14 @@ jobs:
               run: npm install @vscode/vsce --save-dev
             - name: Install dependencies
               run: npm install
-            - name: Build 
-              run: vsce package
-            - name: Publish
-              run: vsce publish -p ${{ secrets.VSCE_TOKEN }} -v ${{ github.event.inputs.version }} 
+            - uses: lannonbr/vsce-action@4.0.0
+              with:
+                args: "publish -p $VSCE_TOKEN -v ${{ github.event.inputs.version }}"
+              env:
+                VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+            # - name: Build 
+            #   run: vsce package
+            # - name: Publish
+            #   run: vsce publish -p ${{ secrets.VSCE_TOKEN }} -v ${{ github.event.inputs.version }} 
 
             
