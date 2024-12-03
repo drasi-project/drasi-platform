@@ -4,11 +4,12 @@ CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
 DOCKERX_OPTS ?= --load --cache-to type=inline,mode=max
+RELEASE ?= 0  # if set to 1, it will use the `release` cargo profile (LTO set to full) instead of the `dev` cargo profile
 
 default: docker-build
 
 docker-build:
-	docker buildx build . -t $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
+	docker buildx build . --build-arg RELEASE=$(RELEASE) -t $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
 
 kind-load:
 	kind load docker-image $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
