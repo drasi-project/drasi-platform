@@ -1,9 +1,9 @@
 {
-  "name": "drasi",
+  "name": "drasi-workflow-test",
   "displayName": "drasi-workflow-test",
   "publisher": "DrasiProject",
   "description": "The Drasi Visual Studio Code Extension",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "icon": "resources/drasi.png",
   "repository": {
     "type": "git",
