@@ -40,7 +40,7 @@ jobs:
             - name: Publish
               run: |
                 ls
-                npx vsce publish -p ${{ secrets.VSCE_TOKEN }} --packagePath drasi-${{ github.event.inputs.version }}.vsix
+                npx vsce publish -p ${{ secrets.VSCE_TOKEN }} --packagePath drasi.vsix
 
               
             
