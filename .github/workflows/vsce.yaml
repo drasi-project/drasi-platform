@@ -32,13 +32,10 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: 18.x
+            # - name: Install VSCE
+            #   run: npm install @vscode/vsce --save-dev
             - name: Install dependencies
               run: npm install
-            - name: Update version in package.json
-              run: |
-                cd dev-tools/vscode/drasi
-                jq --arg version "${{ github.event.inputs.version }}" '.version = $version' package.json > package.tmp.json
-                mv package.tmp.json package.json
             - uses: lannonbr/vsce-action@4.0.0
               with:
                 args: "publish -p $VSCE_TOKEN"
