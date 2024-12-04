@@ -27,10 +27,13 @@ class DebeziumChangeHandler : IChangeEventHandler
 	private readonly ILogger<DebeziumChangeHandler> _logger;
 	private readonly DebeziumService _debeziumService;
 
+	private readonly IProducer<Null, string> _producer;
+
 	public DebeziumChangeHandler(ILogger<DebeziumChangeHandler> logger, DebeziumService debeziumService)
 	{
 		_logger = logger;
 		_debeziumService = debeziumService;
+		_producer = new ProducerBuilder<Null, string>(_debeziumService.Config).Build();
 	}
 
 	public async Task HandleChange(ChangeEvent evt, object? queryConfig)
@@ -39,8 +42,7 @@ class DebeziumChangeHandler : IChangeEventHandler
 
 		_logger.LogInformation("Processing {QueryId}", metadata.QueryId);
 
-		using var producer = new ProducerBuilder<Null, string>(_debeziumService.Config).Build();
-		await ProcessResults(producer, metadata, evt.AddedResults, "c");
+		await ProcessResults(metadata, evt.AddedResults, "c");
 
 		var updatedResults = new List<Dictionary<string, object>>();
 		for (int i = 0; i < evt.UpdatedResults.Length; i++)
@@ -52,13 +54,13 @@ class DebeziumChangeHandler : IChangeEventHandler
 			};
 			updatedResults.Add(currResultDict);
 		}
-		await ProcessResults(producer, metadata, [.. updatedResults], "u");
-		await ProcessResults(producer, metadata, evt.DeletedResults, "d");
+		await ProcessResults(metadata, [.. updatedResults], "u");
+		await ProcessResults(metadata, evt.DeletedResults, "d");
 
-		producer.Flush();
+		_producer.Flush();
 	}
 
-	private async Task ProcessResults(IProducer<Null, string> producer, EventMetadata metadata, Dictionary<string, object>[] results, string op)
+	private async Task ProcessResults(EventMetadata metadata, Dictionary<string, object>[] results, string op)
 	{
 		var noIndent = new JsonSerializerOptions { WriteIndented = false };
 		foreach (var res in results)
@@ -96,7 +98,7 @@ class DebeziumChangeHandler : IChangeEventHandler
 			_logger.LogInformation($"dataChangeEvent: {eventString}");
 			try
 			{
-				var deliveryReport = await producer.ProduceAsync(_debeziumService.Topic, new Message<Null, string> { Value = eventString }, CancellationToken.None);
+				var deliveryReport = await _producer.ProduceAsync(_debeziumService.Topic, new Message<Null, string> { Value = eventString }, CancellationToken.None);
 
 				if (deliveryReport.Status != PersistenceStatus.Persisted)
 				{
