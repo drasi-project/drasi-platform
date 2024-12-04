@@ -41,7 +41,7 @@ spec:
     type: object
     properties: 
       brokers:
-        type: string
+        type: array
       topic:
         type: string
       includeKey:

@@ -20,7 +20,9 @@ spec:
   queries:
     hello-world-from:
   properties:
-    brokers: test-kafka:9092
+    brokers: 
+      - test-kafka:9092
+      - test-kafka-1:9092
     topic: my-kafka-topic
     includeKey: true
     includeSchemas: true

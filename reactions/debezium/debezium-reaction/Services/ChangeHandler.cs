@@ -14,6 +14,7 @@
 
 namespace Drasi.Reactions.Debezium.Services;
 
+using Microsoft.Extensions.Configuration;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 using Drasi.Reaction.SDK;
 using Confluent.Kafka;
@@ -25,15 +26,30 @@ using System.Text.Json.Nodes;
 class DebeziumChangeHandler : IChangeEventHandler
 {
 	private readonly ILogger<DebeziumChangeHandler> _logger;
-	private readonly DebeziumService _debeziumService;
 
 	private readonly IProducer<Null, string> _producer;
 
-	public DebeziumChangeHandler(ILogger<DebeziumChangeHandler> logger, DebeziumService debeziumService)
+	private readonly bool _includeSchemas;
+	private readonly bool _includeKey;
+
+	private readonly string _topic;
+
+	public DebeziumChangeHandler(IConfiguration config, ILogger<DebeziumChangeHandler> logger)
 	{
 		_logger = logger;
-		_debeziumService = debeziumService;
-		_producer = new ProducerBuilder<Null, string>(_debeziumService.Config).Build();
+		_topic = config.GetValue<string>("topic") ?? throw new ArgumentNullException("Debezium topic is required");
+		_includeSchemas = config.GetValue<bool?>("includeSchemas") ?? true;
+		_includeKey = config.GetValue<bool?>("includeKey") ?? true;	
+		
+		// A list of brokers; represented as a comma-separated string
+		string brokers = config.GetValue<string>("brokers") ?? throw new ArgumentNullException("Debezium brokers is required");
+
+		ProducerConfig producerConfig = new ProducerConfig
+		{
+			BootstrapServers = brokers
+		};
+
+		_producer = new ProducerBuilder<Null, string>(producerConfig).Build();
 	}
 
 	public async Task HandleChange(ChangeEvent evt, object? queryConfig)
@@ -67,9 +83,9 @@ class DebeziumChangeHandler : IChangeEventHandler
 		{
 			// Debezium data change event format has duplicate property names, so we need to serialize manually
 			var dataChangeEvent = new StringBuilder("{");
-			if (_debeziumService.IncludeKey)
+			if (_includeKey)
 			{
-				if (_debeziumService.IncludeSchemas)
+				if (_includeSchemas)
 				{
 					var keySchema = GetKeySchema(metadata);
 					var keySchemaString = JsonSerializer.Serialize(keySchema, noIndent);
@@ -85,7 +101,7 @@ class DebeziumChangeHandler : IChangeEventHandler
 			var valuePayload = GetValuePayload(op, metadata, resultJsonElement);
 			var valuePayloadString = JsonSerializer.Serialize(valuePayload, noIndent);
 
-			if (_debeziumService.IncludeSchemas)
+			if (_includeSchemas)
 			{
 				var valueSchema = GetValueSchema(metadata, resultJsonElement);
 				var valueSchemaString = JsonSerializer.Serialize(valueSchema, noIndent);
@@ -98,7 +114,7 @@ class DebeziumChangeHandler : IChangeEventHandler
 			_logger.LogInformation($"dataChangeEvent: {eventString}");
 			try
 			{
-				var deliveryReport = await _producer.ProduceAsync(_debeziumService.Topic, new Message<Null, string> { Value = eventString }, CancellationToken.None);
+				var deliveryReport = await _producer.ProduceAsync(_topic, new Message<Null, string> { Value = eventString }, CancellationToken.None);
 
 				if (deliveryReport.Status != PersistenceStatus.Persisted)
 				{
