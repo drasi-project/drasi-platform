@@ -6,9 +6,13 @@ spec:
     proxy:
       image: my-proxy
       externalImage: true
+      dapr:
+        app-port: "80"
     reactivator: 
       image: my-reactivator
       externalImage: true
+      dapr:
+        app-port: "80"
   config_schema:
     type: object
     properties:

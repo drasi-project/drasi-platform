@@ -119,11 +119,11 @@ public abstract class SourceChange {
         }
 
         if (startId != null) {
-            result.put("start_id", startId);
+            result.put("startId", startId);
         }
 
         if (endId != null) {
-            result.put("end_id", endId);
+            result.put("endId", endId);
         }
 
         return  result;
