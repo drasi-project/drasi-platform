@@ -15,7 +15,7 @@
 using System.Text.Json;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 namespace Drasi.Reactions.Debezium.Services;
-class EventMetadata
+public class EventMetadata
 {
 	public string Connector { get; }
 	public string QueryId { get; }
