@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ContinuousQuery
+name: query1
+spec:
+  mode: query
+  sources:    
+    subscriptions:
+      - id: test-source
+  query: > 
+    MATCH 
+      (v:Vehicle)-[:LOCATED_AT]->(l:Location)
+    RETURN
+      v.id as vehicleId,
+      v.name as vehicleName,
+      l.id as locationId,
+      l.longitude as longitude,
+      l.latitude as latitude

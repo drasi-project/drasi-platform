@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: SourceProvider
+name: MySource
+spec:
+  services:
+    proxy:
+      image: my-proxy
+      externalImage: true
+    reactivator: 
+      image: my-reactivator
+      externalImage: true
+  config_schema:
+    type: object
+    properties:
+      connectionString:
+        type: string
