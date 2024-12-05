@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::models::ResourceType;
+
 use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
     build_deployment_spec, SpecBuilder,
@@ -50,11 +52,12 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
         let mut specs = Vec::new();
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::QueryContainer,
             resource_id: source.id.to_string(),
             service_name: "publish-api".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "querycontainer",
+                ResourceType::QueryContainer,
                 &source.id,
                 "publish-api",
                 "query-container-publish-api",
@@ -74,6 +77,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
         });
 
@@ -202,11 +206,12 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
         }
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::QueryContainer,
             resource_id: source.id.to_string(),
             service_name: "query-host".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "querycontainer",
+                ResourceType::QueryContainer,
                 &source.id,
                 "query-host",
                 "query-container-query-host",
@@ -223,15 +228,17 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
             config_maps: BTreeMap::new(),
             volume_claims: persistent_volume_claims,
             pub_sub: None,
+            service_account: None,
             removed: false,
         });
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::QueryContainer,
             resource_id: source.id.to_string(),
             service_name: "view-svc".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "querycontainer",
+                ResourceType::QueryContainer,
                 &source.id,
                 "view-svc",
                 "query-container-view-svc",
@@ -254,7 +261,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                 "view-svc".to_string() => ServiceSpec {
                     type_: Some("ClusterIP".to_string()),
                     selector: Some(hashmap![
-                        "drasi/type".to_string() => "querycontainer".to_string(),
+                        "drasi/type".to_string() => ResourceType::QueryContainer.to_string(),
                         "drasi/resource".to_string() => source.id.to_string(),
                         "drasi/service".to_string() => "view-svc".to_string()
                     ]),
@@ -269,6 +276,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
         });
 

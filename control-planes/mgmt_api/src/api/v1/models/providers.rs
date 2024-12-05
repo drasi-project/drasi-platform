@@ -50,6 +50,34 @@ pub struct ServiceConfigDto {
     pub properties: Option<HashMap<String, Option<ConfigValueDto>>>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "kind")]
+pub enum ServiceIdentityDto {
+    MicrosoftEntraWorkloadID {
+        #[serde(rename = "clientId")]
+        client_id: String,
+    },
+    MicrosoftEntraApplication {
+        #[serde(rename = "tenantId")]
+        tenant_id: ConfigValueDto,
+
+        #[serde(rename = "clientId")]
+        client_id: ConfigValueDto,
+
+        secret: Option<ConfigValueDto>,
+
+        certificate: Option<ConfigValueDto>,
+    },
+    ConnectionString {
+        #[serde(rename = "connectionString")]
+        connection_string: ConfigValueDto,
+    },
+    AccessKey {
+        #[serde(rename = "accessKey")]
+        access_key: ConfigValueDto,
+    },
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EndpointDto {
     pub setting: EndpointSettingDto,
