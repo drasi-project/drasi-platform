@@ -22,6 +22,7 @@ use crate::models::KubernetesSpec;
 
 use super::map_env_vars;
 
+#[allow(clippy::needless_late_init)]
 pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
     if spec.service_account.is_none() {
         let service_account_name = format!("{}.{}", spec.resource_type, spec.resource_id);
@@ -86,9 +87,7 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
             env_vars.insert("CONNECTION_STRING".to_string(), connection_string.clone());
             id_type = "ConnectionString";
         }
-        ServiceIdentity::AccessKey {
-            access_key,
-        } => {
+        ServiceIdentity::AccessKey { access_key } => {
             env_vars.insert("ACCESS_KEY".to_string(), access_key.clone());
             id_type = "AccessKey";
         }

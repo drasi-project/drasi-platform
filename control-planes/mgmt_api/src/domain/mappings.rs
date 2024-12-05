@@ -190,7 +190,7 @@ impl From<ServiceIdentity> for resource_provider_api::models::ServiceIdentity {
         match service_identity {
             ServiceIdentity::MicrosoftEntraWorkloadID { client_id } => {
                 resource_provider_api::models::ServiceIdentity::MicrosoftEntraWorkloadID {
-                    client_id: client_id.into(),
+                    client_id,
                 }
             }
             ServiceIdentity::MicrosoftEntraApplication {
@@ -209,11 +209,11 @@ impl From<ServiceIdentity> for resource_provider_api::models::ServiceIdentity {
                     connection_string: connection_string.into(),
                 }
             }
-            ServiceIdentity::AccessKey {
-                access_key,
-            } => resource_provider_api::models::ServiceIdentity::AccessKey {
-                access_key: access_key.into(),
-            },
+            ServiceIdentity::AccessKey { access_key } => {
+                resource_provider_api::models::ServiceIdentity::AccessKey {
+                    access_key: access_key.into(),
+                }
+            }
         }
     }
 }
