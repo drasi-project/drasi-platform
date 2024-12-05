@@ -81,35 +81,4 @@ class DebeziumChangeHandler : IChangeEventHandler
 
 		_producer.Flush();
 	}
-
-
-	// private async Task ProcessResults(EventMetadata metadata, Dictionary<string, object>[] results, string op)
-	// {
-	// 	var noIndent = new JsonSerializerOptions { WriteIndented = false };
-	// 	foreach (var res in results)
-	// 	{
-	// 		string eventString = _formatter.FormatEvent(metadata, res, op);
-
-	// 		_logger.LogInformation($"dataChangeEvent: {eventString}");
-	// 		try
-	// 		{
-	// 			var deliveryReport = await _producer.ProduceAsync(_topic, new Message<Null, string> { Value = eventString }, CancellationToken.None);
-
-	// 			if (deliveryReport.Status != PersistenceStatus.Persisted)
-	// 			{
-	// 				_logger.LogInformation($"Delivery failed: {deliveryReport.Message.Value}");
-	// 			}
-	// 			else
-	// 			{
-	// 				_logger.LogInformation($"Message delivered to {deliveryReport.TopicPartitionOffset}");
-	// 			}
-			
-	// 		}
-	// 		catch (ProduceException<Null, string> ex)
-	// 		{
-	// 			_logger.LogInformation($"ProduceException: {ex.Error.Reason}");
-	// 		}
-	// 	}
-	// }
-
 }
