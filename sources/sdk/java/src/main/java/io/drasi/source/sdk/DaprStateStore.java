@@ -44,7 +44,11 @@ class DaprStateStore implements StateStore {
     public byte[] get(String key) {
         log.debug("Getting key {} from state store {}", key, stateStoreName);
         var result = client.getState(stateStoreName, key, TypeRef.BYTE_ARRAY).block();
-        return result.getValue();
+        var resultValue = result.getValue();
+        if (resultValue != null && resultValue.length == 0) {
+            return null;
+        }
+        return resultValue;
     }
 
     @Override

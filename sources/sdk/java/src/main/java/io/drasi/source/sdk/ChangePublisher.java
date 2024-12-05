@@ -19,6 +19,16 @@ package io.drasi.source.sdk;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.drasi.source.sdk.models.SourceChange;
 
+/**
+ * Interface for publishing changes to the Drasi platform.
+ */
 public interface ChangePublisher extends AutoCloseable {
+
+    /**
+     * Publish a change to the Drasi platform.
+     *
+     * @param change The change to publish.
+     * @throws JsonProcessingException If the change could not be serialized to JSON.
+     */
     void Publish(SourceChange change) throws JsonProcessingException;
 }

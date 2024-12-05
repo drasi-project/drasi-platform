@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import java.util.Set;
 
+/**
+ * Represents a single element in the queryable graph, either a node or relation.
+ */
 public class SourceElement {
 
     private String id;
@@ -29,12 +32,30 @@ public class SourceElement {
     private String endId;
 
 
+    /**
+     * Create a new Node with the given id, properties and labels.
+     *
+     * @param id         The id of the element.
+     * @param properties The properties of the element.
+     * @param labels     The labels of the element.
+     */
     public SourceElement(String id, JsonNode properties, Set<String> labels) {
         this.id = id;
         this.properties = properties;
         this.labels = labels;
     }
 
+    /**
+     * Create a new Relation with the given id, properties, labels, startId and endId.
+     * The startId and endId are the ids of the nodes that the relation connects.
+     *
+     * @param id         The id of the element.
+     * @param properties The properties of the element.
+     * @param labels     The labels of the element.
+     * @param startId    The id of the start node.
+     * @param endId      The id of the end node.
+     *
+     */
     public SourceElement(String id, JsonNode properties, Set<String> labels, String startId, String endId) {
         this.id = id;
         this.properties = properties;

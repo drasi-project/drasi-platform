@@ -8,14 +8,21 @@ import java.util.*;
 
 public class App {
     public static void main(String[] args) {
+
+        //Create a new SourceProxy, supply a function that takes a BootstrapRequest and returns a new BootstrapStream implementation.
         var proxy = SourceProxy.builder()
                 .withStreamFunction(request -> new MyBootstrapStream(request))
                 .build();
 
+        //Start the proxy
         proxy.start();
     }
 }
 
+/**
+ * A simple implementation of a BootstrapStream that returns two location nodes.
+ *
+ */
 class MyBootstrapStream implements BootstrapStream {
 
     private final BootstrapRequest request;

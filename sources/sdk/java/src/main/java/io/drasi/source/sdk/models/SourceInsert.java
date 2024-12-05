@@ -21,6 +21,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Represents an insert operation in the source database, of either a node or relation.
+ */
 public class SourceInsert extends SourceChange {
 
     @Override
@@ -28,12 +31,36 @@ public class SourceInsert extends SourceChange {
         return Op.INSERT;
     }
 
-    public SourceInsert(String id, long tsMS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsMS, long lsn) {
-        super(id, tsMS, properties, metadata, labels, sourceTsMS, lsn);
+    /**
+     * Create a new insert operation of a node with the given id, timestamp, properties, metadata and labels.
+     *
+     * @param id         The id of the element.
+     * @param tsMS       The timestamp of the event in milliseconds.
+     * @param properties The properties of the element.
+     * @param metadata   The metadata of the element.
+     * @param labels     The labels of the element.
+     * @param sourceTsMS The timestamp of the event in the source database in milliseconds.
+     * @param sequenceNumber The sequence number of the event in the source database.
+     */
+    public SourceInsert(String id, long tsMS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsMS, long sequenceNumber) {
+        super(id, tsMS, properties, metadata, labels, sourceTsMS, sequenceNumber);
 
     }
 
-    public SourceInsert(String id, long tsMS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsMS, long lsn, String startId, String endId) {
-        super(id, tsMS, properties, metadata, labels, sourceTsMS, lsn, startId, endId);
+    /**
+     * Create a new insert  operation of a relation with the given id, timestamp, properties, metadata, labels, startId and endId.
+     *
+     * @param id         The id of the element.
+     * @param tsMS       The timestamp of the event in milliseconds.
+     * @param properties The properties of the element.
+     * @param metadata   The metadata of the element.
+     * @param labels     The labels of the element.
+     * @param sourceTsMS The timestamp of the event in the source database in milliseconds.
+     * @param sequenceNumber The sequence number of the event in the source database.
+     * @param startId    The id of the start node.
+     * @param endId      The id of the end node.
+     */
+    public SourceInsert(String id, long tsMS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsMS, long sequenceNumber, String startId, String endId) {
+        super(id, tsMS, properties, metadata, labels, sourceTsMS, sequenceNumber, startId, endId);
     }
 }

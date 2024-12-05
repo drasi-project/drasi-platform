@@ -2,6 +2,9 @@ package io.drasi.source.sdk.models;
 
 import java.util.Set;
 
+/**
+ * The request payload form the QueryAPI that contains the details of what data should be bootstrapped.
+ */
 public class BootstrapRequest {
     private Set<String> nodeLabels;
     private Set<String> relLabels;

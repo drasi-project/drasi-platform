@@ -144,6 +144,11 @@ public class Reactivator {
         System.exit(1);
     }
 
+    /**
+     * Creates a new builder for the reactivator.
+     *
+     * @return The builder.
+     */
     public static Builder builder() {
         return new Builder();
     }

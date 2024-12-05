@@ -16,12 +16,31 @@
 
 package io.drasi.source.sdk;
 
+/**
+ * Interface for storing state, such as a cursor position.
+ */
 public interface StateStore {
 
+    /**
+     * Store a byte array value for a given key.
+     *
+     * @param key   The key to store the value under.
+     * @param value The value to store.
+     */
     void put(String key, byte[] value);
 
+    /**
+     * Retrieve a byte array value for a given key.
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value stored under the key, or null if no value is stored.
+     */
     byte[] get(String key);
 
+    /**
+     * Delete the value stored under a given key.
+     * @param key
+     */
     void delete(String key);
 
 }

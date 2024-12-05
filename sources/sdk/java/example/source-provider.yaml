@@ -16,5 +16,5 @@ spec:
   config_schema:
     type: object
     properties:
-      connectionString:
+      connectionString:  # sample config property
         type: string

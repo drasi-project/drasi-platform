@@ -12,9 +12,11 @@ Add the library to your project dependencies:
 <dependency>
     <groupId>io.drasi</groupId>
     <artifactId>source.sdk</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.2</version>
 </dependency>
 ```
 
 
-### Basic example
+### Example
+
+Follow the example implementation in the [example folder](./example/).

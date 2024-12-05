@@ -115,7 +115,7 @@ abstract class RelationalChangeConsumer implements DebeziumEngine.ChangeConsumer
             case "u":
                 return new SourceUpdate(nodeId, tsMs, item, null, mapping.labels.stream().toList(), tsMs, ExtractLsn(pgSource));
             case "d":
-                return new SourceDelete(nodeId, tsMs, item, null, mapping.labels.stream().toList(), tsMs, ExtractLsn(pgSource));
+                return new SourceDelete(nodeId, tsMs, null, mapping.labels.stream().toList(), tsMs, ExtractLsn(pgSource));
         }
 
         return null;

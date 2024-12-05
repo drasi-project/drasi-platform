@@ -21,7 +21,7 @@ import io.drasi.source.sdk.models.SourceChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+/** A publisher that simply logs changes. */
 public class DebugPublisher implements ChangePublisher {
     private static final Logger log = LoggerFactory.getLogger(DebugPublisher.class);
 
