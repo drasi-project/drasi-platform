@@ -36,22 +36,15 @@ class DebeziumChangeHandler : IChangeEventHandler
 	
 	private DataChangeEventFormatter _formatter;
 
-	public DebeziumChangeHandler(IConfiguration config, ILogger<DebeziumChangeHandler> logger)
+	public DebeziumChangeHandler(IConfiguration config, ILogger<DebeziumChangeHandler> logger, IProducer<Null, string> producer)
 	{
 		_logger = logger;
 		_topic = config.GetValue<string>("topic") ?? throw new ArgumentNullException("Debezium topic is required");
 		_includeSchemas = config.GetValue<bool?>("includeSchemas") ?? true;
 		_includeKey = config.GetValue<bool?>("includeKey") ?? true;	
 		
-		// A list of brokers; represented as a comma-separated string
-		string brokers = config.GetValue<string>("brokers") ?? throw new ArgumentNullException("Debezium brokers is required");
-
-		ProducerConfig producerConfig = new ProducerConfig
-		{
-			BootstrapServers = brokers
-		};
-
-		_producer = new ProducerBuilder<Null, string>(producerConfig).Build();
+		
+		_producer = producer;
 
 		_formatter = new DataChangeEventFormatter(_includeKey, _includeSchemas);
 	}
@@ -62,51 +55,61 @@ class DebeziumChangeHandler : IChangeEventHandler
 
 		_logger.LogInformation("Processing {QueryId}", metadata.QueryId);
 
-		await ProcessResults(metadata, evt.AddedResults, "c");
+		List<string> messageList = _formatter.ProcessChangeEvent(metadata, evt);
 
-		var updatedResults = new List<Dictionary<string, object>>();
-		for (int i = 0; i < evt.UpdatedResults.Length; i++)
+		foreach (string message in messageList)
 		{
-			var currResultDict = new Dictionary<string, object>
-			{
-				["before"] = evt.UpdatedResults[i].Before,
-				["after"] = evt.UpdatedResults[i].After
-			};
-			updatedResults.Add(currResultDict);
-		}
-		await ProcessResults(metadata, [.. updatedResults], "u");
-		await ProcessResults(metadata, evt.DeletedResults, "d");
-
-		_producer.Flush();
-	}
-
-	private async Task ProcessResults(EventMetadata metadata, Dictionary<string, object>[] results, string op)
-	{
-		var noIndent = new JsonSerializerOptions { WriteIndented = false };
-		foreach (var res in results)
-		{
-			string eventString = _formatter.FormatEvent(metadata, res, op);
-
-			_logger.LogInformation($"dataChangeEvent: {eventString}");
+			_logger.LogInformation($"dataChangeEvent: {message}");
 			try
 			{
-				var deliveryReport = await _producer.ProduceAsync(_topic, new Message<Null, string> { Value = eventString }, CancellationToken.None);
+				var deliveryReport = await _producer.ProduceAsync(_topic, new Message<Null, string> { Value = message }, CancellationToken.None);
 
 				if (deliveryReport.Status != PersistenceStatus.Persisted)
 				{
-					_logger.LogInformation($"Delivery failed: {deliveryReport.Message.Value}");
+					throw new Exception($"Delivery failed: {deliveryReport.Message.Value}");
 				}
 				else
 				{
 					_logger.LogInformation($"Message delivered to {deliveryReport.TopicPartitionOffset}");
 				}
-			
 			}
 			catch (ProduceException<Null, string> ex)
 			{
-				_logger.LogInformation($"ProduceException: {ex.Error.Reason}");
+				throw new Exception($"ProduceException: {ex.Error.Reason}", ex);
 			}
 		}
+
+		_producer.Flush();
 	}
+
+
+	// private async Task ProcessResults(EventMetadata metadata, Dictionary<string, object>[] results, string op)
+	// {
+	// 	var noIndent = new JsonSerializerOptions { WriteIndented = false };
+	// 	foreach (var res in results)
+	// 	{
+	// 		string eventString = _formatter.FormatEvent(metadata, res, op);
+
+	// 		_logger.LogInformation($"dataChangeEvent: {eventString}");
+	// 		try
+	// 		{
+	// 			var deliveryReport = await _producer.ProduceAsync(_topic, new Message<Null, string> { Value = eventString }, CancellationToken.None);
+
+	// 			if (deliveryReport.Status != PersistenceStatus.Persisted)
+	// 			{
+	// 				_logger.LogInformation($"Delivery failed: {deliveryReport.Message.Value}");
+	// 			}
+	// 			else
+	// 			{
+	// 				_logger.LogInformation($"Message delivered to {deliveryReport.TopicPartitionOffset}");
+	// 			}
+			
+	// 		}
+	// 		catch (ProduceException<Null, string> ex)
+	// 		{
+	// 			_logger.LogInformation($"ProduceException: {ex.Error.Reason}");
+	// 		}
+	// 	}
+	// }
 
 }

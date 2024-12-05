@@ -14,6 +14,8 @@
 
 namespace Drasi.Reactions.Debezium.Services;
 
+using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reaction.SDK;
 using System.Text.Json;
 using System.Text;
 
@@ -33,7 +35,42 @@ public class DataChangeEventFormatter {
 
     }
 
-    public string FormatEvent(EventMetadata metadata, Dictionary<string, object> res, string op)
+    public List<string> ProcessChangeEvent(EventMetadata metadata, ChangeEvent evt) 
+    {
+        List<string> messages = new List<string>();
+        // Process Addedresults
+        foreach (var res in evt.AddedResults)
+        {
+            messages.Add(FormatMessage(metadata, res, "c"));
+        }
+
+        var updatedResults = new List<Dictionary<string, object>>();
+		for (int i = 0; i < evt.UpdatedResults.Length; i++)
+		{
+			var currResultDict = new Dictionary<string, object>
+			{
+				["before"] = evt.UpdatedResults[i].Before,
+				["after"] = evt.UpdatedResults[i].After
+			};
+			updatedResults.Add(currResultDict);
+        }
+
+        // Process Updatedresults
+        foreach (var res in updatedResults)
+        {
+            messages.Add(FormatMessage(metadata, res, "u"));
+        }
+
+        // Process Deletedresults
+        foreach (var res in evt.DeletedResults)
+        {
+            messages.Add(FormatMessage(metadata, res, "d"));
+        }
+
+        return messages;
+    }
+
+    public string FormatMessage(EventMetadata metadata, Dictionary<string, object> res, string op)
     {
         var dataChangeEventKey = new DataChangeEventKey();
 			var dataChangeEventValue = new DataChangeEventValue();
