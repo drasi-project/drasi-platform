@@ -16,10 +16,7 @@ The following skeleton JSON shows the basic four parts of a standard Debezium ch
  "payload": { // <2>
    ...
  },
- "schema": { // <3>
-   ...
- },
- "payload": { // <4>
+ "payload": { // <3>
    ...
  },
 }
@@ -29,8 +26,10 @@ The following skeleton JSON shows the basic four parts of a standard Debezium ch
 | --- | --- |---
 |1|`schema`| The first `schema` field is part of the event key. It specifies a Kafka Connect schema that describes what is in the event key's `payload` portion. In other words, the first `schema` field describes the structure of the key for the Continuous Query result that contains the change event.
 |2|`payload`|The first `payload` field is part of the event key. It has the structure described by the previous `schema` field and it contains the key for the Continuous Query result that contains the change event.
-|3|`schema`|The second `schema` field is part of the event value. It specifies the Kafka Connect schema that describes what is in the event value's `payload` portion. In other words, the second `schema` describes the structure of the Continuous Query result data. Typically, this schema contains nested schemas.
-|4|`payload`|The second `payload` field is part of the event value. It has the structure described by the previous `schema` field and it contains the actual Continuous Query result data.
+|3|`payload`|The second `payload` field is part of the event value. It contains the actual Continuous Query result data.
+
+Note that for the event value in the second `payload` field, we do not have a `schema` field. This is due to the fact that currently the Reactions do not have the ability to access the definition of the Continuous Queries. In other words, Drasi is currently unable to generate an accurate schema of a Change Event based on the results from a Continuous Query.
+
 
 ## Change event keys
 

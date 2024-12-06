@@ -90,11 +90,6 @@ public class DataChangeEventFormatter {
 			var resultJsonElement = ConvertDictionaryToJsonElement(res);
 			var valuePayload = GetValuePayload(op, metadata, resultJsonElement);
 
-			if (_includeSchemas)
-			{
-				var valueSchema = GetValueSchema(metadata, resultJsonElement);
-				dataChangeEventValue.ValueSchema = valueSchema;
-			}
 			dataChangeEventValue.ValuePayload = valuePayload;
 			var eventString = JsonSerializer.Serialize(dataChangeEventValue, _jsonOptions);
 			if (_includeKey)

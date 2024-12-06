@@ -34,10 +34,6 @@ public class DataChangeEventKey
 public class DataChangeEventValue
 {
 
-    [JsonPropertyName("schema")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Schema? ValueSchema { get; set; }
-
     [JsonPropertyName("payload")]
     public Payload ValuePayload { get; set; }
 }
