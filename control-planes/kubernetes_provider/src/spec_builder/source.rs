@@ -118,17 +118,34 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 "source-query-api",
                 false,
                 1,
-                Some(4001),
+                Some(80),
                 hashmap![
                 "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() },
                 "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
-                None,
+                Some(hashmap![
+                    "api" => 80
+                ]),
                 None,
                 None,
                 None,
             ),
-            services: BTreeMap::new(),
+            services: hashmap!(
+                "query-api".to_string() => ServiceSpec {
+                    type_: Some("ClusterIP".to_string()),
+                    selector: Some(hashmap![
+                        "drasi/type".to_string() => ResourceType::Source.to_string(),
+                        "drasi/resource".to_string() => source.id.to_string(),
+                        "drasi/service".to_string() => "query-api".to_string()
+                    ]),
+                    ports: Some(vec![ServicePort {
+                        port: 80,
+                        target_port: Some(IntOrString::String("api".to_string())),
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                }
+            ),
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
@@ -245,6 +262,10 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 removed: false,
             };
 
+            if service_name == "proxy" {
+                apply_proxy_svc(&mut k8s_spec, app_port);
+            }
+
             if let Some(identity) = &source_spec.identity {
                 apply_identity(&mut k8s_spec, identity);
             }
@@ -253,4 +274,23 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
         }
         specs
     }
+}
+
+fn apply_proxy_svc(spec: &mut KubernetesSpec, app_port: Option<u16>) {
+    let port = app_port.unwrap_or(80);
+    let svc = ServiceSpec {
+        type_: Some("ClusterIP".to_string()),
+        selector: Some(hashmap![
+            "drasi/type".to_string() => spec.resource_type.to_string(),
+            "drasi/resource".to_string() => spec.resource_id.to_string(),
+            "drasi/service".to_string() => spec.service_name.to_string()
+        ]),
+        ports: Some(vec![ServicePort {
+            port: 80,
+            target_port: Some(IntOrString::Int(port.into())),
+            ..Default::default()
+        }]),
+        ..Default::default()
+    };
+    spec.services.insert("proxy".to_string(), svc);
 }
