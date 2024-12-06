@@ -29,7 +29,12 @@ var reaction = new ReactionBuilder()
                     var config = sp.GetRequiredService<IConfiguration>();
                     // A list of brokers; represented as a comma-separated string
                     string brokers = config.GetValue<string>("brokers") ?? throw new ArgumentNullException("Debezium brokers is required");
-                    return new ProducerBuilder<Null, string>(new ProducerConfig { BootstrapServers = brokers }).Build();
+
+                    // Using UTF-8 for the key and value serialization 
+                    // This allos us to send JSON string as JSON object 
+                    return new ProducerBuilder<Null, string>(new ProducerConfig { BootstrapServers = brokers })
+                            .SetValueSerializer(Serializers.Utf8)
+                            .Build();
                 });
             })
             .Build();
