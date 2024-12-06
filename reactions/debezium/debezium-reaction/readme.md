@@ -75,127 +75,32 @@ Continuing the example of this Reaction as a connector with the fixed logical na
 
 ```json
 {
-    "schema": { // <1>
-        "type": "struct",
-        "fields": [
-            {
-                "type": "struct",
-                "fields": [
-                    {
-                        "field": "MessageFrom",
-                        "type": "string",
-                        "optional": false
-                    },
-                    {
-                        "field": "MessageId",
-                        "type": "number",
-                        "optional": false
-                    }
-                ],
-                "optional": true,
-                "name": "drasi.hello-world-from.Value", // <2>
-                "field": "before"
-            },
-            {
-                "type": "struct",
-                "fields": [
-                    {
-                        "field": "MessageFrom",
-                        "type": "string",
-                        "optional": false
-                    },
-                    {
-                        "field": "MessageId",
-                        "type": "number",
-                        "optional": false
-                    }
-                ],
-                "optional": true,
-                "name": "drasi.hello-world-from.Value",
-                "field": "after"
-            },
-            {
-                "type": "struct",
-                "fields": [
-                    {
-                        "field": "version",
-                        "type": "string",
-                        "optional": false
-                    },
-                    {
-                        "field": "connector",
-                        "type": "string",
-                        "optional": false
-                    },
-                    {
-                        "field": "container",
-                        "type": "string",
-                        "optional": false
-                    },
-                    {
-                        "field": "hostname",
-                        "type": "string",
-                        "optional": false
-                    },
-                    {
-                        "field": "ts_ms",
-                        "type": "int64",
-                        "optional": false
-                    },
-                    {
-                        "field": "seq",
-                        "type": "int64",
-                        "optional": false
-                    }
-                ],
-                "optional": false,
-                "name": "io.debezium.connector.drasi.Source", // <3>
-                "field": "source"
-            },
-            {
-                "type": "string",
-                "optional": false,
-                "field": "op"
-            },
-            {
-                "type": "int64",
-                "optional": true,
-                "field": "ts_ms"
-            }
-        ],
-        "optional": false,
-        "name": "drasi.hello-world-from.Envelope" // <4>
-    },
-    "payload": { // <5>
-        "before": null, // <6>
-        "after": { //<7>
+    "payload": { // <1>
+        "before": null, // <2>
+        "after": { //<3>
             "MessageFrom": "Allen",
             "MessageId": 25
         },
-        "source": { // <8>
+        "source": { // <4>
             "version": "preview.1",
             "connector": "drasi",
             "ts_ms": 1732729776549,
             "seq": 26716600
         },
-        "op": "c", // <9>
-        "ts_ms": 1732729853215 // <10>
+        "op": "c", // <5>
+        "ts_ms": 1732729853215 // <6>
     }
 }
 ```
 
 | Item | Field | Description
 | --- | --- |---
-|1|`schema`|The value's schema, which describes the structure of the value's payload. A change event's value schema is the same in every change event that the Reaction generates for a particular Continuous Query result.
-|2|`name`|In the `schema` section, each `name` field specifies the schema for a field in the value's payload.<br/>In this example, `drasi.hello-world-from.Value` is the schema for both `before` and `after` fields in the payload, and the schema is specific to the `hello-world-from` query.<br/>Names of the schemas for `before` and `after` fields are of the form `<connector-name>.<query-id>.Value` so that they have unique names per query.
-|3|`name`|`io.debezium.connector.drasi.Source` is the schema for the payload's `source` field. This schema is specific to the Drasi Debezium Reaction, and is used for all events that it generates.
-|4|`name`|`drasi.hello-world-from.Envelope` is the schema for the overall structure of the payload, where `drasi` is the connector name, and `hello-world-from` is the query ID. This schema is specific to the query result.
-|5|`payload`|The value's actual data. This is the information that the change event is providing.
-|6|`before`|An optional field that specifies the state of the document before the event occurred. In this example, all fields are part of the `hello-world-from` query result. When the `op` field is `c` for _create_, the `before` field will be `null` since it reflects added results.
-|7|`after`|An optional field that specifies the state of the document before the event occurred. In this example, all fields are part of the `hello-world-from` query result. When the `op` field is `d` for _delete_, the `after` field will be `null` since it reflects deleted results.
-|8|`source`|Mandatory field that describes the source metadata for the event. This field contains information that you can use to compare this event with other events, with regard to the origin of the events, the order in which the events occurred, and whether events were part of the same transaction. The source metadata includes:<ul><li>Drasi version.</li><li>Name of Drasi Reaction "connector" that generated the event (i.e. always "drasi").</li><li>Timestamp for when the query was complete and the result published in ms.</li><li>Unique sequence number for the result.</li></ul>
-|9|`op`|Mandatory string that describes the type of operation that caused the connector to generate the event. In this example, `u` indicates that the operation is _updated_ so the value is one of the Continuous Query `updatedResults`. Valid values are:<ul><li>`c` = create</li><li>`u` = update</li><li>`d` = delete</li></ul>
-|9|`ts_ms`|Optional field that displays the time at which the Drasi Debezium Reaction processed the event. The time is based on the system clock in running in the Reaction reported in ms. Note that the current implementation always fills in a value here despite it being schematically optional.<br/>In the `source` object, `ts_ms` indicates the time that the query result was published. By comparing the value for `payload.source.ts_ms` with the value for `payload.ts_ms`, you can determine the lag between the query result and the Reaction's handling of it.
+|1|`payload`|The value's actual data. This is the information that the change event is providing.
+|2|`before`|An optional field that specifies the state of the document before the event occurred. In this example, all fields are part of the `hello-world-from` query result. When the `op` field is `c` for _create_, the `before` field will be `null` since it reflects added results.
+|3|`after`|An optional field that specifies the state of the document before the event occurred. In this example, all fields are part of the `hello-world-from` query result. When the `op` field is `d` for _delete_, the `after` field will be `null` since it reflects deleted results.
+|4|`source`|Mandatory field that describes the source metadata for the event. This field contains information that you can use to compare this event with other events, with regard to the origin of the events, the order in which the events occurred, and whether events were part of the same transaction. The source metadata includes:<ul><li>Drasi version.</li><li>Name of Drasi Reaction "connector" that generated the event (i.e. always "drasi").</li><li>Timestamp for when the query was complete and the result published in ms.</li><li>Unique sequence number for the result.</li></ul>
+|5|`op`|Mandatory string that describes the type of operation that caused the connector to generate the event. In this example, `u` indicates that the operation is _updated_ so the value is one of the Continuous Query `updatedResults`. Valid values are:<ul><li>`c` = create</li><li>`u` = update</li><li>`d` = delete</li></ul>
+|6|`ts_ms`|Optional field that displays the time at which the Drasi Debezium Reaction processed the event. The time is based on the system clock in running in the Reaction reported in ms. Note that the current implementation always fills in a value here despite it being schematically optional.<br/>In the `source` object, `ts_ms` indicates the time that the query result was published. By comparing the value for `payload.source.ts_ms` with the value for `payload.ts_ms`, you can determine the lag between the query result and the Reaction's handling of it.
 
 ## Data type mappings
 
