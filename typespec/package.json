@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "clean": "rimraf **/_generated/@typespec",
-    "build": "tsp compile"
+    "build": "tsp compile",
+    "quicktype": "quicktype"
   },
   "peerDependencies": {
     "@azure-tools/typespec-autorest": "latest",
@@ -19,7 +20,8 @@
   },
   "devDependencies": {
     "@typespec/compiler": "latest",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "quicktype": "23.0.170"
   },
   "private": true,
   "license": "Apache-2.0",
