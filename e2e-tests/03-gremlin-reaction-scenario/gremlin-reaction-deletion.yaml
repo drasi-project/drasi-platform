@@ -1,0 +1,11 @@
+kind: Reaction
+apiVersion: v1
+name: e2e-gremlin-reaction
+spec:
+  kind: Gremlin
+  queries:
+    query3-deletion:
+  properties: 
+    deletedResultCommand: g.addV('Item').property('ItemId', @Id).property('Name',@Name)
+    gremlinHost: gremlin-server.default.svc.cluster.local
+    gremlinPort: 8182
