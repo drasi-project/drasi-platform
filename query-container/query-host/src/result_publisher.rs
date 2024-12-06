@@ -39,7 +39,11 @@ impl ResultPublisher {
     }
 
     #[tracing::instrument(skip(self, data), err)]
-    pub async fn publish(&self, query_id: &str, data: ResultEvent) -> Result<(), Box<dyn Error>> {
+    pub async fn publish(
+        &self,
+        query_id: &str,
+        data: ResultEvent,
+    ) -> Result<(), Box<dyn Error + Send>> {
         let topic = format!("{}-results", query_id);
         log::info!("Publishing {:#?}", data);
 
