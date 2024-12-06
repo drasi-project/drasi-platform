@@ -79,6 +79,11 @@ Usage examples:
 			clusterConfig.DaprSidecarVersion = sidecarVersion
 			saveConfig(clusterConfig)
 
+			var skipDaprInstall bool
+			if skipDaprInstall, err = cmd.Flags().GetBool("skip-dapr-install"); err != nil {
+				return err
+			}
+
 			if installer, err = service.MakeInstaller(namespace); err != nil {
 				return err
 			}
@@ -92,7 +97,7 @@ Usage examples:
 			output := output.NewTaskOutput()
 			defer output.Close()
 
-			if err := installer.Install(local, registry, version, output, namespace); err != nil {
+			if err := installer.Install(local, registry, version, output, namespace, skipDaprInstall); err != nil {
 				return err
 			}
 
@@ -106,5 +111,6 @@ Usage examples:
 	initCommand.Flags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into.")
 	initCommand.Flags().String("dapr-runtime-version", "1.10.0", "Dapr runtime version to install.")
 	initCommand.Flags().String("dapr-sidecar-version", "1.9.0", "Dapr sidecar (daprd) version to install.")
+	initCommand.Flags().Bool("skip-dapr-install", false, "Skip installing Dapr runtime and sidecar.")
 	return initCommand
 }
