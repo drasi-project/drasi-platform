@@ -226,7 +226,7 @@ The `test-debezium-reaction.yaml` file in the `devops` folder can be used to dep
 |`properties.brokers`| The Kafka broker to write to, for example `test-kakfa:9092` which is the name of the server set up by applying the `test-kafka.yaml` file.
 |`properties.topic`| The name of the Kafka topic to write to, for example `my-kafka-topic`.
 |`properties.includeKey`| Whether to include the `key` in the resulting event. This defaults to `false` so only the value is included by default.
-|`properties.includeSchemas`| Whether to include the `schema` in the resulting event. If `includeSchemas` is set to `true` this will also include the key schema, otherwise only the value schema is included. This defaults to `false`.
+|`properties.includeSchemas`| Whether to include the `schema` in the resulting event. If `includeSchemas` is set to `true`, the key schema will be included. This defaults to `false`.
 
 For testing purposes, this folder also includes a `test-kafka.yaml` file that can be used to deploy a Kafka & Zookeper instance in your Kubernetes cluster. 
 
