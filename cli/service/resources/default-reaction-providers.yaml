@@ -120,6 +120,11 @@ spec:
           result-portConfigKey:
             type: number
             default: 8080
+  config_schema:
+    type: object
+    properties: 
+      QueryContainerId:
+        type: string
 ---
 apiVersion: v1
 kind: ReactionProvider
