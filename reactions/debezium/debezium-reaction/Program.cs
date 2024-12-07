@@ -32,6 +32,7 @@ var reaction = new ReactionBuilder()
 
                     // Using UTF-8 for the key and value serialization 
                     // This allos us to send JSON string as JSON object 
+                    // https://github.com/confluentinc/confluent-kafka-dotnet/blob/master/src/Confluent.Kafka/Serializers.cs
                     return new ProducerBuilder<Null, string>(new ProducerConfig { BootstrapServers = brokers })
                             .SetValueSerializer(Serializers.Utf8)
                             .Build();
