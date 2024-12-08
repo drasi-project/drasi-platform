@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, pin::Pin, sync::Arc};
+use std::{future::Future, net::SocketAddr, pin::Pin, sync::Arc};
 
 use async_stream::stream;
 use axum::{async_trait, extract::State, response::IntoResponse, routing::{get, post}, Json, Router};
@@ -6,23 +6,41 @@ use axum_streams::StreamBodyAs;
 use futures::{Stream, StreamExt};
 use models::{BootstrapRequest, ChangeOp, SourceChange, SourceElement};
 use serde_json::Value;
+use thiserror::Error;
 use tokio::{net::TcpListener, pin};
 
 pub mod models;
 
 
 pub type ChangeStream = Pin<Box<dyn Stream<Item = SourceChange> + Send>>;
-pub type ChangeStreamProducer = &'static (dyn Fn(&dyn StateStore) -> ChangeStream + Send + Sync);
-
 pub type BootstrapStream = Pin<Box<dyn Stream<Item = SourceElement> + Send>>;
-pub type BootstrapStreamProducer = &'static (dyn Fn(BootstrapRequest) -> BootstrapStream + Send + Sync);
 
-pub struct ReactivatorBuilder {
-    stream_producer: Option<ChangeStreamProducer>,
+
+#[derive(Error, Debug)]
+pub enum BootstrapError {
+    #[error("Invalid request: {0}")]
+    InvalidRequest(String),
+
+    #[error("Internal error: {0}")]
+    InternalError(String),
+}
+
+#[derive(Error, Debug)]
+pub enum ReactivatorError {
+    #[error("Internal error: {0}")]
+    InternalError(String),
+}
+
+pub struct ReactivatorBuilder<T> 
+where T: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + Sync + 'static
+{
+    stream_producer: Option<fn(Arc<dyn StateStore + Send + Sync>) -> T>,
     publisher: Option<Box<dyn Publisher>>,
 }
 
-impl ReactivatorBuilder {
+impl<T> ReactivatorBuilder<T> 
+where T: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + Sync
+{
     pub fn new() -> Self {
         ReactivatorBuilder {
             stream_producer: None,
@@ -30,7 +48,7 @@ impl ReactivatorBuilder {
         }
     }
 
-    pub fn with_stream_producer(mut self, stream_producer: ChangeStreamProducer) -> Self {
+    pub fn with_stream_producer(mut self, stream_producer: fn(Arc<dyn StateStore + Send + Sync>) -> T) -> Self {
         self.stream_producer = Some(stream_producer);
         self
     }
@@ -40,7 +58,7 @@ impl ReactivatorBuilder {
         self
     }
 
-    pub fn build(self) -> Reactivator {
+    pub fn build(self) -> Reactivator<T> {
         Reactivator {
             stream_fn: self.stream_producer,
             publisher: self.publisher.unwrap(),
@@ -48,18 +66,22 @@ impl ReactivatorBuilder {
     }
 }
 
-pub struct Reactivator {
-    stream_fn: Option<ChangeStreamProducer>,
+pub struct Reactivator<T> 
+where T: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + Sync + 'static
+{
+    stream_fn: Option<fn(Arc<dyn StateStore + Send + Sync>) -> T>,
     publisher: Box<dyn Publisher>,
     
 }
 
-impl Reactivator {
+impl<T> Reactivator<T> 
+where T: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + Sync + 'static
+{
     pub async fn start(&mut self) {
 
         let producer = self.stream_fn.take();
-        let state_store = InMemoryStateStore::new();
-        let mut stream = producer.unwrap()(&state_store);
+        let state_store = Arc::new(InMemoryStateStore::new());
+        let mut stream = producer.unwrap()(state_store).await.unwrap();
 
         
         while let Some(data) = stream.next().await {
@@ -119,23 +141,28 @@ impl StateStore for InMemoryStateStore {
     }
 }
 
-pub struct SourceProxy {
-    stream_producer: BootstrapStreamProducer,
+pub struct SourceProxy<T> 
+where T: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync
+{
+    stream_producer: fn(BootstrapRequest) -> T,
 
 }
 
-impl SourceProxy {
+impl<T> SourceProxy<T> 
+where T: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync + 'static
+{
     
 
     pub async fn start(&self) {
 
 
-        let app_state = Arc::new(AppState {
+        let app_state = Arc::new(AppState::<T> {
             stream_producer: self.stream_producer,
         });
 
         let app = Router::new()
             .route("/acquire-stream", post(proxy_stream))
+            .route("/supports-stream", get(|| async { (axum::http::StatusCode::NO_CONTENT, "") }))
             .with_state(app_state);
 
         let addr = SocketAddr::from(([0, 0, 0, 0], 8085));
@@ -155,37 +182,48 @@ impl SourceProxy {
     
 }
 
-pub struct SourceProxyBuilder {
-    stream_producer: Option<BootstrapStreamProducer>,
+pub struct SourceProxyBuilder<T> 
+where T: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync
+{
+    stream_producer: Option<fn(BootstrapRequest) -> T>,
 }
 
-impl SourceProxyBuilder {
+impl<T> SourceProxyBuilder<T>
+where T: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync
+{
     pub fn new() -> Self {
         SourceProxyBuilder {
             stream_producer: None,
         }
     }
 
-    pub fn with_stream_producer(mut self, stream_producer: BootstrapStreamProducer) -> Self {
+    pub fn with_stream_producer(mut self, stream_producer: fn(BootstrapRequest) -> T) -> Self 
+    {
         self.stream_producer = Some(stream_producer);
         self
     }
 
-    pub fn build(self) -> SourceProxy {
+    pub fn build(self) -> SourceProxy<T> {
         SourceProxy {
             stream_producer: self.stream_producer.unwrap(),
         }
     }
 }
 
-struct AppState {
-    stream_producer: BootstrapStreamProducer,
+struct AppState<T> 
+where T: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync
+{
+    stream_producer: fn(BootstrapRequest) -> T,
 }
 
-async fn proxy_stream(
-    State(state): State<Arc<AppState>>, 
+async fn proxy_stream<T>(
+    State(state): State<Arc<AppState<T>>>, 
     Json(request): Json<BootstrapRequest>
-) -> impl IntoResponse {
-    let stream = (state.stream_producer)(request);
-    StreamBodyAs::json_nl(stream)
+) -> impl IntoResponse 
+where T: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync
+{
+   match (state.stream_producer)(request).await {
+        Ok(stream) => StreamBodyAs::json_nl(stream).into_response(),
+        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+    }
 }
