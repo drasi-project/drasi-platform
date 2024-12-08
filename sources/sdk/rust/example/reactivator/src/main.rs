@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_stream::stream;
-use drasi_source_sdk::{models::{ChangeOp, SourceChange, SourceElement}, ChangeStream, DebugPublisher, ReactivatorBuilder, StateStore};
+use drasi_source_sdk::{models::{ChangeOp, SourceChange, SourceElement}, ChangeStream, DebugPublisher, ReactivatorBuilder, ReactivatorError, StateStore};
 use serde_json::Value;
 
 
@@ -10,14 +10,14 @@ use serde_json::Value;
 async fn main() {
     let mut reactivator = ReactivatorBuilder::new()
         .with_publisher(DebugPublisher {})
-        .with_stream_producer(&my_stream)
+        .with_stream_producer(my_stream)
         .build();
 
     reactivator.start().await;
 }
 
 
-fn my_stream(state_store: &dyn StateStore) -> ChangeStream {
+async fn my_stream(state_store: Arc<dyn StateStore + Send + Sync>) -> Result<ChangeStream, ReactivatorError> {
     //_ = state_store.get("a");
     let result = stream! {
 
@@ -41,5 +41,5 @@ fn my_stream(state_store: &dyn StateStore) -> ChangeStream {
         
     };
 
-    Box::pin(result)
+    Ok(Box::pin(result))
 }

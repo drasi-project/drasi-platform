@@ -1,22 +1,26 @@
+use std::{future::Future, pin::Pin};
+
 use async_stream::stream;
-use drasi_source_sdk::{models::{BootstrapRequest, SourceElement}, BootstrapStream, SourceProxyBuilder};
+use drasi_source_sdk::{models::{BootstrapRequest, SourceElement}, BootstrapError, BootstrapStream, SourceProxyBuilder};
 use serde_json::Value;
 
 
 
 #[tokio::main]
 async fn main() {
-    let mut proxy = SourceProxyBuilder::new()
-        .with_stream_producer(&my_stream)
+
+    //let z = &my_stream;
+    let proxy = SourceProxyBuilder::new()
+        .with_stream_producer(my_stream)
         .build();
 
         proxy.start().await;    
 }
 
 
-fn my_stream(req: BootstrapRequest) -> BootstrapStream {
+async fn my_stream(req: BootstrapRequest) -> Result<BootstrapStream, BootstrapError> {
 
-    
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
     let stream = stream! {
         for i in 0..10 {
@@ -33,6 +37,6 @@ fn my_stream(req: BootstrapRequest) -> BootstrapStream {
         }
     };
 
-    Box::pin(stream)
+    Ok(Box::pin(stream))
 
 }
