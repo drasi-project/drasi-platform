@@ -5,11 +5,16 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.7.5", features = ["http1", "macros", "tokio"] }
+axum-streams = { version = "0.19.0", features=["json"] }
 chrono = "0.4.38"
 log = "0.4.22"
 serde = { version = "1.0", features = ["derive"] }
 tokio = {version = "1.40.0", features = ["full"]}
-tower-http = { version = "0.5.2", features = ["cors"] }
+tower-http = { version = "0.6.2", features = ["cors"] }
 drasi-comms-abstractions = { path = "../../../infrastructure/comms-abstractions" }
 drasi-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
+drasi-comms-http = { path = "../../../infrastructure/comms-http" }
 serde_json = "1.0.128"
+async-stream = "0.3.5"
+futures = "0.3"
+env_logger = "0.11"

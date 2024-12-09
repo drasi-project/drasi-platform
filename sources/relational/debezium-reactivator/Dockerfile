@@ -19,8 +19,6 @@ FROM --platform=$BUILDPLATFORM maven:3.9.9-amazoncorretto-21 AS build
 COPY src /home/app/src
 COPY pom.xml /home/app
 RUN mvn -f /home/app/pom.xml clean package
-# RUN cd /home/app && mvn clean package
-# RUN mvn -f /home/app/pom.xml clean package
 
 RUN cd /home/app && mvn dependency:tree
 #

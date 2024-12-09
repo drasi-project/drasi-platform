@@ -12,95 +12,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Dapr.Client;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using StorageQueueReaction.Services;
-using StorageQueueReaction.Models;
-using System.Text.Json;
-using System;
+using Azure;
+using Azure.Identity;
+using Azure.Storage;
 using Azure.Storage.Queues;
-using Azure.Storage.Queues.Models;
+using Drasi.Reaction.SDK;
+using Drasi.Reactions.StorageQueue.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
-var builder = WebApplication.CreateBuilder(args);
-var configuration = BuildConfiguration();
-
-string connectionString = configuration.GetValue<string>("StorageConnectionString");
-string queueName = configuration.GetValue<string>("QueueName");
-var pubsubName = configuration.GetValue<string>("PubsubName", "drasi-pubsub");
-var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
-
-
-builder.Services.AddDaprClient();
-builder.Services.AddControllers();
-builder.Services.AddSingleton<IChangeFormatter, ChangeFormatter>();
-
-
-var queueServiceClient = new QueueServiceClient(connectionString);
-var queueClient = queueServiceClient.GetQueueClient(queueName);
-
-var app = builder.Build();
-
-app.UseCors();
-app.UseRouting();
-app.UseCloudEvents();
-
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapSubscribeHandler();
-    var ep = endpoints.MapPost("event", ProcessEvent);
-
-    foreach (var qpath in Directory.GetFiles(configDirectory))
+var reaction = new ReactionBuilder()
+    .UseChangeEventHandler<ChangeHandler>()
+    .UseControlEventHandler<ControlSignalHandler>()
+    .ConfigureServices((services) =>
     {
-        var queryId = Path.GetFileName(qpath);
-        ep.WithTopic(pubsubName, queryId + "-results");
-    }
-});
+        services.AddSingleton<IChangeFormatter, ChangeFormatter>();
+        services.AddSingleton<QueueClient>(sp => 
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var logger = sp.GetRequiredService<ILogger<ReactionBuilder>>();
+            var queueName = config.GetValue<string>("queueName");
+            QueueServiceClient queueServiceClient;
 
-app.Run("http://0.0.0.0:80");
+            switch (config.GetIdentityType())
+            {
+                case IdentityType.MicrosoftEntraWorkloadID:
+                    logger.LogInformation("Using Microsoft Entra Workload ID");
+                    var widEndpoint = config.GetValue<string>("endpoint");
+                    if (String.IsNullOrEmpty(widEndpoint))
+                    {
+                        Reaction<object>.TerminateWithError("Endpoint not provided");
+                    }
+                    queueServiceClient = new QueueServiceClient(new Uri(widEndpoint), new DefaultAzureCredential());
+                    break;
+                case IdentityType.ConnectionString:
+                    logger.LogInformation("Using connection string");
+                    queueServiceClient = new QueueServiceClient(config.GetConnectionString());
+                    break;
+                default:
+                    Reaction<object>.TerminateWithError("Service identity not provided");
+                    throw new Exception("Service identity not provided");
+            }
 
-static IConfiguration BuildConfiguration()
+            return queueServiceClient.GetQueueClient(queueName);
+        });
+    })
+    .Build();
+
+if (!await reaction.Services.GetRequiredService<QueueClient>().ExistsAsync())
 {
-    return new ConfigurationBuilder()
-        .SetBasePath(Directory.GetCurrentDirectory())
-        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-        .AddEnvironmentVariables()
-        .Build();
+    Reaction<object>.TerminateWithError("queue does not exist");
 }
 
+await reaction.StartAsync();
 
-
-
-async Task ProcessEvent(HttpContext context)
-{
-    try
-    {
-        var changeFormatter = context.RequestServices.GetRequiredService<IChangeFormatter>();
-        var data = await JsonDocument.ParseAsync(context.Request.Body);
-
-        Console.WriteLine("Got event: " + data.RootElement.GetRawText());
-
-        var evt = data.RootElement;
-
-        var kind = evt.GetProperty("kind").GetString();
-        if (kind == "control")
-        {
-            return;
-        }
-
-        if (evt.GetProperty("addedResults").GetArrayLength() == 0 && evt.GetProperty("updatedResults").GetArrayLength() == 0 && evt.GetProperty("deletedResults").GetArrayLength() == 0)
-        {
-            return;
-        }
-        await queueClient.SendMessageAsync(data.RootElement.GetRawText());
-        context.Response.StatusCode = 200;
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error processing event: {ex.Message}");
-        throw;
-    }
-}
