@@ -4,7 +4,7 @@
   "description": "Folder will contain end-to-end tests",
   "main": "index.js",
   "scripts": {
-    "test": "jest --detectOpenHandles",
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest --detectOpenHandles",
     "test:ci": "jest --reporters=default --reporters=jest-junit --detectOpenHandles"
   },
   "jest-junit": {
@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@microsoft/signalr": "^7.0.2",
+    "gremlin": "^3.7.3",
     "jest-junit": "^16.0.0",
     "js-yaml": "^4.1.0",
     "knex": "^2.4.2",
