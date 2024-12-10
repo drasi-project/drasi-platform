@@ -39,7 +39,7 @@ impl Publisher for DaprPublisher {
                 "http://{}:{}/v1.0/publish/{}/{}",
                 self.dapr_host, self.dapr_port, self.pubsub, topic
             ))
-            .json(&change);
+            .json(&vec![change]);
 
         let ctx = Span::current().context();
         let span = ctx.span();
