@@ -28,13 +28,6 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using Microsoft.Azure.Cosmos;
 
-using System.Net.WebSockets;
-
-using Azure.Identity;
-using Azure.Core;
-using Azure.ResourceManager;
-using Azure.ResourceManager.CosmosDB;
-
 namespace Drasi.Reactions.Gremlin.Services {
     public class GremlinService
     {
@@ -59,98 +52,12 @@ namespace Drasi.Reactions.Gremlin.Services {
 
         private readonly IConfiguration _configuration;
 
-        public GremlinService(IConfiguration configuration, ILogger<GremlinService> logger)
+        public GremlinService(IConfiguration configuration, ILogger<GremlinService> logger, GremlinClient gremlinClient)
         {
             _logger = logger;
             _configuration = configuration;
-
-        }
-
-        public async Task InitializeAsync(CancellationToken cancellationToken)
-        {
-            var databaseHost = _configuration["gremlinHost"];
-
-            var databasePort = int.TryParse(_configuration["gremlinPort"], out var port) ? port : 443;
-            var databaseEnableSSL = !bool.TryParse(_configuration["databaseEnableSSL"], out var enableSSL) || enableSSL;
-
-            // if databasehost ends with .gremlin.cosmos.azure.com, set useCosmos to true
-            var useCosmos = databaseHost.EndsWith(".gremlin.cosmos.azure.com");
-            var username = _configuration["gremlinUsername"];
-
-            GremlinServer gremlinServer = null;
-            GremlinClient gremlinClient = null;
-            if (useCosmos)
-            {
-                var connectionPoolSettings = new ConnectionPoolSettings()
-                    {
-                        MaxInProcessPerConnection = 10,
-                        PoolSize = 30,
-                        ReconnectionAttempts = 3,
-                        ReconnectionBaseDelay = TimeSpan.FromMilliseconds(500)
-                    };
-                    var webSocket_configuration = new Action<ClientWebSocketOptions>(options =>
-                    {
-                        options.KeepAliveInterval = TimeSpan.FromSeconds(10);
-                    });
-                switch (_configuration.GetIdentityType())
-                {
-                    case IdentityType.MicrosoftEntraWorkloadID:
-                        _logger.LogInformation("Using Microsoft Entra Workload ID");
-                        var widEndpoint = _configuration.GetValue<string>("endpoint");
-                        if (String.IsNullOrEmpty(widEndpoint))
-                        {
-                            Reaction<object>.TerminateWithError("Endpoint not provided");
-                        }
-                        _logger.LogInformation($"Endpoint: {widEndpoint}");
-
-
-                        DefaultAzureCredential azureCredential = new();
-                        var armClient = new ArmClient(azureCredential);
-
-
-                        var subscriptionId = _configuration.GetValue<string>("subscriptionId");
-                        var cosmosDbAccountName = databaseHost.Split('.')[0];
-                        var resourceGroupName = _configuration.GetValue<string>("resourceGroupName");
-                        // Get the Cosmos DB account resource
-                        var cosmosAccountResourceId = CosmosDBAccountResource.CreateResourceIdentifier(
-                            subscriptionId, resourceGroupName, cosmosDbAccountName);
-                        var cosmosAccount = armClient.GetCosmosDBAccountResource(cosmosAccountResourceId);
-                        var keys = await cosmosAccount.GetKeysAsync();
-                        var password = keys.Value.PrimaryMasterKey;
-                    
-
-                        _gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: username, password: password);
-                        _gremlinClient = new GremlinClient(
-                                        _gremlinServer,
-                                        new CustomGraphSON2Reader(),
-                                        new GraphSON2Writer(),
-                                        "application/vnd.gremlin-v2.0+json",
-                                        connectionPoolSettings,
-                                        webSocket_configuration);
-                        break;
-                    case IdentityType.AccessKey:
-                        var gremlinPassword = _configuration["gremlinPassword"];
-                        _gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: username, password: gremlinPassword);
-                        _gremlinClient = new GremlinClient(
-                                        _gremlinServer,
-                                        new CustomGraphSON2Reader(),
-                                        new GraphSON2Writer(),
-                                        "application/vnd.gremlin-v2.0+json",
-                                        connectionPoolSettings,
-                                        webSocket_configuration);
-                        break;
-                    default:
-                        throw new Exception("Identity type not supported; please use AccessKey or MicrosoftEntraWorkloadID");
-                }
-            } else {
-                var password = _configuration["gremlinPassword"];
-                _gremlinServer = (password != null && username != null)
-                    ? new GremlinServer(databaseHost, databasePort, username: username, password: password) 
-                    : new GremlinServer(databaseHost, databasePort);
-                _gremlinClient = new GremlinClient(_gremlinServer);
-            }
             
-
+            _gremlinClient = gremlinClient;
             _addedResultCommand = _configuration["addedResultCommand"];
             _updatedResultCommand = _configuration["updatedResultCommand"];
             _deletedResultCommand = _configuration["deletedResultCommand"];
@@ -198,7 +105,6 @@ namespace Drasi.Reactions.Gremlin.Services {
                     _deletedResultCommandParamList.Add(param);
                 }
             }
-            await Task.CompletedTask;
         }
         public void ProcessAddedQueryResults(Dictionary<string, object> res)
         {
