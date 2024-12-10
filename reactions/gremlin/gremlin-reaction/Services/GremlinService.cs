@@ -32,6 +32,8 @@ using System.Net.WebSockets;
 
 using Azure.Identity;
 using Azure.Core;
+using Azure.ResourceManager;
+using Azure.ResourceManager.CosmosDB;
 
 namespace Drasi.Reactions.Gremlin.Services {
     public class GremlinService
@@ -62,53 +64,6 @@ namespace Drasi.Reactions.Gremlin.Services {
             _logger = logger;
             _configuration = configuration;
 
-            // _addedResultCommand = configuration["addedResultCommand"];
-            // _updatedResultCommand = configuration["updatedResultCommand"];
-            // _deletedResultCommand = configuration["deletedResultCommand"];
-
-
-            // // Regex used to extract parameters from the Gremlin commands
-            // // Finds any string starting with @ and ending with a-zA-Z0-9-_. (e.g. @param_1-2.3)
-            // var paramMatcher = new Regex("@[a-zA-Z0-9-_.]*");
-
-
-            // // Extract the parameters from the Gremlin commands
-
-            // _addedResultCommandParamList = new List<string>();
-            // if (!string.IsNullOrEmpty(_addedResultCommand))
-            // {
-            //     foreach (Match match in paramMatcher.Matches(_addedResultCommand))
-            //     {
-            //         var param = match.Value.Substring(1);
-
-            //         _logger.LogInformation($"Extracted AddedResultCommand Param: {param}");
-            //         _addedResultCommandParamList.Add(param);
-            //     }
-            // }
-
-            // _updatedResultCommandParamList = new List<string>();
-            // if (!string.IsNullOrEmpty(_updatedResultCommand))
-            // {
-            //     foreach (Match match in paramMatcher.Matches(_updatedResultCommand))
-            //     {
-            //         var param = match.Value.Substring(1);
-
-            //         _logger.LogInformation($"Extracted UpdatedResultCommand Param: {param}");
-            //         _updatedResultCommandParamList.Add(param);
-            //     }
-            // }
-
-            // _deletedResultCommandParamList = new List<string>();
-            // if (!string.IsNullOrEmpty(_deletedResultCommand))
-            // {
-            //     foreach (Match match in paramMatcher.Matches(_deletedResultCommand))
-            //     {
-            //         var param = match.Value.Substring(1);
-
-            //         _logger.LogInformation($"Extracted DeletedResultCommand Param: {param}");
-            //         _deletedResultCommandParamList.Add(param);
-            //     }
-            // }
         }
 
         public async Task InitializeAsync(CancellationToken cancellationToken)
@@ -148,35 +103,25 @@ namespace Drasi.Reactions.Gremlin.Services {
                         }
                         _logger.LogInformation($"Endpoint: {widEndpoint}");
 
-                        // https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/how-to-dotnet-get-started#create-cosmosclient-with-default-credential-implementation
-                        TokenCredential credential = new DefaultAzureCredential();
-                        CosmosClient client = new(accountEndpoint: widEndpoint, tokenCredential: credential);
 
-                        // https://learn.microsoft.com/en-us/previous-versions/azure/cosmos-db/how-to-use-resource-tokens?tabs=gremlin
-                        // Retrieving the database and container name from the username
-                        // The username should be in the format /dbs/{database}/colls/{container}
-                        var usernameParts = username.Split("/");
-                        var databaseName = usernameParts[2];
-                        var containerName = usernameParts[4];
+                        DefaultAzureCredential azureCredential = new();
+                        var armClient = new ArmClient(azureCredential);
 
-                        _logger.LogInformation($"Database: {databaseName}");
-                        _logger.LogInformation($"Container: {containerName}");
-                        Database database = client.GetDatabase(databaseName);
-                        Container container = database.GetContainer(containerName);
 
-                        User user = await database.CreateUserAsync("gremlin-reaction");
-                        PermissionProperties permissionProperties = new(
-                            id: "gremlin-reaction-permission",
-                            permissionMode: PermissionMode.All,
-                            container: container
-                        );
-                        Permission permission = await user.CreatePermissionAsync(permissionProperties);
-                        PermissionResponse response = await permission.ReadAsync();
-                        string resourceToken = response.Resource.Token;
+                        var subscriptionId = _configuration.GetValue<string>("subscriptionId");
+                        var cosmosDbAccountName = databaseHost.Split('.')[0];
+                        var resourceGroupName = _configuration.GetValue<string>("resourceGroupName");
+                        // Get the Cosmos DB account resource
+                        var cosmosAccountResourceId = CosmosDBAccountResource.CreateResourceIdentifier(
+                            subscriptionId, resourceGroupName, cosmosDbAccountName);
+                        var cosmosAccount = armClient.GetCosmosDBAccountResource(cosmosAccountResourceId);
+                        var keys = await cosmosAccount.GetKeysAsync();
+                        var password = keys.Value.PrimaryMasterKey;
+                    
 
-                        _gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: username, password: resourceToken);
+                        _gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: username, password: password);
                         _gremlinClient = new GremlinClient(
-                                        gremlinServer,
+                                        _gremlinServer,
                                         new CustomGraphSON2Reader(),
                                         new GraphSON2Writer(),
                                         "application/vnd.gremlin-v2.0+json",
@@ -187,7 +132,7 @@ namespace Drasi.Reactions.Gremlin.Services {
                         var gremlinPassword = _configuration["gremlinPassword"];
                         _gremlinServer = new GremlinServer(databaseHost, databasePort, enableSsl: databaseEnableSSL, username: username, password: gremlinPassword);
                         _gremlinClient = new GremlinClient(
-                                        gremlinServer,
+                                        _gremlinServer,
                                         new CustomGraphSON2Reader(),
                                         new GraphSON2Writer(),
                                         "application/vnd.gremlin-v2.0+json",
@@ -202,7 +147,7 @@ namespace Drasi.Reactions.Gremlin.Services {
                 _gremlinServer = (password != null && username != null)
                     ? new GremlinServer(databaseHost, databasePort, username: username, password: password) 
                     : new GremlinServer(databaseHost, databasePort);
-                _gremlinClient = new GremlinClient(gremlinServer);
+                _gremlinClient = new GremlinClient(_gremlinServer);
             }
             
 
