@@ -23,13 +23,10 @@ using Microsoft.Extensions.Logging;
 using Gremlin.Net.Structure.IO.GraphSON;
 using Gremlin.Net.Driver;
 using Gremlin.Net.Driver.Exceptions;
-using Microsoft.Azure.Cosmos;
-
 using System.Net.WebSockets;
 using Azure.Identity;
 using Azure.ResourceManager;
 using Azure.ResourceManager.CosmosDB;
-using HostInitActions;
 
 
 var reaction = new ReactionBuilder()

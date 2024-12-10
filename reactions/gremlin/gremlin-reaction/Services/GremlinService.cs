@@ -12,21 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Azure;
 using Drasi.Reaction.SDK;
-using Azure.Identity;
-using System.Net.Http;
-using System.Net.Security;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 using Microsoft.Extensions.Configuration;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Gremlin.Net.Driver;
-using Gremlin.Net.Structure.IO.GraphSON;
 using Gremlin.Net.Driver.Exceptions;
-using System.Net.WebSockets;
 using System.Text.Json;
-using Microsoft.Azure.Cosmos;
 
 namespace Drasi.Reactions.Gremlin.Services {
     public class GremlinService
