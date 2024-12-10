@@ -1,3 +1,16 @@
+// Copyright 2024 The Drasi Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use serde_json::{Map, Value};
@@ -30,10 +43,8 @@ pub enum SourceElement {
     },
 }
 
-
 #[derive(Serialize, Debug)]
 pub enum ChangeOp {
-    
     #[serde(rename = "i")]
     Create,
 
@@ -53,7 +64,13 @@ pub struct SourceChange {
 }
 
 impl SourceChange {
-    pub fn new(op: ChangeOp, element: SourceElement, ts_ms: u64, seq: u64, metadata: Option<Map<String, Value>>) -> SourceChange {
+    pub fn new(
+        op: ChangeOp,
+        element: SourceElement,
+        ts_ms: u64,
+        seq: u64,
+        metadata: Option<Map<String, Value>>,
+    ) -> SourceChange {
         SourceChange {
             op,
             element,
@@ -74,10 +91,23 @@ impl<'a> Serialize for SourceData<'a> {
         let mut state = serializer.serialize_struct("SourceData", 1)?;
         state.serialize_field("db", &env::var("SOURCE_ID").unwrap_or("drasi".to_string()))?;
         state.serialize_field("lsn", &self.0.seq)?;
-        state.serialize_field("table", match &self.0.element {
-            SourceElement::Node { id: _, labels: _, properties: _ } => "node",
-            SourceElement::Relation { id: _, labels: _, properties: _, start_id: _, end_id: _ } => "rel"
-        })?;
+        state.serialize_field(
+            "table",
+            match &self.0.element {
+                SourceElement::Node {
+                    id: _,
+                    labels: _,
+                    properties: _,
+                } => "node",
+                SourceElement::Relation {
+                    id: _,
+                    labels: _,
+                    properties: _,
+                    start_id: _,
+                    end_id: _,
+                } => "rel",
+            },
+        )?;
         state.serialize_field("ts_ms", &self.0.ts_ms)?;
         state.end()
     }
@@ -85,17 +115,20 @@ impl<'a> Serialize for SourceData<'a> {
 
 struct Payload<'a>(&'a SourceChange);
 
-impl <'a> Serialize for Payload<'a> {
+impl<'a> Serialize for Payload<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Payload", 2)?;        
-        state.serialize_field(match &self.0.op {
-            ChangeOp::Create => "after",
-            ChangeOp::Update => "after",
-            ChangeOp::Delete => "before",
-        }, &self.0.element)?;
+        let mut state = serializer.serialize_struct("Payload", 2)?;
+        state.serialize_field(
+            match &self.0.op {
+                ChangeOp::Create => "after",
+                ChangeOp::Update => "after",
+                ChangeOp::Delete => "before",
+            },
+            &self.0.element,
+        )?;
         state.serialize_field("source", &SourceData(self.0))?;
         state.end()
     }
@@ -131,7 +164,9 @@ mod tests {
                 ("field1".to_string(), Value::String("foo".to_string())),
                 ("field2".to_string(), Value::String("bar".to_string())),
                 ("field3".to_string(), Value::Number(4.into())),
-            ].into_iter().collect(),
+            ]
+            .into_iter()
+            .collect(),
         };
         let change = SourceChange::new(ChangeOp::Create, node, 1234567890, 1, None);
         let serialized = serde_json::to_string(&change).unwrap();
@@ -156,7 +191,10 @@ mod tests {
             },
             "ts_ms": 1234567890,
         });
-        assert_eq!(serde_json::from_str::<Value>(&serialized).unwrap(), expected);
+        assert_eq!(
+            serde_json::from_str::<Value>(&serialized).unwrap(),
+            expected
+        );
     }
 
     #[test]
@@ -168,7 +206,9 @@ mod tests {
                 ("field1".to_string(), Value::String("foo".to_string())),
                 ("field2".to_string(), Value::String("bar".to_string())),
                 ("field3".to_string(), Value::Number(4.into())),
-            ].into_iter().collect(),
+            ]
+            .into_iter()
+            .collect(),
             start_id: "2".to_string(),
             end_id: "3".to_string(),
         };
@@ -197,7 +237,10 @@ mod tests {
             },
             "ts_ms": 1234567890,
         });
-        assert_eq!(serde_json::from_str::<Value>(&serialized).unwrap(), expected);
+        assert_eq!(
+            serde_json::from_str::<Value>(&serialized).unwrap(),
+            expected
+        );
     }
 
     #[test]
@@ -209,7 +252,9 @@ mod tests {
                 ("field1".to_string(), Value::String("foo".to_string())),
                 ("field2".to_string(), Value::String("bar".to_string())),
                 ("field3".to_string(), Value::Number(4.into())),
-            ].into_iter().collect(),
+            ]
+            .into_iter()
+            .collect(),
         };
         let change = SourceChange::new(ChangeOp::Update, node, 1234567890, 1, None);
         let serialized = serde_json::to_string(&change).unwrap();
@@ -234,7 +279,10 @@ mod tests {
             },
             "ts_ms": 1234567890,
         });
-        assert_eq!(serde_json::from_str::<Value>(&serialized).unwrap(), expected);
+        assert_eq!(
+            serde_json::from_str::<Value>(&serialized).unwrap(),
+            expected
+        );
     }
 
     #[test]
@@ -246,7 +294,9 @@ mod tests {
                 ("field1".to_string(), Value::String("foo".to_string())),
                 ("field2".to_string(), Value::String("bar".to_string())),
                 ("field3".to_string(), Value::Number(4.into())),
-            ].into_iter().collect(),
+            ]
+            .into_iter()
+            .collect(),
         };
         let change = SourceChange::new(ChangeOp::Delete, node, 1234567890, 1, None);
         let serialized = serde_json::to_string(&change).unwrap();
@@ -271,6 +321,9 @@ mod tests {
             },
             "ts_ms": 1234567890,
         });
-        assert_eq!(serde_json::from_str::<Value>(&serialized).unwrap(), expected);
+        assert_eq!(
+            serde_json::from_str::<Value>(&serialized).unwrap(),
+            expected
+        );
     }
 }
