@@ -1,7 +1,13 @@
 [package]
 name = "drasi-source-sdk"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
+license = "Apache-2.0"
+description = "Source SDK for Drasi"
+repository = "https://github.com/drasi-project/drasi-platform"
+keywords = ["drasi"]
+categories = ["database"]
+readme = "readme.md"    
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -15,3 +21,12 @@ futures = "0.3"
 dapr = "0.15.1"
 async-trait = "0.1.83"
 thiserror = "2.0.5"
+reqwest =  { version = "0.12.9", features = ["json"] }
+opentelemetry = {version = "0.20", features = ["rt-tokio"]}
+opentelemetry-otlp = {version = "0.13", features = ["trace", "metrics"]}
+opentelemetry-semantic-conventions = "0.12"
+opentelemetry_sdk = {version = "0.20", features = ["rt-tokio"]}
+tracing = "0.1.37"
+tracing-opentelemetry = "0.21"
+tracing-subscriber = {version = "0.3.17", features = ["env-filter"]}
+env_logger = "0.11.5"
