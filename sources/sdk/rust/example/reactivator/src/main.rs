@@ -8,6 +8,7 @@ use serde_json::{Map, Value};
 async fn main() {
     let mut reactivator = ReactivatorBuilder::new()
         .with_stream_producer(my_stream)
+        .with_deprovision_handler(deprovision)
         .build()
         .await;
 
@@ -57,4 +58,9 @@ async fn my_stream(state_store: Arc<dyn StateStore + Send + Sync>) -> Result<Cha
     };
 
     Ok(Box::pin(result))
+}
+
+async fn deprovision(state_store: Arc<dyn StateStore + Send + Sync>) {
+    _ = state_store.delete("cursor").await;
+    log::info!("Deprovisioned");
 }

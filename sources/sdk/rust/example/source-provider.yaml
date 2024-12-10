@@ -11,8 +11,9 @@ spec:
     reactivator: 
       image: my-reactivator
       externalImage: true
-      #dapr:
-      #  app-port: "80"
+      deprovisionHandler: true
+      dapr:
+        app-port: "80"
   config_schema:
     type: object
     properties:

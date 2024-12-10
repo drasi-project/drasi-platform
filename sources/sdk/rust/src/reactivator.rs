@@ -7,10 +7,11 @@ use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::routing::post;
 use axum::Router;
-use futures::{Stream, StreamExt};
+use futures::{select, FutureExt, Stream, StreamExt};
 use thiserror::Error;
 use tokio::net::TcpListener;
-use tokio::task;
+use tokio::signal::unix::SignalKind;
+use tokio::{signal, task};
 
 use crate::dapr_statestore::DaprStateStore;
 use crate::dapr_publisher::DaprPublisher;
@@ -28,20 +29,22 @@ pub enum ReactivatorError {
 
 pub type ChangeStream = Pin<Box<dyn Stream<Item = SourceChange> + Send>>;
 
-pub struct ReactivatorBuilder<Response>
+pub struct ReactivatorBuilder<Response, DeprovisionResponse>
 where
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + 'static,
+    DeprovisionResponse: Future<Output = ()> + Send + 'static
 {
     stream_producer: Option<fn(Arc<dyn StateStore + Send + Sync>) -> Response>,
     publisher: Option<Box<dyn Publisher>>,
     state_store: Option<Arc<dyn StateStore + Send + Sync>>,
-    deprovision_handler: Option<fn(Arc<dyn StateStore + Send + Sync>) -> Pin<Box<dyn Future<Output = ()> + Send>>>,
+    deprovision_handler: Option<fn(Arc<dyn StateStore + Send + Sync>) -> DeprovisionResponse>,
     port: Option<u16>,
 }
 
-impl<Response> ReactivatorBuilder<Response>
+impl<Response, DeprovisionResponse> ReactivatorBuilder<Response, DeprovisionResponse>
 where
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send,
+    DeprovisionResponse: Future<Output = ()> + Send + 'static
 {
     pub fn new() -> Self {
         ReactivatorBuilder {
@@ -71,7 +74,7 @@ where
         self
     }
 
-    pub fn with_deprovision_handler(mut self, handler: fn(Arc<dyn StateStore + Send + Sync>) -> Pin<Box<dyn Future<Output = ()> + Send>>) -> Self {
+    pub fn with_deprovision_handler(mut self, handler: fn(Arc<dyn StateStore + Send + Sync>) -> DeprovisionResponse) -> Self {
         self.deprovision_handler = Some(handler);
         self
     }
@@ -81,7 +84,7 @@ where
         self
     }
 
-    pub async fn build(self) -> Reactivator<Response> {
+    pub async fn build(self) -> Reactivator<Response, DeprovisionResponse> {
         Reactivator {
             stream_fn: self.stream_producer.expect("Stream producer is required"),
             publisher: self.publisher.unwrap_or_else(|| Box::new(DaprPublisher::new())),
@@ -95,20 +98,22 @@ where
     }
 }
 
-pub struct Reactivator<Response>
+pub struct Reactivator<Response, DeprovisionResponse>
 where
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + 'static,
+    DeprovisionResponse: Future<Output = ()> + Send + 'static
 {
     stream_fn: fn(Arc<dyn StateStore + Send + Sync>) -> Response,
     publisher: Box<dyn Publisher>,
     state_store: Arc<dyn StateStore + Send + Sync>,
-    deprovision_handler: Option<fn(Arc<dyn StateStore + Send + Sync>) -> Pin<Box<dyn Future<Output = ()> + Send>>>,
+    deprovision_handler: Option<fn(Arc<dyn StateStore + Send + Sync>) -> DeprovisionResponse>,
     port: Option<u16>,
 }
 
-impl<Response> Reactivator<Response>
+impl<Response, DeprovisionResponse> Reactivator<Response, DeprovisionResponse>
 where
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + 'static,
+    DeprovisionResponse: Future<Output = ()> + Send + 'static
 {
     pub async fn start(&mut self) {
         env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
@@ -134,10 +139,11 @@ where
 
         let producer = &self.stream_fn;
         let state_store = self.state_store.clone();
-        let mut stream = producer(state_store.clone()).await.unwrap();
+        let mut stream = producer(state_store.clone()).await.unwrap().fuse();
         let port = self.port.unwrap_or(80);
         let deprovision_handler = self.deprovision_handler;
-
+        let (term_tx, term_rx) = tokio::sync::oneshot::channel::<()>();
+        
         task::spawn(async move {
             let app_state = Arc::new(AppState {
                 state_store: state_store.clone(),
@@ -156,26 +162,56 @@ where
                     panic!("Error binding to address: {:?}", e);
                 }
             };
-            if let Err(e) = axum::serve(listener, app).await {
-                log::error!("Error starting the server: {:?}", e);
-            };
+            
+            let final_result = axum::serve(listener, app.into_make_service())
+                .with_graceful_shutdown(shutdown_signal())
+                .await;
+            
+            log::info!("Http server shutting down");
+            _ = term_tx.send(());
+            if let Err(err) = final_result {
+                log::error!("Http server: {}", err);
+            }
         });
 
+        let mut rx = term_rx.fuse();
 
-        while let Some(data) = stream.next().await {
-            if let Err(err) = self.publisher.publish(data).await {
-                panic!("Error publishing: {}", err)
+        loop {
+            select! {
+                data = stream.next() => {
+                    match data {
+                        Some(data) => {
+                            if let Err(err) = self.publisher.publish(data).await {
+                                panic!("Error publishing: {}", err)
+                            }
+                        },
+                        None => {
+                            log::info!("Change stream ended");
+                            break;
+                        }
+                    }
+                },
+                _ = rx => {
+                    log::info!("Terminating");
+                    break;
+                }
             }
         }
     }
 }
 
-struct AppState {
+struct AppState<DeprovisionResponse> 
+where 
+    DeprovisionResponse: Future<Output = ()> + Send + 'static
+{
     state_store: Arc<dyn StateStore + Send + Sync>,
-    deprovision_handler: Option<fn(Arc<dyn StateStore + Send + Sync>) -> Pin<Box<dyn Future<Output = ()> + Send>>>,
+    deprovision_handler: Option<fn(Arc<dyn StateStore + Send + Sync>) -> DeprovisionResponse>,
 }
 
-async fn deprovision(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+async fn deprovision<DeprovisionResponse>(State(state): State<Arc<AppState<DeprovisionResponse>>>) -> impl IntoResponse 
+where 
+    DeprovisionResponse: Future<Output = ()> + Send + 'static
+{
     log::info!("Deprovision invoked");
     match state.deprovision_handler {
         Some(handler) => {
@@ -183,5 +219,33 @@ async fn deprovision(State(state): State<Arc<AppState>>) -> impl IntoResponse {
             (axum::http::StatusCode::NO_CONTENT, "".to_string()).into_response()
         },
         None => (axum::http::StatusCode::NO_CONTENT, "".to_string()).into_response(),
+    }
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+    
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    let interrupt = async {
+        signal::unix::signal(signal::unix::SignalKind::interrupt())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+        _ = interrupt => {}
     }
 }

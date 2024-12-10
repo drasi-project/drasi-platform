@@ -447,9 +447,9 @@ dependencies = [
 
 [[package]]
 name = "drasi-source-sdk"
-version = "0.1.3"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec5c5ab7648676be40f9b5b309b5b51e39388eb70cde6374dc388d10a7bf6375"
+checksum = "b243e978600c6361a65e5c17c615ffbee4d844299e6fdb510ffd525a9bbe1af0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1659,6 +1659,7 @@ name = "reactivator"
 version = "0.1.0"
 dependencies = [
  "drasi-source-sdk",
+ "log",
  "serde_json",
  "tokio",
 ]
