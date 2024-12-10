@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: SourceProvider
+name: MySource
+spec:
+  services:
+    proxy:
+      image: my-proxy
+      externalImage: true
+      dapr:
+        app-port: "80"
+    reactivator: 
+      image: my-reactivator
+      externalImage: true
+      deprovisionHandler: true
+      dapr:
+        app-port: "80"
+  config_schema:
+    type: object
+    properties:
+      connectionString:  # sample config property
+        type: string
