@@ -14,16 +14,38 @@
 
 
 using Drasi.Reaction.SDK;
-using Microsoft.Extensions.DependencyInjection;
 using Drasi.Reactions.Gremlin.Services;
+
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+using Gremlin.Net.Structure.IO.GraphSON;
+using Gremlin.Net.Driver;
+using Gremlin.Net.Driver.Exceptions;
+using Microsoft.Azure.Cosmos;
+
+using System.Net.WebSockets;
+
+using Azure.Identity;
+using Azure.Core;
+using HostInitActions;
 
 
 var reaction = new ReactionBuilder()
 				.UseChangeEventHandler<GremlinChangeHandler>()
 				.ConfigureServices((services) =>
 				 {
-					 services.AddSingleton<GremlinService>();
+					services.AddSingleton<GremlinService>();
+					services.AddAsyncServiceInitialization()
+						.AddInitAction<GremlinService>(async (service, cancellationToken) =>
+						 {
+							await service.InitializeAsync(cancellationToken);
+						 });
+					 
 				 }).Build();
+
+
 
 await reaction.StartAsync();
 

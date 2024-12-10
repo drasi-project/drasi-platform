@@ -12,6 +12,7 @@ namespace Drasi.Reaction.SDK
                 "MicrosoftEntraWorkloadID" => IdentityType.MicrosoftEntraWorkloadID,
                 "ConnectionString" => IdentityType.ConnectionString,
                 "AccessKey" => IdentityType.AccessKey,
+                "MicrosoftEntraApplication" => IdentityType.MicrosoftEntraApplication,
                 _ => IdentityType.None,
             };
         }
@@ -32,6 +33,7 @@ namespace Drasi.Reaction.SDK
         None,
         MicrosoftEntraWorkloadID,
         ConnectionString,
-        AccessKey
+        AccessKey,
+        MicrosoftEntraApplication
     }
 }
