@@ -1,6 +1,6 @@
 # Rust Source SDK for Drasi
 
-This library provides the building blocks and infrastructure to implement a Drasi Source in Rust
+This library provides the building blocks and infrastructure to implement a Drasi Source in Rust.
 
 ## Getting started
 
