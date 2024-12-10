@@ -10,11 +10,13 @@ use axum::Router;
 use futures::{select, FutureExt, Stream, StreamExt};
 use thiserror::Error;
 use tokio::net::TcpListener;
-use tokio::signal::unix::SignalKind;
-use tokio::{signal, task};
+use tokio::task;
+use tracing::Instrument;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::dapr_statestore::DaprStateStore;
 use crate::dapr_publisher::DaprPublisher;
+use crate::shutdown_signal;
 use crate::telemetry::init_tracer;
 use crate::{models::SourceChange, Publisher, StateStore};
 
@@ -132,8 +134,8 @@ where
             }           
         }));        
         log::info!("Starting reactivator");
-        
-        _ = init_tracer(format!("{}-reactivator", env::var("SOURCE_ID").expect("SOURCE_ID required"))).unwrap();
+        let source_id = env::var("SOURCE_ID").expect("SOURCE_ID required");
+        _ = init_tracer(format!("{}-reactivator", source_id.clone())).unwrap();
 
         log::info!("Initialized tracing");
 
@@ -142,12 +144,11 @@ where
         let mut stream = producer(state_store.clone()).await.unwrap().fuse();
         let port = self.port.unwrap_or(80);
         let deprovision_handler = self.deprovision_handler;
-        let (term_tx, term_rx) = tokio::sync::oneshot::channel::<()>();
         
         task::spawn(async move {
             let app_state = Arc::new(AppState {
                 state_store: state_store.clone(),
-                deprovision_handler: deprovision_handler
+                deprovision_handler
             });
     
             let app = Router::new()
@@ -168,20 +169,23 @@ where
                 .await;
             
             log::info!("Http server shutting down");
-            _ = term_tx.send(());
             if let Err(err) = final_result {
                 log::error!("Http server: {}", err);
             }
         });
 
-        let mut rx = term_rx.fuse();
+        let shutdown = shutdown_signal().fuse();
+        futures::pin_mut!(shutdown);
 
         loop {
             select! {
                 data = stream.next() => {
                     match data {
                         Some(data) => {
-                            if let Err(err) = self.publisher.publish(data).await {
+                            let span = tracing::span!(tracing::Level::INFO, "publish_change");
+                            span.set_attribute("drasi.source.id", source_id.clone());
+                            
+                            if let Err(err) = self.publisher.publish(data).instrument(span).await {
                                 panic!("Error publishing: {}", err)
                             }
                         },
@@ -191,12 +195,15 @@ where
                         }
                     }
                 },
-                _ = rx => {
+                _ = shutdown => {
                     log::info!("Terminating");
                     break;
                 }
             }
         }
+
+        opentelemetry::global::shutdown_tracer_provider();    
+        tokio::task::yield_now().await; 
     }
 }
 
@@ -222,30 +229,3 @@ where
     }
 }
 
-async fn shutdown_signal() {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-    
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    let interrupt = async {
-        signal::unix::signal(signal::unix::SignalKind::interrupt())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
-        _ = interrupt => {}
-    }
-}

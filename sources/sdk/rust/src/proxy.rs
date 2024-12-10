@@ -11,7 +11,7 @@ use futures::Stream;
 use thiserror::Error;
 use tokio::net::TcpListener;
 
-use crate::{models::{BootstrapRequest, SourceElement}, telemetry::init_tracer};
+use crate::{models::{BootstrapRequest, SourceElement}, shutdown_signal, telemetry::init_tracer};
 
 pub type BootstrapStream = Pin<Box<dyn Stream<Item = SourceElement> + Send>>;
 
@@ -78,9 +78,18 @@ where
                 panic!("Error binding to address: {:?}", e);
             }
         };
-        if let Err(e) = axum::serve(listener, app).await {
-            log::error!("Error starting the server: {:?}", e);
-        };
+        
+        let final_result = axum::serve(listener, app.into_make_service())
+            .with_graceful_shutdown(shutdown_signal())
+            .await;
+        
+        log::info!("Http server shutting down");
+        if let Err(err) = final_result {
+            log::error!("Http server: {}", err);
+        }
+
+        opentelemetry::global::shutdown_tracer_provider();    
+        tokio::task::yield_now().await; 
     }
 }
 
