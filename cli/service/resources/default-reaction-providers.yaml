@@ -93,6 +93,10 @@ spec:
         type: string
       gremlinUsername:
         type: string
+      subscriptionId:
+        type: string
+      resourceGroupName:
+        type: string
     required:
       - gremlinHost
       - gremlinPort 
