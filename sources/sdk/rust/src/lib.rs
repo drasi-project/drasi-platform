@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{env, error::Error};
 
 pub use async_stream::stream;
 use axum::async_trait;
@@ -29,4 +29,12 @@ pub trait StateStore {
     async fn get(&self, id: &str) -> Result<Option<Vec<u8>>, Box<dyn Error + Send + Sync>>;
     async fn put(&self, id: &str, data: Vec<u8>) -> Result<(), Box<dyn Error + Send + Sync>>;
     async fn delete(&self, id: &str) -> Result<(), Box<dyn Error + Send + Sync>>;
+}
+
+
+pub fn get_config_value(key: &str) -> Option<String> {
+    match env::var(key) {
+        Ok(s) => Some(s),
+        Err(_) => None,
+    }
 }
