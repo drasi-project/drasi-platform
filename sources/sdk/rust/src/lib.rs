@@ -17,6 +17,7 @@ pub use reactivator::*;
 pub use proxy::*;
 pub use debug_publisher::DebugPublisher;
 pub use memory_statestore::MemoryStateStore;
+use tokio::signal;
 
 
 #[async_trait]
@@ -36,5 +37,33 @@ pub fn get_config_value(key: &str) -> Option<String> {
     match env::var(key) {
         Ok(s) => Some(s),
         Err(_) => None,
+    }
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+    
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    let interrupt = async {
+        signal::unix::signal(signal::unix::SignalKind::interrupt())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+        _ = interrupt => {}
     }
 }
