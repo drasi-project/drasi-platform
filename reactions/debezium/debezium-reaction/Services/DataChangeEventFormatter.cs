@@ -20,20 +20,13 @@ using System.Text.Json;
 using System.Text;
 
 public class DataChangeEventFormatter {
-    private readonly bool _includeKey;
-    private readonly bool _includeSchemas;
 
     private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
         WriteIndented = false
     };
 
-    public DataChangeEventFormatter(bool includeKey, bool includeSchemas)
-    {
-        _includeKey = includeKey;
-        _includeSchemas = includeSchemas;
-
-    }
+    public DataChangeEventFormatter() {}
 
     public List<string> ProcessChangeEvent(EventMetadata metadata, ChangeEvent evt) 
     {
@@ -72,72 +65,17 @@ public class DataChangeEventFormatter {
 
     public string FormatMessage(EventMetadata metadata, Dictionary<string, object> res, string op)
     {
-        var dataChangeEventKey = new DataChangeEventKey();
-			var dataChangeEventValue = new DataChangeEventValue();
-			if (_includeKey)
-			{
-				if (_includeSchemas)
-				{
-					var keySchema = GetKeySchema(metadata);
-					dataChangeEventKey.KeySchema = keySchema;
-				}
-
-				var keyPayload = GetKeyPayload(metadata);
-				dataChangeEventKey.KeyPayload = keyPayload;
-				var keyString = JsonSerializer.Serialize(dataChangeEventKey, _jsonOptions);
-			}
+			var dataChangeEvent = new DataChangeEvent();
 
 			var resultJsonElement = ConvertDictionaryToJsonElement(res);
 			var valuePayload = GetValuePayload(op, metadata, resultJsonElement);
 
-			dataChangeEventValue.ValuePayload = valuePayload;
-			var eventString = JsonSerializer.Serialize(dataChangeEventValue, _jsonOptions);
-			if (_includeKey)
-			{
-				// We are unable to serialize the key and the value together, as we have duplicate key names
-				// This will result in the error: `System.InvalidOperationException: The JSON property name for 'Drasi.Reactions.Debezium.Services.DataChangeEvent.schema' collides with another property`
-				// serialize the key, and then concatenate the value
-				var eventKeyString = JsonSerializer.Serialize(dataChangeEventKey, _jsonOptions);
-				if (eventKeyString.Length > 0 && eventKeyString.EndsWith("}"))
-				{
-					eventKeyString = eventKeyString.Substring(0, eventKeyString.Length - 1); // Remove the last '}'
-				}
-				eventString = eventString.TrimStart('{');
-
-				eventString = eventKeyString + "," + eventString;
-            }
-
+			dataChangeEvent.ValuePayload = valuePayload;
+			var eventString = JsonSerializer.Serialize(dataChangeEvent, _jsonOptions);
+			
             return eventString;
     }
 
-    static KeyPayload GetKeyPayload(EventMetadata metadata)
-	{
-		var keyPayload = new KeyPayload
-		{
-			Id = metadata.Seq.ToString()
-		};
-		return keyPayload;
-	}
-
-	static Schema GetKeySchema(EventMetadata metadata)
-	{
-		var keySchema = new Schema
-		{
-			Type = "struct",
-			Name = $"{metadata.Connector}.{metadata.QueryId}.Key",
-			Optional = false,
-			Fields = new List<Field>
-			{
-				new Field
-				{
-					SchemaField = "id",
-					Type = "string",
-					Optional = false
-				}
-			}
-		};
-		return keySchema;
-	}
 	
 	static JsonElement ConvertDictionaryToJsonElement(Dictionary<string, object> dictionary)
     {
@@ -182,102 +120,7 @@ public class DataChangeEventFormatter {
 		return valuePayload;
 	}
 
-	static Schema GetValueSchema(EventMetadata metadata, JsonElement res)
-	{
-		var sourceFields = new Field {
-			Type = "struct",
-			Optional = false,
-			Name = $"io.debezium.connector.{metadata.Connector}.Source",
-			SchemaField = "source",
-			Fields = new List<Field>
-			{
-				new Field
-				{
-					SchemaField = "version",
-					Type = "string",
-					Optional = false
-				},
-				new Field
-				{
-					SchemaField = "connector",
-					Type = "string",
-					Optional = false
-				},
-				new Field
-				{
-					SchemaField = "ts_ms",
-					Type = "int64",
-					Optional = false
-				},
-				new Field
-				{
-					SchemaField = "seq",
-					Type = "int64",
-					Optional = false
-				}
-			}
-		};
-
-		var metadataFields = new List<Field>
-		{
-			new Field
-			{
-				SchemaField = "op",
-				Type = "string",
-				Optional = false
-			},
-			new Field
-			{
-				SchemaField = "ts_ms",
-				Type = "int64",
-				Optional = true
-			}
-		};
-
-		var beforeField = new Field
-		{
-			Type = "struct",
-			Optional = true,
-			Name = $"{metadata.Connector}.{metadata.QueryId}.Value",
-			SchemaField = "before",
-			Fields = GetChangeDataFields(res)
-		};
-
-		var afterField = new Field
-		{
-			Type = "struct",
-			Optional = true,
-			Name = $"{metadata.Connector}.{metadata.QueryId}.Value",
-			SchemaField = "after",
-			Fields = GetChangeDataFields(res)
-		};
-
-		var valueSchema = new Schema
-		{
-			Type = "struct",
-			Name = $"{metadata.Connector}.{metadata.QueryId}.Value",
-			Optional = false,
-			Fields = new List<Field>
-			{
-				sourceFields,
-				beforeField,
-				afterField,
-				new Field
-				{
-					SchemaField = "op",
-					Type = "string",
-					Optional = false
-				},
-				new Field
-				{
-					SchemaField = "ts_ms",
-					Type = "int64",
-					Optional = true
-				}
-			}
-		};
-		return valueSchema;
-	}
+	
 
 
 	static List<Field> GetChangeDataFields(JsonElement changeData)

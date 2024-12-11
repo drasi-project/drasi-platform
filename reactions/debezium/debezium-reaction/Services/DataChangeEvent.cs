@@ -19,48 +19,11 @@ using System.Text.Json;
 using System.Collections.Generic;
 
 
-public class DataChangeEventKey
+public class DataChangeEvent
 {
-    [JsonPropertyName("schema")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Schema? KeySchema { get; set; }
-
-    [JsonPropertyName("payload")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public KeyPayload? KeyPayload { get; set; }
-
-}
-
-public class DataChangeEventValue
-{
-
     [JsonPropertyName("payload")]
     public Payload ValuePayload { get; set; }
 }
-
-public class Schema
-{
-    [JsonPropertyName("type")]
-    public string Type { get; set; }
-
-    [JsonPropertyName("name")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Name { get; set; }
-
-    [JsonPropertyName("optional")]
-    public bool Optional { get; set; }
-
-    [JsonPropertyName("fields")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<Field>? Fields { get; set; }
-}
-
-public class KeyPayload
-{
-    [JsonPropertyName("id")]
-    public string Id { get; set; }
-}
-
 
 public class Payload
 {

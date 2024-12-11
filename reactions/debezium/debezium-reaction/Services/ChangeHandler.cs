@@ -29,8 +29,6 @@ class DebeziumChangeHandler : IChangeEventHandler
 
 	private readonly IProducer<Null, string> _producer;
 
-	private readonly bool _includeSchemas;
-	private readonly bool _includeKey;
 
 	private readonly string _topic;
 	
@@ -40,13 +38,11 @@ class DebeziumChangeHandler : IChangeEventHandler
 	{
 		_logger = logger;
 		_topic = config.GetValue<string>("topic") ?? throw new ArgumentNullException("Debezium topic is required");
-		_includeSchemas = config.GetValue<bool?>("includeSchemas") ?? true;
-		_includeKey = config.GetValue<bool?>("includeKey") ?? true;	
 		
 		
 		_producer = producer;
 
-		_formatter = new DataChangeEventFormatter(_includeKey, _includeSchemas);
+		_formatter = new DataChangeEventFormatter();
 	}
 
 	public async Task HandleChange(ChangeEvent evt, object? queryConfig)
