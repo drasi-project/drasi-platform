@@ -100,7 +100,7 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
-          IMAGE_PREFIX="ghcr.io/ruokun-niu" \
+          IMAGE_PREFIX="ghcr.io/drasi-project" \
           DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make 
 
@@ -155,7 +155,7 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
-          IMAGE_PREFIX="ghcr.io/ruokun-niu" \
+          IMAGE_PREFIX="ghcr.io/drasi-project" \
           DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
@@ -258,7 +258,7 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
-          IMAGE_PREFIX="ghcr.io/ruokun-niu" \
+          IMAGE_PREFIX="ghcr.io/drasi-project" \
           DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
@@ -348,7 +348,7 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
-          IMAGE_PREFIX="ghcr.io/ruokun-niu" \
+          IMAGE_PREFIX="ghcr.io/drasi-project" \
           DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
