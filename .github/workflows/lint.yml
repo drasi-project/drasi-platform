@@ -45,6 +45,14 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           submodules: true
+          - name: Install specific Rust version
+          uses: actions-rs/toolchain@v1
+          with:
+            toolchain: 1.83.0 # Pin to a specific Rust version
+            override: true
+  
+        - name: Install Clippy
+          run: rustup component add clippy
 
       - name: Install protobuf-compiler
         run: sudo apt-get install -y protobuf-compiler
