@@ -274,47 +274,56 @@ jobs:
           { 
             label: 'SignalR',
             path: 'reactions/signalr/signalr-reaction', 
-            name: 'reaction-signalr'
+            name: 'reaction-signalr',
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Dataverse',
             path: './reactions/power-platform/dataverse/dataverse-reaction', 
-            name: 'reaction-dataverse'
+            name: 'reaction-dataverse',
+            platforms: 'linux/amd64'
           },
           { 
             label: 'Debezium',
             path: './reactions/debezium/debezium-reaction', 
-            name: 'reaction-debezium'
+            name: 'reaction-debezium',
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Debug',
             path: './reactions/platform/debug-reaction', 
-            name: 'reaction-debug'
+            name: 'reaction-debug',
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'EventGrid',
             path: './reactions/azure/eventgrid-reaction',
-            name: 'reaction-eventgrid'
+            name: 'reaction-eventgrid',
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Gremlin',
             path: './reactions/gremlin/gremlin-reaction', 
-            name: 'reaction-gremlin'
+            name: 'reaction-gremlin',
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Result',
             path: './reactions/platform/result-reaction', 
-            name: 'reaction-result'
+            name: 'reaction-result',
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'StorageQueue',
             path: './reactions/azure/storagequeue-reaction', 
-            name: 'reaction-storagequeue'
+            name: 'reaction-storagequeue',
+            platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'StoredProc',
             path: './reactions/sql/storedproc-reaction', 
-            name: 'reaction-storedproc'
+            name: 'reaction-storedproc',
+            platforms: 'linux/amd64,linux/arm64'
           }
         ]
     steps:
@@ -349,7 +358,7 @@ jobs:
           cd ${{ matrix.component.path }}
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
           IMAGE_PREFIX="ghcr.io/drasi-project" \
-          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          DOCKERX_OPTS="--push --platform ${{ matrix.component.platforms }} --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
   build-cli:
