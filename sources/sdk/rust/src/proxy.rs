@@ -44,20 +44,20 @@ pub enum BootstrapError {
     InternalError(String),
 }
 
-pub struct SourceProxy<Response, State>
+pub struct SourceProxy<Response, Context>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
-    State: Send + Sync + Clone + 'static,
+    Context: Send + Sync + Clone + 'static,
 {
-    stream_producer: fn(State, BootstrapRequest) -> Response,
+    stream_producer: fn(Context, BootstrapRequest) -> Response,
     port: u16,
-    state: State
+    context: Context
 }
 
-impl<Response, TState> SourceProxy<Response, TState>
+impl<Response, Context> SourceProxy<Response, Context>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync + 'static,
-    TState: Send + Sync + Clone + 'static,
+    Context: Send + Sync + Clone + 'static,
 {
     pub async fn start(&self) {
         panic::set_hook(Box::new(|info| {
@@ -90,9 +90,9 @@ where
         ))
         .unwrap();
 
-        let app_state = Arc::new(AppState::<Response, TState> {
+        let app_state = Arc::new(AppState::<Response, Context> {
             stream_producer: self.stream_producer,
-            state: self.state.clone()
+            context: self.context.clone()
         });
 
         let app = Router::new()
@@ -127,32 +127,32 @@ where
     }
 }
 
-pub struct SourceProxyBuilder<Response, TState>
+pub struct SourceProxyBuilder<Response, Context>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
-    TState: Send + Sync + 'static,
+    Context: Send + Sync + 'static,
 {
-    stream_producer: Option<fn(TState, BootstrapRequest) -> Response>,
+    stream_producer: Option<fn(Context, BootstrapRequest) -> Response>,
     port: Option<u16>,
-    state: Option<TState>,
+    context: Option<Context>,
 }
 
-impl<Response, TState> SourceProxyBuilder<Response, TState>
+impl<Response, Context> SourceProxyBuilder<Response, Context>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
-    TState: Send + Sync + Clone + 'static,
+    Context: Send + Sync + Clone + 'static,
 {
     pub fn new() -> Self {
         SourceProxyBuilder {
             stream_producer: None,
             port: None,
-            state: None,
+            context: None,
         }
     }
 
     pub fn with_stream_producer(
         mut self,
-        stream_producer: fn(TState, BootstrapRequest) -> Response,
+        stream_producer: fn(Context, BootstrapRequest) -> Response,
     ) -> Self {
         self.stream_producer = Some(stream_producer);
         self
@@ -163,21 +163,21 @@ where
         self
     }
 
-    pub fn with_state(
+    pub fn with_context(
         mut self,
-        state: TState
+        context: Context
     ) -> Self {
-        self.state = Some(state);
+        self.context = Some(context);
         self
     }
 
-    pub fn build(self) -> SourceProxy<Response, TState> {
+    pub fn build(self) -> SourceProxy<Response, Context> {
         SourceProxy {
             stream_producer: self.stream_producer.unwrap(),
             port: self.port.unwrap_or(80),
-            state: match self.state {
+            context: match self.context {
                 Some(s) => s,
-                None => panic!("state not defined"),
+                None => panic!("context not defined"),
             },
         }
     }
@@ -187,32 +187,32 @@ impl<Response> SourceProxyBuilder<Response, ()>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
 {
-    pub fn without_state(
+    pub fn without_context(
         mut self
     ) -> Self {
-        self.state = Some(());
+        self.context = Some(());
         self
     }    
 }
 
-struct AppState<Response, TState>
+struct AppState<Response, Context>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
-    TState: Send + Sync + Clone + 'static,
+    Context: Send + Sync + Clone + 'static,
 {
-    stream_producer: fn(TState, BootstrapRequest) -> Response,
-    state: TState,
+    stream_producer: fn(Context, BootstrapRequest) -> Response,
+    context: Context,
 }
 
-async fn proxy_stream<Response, TState>(
-    State(state): State<Arc<AppState<Response, TState>>>,
+async fn proxy_stream<Response, Context>(
+    State(state): State<Arc<AppState<Response, Context>>>,
     Json(request): Json<BootstrapRequest>,
 ) -> impl IntoResponse
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
-    TState: Send + Sync + Clone + 'static,
+    Context: Send + Sync + Clone + 'static,
 {
-    match (state.stream_producer)(state.state.clone(), request).await {
+    match (state.stream_producer)(state.context.clone(), request).await {
         Ok(stream) => StreamBodyAs::json_nl(stream).into_response(),
         Err(e) => match e {
             BootstrapError::InvalidRequest(e) => {

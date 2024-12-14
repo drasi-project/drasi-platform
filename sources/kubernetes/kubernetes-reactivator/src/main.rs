@@ -35,8 +35,8 @@ async fn main() {
     _ = spawn_monitor_task::<PersistentVolumeClaim>(tx.clone(), kube_client.clone());
 
     let reactivator = ReactivatorBuilder::new()
-        .with_stream_producer(&my_stream)
-        .with_state(rx)
+        .with_stream_producer(my_stream)
+        .with_context(rx)
         .with_publisher(DebugPublisher::new())
         .with_state_store(MemoryStateStore::new())
         .with_deprovision_handler(deprovision)

@@ -8,13 +8,13 @@ use serde_json::{Number, Value};
 async fn main() {
     let proxy = SourceProxyBuilder::new()
         .with_stream_producer(my_stream)
-        .without_state()
+        .without_context()
         .build();
 
         proxy.start().await;    
 }
 
-async fn my_stream(_state: (), req: BootstrapRequest) -> Result<BootstrapStream, BootstrapError> {
+async fn my_stream(_context: (), req: BootstrapRequest) -> Result<BootstrapStream, BootstrapError> {
     let stream = stream! {
         if req.node_labels.contains(&"Location".to_string()) {
             yield SourceElement::Node { 

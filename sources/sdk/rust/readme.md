@@ -21,13 +21,13 @@ cargo add drasi-source-sdk
 async fn main() {
     let proxy = SourceProxyBuilder::new()
         .with_stream_producer(my_stream)
-        .without_state()
+        .without_context()
         .build();
 
         proxy.start().await;    
 }
 
-async fn my_stream(_state: (), req: BootstrapRequest) -> Result<BootstrapStream, BootstrapError> {
+async fn my_stream(_context: (), req: BootstrapRequest) -> Result<BootstrapStream, BootstrapError> {
     let stream = stream! {
         if req.node_labels.contains(&"Location".to_string()) {
             yield SourceElement::Node { 
@@ -60,15 +60,15 @@ async fn my_stream(_state: (), req: BootstrapRequest) -> Result<BootstrapStream,
 #[tokio::main]
 async fn main() {
     let mut reactivator = ReactivatorBuilder::new()
-        .with_stream_producer(&my_stream)
-         .without_state()
+        .with_stream_producer(my_stream)
+        .without_context()
         .build()
         .await;
 
     reactivator.start().await;
 }
 
-async fn my_stream(_state: (), state_store: Arc<dyn StateStore + Send + Sync>) -> Result<ChangeStream, ReactivatorError> {
+async fn my_stream(_context: (), state_store: Arc<dyn StateStore + Send + Sync>) -> Result<ChangeStream, ReactivatorError> {
     
     let mut cursor = match state_store.get("cursor").await.unwrap() {
         Some(cursor) => u64::from_be_bytes(cursor.try_into().unwrap()),
