@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use drasi_source_sdk::{stream, BootstrapError, BootstrapRequest, BootstrapStream, SourceElement, SourceProxyBuilder};
 use serde_json::{Number, Value};
 
@@ -6,12 +8,13 @@ use serde_json::{Number, Value};
 async fn main() {
     let proxy = SourceProxyBuilder::new()
         .with_stream_producer(my_stream)
+        .without_state()
         .build();
 
         proxy.start().await;    
 }
 
-async fn my_stream(req: BootstrapRequest) -> Result<BootstrapStream, BootstrapError> {
+async fn my_stream(_state: (), req: BootstrapRequest) -> Result<BootstrapStream, BootstrapError> {
     let stream = stream! {
         if req.node_labels.contains(&"Location".to_string()) {
             yield SourceElement::Node { 

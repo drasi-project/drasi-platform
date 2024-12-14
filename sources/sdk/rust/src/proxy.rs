@@ -44,17 +44,20 @@ pub enum BootstrapError {
     InternalError(String),
 }
 
-pub struct SourceProxy<Response>
+pub struct SourceProxy<Response, State>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
+    State: Send + Sync + Clone + 'static,
 {
-    stream_producer: fn(BootstrapRequest) -> Response,
+    stream_producer: fn(State, BootstrapRequest) -> Response,
     port: u16,
+    state: State
 }
 
-impl<Response> SourceProxy<Response>
+impl<Response, TState> SourceProxy<Response, TState>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync + 'static,
+    TState: Send + Sync + Clone + 'static,
 {
     pub async fn start(&self) {
         panic::set_hook(Box::new(|info| {
@@ -87,8 +90,9 @@ where
         ))
         .unwrap();
 
-        let app_state = Arc::new(AppState::<Response> {
+        let app_state = Arc::new(AppState::<Response, TState> {
             stream_producer: self.stream_producer,
+            state: self.state.clone()
         });
 
         let app = Router::new()
@@ -123,28 +127,32 @@ where
     }
 }
 
-pub struct SourceProxyBuilder<Response>
+pub struct SourceProxyBuilder<Response, TState>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
+    TState: Send + Sync + 'static,
 {
-    stream_producer: Option<fn(BootstrapRequest) -> Response>,
+    stream_producer: Option<fn(TState, BootstrapRequest) -> Response>,
     port: Option<u16>,
+    state: Option<TState>,
 }
 
-impl<Response> SourceProxyBuilder<Response>
+impl<Response, TState> SourceProxyBuilder<Response, TState>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
+    TState: Send + Sync + Clone + 'static,
 {
     pub fn new() -> Self {
         SourceProxyBuilder {
             stream_producer: None,
             port: None,
+            state: None,
         }
     }
 
     pub fn with_stream_producer(
         mut self,
-        stream_producer: fn(BootstrapRequest) -> Response,
+        stream_producer: fn(TState, BootstrapRequest) -> Response,
     ) -> Self {
         self.stream_producer = Some(stream_producer);
         self
@@ -155,29 +163,56 @@ where
         self
     }
 
-    pub fn build(self) -> SourceProxy<Response> {
+    pub fn with_state(
+        mut self,
+        state: TState
+    ) -> Self {
+        self.state = Some(state);
+        self
+    }
+
+    pub fn build(self) -> SourceProxy<Response, TState> {
         SourceProxy {
             stream_producer: self.stream_producer.unwrap(),
             port: self.port.unwrap_or(80),
+            state: match self.state {
+                Some(s) => s,
+                None => panic!("state not defined"),
+            },
         }
     }
 }
 
-struct AppState<Response>
+impl<Response> SourceProxyBuilder<Response, ()>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
 {
-    stream_producer: fn(BootstrapRequest) -> Response,
+    pub fn without_state(
+        mut self
+    ) -> Self {
+        self.state = Some(());
+        self
+    }    
 }
 
-async fn proxy_stream<Response>(
-    State(state): State<Arc<AppState<Response>>>,
+struct AppState<Response, TState>
+where
+    Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
+    TState: Send + Sync + Clone + 'static,
+{
+    stream_producer: fn(TState, BootstrapRequest) -> Response,
+    state: TState,
+}
+
+async fn proxy_stream<Response, TState>(
+    State(state): State<Arc<AppState<Response, TState>>>,
     Json(request): Json<BootstrapRequest>,
 ) -> impl IntoResponse
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
+    TState: Send + Sync + Clone + 'static,
 {
-    match (state.stream_producer)(request).await {
+    match (state.stream_producer)(state.state.clone(), request).await {
         Ok(stream) => StreamBodyAs::json_nl(stream).into_response(),
         Err(e) => match e {
             BootstrapError::InvalidRequest(e) => {
