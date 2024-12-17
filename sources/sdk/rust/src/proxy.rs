@@ -33,7 +33,7 @@ use crate::{
     telemetry::init_tracer,
 };
 
-pub type BootstrapStream = Pin<Box<dyn Stream<Item = SourceElement> + Send>>;
+pub type BootstrapStream = Pin<Box<dyn Stream<Item = Result<SourceElement, BootstrapError>> + Send + Sync>>;
 
 #[derive(Error, Debug)]
 pub enum BootstrapError {
@@ -42,6 +42,12 @@ pub enum BootstrapError {
 
     #[error("Internal error: {0}")]
     InternalError(String),
+}
+
+impl Into<axum::Error> for BootstrapError {
+    fn into(self) -> axum::Error {
+        axum::Error::new(self)
+    }
 }
 
 pub struct SourceProxy<Response, Context>
@@ -213,7 +219,7 @@ where
     Context: Send + Sync + Clone + 'static,
 {
     match (state.stream_producer)(state.context.clone(), request).await {
-        Ok(stream) => StreamBodyAs::json_nl(stream).into_response(),
+        Ok(stream) => StreamBodyAs::json_nl_with_errors(stream).into_response(),
         Err(e) => match e {
             BootstrapError::InvalidRequest(e) => {
                 (axum::http::StatusCode::BAD_REQUEST, e.to_string()).into_response()

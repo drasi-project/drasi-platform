@@ -30,23 +30,23 @@ async fn main() {
 async fn my_stream(_context: (), req: BootstrapRequest) -> Result<BootstrapStream, BootstrapError> {
     let stream = stream! {
         if req.node_labels.contains(&"Location".to_string()) {
-            yield SourceElement::Node { 
+            yield Ok(SourceElement::Node { 
                 id: "Location-A".to_string(), 
                 labels: vec!["Location".to_string()], 
                 properties: vec![
                     ("longitude".to_string(), Value::Number(Number::from_f64(50.1).unwrap())),
                     ("latitude".to_string(), Value::Number(Number::from_f64(60.7).unwrap())),
                 ].into_iter().collect(),
-            };    
+            });    
 
-            yield SourceElement::Node { 
+            yield Ok(SourceElement::Node { 
                 id: "Location-B".to_string(), 
                 labels: vec!["Location".to_string()], 
                 properties: vec![
                     ("longitude".to_string(), Value::Number(Number::from_f64(58.9).unwrap())),
                     ("latitude".to_string(), Value::Number(Number::from_f64(72.1).unwrap())),
                 ].into_iter().collect(),
-            };    
+            });    
         }
     };
 
