@@ -582,9 +582,9 @@ dependencies = [
 
 [[package]]
 name = "drasi-source-sdk"
-version = "0.1.13"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d3163765e1c001730574f4f84935f2417adf14b4610d0685c85c30f1b0ee231"
+checksum = "fd1832b86c7c17fb2bf516917f12d7ae5ace2acf47052b786ee124f5064d4e44"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1602,6 +1602,7 @@ dependencies = [
 name = "kubernetes-reactivator"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "drasi-source-sdk",
  "futures",
  "k8s-openapi",
