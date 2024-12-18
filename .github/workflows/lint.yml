@@ -52,7 +52,7 @@ jobs:
           override: true
 
       - name: Install Clippy
-        run: rustup component add clippy
+        run: rustup component add clippy rustfmt
 
       - name: Install protobuf-compiler
         run: sudo apt-get install -y protobuf-compiler
