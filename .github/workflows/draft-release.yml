@@ -19,7 +19,11 @@ on:
     inputs:
       tag:
         description: 'Version Tag'
-        required: true        
+        required: true      
+      image_prefix:
+        description: 'Image Prefix'
+        required: false
+        default: 'ghcr.io/drasi-project'  
 
 permissions:
   id-token: write # Required for requesting the JWT
@@ -100,7 +104,7 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
-          IMAGE_PREFIX="ghcr.io/drasi-project" \
+          IMAGE_PREFIX=${{ inputs.image_prefix }} \
           DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make 
 
@@ -155,7 +159,7 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
-          IMAGE_PREFIX="ghcr.io/drasi-project" \
+          IMAGE_PREFIX=${{ inputs.image_prefix }} \
           DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
@@ -258,7 +262,7 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
-          IMAGE_PREFIX="ghcr.io/drasi-project" \
+          IMAGE_PREFIX=${{ inputs.image_prefix }} \
           DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
@@ -357,7 +361,7 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
-          IMAGE_PREFIX="ghcr.io/drasi-project" \
+          IMAGE_PREFIX=${{ inputs.image_prefix }} \
           DOCKERX_OPTS="--push --platform ${{ matrix.component.platforms }} --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
