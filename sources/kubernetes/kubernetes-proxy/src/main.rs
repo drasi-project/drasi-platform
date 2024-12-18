@@ -64,7 +64,7 @@ async fn my_stream(
 
     let result = stream! {
         while let Some(element) = rx.recv().await {
-            yield element;
+            yield Ok(element);
         }
     };
 
@@ -90,6 +90,7 @@ where
 {
     if req.node_labels.contains(&K::KIND.to_string()) {
         if let Err(e) = tokio::spawn(stream_resources::<K>(kube_client.clone(), tx.clone())).await {
+            log::error!("Error streaming {}: {}", K::KIND, e);
             return Err(BootstrapError::InternalError(e.to_string()));
         };
     }
