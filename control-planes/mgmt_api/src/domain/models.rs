@@ -65,6 +65,7 @@ pub struct SourceSpec {
     pub kind: String,
     pub services: Option<HashMap<String, ServiceConfig>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
+    pub identity: Option<ServiceIdentity>,
 }
 
 impl HasKind for SourceSpec {
@@ -118,6 +119,7 @@ pub struct ReactionSpec {
     pub services: Option<HashMap<String, ServiceConfig>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
     pub queries: HashMap<String, String>,
+    pub identity: Option<ServiceIdentity>,
 }
 
 impl HasKind for ReactionSpec {
@@ -251,6 +253,34 @@ pub struct ServiceConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "kind")]
+pub enum ServiceIdentity {
+    MicrosoftEntraWorkloadID {
+        #[serde(rename = "clientId")]
+        client_id: String,
+    },
+    MicrosoftEntraApplication {
+        #[serde(rename = "tenantId")]
+        tenant_id: ConfigValue,
+
+        #[serde(rename = "clientId")]
+        client_id: ConfigValue,
+
+        secret: Option<ConfigValue>,
+
+        certificate: Option<ConfigValue>,
+    },
+    ConnectionString {
+        #[serde(rename = "connectionString")]
+        connection_string: ConfigValue,
+    },
+    AccessKey {
+        #[serde(rename = "accessKey")]
+        access_key: ConfigValue,
+    },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Endpoint {
     pub setting: EndpointSetting,
     pub target: String,
@@ -339,6 +369,7 @@ pub struct JsonSchema {
     pub items: Option<Box<JsonSchema>>, // For array types
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "enum")]
     pub enum_values: Option<Vec<serde_json::Value>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]

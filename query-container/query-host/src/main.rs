@@ -86,11 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let index_factory = Arc::new(IndexFactory::new());
 
     let actor_name = format!("{}.ContinuousQuery", query_container_id);
-    let source_client = Arc::new(SourceClient::new(
-        reqwest::Client::new(),
-        dapr_host.into(),
-        dapr_http_port,
-    ));
+    let source_client = Arc::new(SourceClient::new(reqwest::Client::new()));
     let publisher = Arc::new(ResultPublisher::new(
         dapr_host.into(),
         dapr_http_port,
@@ -98,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ));
 
     let addr = "https://127.0.0.1".to_string();
-    let mut dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
+    let dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
         .await
         .expect("Unable to connect to Dapr");
 

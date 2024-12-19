@@ -174,7 +174,7 @@ async fn main() -> Result<(), std::io::Error> {
             )
             .service(web::scope("/v1/debug").configure(api::v1::debug_handlers::configure))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }

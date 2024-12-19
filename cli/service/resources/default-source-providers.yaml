@@ -24,9 +24,9 @@ spec:
       config_schema:
         type: object
         properties:
-          client:
+          connector:
             type: string
-            default: pg
+            default: PostgreSQL
     reactivator: 
       image: source-debezium-reactivator
       deprovisionHandler: true
@@ -76,9 +76,9 @@ spec:
       config_schema:
         type: object
         properties:
-          client:
+          connector:
             type: string
-            default: mssql
+            default: SQLServer
     reactivator: 
       image: source-debezium-reactivator
       deprovisionHandler: true

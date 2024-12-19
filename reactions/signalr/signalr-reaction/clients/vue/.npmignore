@@ -1,0 +1,36 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.DS_Store
+dist-ssr
+coverage
+
+# Editor directories and files
+.vscode
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+*.tsbuildinfo
+
+/src
+/tests
+/example
+.eslintrc.cjs
+.gitignore
+.nvmrc
+.prettierrc.json
+tsconfig.json
+vite.config.js
+vitest.config.js
+yarn.lock

@@ -325,5 +325,6 @@ fn populate_default_values(
         services: Some(services),
         properties: Some(properties),
         queries: reaction.queries.clone(),
+        identity: reaction.identity.clone(),
     })
 }
