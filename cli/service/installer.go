@@ -106,7 +106,6 @@ func (t *Installer) Install(localMode bool, acr string, version string, output o
 		return err
 	}
 
-	fmt.Println("Dapr installed: ", daprInstalled)
 	if !daprInstalled {
 		if err = t.installDapr(output, installDaprFromMcr); err != nil {
 			return err
