@@ -28,7 +28,10 @@ use kube::core::ObjectMeta;
 use resource_provider_api::models::{ConfigValue, ResourceRequest};
 use serde_json::json;
 
+use crate::models::ResourceType;
+
 use super::models::{KubernetesSpec, RuntimeConfig};
+pub mod identity;
 pub mod query_container;
 pub mod reaction;
 pub mod source;
@@ -45,7 +48,7 @@ pub trait SpecBuilder<TSpec> {
 #[allow(clippy::too_many_arguments)]
 pub fn build_deployment_spec(
     runtime_config: &RuntimeConfig,
-    resource_type: &str,
+    resource_type: ResourceType,
     resource_id: &str,
     service_name: &str,
     image: &str,
@@ -84,10 +87,10 @@ pub fn build_deployment_spec(
     if let Some(protocol) = app_protocol {
         pod_annotations.insert("dapr.io/app-protocol".to_string(), protocol);
     }
-    let mut labels = BTreeMap::new();
-    labels.insert("drasi/type".to_string(), resource_type.to_string());
-    labels.insert("drasi/resource".to_string(), resource_id.to_string());
-    labels.insert("drasi/service".to_string(), service_name.to_string());
+    let mut match_labels = BTreeMap::new();
+    match_labels.insert("drasi/type".to_string(), resource_type.to_string());
+    match_labels.insert("drasi/resource".to_string(), resource_id.to_string());
+    match_labels.insert("drasi/service".to_string(), service_name.to_string());
 
     if let Some(endpoints) = endpoints {
         for (name, port) in endpoints {
@@ -143,12 +146,12 @@ pub fn build_deployment_spec(
     DeploymentSpec {
         replicas: Some(replicas),
         selector: LabelSelector {
-            match_labels: Some(labels.clone()),
+            match_labels: Some(match_labels.clone()),
             ..Default::default()
         },
         template: PodTemplateSpec {
             metadata: Some(ObjectMeta {
-                labels: Some(labels.clone()),
+                labels: Some(match_labels.clone()),
                 annotations: Some(pod_annotations),
                 ..Default::default()
             }),

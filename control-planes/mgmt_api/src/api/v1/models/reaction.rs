@@ -16,7 +16,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 
-use super::{ConfigValueDto, ServiceConfigDto};
+use super::{ConfigValueDto, ServiceConfigDto, ServiceIdentityDto};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReactionSpecDto {
@@ -25,6 +25,7 @@ pub struct ReactionSpecDto {
     pub services: Option<HashMap<String, ServiceConfigDto>>,
     pub properties: Option<HashMap<String, ConfigValueDto>>,
     pub queries: HashMap<String, Option<String>>,
+    pub identity: Option<ServiceIdentityDto>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

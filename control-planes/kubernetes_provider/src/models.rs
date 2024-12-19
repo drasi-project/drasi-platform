@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    fmt::{self, Display, Formatter},
+};
 
 use k8s_openapi::api::{
     apps::v1::DeploymentSpec,
-    core::v1::{ConfigMap, EnvVar, PersistentVolumeClaim, ServiceSpec},
+    core::v1::{ConfigMap, EnvVar, PersistentVolumeClaim, ServiceAccount, ServiceSpec},
 };
 use kube_derive::CustomResource;
 use schemars::JsonSchema;
@@ -24,6 +27,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KubernetesSpec {
+    pub resource_type: ResourceType,
     pub resource_id: String,
     pub service_name: String,
     pub deployment: DeploymentSpec,
@@ -31,16 +35,19 @@ pub struct KubernetesSpec {
     pub config_maps: BTreeMap<String, ConfigMap>,
     pub volume_claims: BTreeMap<String, PersistentVolumeClaim>,
     pub pub_sub: Option<Component>,
+    pub service_account: Option<ServiceAccount>,
     pub removed: bool,
 }
 
 impl KubernetesSpec {
     pub fn new(
+        resource_type: ResourceType,
         resource_id: String,
         service_name: String,
         deployment: DeploymentSpec,
     ) -> KubernetesSpec {
         KubernetesSpec {
+            resource_type,
             resource_id,
             service_name,
             deployment,
@@ -48,7 +55,37 @@ impl KubernetesSpec {
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ResourceType {
+    Source,
+    Reaction,
+    QueryContainer,
+}
+
+impl ResourceType {
+    pub fn parse(s: &str) -> Option<ResourceType> {
+        match s {
+            "source" => Some(ResourceType::Source),
+            "reaction" => Some(ResourceType::Reaction),
+            "query-container" => Some(ResourceType::QueryContainer),
+            _ => None,
+        }
+    }
+}
+
+impl Display for ResourceType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ResourceType::Source => write!(f, "source"),
+            ResourceType::Reaction => write!(f, "reaction"),
+            ResourceType::QueryContainer => write!(f, "query-container"),
         }
     }
 }

@@ -1,3 +1,5 @@
-.env
-.vscode
-node_modules
+/.idea
+/.vscode
+/target
+/temp
+/debezium-reactivator.iml

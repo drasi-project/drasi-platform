@@ -3,7 +3,7 @@
 CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
-DOCKERX_OPTS ?= --load --cache-to type=inline
+DOCKERX_OPTS ?= --load --cache-to type=inline,mode=max
 
 default: docker-build
 
@@ -18,3 +18,5 @@ test:
 
 lint-check:
 	@echo "No lint checks to run yet"
+
+

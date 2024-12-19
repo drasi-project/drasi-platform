@@ -66,6 +66,7 @@ impl From<SourceSpec> for resource_provider_api::models::SourceSpec {
             properties: source_spec
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            identity: source_spec.identity.map(|identity| identity.into()),
         }
     }
 }
@@ -129,6 +130,7 @@ impl From<ReactionSpec> for resource_provider_api::models::ReactionSpec {
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
             queries: reaction_spec.queries,
+            identity: reaction_spec.identity.map(|identity| identity.into()),
         }
     }
 }
@@ -179,6 +181,39 @@ impl From<ServiceConfig> for resource_provider_api::models::Service {
             properties: service
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+        }
+    }
+}
+
+impl From<ServiceIdentity> for resource_provider_api::models::ServiceIdentity {
+    fn from(service_identity: ServiceIdentity) -> resource_provider_api::models::ServiceIdentity {
+        match service_identity {
+            ServiceIdentity::MicrosoftEntraWorkloadID { client_id } => {
+                resource_provider_api::models::ServiceIdentity::MicrosoftEntraWorkloadID {
+                    client_id,
+                }
+            }
+            ServiceIdentity::MicrosoftEntraApplication {
+                tenant_id,
+                client_id,
+                secret,
+                certificate,
+            } => resource_provider_api::models::ServiceIdentity::MicrosoftEntraApplication {
+                tenant_id: tenant_id.into(),
+                client_id: client_id.into(),
+                secret: secret.map(|v| v.into()),
+                certificate: certificate.map(|v| v.into()),
+            },
+            ServiceIdentity::ConnectionString { connection_string } => {
+                resource_provider_api::models::ServiceIdentity::ConnectionString {
+                    connection_string: connection_string.into(),
+                }
+            }
+            ServiceIdentity::AccessKey { access_key } => {
+                resource_provider_api::models::ServiceIdentity::AccessKey {
+                    access_key: access_key.into(),
+                }
+            }
         }
     }
 }

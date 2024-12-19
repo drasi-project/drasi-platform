@@ -19,14 +19,17 @@ use std::{
 
 use either::Either;
 use hashers::jenkins::spooky_hash::SpookyHasher;
-use k8s_openapi::api::{
-    apps::v1::{Deployment, DeploymentSpec, DeploymentStrategy},
-    core::v1::{ConfigMap, PersistentVolumeClaim, Pod, Service},
+use k8s_openapi::{
+    api::{
+        apps::v1::{Deployment, DeploymentSpec, DeploymentStrategy},
+        core::v1::{ConfigMap, PersistentVolumeClaim, Pod, Service, ServiceAccount},
+    },
+    Metadata,
 };
 use kube::{
     api::{DeleteParams, ListParams, Patch, PatchParams, PostParams},
     core::ObjectMeta,
-    Api,
+    Api, ResourceExt,
 };
 use serde::Serialize;
 
@@ -36,13 +39,15 @@ use super::super::models::KubernetesSpec;
 
 pub struct ResourceReconciler {
     spec: KubernetesSpec,
-    hash: String,
+    deployment_hash: String,
+    service_account_hash: String,
     component_api: Api<Component>,
     deployment_api: Api<Deployment>,
     pod_api: Api<Pod>,
     cm_api: Api<ConfigMap>,
     pvc_api: Api<PersistentVolumeClaim>,
     service_api: Api<Service>,
+    account_api: Api<ServiceAccount>,
     labels: BTreeMap<String, String>,
     pub status: ReconcileStatus,
 }
@@ -60,11 +65,8 @@ impl ResourceReconciler {
     pub fn new(kube_config: kube::Config, spec: KubernetesSpec) -> Self {
         let labels = spec
             .deployment
-            .template
-            .metadata
-            .as_ref()
-            .unwrap()
-            .labels
+            .selector
+            .match_labels
             .as_ref()
             .unwrap()
             .clone();
@@ -72,7 +74,8 @@ impl ResourceReconciler {
         let client = kube::Client::try_from(kube_config).unwrap();
 
         Self {
-            hash: calc_hash(&spec.deployment),
+            deployment_hash: calc_deployment_hash(&spec),
+            service_account_hash: calc_service_account_hash(&spec),
             spec,
             component_api: Api::default_namespaced(client.clone()),
             deployment_api: Api::default_namespaced(client.clone()),
@@ -80,6 +83,7 @@ impl ResourceReconciler {
             cm_api: Api::default_namespaced(client.clone()),
             pvc_api: Api::default_namespaced(client.clone()),
             service_api: Api::default_namespaced(client.clone()),
+            account_api: Api::default_namespaced(client.clone()),
             labels,
             status: ReconcileStatus::Unknown,
         }
@@ -122,11 +126,22 @@ impl ResourceReconciler {
 
                     let mut errors = Vec::new();
                     for pod in pod_list.items {
+                        if pod.metadata.deletion_timestamp.is_some() {
+                            continue;
+                        }
                         match pod.status {
                             Some(pod_status) => match pod_status.container_statuses {
                                 Some(container_statuses) => {
+                                    let not_ready = container_statuses.iter().any(|x| !x.ready);
+
                                     for container_status in container_statuses {
-                                        match container_status.state {
+                                        let state = match not_ready {
+                                            false => container_status.state,
+                                            true => container_status
+                                                .last_state
+                                                .or(container_status.state),
+                                        };
+                                        match state {
                                             Some(state) => {
                                                 if let Some(terminated) = state.terminated {
                                                     errors.push(format!(
@@ -180,21 +195,63 @@ impl ResourceReconciler {
                 Either::Left(dep) => self.update_deployment_status(&dep).await,
                 Either::Right(_) => {}
             },
-            Err(err) => return Err(Box::new(err)),
+            Err(err) => match err {
+                kube::Error::Api(api_err) => {
+                    if api_err.code != 404 {
+                        return Err(Box::new(api_err));
+                    }
+                }
+                _ => return Err(Box::new(err)),
+            },
         }
 
-        // if servce exist, delete
+        // if service exist, delete
         for service_name in self.spec.services.keys() {
             let name = format!("{}-{}", self.spec.resource_id.clone(), service_name.clone());
             log::info!("Deprovisioning service {}", name);
             let pp = DeleteParams::default();
-            _ = self.service_api.delete(&name, &pp).await?;
+            if let Err(err) = self.service_api.delete(&name, &pp).await {
+                match err {
+                    kube::Error::Api(api_err) => {
+                        if api_err.code != 404 {
+                            return Err(Box::new(api_err));
+                        }
+                    }
+                    _ => return Err(Box::new(err)),
+                }
+            }
         }
 
         for config_name in self.spec.config_maps.keys() {
             log::info!("Deprovisioning config map {}", config_name.clone());
             let pp = DeleteParams::default();
-            _ = self.cm_api.delete(config_name, &pp).await?;
+            if let Err(err) = self.cm_api.delete(config_name, &pp).await {
+                match err {
+                    kube::Error::Api(api_err) => {
+                        if api_err.code != 404 {
+                            return Err(Box::new(api_err));
+                        }
+                    }
+                    _ => return Err(Box::new(err)),
+                }
+            }
+        }
+
+        if let Some(service_account) = &self.spec.service_account {
+            if let Some(name) = &service_account.metadata().name {
+                log::info!("Deprovisioning service account {}", name);
+                let pp = DeleteParams::default();
+                if let Err(err) = self.account_api.delete(name, &pp).await {
+                    match err {
+                        kube::Error::Api(api_err) => {
+                            if api_err.code != 404 {
+                                return Err(Box::new(api_err));
+                            }
+                        }
+                        _ => return Err(Box::new(err)),
+                    }
+                }
+            }
         }
 
         Ok(())
@@ -239,9 +296,9 @@ impl ResourceReconciler {
         );
         log::info!("Reconciling deployment {}", name);
         let mut annotations = BTreeMap::new();
-        annotations.insert("drasi/spechash".to_string(), self.hash.clone());
+        annotations.insert("drasi/spechash".to_string(), self.deployment_hash.clone());
 
-        let mut dep = Deployment {
+        let dep = Deployment {
             metadata: ObjectMeta {
                 name: Some(name.clone()),
                 labels: Some(self.labels.clone()),
@@ -262,7 +319,7 @@ impl ResourceReconciler {
             Ok(current) => {
                 self.update_deployment_status(&current).await;
                 let current_hash = current.metadata.annotations.unwrap()["drasi/spechash"].clone();
-                if current_hash != self.hash {
+                if current_hash != self.deployment_hash {
                     log::info!("Updating deployment {}", name);
                     let pp = PatchParams::default();
                     let pat = Patch::Merge(&dep);
@@ -340,7 +397,7 @@ impl ResourceReconciler {
                 Ok(current) => {
                     let current_hash =
                         current.metadata.annotations.unwrap()["drasi/spechash"].clone();
-                    if current_hash != self.hash {
+                    if current_hash != self.deployment_hash {
                         log::info!("Updating service {}", name);
                         let pp = PostParams::default();
                         self.service_api.replace(name, &pp, &svc).await?;
@@ -385,6 +442,46 @@ impl ResourceReconciler {
         Ok(())
     }
 
+    async fn reconcile_service_account(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(service_account) = &self.spec.service_account {
+            log::info!("Reconciling service account {}", self.spec.resource_id);
+            let mut new_service_account = service_account.clone();
+            new_service_account.annotations_mut().insert(
+                "drasi/spechash".to_string(),
+                self.service_account_hash.clone(),
+            );
+
+            let name = service_account.metadata.name.clone().unwrap();
+            match self.account_api.get(&name).await {
+                Ok(current) => {
+                    let current_hash =
+                        current.metadata.annotations.unwrap()["drasi/spechash"].clone();
+                    if current_hash != self.service_account_hash {
+                        log::info!("Updating service account {}", name);
+                        let pp = PostParams::default();
+                        self.account_api
+                            .replace(&name, &pp, &new_service_account)
+                            .await?;
+                    }
+                }
+                Err(e) => match e {
+                    kube::Error::Api(api_err) => {
+                        if api_err.code != 404 {
+                            log::error!("Error getting service account: {}", api_err.code);
+                            return Err(Box::new(api_err));
+                        }
+                        log::info!("Creating service account {}", name);
+                        let pp = PostParams::default();
+                        self.account_api.create(&pp, &new_service_account).await?;
+                    }
+                    _ => return Err(Box::new(e)),
+                },
+            }
+        }
+
+        Ok(())
+    }
+
     pub async fn reconcile(&mut self) {
         log::debug!("Reconciling {}", self.spec.resource_id);
         if self.spec.removed {
@@ -406,6 +503,10 @@ impl ResourceReconciler {
             log::error!("Error reconciling components: {}", err);
         }
 
+        if let Err(err) = self.reconcile_service_account().await {
+            log::error!("Error reconciling service account: {}", err);
+        }
+
         if let Err(err) = self.reconcile_deployment().await {
             log::error!("Error reconciling deployment: {}", err);
         }
@@ -421,10 +522,25 @@ impl ResourceReconciler {
     }
 }
 
-fn calc_hash<T: Serialize>(obj: &T) -> String {
-    let data = serde_json::to_vec(obj).unwrap();
+fn calc_deployment_hash(spec: &KubernetesSpec) -> String {
     let mut hash = SpookyHasher::default();
-    data.hash(&mut hash);
+
+    let dep_data = serde_json::to_vec(&spec.deployment).unwrap();
+    dep_data.hash(&mut hash);
+
+    let cm_data = serde_json::to_vec(&spec.config_maps).unwrap();
+    cm_data.hash(&mut hash);
+
+    let hsh = hash.finish();
+    format!("{:02x}", hsh)
+}
+
+fn calc_service_account_hash(spec: &KubernetesSpec) -> String {
+    let mut hash = SpookyHasher::default();
+
+    let sa_data = serde_json::to_vec(&spec.service_account).unwrap();
+    sa_data.hash(&mut hash);
+
     let hsh = hash.finish();
     format!("{:02x}", hsh)
 }
