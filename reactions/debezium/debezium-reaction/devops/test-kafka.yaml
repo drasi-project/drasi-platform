@@ -76,7 +76,6 @@ kind: Service
 metadata:
   name: test-kafka
 spec:
-  clusterIP: None
   ports:
   - port: 9092
     targetPort: 9092
