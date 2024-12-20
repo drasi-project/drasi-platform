@@ -100,13 +100,14 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string) error {
+func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string, daprRegistry string) error {
 	daprInstalled, err := t.checkDaprInstallation(output)
 	if err != nil {
 		return err
 	}
+
 	if !daprInstalled {
-		if err = t.installDapr(output); err != nil {
+		if err = t.installDapr(output, daprRegistry); err != nil {
 			return err
 		}
 	}
@@ -541,7 +542,7 @@ func (t *Installer) waitForDeployment(selector string, output output.TaskOutput)
 	return nil
 }
 
-func (t *Installer) installDapr(output output.TaskOutput) error {
+func (t *Installer) installDapr(output output.TaskOutput, daprRegistry string) error {
 	output.AddTask("Dapr-Install", "Installing Dapr...")
 
 	ns := "dapr-system"
@@ -601,6 +602,8 @@ func (t *Installer) installDapr(output output.TaskOutput) error {
 	installClient.Wait = true
 	installClient.CreateNamespace = true
 	installClient.Timeout = time.Duration(120) * time.Second
+
+	helmChart.Values["global"].(map[string]interface{})["registry"] = daprRegistry
 
 	helmChart.Values["dapr_operator"] = make(map[string]interface{})
 	if daprOperator, ok := helmChart.Values["dapr_operator"].(map[string]interface{}); ok {

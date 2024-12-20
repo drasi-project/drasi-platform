@@ -92,7 +92,11 @@ Usage examples:
 			output := output.NewTaskOutput()
 			defer output.Close()
 
-			if err := installer.Install(local, registry, version, output, namespace); err != nil {
+			daprRegistry, err := cmd.Flags().GetString("dapr-registry")
+			if err != nil {
+				return err
+			}
+			if err := installer.Install(local, registry, version, output, namespace, daprRegistry); err != nil {
 				return err
 			}
 
@@ -106,5 +110,6 @@ Usage examples:
 	initCommand.Flags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into.")
 	initCommand.Flags().String("dapr-runtime-version", "1.10.0", "Dapr runtime version to install.")
 	initCommand.Flags().String("dapr-sidecar-version", "1.9.0", "Dapr sidecar (daprd) version to install.")
+	initCommand.Flags().String("dapr-registry", "docker.io/daprio", "Container registry to pull Dapr images from.")
 	return initCommand
 }
