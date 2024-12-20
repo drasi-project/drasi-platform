@@ -23,6 +23,14 @@ var builder = WebApplication.CreateBuilder(args);
 var configuration = BuildConfiguration();
 
 var queryContainerId = configuration["QueryContainerId"] ?? "default";
+var queryConfigPath = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
+List<string> queryIds = new List<string>();
+foreach (var qpath in Directory.GetFiles(queryConfigPath))
+{
+	var queryId = Path.GetFileName(qpath);
+	queryIds.Add(queryId);
+}
+
 
 
 builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
@@ -31,8 +39,12 @@ builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
 var app = builder.Build();
 app.UseRouting();
 
-app.Urls.Add("http://0.0.0.0:80");  //dapr
 app.Urls.Add("http://0.0.0.0:8080"); //app
+
+// Dapr server
+var daprBuilder = WebApplication.CreateBuilder(args);
+var daprApp = daprBuilder.Build();
+daprApp.UseRouting();
 
 
 // Adding an endpoint that supports retrieving all results
@@ -40,6 +52,11 @@ app.MapGet("/{queryId}", async (string queryId) =>
 {
 	async IAsyncEnumerable<JsonDocument> GetCurrentResult()
 	{
+		if (!isValidQueryId(queryId))
+		{
+			Console.WriteLine("The queryId is not specified in the Reaction config: " + queryId);
+			yield break;
+		}
 		Console.WriteLine("Current Timestamp: " + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 		Console.WriteLine("Retrieving all results for queryId: " + queryId);
 		var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
@@ -59,6 +76,11 @@ app.MapGet("/{queryId}/data", async (string queryId) =>
 {
 	async IAsyncEnumerable<JsonElement> GetCurrentResult()
 	{
+		if (!isValidQueryId(queryId))
+		{
+			Console.WriteLine("The queryId is not specified in the Reaction config: " + queryId);
+			yield break;
+		}
 		Console.WriteLine("Current Timestamp: " + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 		Console.WriteLine("Retrieving all results for queryId: " + queryId);
 		var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
@@ -81,6 +103,11 @@ app.MapGet("/{queryId}/{ts}", async (string queryId, string ts) =>
 {
 	async IAsyncEnumerable<JsonDocument> GetCurrentResultAtTimeStamp()
 	{
+		if (!isValidQueryId(queryId))
+		{
+			Console.WriteLine("The queryId is not specified in the Reaction config: " + queryId);
+			yield break;
+		}
 		Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + ts);
 		var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
 		await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId, ts))
@@ -97,6 +124,11 @@ app.MapGet("/{queryId}/{ts}/data", async (string queryId, string ts) =>
 {
 	async IAsyncEnumerable<JsonElement> GetCurrentResultAtTimeStamp()
 	{
+		if (!isValidQueryId(queryId))
+		{
+			Console.WriteLine("The queryId is not specified in the Reaction config: " + queryId);
+			yield break;
+		}
 		Console.WriteLine("Retrieving result for queryId: " + queryId + " at timestamp: " + ts);
 		var resultViewClient = app.Services.GetRequiredService<IResultViewClient>();
 		await foreach (var item in resultViewClient.GetCurrentResultAtTimeStamp(queryContainerId, queryId, ts))
@@ -111,9 +143,17 @@ app.MapGet("/{queryId}/{ts}/data", async (string queryId, string ts) =>
 
 	return GetCurrentResultAtTimeStamp();
 });
-app.Run();
 
 
+Task.WaitAll(
+    app.RunAsync(),
+    daprApp.RunAsync("http://0.0.0.0:80")
+);
+
+bool isValidQueryId(string queryId)
+{
+	return queryIds.Contains(queryId);
+}
 
 static IConfiguration BuildConfiguration()
 {
