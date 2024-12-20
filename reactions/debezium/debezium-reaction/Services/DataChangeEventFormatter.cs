@@ -19,7 +19,7 @@ using Drasi.Reaction.SDK;
 using System.Text.Json;
 using System.Text;
 
-public class DataChangeEventFormatter {
+public class DataChangeEventFormatter : IDataChangeEventFormatter {
 
     private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {

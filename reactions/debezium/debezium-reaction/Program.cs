@@ -24,18 +24,26 @@ var reaction = new ReactionBuilder()
             .UseChangeEventHandler<DebeziumChangeHandler>()
             .ConfigureServices((services) =>
             {
+                services.AddSingleton<IDataChangeEventFormatter, DataChangeEventFormatter>();
                 services.AddSingleton<IProducer<Null, string>>(sp =>
                 {
                     var config = sp.GetRequiredService<IConfiguration>();
                     // A list of brokers; represented as a comma-separated string
                     string brokers = config.GetValue<string>("brokers") ?? throw new ArgumentNullException("Debezium brokers is required");
 
+                    // The producer transaction id is used to identify the producer instance
+                    // We are using the instanceId as the producer transaction id
+                    string instanceId = config.GetValue<string>("INSTANCE_ID") ?? throw new ArgumentNullException("Debezium instanceId is required");
+
+
                     // Using UTF-8 for the key and value serialization 
                     // This allos us to send JSON string as JSON object 
                     // https://github.com/confluentinc/confluent-kafka-dotnet/blob/master/src/Confluent.Kafka/Serializers.cs
-                    return new ProducerBuilder<Null, string>(new ProducerConfig { BootstrapServers = brokers })
-                            .SetValueSerializer(Serializers.Utf8)
-                            .Build();
+                    var producer = new ProducerBuilder<Null, string>(new ProducerConfig { BootstrapServers = brokers,  TransactionalId = instanceId })
+                        .SetValueSerializer(Serializers.Utf8)
+                        .Build();
+                    producer.InitTransactions(TimeSpan.FromSeconds(2));
+                    return producer;
                 });
             })
             .Build();
