@@ -100,14 +100,14 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string, installDaprFromMcr bool) error {
+func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string, daprRegistry string) error {
 	daprInstalled, err := t.checkDaprInstallation(output)
 	if err != nil {
 		return err
 	}
 
 	if !daprInstalled {
-		if err = t.installDapr(output, installDaprFromMcr); err != nil {
+		if err = t.installDapr(output, daprRegistry); err != nil {
 			return err
 		}
 	}
@@ -542,7 +542,7 @@ func (t *Installer) waitForDeployment(selector string, output output.TaskOutput)
 	return nil
 }
 
-func (t *Installer) installDapr(output output.TaskOutput, installDaprFromMcr bool) error {
+func (t *Installer) installDapr(output output.TaskOutput, daprRegistry string) error {
 	output.AddTask("Dapr-Install", "Installing Dapr...")
 
 	ns := "dapr-system"
@@ -603,10 +603,7 @@ func (t *Installer) installDapr(output output.TaskOutput, installDaprFromMcr boo
 	installClient.CreateNamespace = true
 	installClient.Timeout = time.Duration(120) * time.Second
 
-	// Set the registry to mcr if the flag is set
-	if installDaprFromMcr {
-		helmChart.Values["global"].(map[string]interface{})["registry"] = "mcr.microsoft.com/daprio"
-	}
+	helmChart.Values["global"].(map[string]interface{})["registry"] = daprRegistry
 
 	helmChart.Values["dapr_operator"] = make(map[string]interface{})
 	if daprOperator, ok := helmChart.Values["dapr_operator"].(map[string]interface{}); ok {
