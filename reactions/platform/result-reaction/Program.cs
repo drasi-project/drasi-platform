@@ -44,7 +44,6 @@ app.Urls.Add("http://0.0.0.0:8080"); //app
 // Dapr server
 var daprBuilder = WebApplication.CreateBuilder(args);
 var daprApp = daprBuilder.Build();
-daprApp.UseRouting();
 
 
 // Adding an endpoint that supports retrieving all results
