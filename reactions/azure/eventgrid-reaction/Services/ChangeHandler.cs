@@ -15,7 +15,8 @@
 namespace Drasi.Reactions.EventGrid.Services;
 
 using Azure.Messaging.EventGrid;
-using CloudNative.CloudEvents;
+using Azure.Messaging;
+
 
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
@@ -46,25 +47,27 @@ public class ChangeHandler : IChangeEventHandler
         switch(_format)
         {
             case OutputFormat.Packed:
+                CloudEvent egEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", _formatter.Format(evt));
+                var resp = await _publisherClient.SendEventAsync(egEvent);
+                if (resp.IsError) 
+                {
+                    _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                    throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                }
                 break;
             case OutputFormat.Unpacked:
                 var formattedResults = _formatter.Format(evt);
                 foreach (var notification in formattedResults)
                 {
-                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1.0", notification);
-                    var resp = await _publisherClient.SendEventAsync(egEvent);
-                    if (resp.IsError)
+                    CloudEvent currEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", notification);
+                    var currResp = await _publisherClient.SendEventAsync(currEvent);
+                    if (currResp.IsError) 
                     {
-                        _logger.LogError("Error sending events: " + resp.Error);
-                        throw new Exception(resp.Content.ToString());
+                        _logger.LogError($"Error sending message to Event Grid: {currResp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {currResp.Content.ToString()}");
                     }
                 }
-                
-                if (resp.IsError)
-                {
-                    _logger.LogError("Error sending events: " + resp.Error);
-                    throw new Exception(resp.Content.ToString());
-                }
+            
                 break;
             default:
                 throw new NotSupportedException("Invalid output format");

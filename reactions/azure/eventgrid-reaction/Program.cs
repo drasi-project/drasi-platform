@@ -24,7 +24,9 @@ using Drasi.Reactions.EventGrid.Services;
 
 var reaction = new ReactionBuilder()
                 .UseChangeEventHandler<ChangeHandler>()
+                .UseControlEventHandler<ControlSignalHandler>()
                 .ConfigureServices((services) => {
+                    services.AddSingleton<IChangeFormatter, ChangeFormatter>();
                     services.AddSingleton<EventGridPublisherClient>(sp =>
                     {
                         var configuration = sp.GetRequiredService<IConfiguration>();
@@ -49,7 +51,7 @@ var reaction = new ReactionBuilder()
                                                     ),
                                                     new DefaultAzureCredential());
                                 break;
-                            case IdentityType.AccessKey:
+                            default:
                                 logger.LogInformation("Using Access Key");
 
                                 var eventGridKey = configuration.GetValue<string>("eventGridKey");
@@ -62,9 +64,6 @@ var reaction = new ReactionBuilder()
                                                     new Uri(eventGridUri),
                                                     new AzureKeyCredential(eventGridKey));
                                 break;
-                            default:
-                                Reaction<object>.TerminateWithError("Service identity not provided");
-                                throw new Exception("Service identity not provided");
                         }
                         return publisherClient;
                     });
