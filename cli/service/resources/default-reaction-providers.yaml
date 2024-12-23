@@ -64,13 +64,12 @@ spec:
   config_schema:
     type: object
     properties: 
-      EventGridUri:
+      eventGridUri:
         type: string
-      EventGridKey:
+      eventGridKey:
         type: string
     required:
-      - EventGridUri
-      - EventGridKey
+      - eventGridUri
 ---
 apiVersion: v1
 kind: ReactionProvider
