@@ -40,11 +40,6 @@ var reaction = new ReactionBuilder()
                             case IdentityType.MicrosoftEntraWorkloadID:
                                 logger.LogInformation("Using Microsoft Entra Workload ID");
 
-                                var widEndpoint = configuration.GetValue<string>("endpoint");
-                                if (String.IsNullOrEmpty(widEndpoint))
-                                {
-                                    Reaction<object>.TerminateWithError("Endpoint not provided");
-                                }
 
                                 publisherClient =  new EventGridPublisherClient(
                                                     new Uri(eventGridUri
