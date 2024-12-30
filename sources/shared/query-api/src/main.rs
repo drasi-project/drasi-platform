@@ -78,6 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .route("/subscription", post(handle_subscription))
+        .route("/unsubscription", post(handle_unsubscription))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
@@ -151,6 +152,23 @@ async fn handle_subscription(
     }
 }
 
+async fn handle_unsubscription(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(subscription_request): Json<SubscriptionRequest>,
+) -> impl IntoResponse {
+    log::info!(
+        "Creating new unsubscription for query_id: {}",
+        subscription_request.query_id
+    );
+
+    if let Err(err) = dispatch_unsubscription_event(&subscription_request, &state).await {
+        return err;
+    }
+
+    "Unsubscription event dispatched".into_response()
+}
+
 async fn dispatch_control_event(
     subscription_request: &SubscriptionRequest,
     state: &Arc<AppState>,
@@ -183,6 +201,42 @@ async fn dispatch_control_event(
                 .into_response());
         }
     }
+    Ok(())
+}
+
+async fn dispatch_unsubscription_event(
+    request: &SubscriptionRequest,
+    state: &Arc<AppState>,
+) -> Result<(), axum::http::Response<axum::body::Body>> {
+    let query_id = request.query_id.clone();
+    let query_node_id = request.query_node_id.clone();
+    let unsubscription_event = api::UnsubscriptionEvent {
+        query_id,
+        query_node_id,
+    };
+
+    let publisher = &state.publisher;
+    let unsubscription_event_json = json!([unsubscription_event]);
+    match publisher
+        .publish(
+            unsubscription_event_json,
+            Headers::new(std::collections::HashMap::new()),
+        )
+        .await
+    {
+        Ok(_) => {
+            log::info!("Published the unsubscription event");
+        }
+        Err(e) => {
+            log::error!("Error publishing the unsubscription event: {:?}", e);
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error publishing the unsubscription event: {:?}", e),
+            )
+                .into_response());
+        }
+    }
+
     Ok(())
 }
 

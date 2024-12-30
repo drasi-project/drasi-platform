@@ -34,6 +34,12 @@ pub struct ControlEvent {
 }
 
 #[derive(Serialize)]
+pub struct UnsubscriptionEvent {
+    pub query_id: String,
+    pub query_node_id: String,
+}
+
+#[derive(Serialize)]
 pub struct SubscriptionPayload {
     pub source: Source,
     pub before: Option<()>,
