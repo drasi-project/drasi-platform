@@ -391,6 +391,31 @@ async fn process_changes(
                     } else {
                         // TODO - supprt other ops on SourceSubscriptions
                     }
+                } else if change["payload"]["source"]["table"] == "SourceUnsubscription" {
+                    // Handle SourceUnsubscription
+                    let state_key = format!(
+                            "SourceSubscription-{}-{}",
+                            match change["payload"]["after"]["queryNodeId"].as_str() {
+                                Some(query_node_id) => query_node_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryNodeId from the ChangeEvent"
+                                    )),
+                            },
+                            match change["payload"]["after"]["queryId"].as_str() {
+                                Some(query_id) => query_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryId from the ChangeEvent"
+                                    )),
+                            }
+                        );
+                    match state_manager.delete_state(&state_key, None).await {
+                        Ok(_) => info!("Deleted Subscription {} from state store", state_key),
+                        Err(e) => {
+                            return Err(e);
+                        }
+                    }
                 }
                 return Ok(());
             }
