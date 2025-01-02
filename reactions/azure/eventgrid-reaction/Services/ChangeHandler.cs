@@ -57,15 +57,17 @@ public class ChangeHandler : IChangeEventHandler
                 break;
             case OutputFormat.Unpacked:
                 var formattedResults = _formatter.Format(evt);
+                List<CloudEvent> events = new List<CloudEvent>();
                 foreach (var notification in formattedResults)
                 {
                     CloudEvent currEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", notification);
-                    var currResp = await _publisherClient.SendEventAsync(currEvent);
-                    if (currResp.IsError) 
-                    {
-                        _logger.LogError($"Error sending message to Event Grid: {currResp.Content.ToString()}");
-                        throw new Exception($"Error sending message to Event Grid: {currResp.Content.ToString()}");
-                    }
+                    events.Add(currEvent);
+                }
+                var currResp = await _publisherClient.SendEventsAsync(events);
+                if (currResp.IsError) 
+                {
+                    _logger.LogError($"Error sending message to Event Grid: {currResp.Content.ToString()}");
+                    throw new Exception($"Error sending message to Event Grid: {currResp.Content.ToString()}");
                 }
             
                 break;
