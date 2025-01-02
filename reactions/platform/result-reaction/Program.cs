@@ -41,11 +41,6 @@ app.UseRouting();
 
 app.Urls.Add("http://0.0.0.0:8080"); //app
 
-// Dapr server
-var daprBuilder = WebApplication.CreateBuilder(args);
-var daprApp = daprBuilder.Build();
-
-
 // Adding an endpoint that supports retrieving all results
 app.MapGet("/{queryId}", async (string queryId) =>
 {
@@ -144,10 +139,7 @@ app.MapGet("/{queryId}/{ts}/data", async (string queryId, string ts) =>
 });
 
 
-Task.WaitAll(
-    app.RunAsync(),
-    daprApp.RunAsync("http://0.0.0.0:80")
-);
+app.RunAsync();
 
 bool isValidQueryId(string queryId)
 {

@@ -110,6 +110,8 @@ spec:
   services:
     reaction:
       image: reaction-result
+      dapr:
+        app-port: "8080"
       endpoints:
         gateway:
           setting: internal
