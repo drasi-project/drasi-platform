@@ -295,6 +295,10 @@ impl QueryWorker {
                                     _ = result_index.clear().await;
                                     _ = archive_index.clear().await;
                                     _ = change_stream.unsubscribe().await;
+                                    match source_client.unsubscribe(query_container_id.to_string(), query_id.to_string()).await {
+                                        Ok(_) => {},
+                                        Err(err) => log::error!("Error unsubscribing from sources: {}", err),
+                                    };
                                     match publisher.publish(
                                         &query_id,
                                         ResultEvent::from_control_signal(
