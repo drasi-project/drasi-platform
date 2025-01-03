@@ -40,19 +40,17 @@ spec:
   config_schema:
     type: object
     properties: 
-      Brokers:
+      brokers:
+        type: array
+      topic:
         type: string
-      Topic:
+      saslUsername:
         type: string
-      IncludeKey:
-        type: boolean
-        default: true
-      IncludeSchemas:
-        type: boolean
-        default: true
+      saslPassword:
+        type: string
     required:
-      - Brokers
-      - Topic
+      - brokers
+      - topic
 ---
 apiVersion: v1
 kind: ReactionProvider
@@ -64,13 +62,12 @@ spec:
   config_schema:
     type: object
     properties: 
-      EventGridUri:
+      eventGridUri:
         type: string
-      EventGridKey:
+      eventGridKey:
         type: string
     required:
-      - EventGridUri
-      - EventGridKey
+      - eventGridUri
 ---
 apiVersion: v1
 kind: ReactionProvider
@@ -79,26 +76,23 @@ spec:
   config_schema:
     type: object
     properties: 
-      AddedResultCommand:
+      addedResultCommand:
         type: string
-      UpdatedResultCommand: 
+      updatedResultCommand: 
         type: string
-      DatabaseHost:
+      deletedResultCommand:
         type: string
-      DatabasePrimaryKey:
+      gremlinHost:
         type: string
-      DatabaseName:
+      gremlinPort:
+        type: number
+      gremlinPassword:
         type: string
-      DatabaseContainerName:
-        type: string
-      DatabasePort:
+      gremlinUsername:
         type: string
     required:
-      - DatabaseHost
-      - DatabasePrimaryKey
-      - DatabaseName
-      - DatabaseContainerName
-      - DatabasePort
+      - gremlinHost
+      - gremlinPort 
   services:
     reaction:
       image: reaction-gremlin

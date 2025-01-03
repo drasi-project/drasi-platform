@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Drasi.Reactions.EventGrid.Models.Unpacked;
-using Drasi.Reaction.SDK.Models.QueryOutput;
-using System.Text.Json;
 
-namespace Drasi.Reactions.EventGrid.Services
+using Drasi.Reaction.SDK.Models.QueryOutput;
+
+
+namespace Drasi.Reactions.Debezium.Services
 {
-    public interface IChangeFormatter
+    public interface IDataChangeEventFormatter
     {
-        IEnumerable<ChangeNotification> Format(ChangeEvent evt);
+        List<string> ProcessChangeEvent(EventMetadata metadata, ChangeEvent evt);
     }
 }
