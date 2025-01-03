@@ -13,7 +13,8 @@
 // limitations under the License.
 
 use crate::{
-    controller::reconciler::ReconcileStatus, models::RuntimeConfig,
+    controller::reconciler::ReconcileStatus,
+    models::{ResourceType, RuntimeConfig},
     spec_builder::query_container::QueryContainerSpecBuilder,
 };
 use axum::{response::IntoResponse, Json};
@@ -40,7 +41,7 @@ impl QueryContainerActor {
             actor_type: actor_type.to_string(),
             id: id.to_string(),
             dapr_client,
-            resource_type: "querycontainer".to_string(),
+            resource_type: ResourceType::QueryContainer.to_string(),
             runtime_config,
             spec_builder: Box::new(QueryContainerSpecBuilder {}),
             controllers: RwLock::new(BTreeMap::new()),

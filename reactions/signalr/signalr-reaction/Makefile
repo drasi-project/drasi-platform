@@ -14,7 +14,13 @@ kind-load:
 	kind load docker-image $(IMAGE_PREFIX)/reaction-signalr:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
 
 test:
-	@echo "No tests to run yet"
+	dotnet test
 
 lint-check:
 	@echo "No lint checks to run yet"
+
+generate-types:
+	npm run clean --prefix ../../../typespec
+	npm run build ./output-unpacked --prefix ../../../typespec
+	quicktype --src-lang schema -l cs -o Drasi.Reactions.SignalR/Models/Unpacked.generated.cs ../../../typespec/output-unpacked/_generated/@typespec/json-schema/*.yaml --framework SystemTextJson --namespace Drasi.Reactions.SignalR.Models.Unpacked
+	quicktype --src-lang schema -l ts -o clients/react/src/unpacked-models.ts ../../../typespec/output-unpacked/_generated/@typespec/json-schema/*.yaml

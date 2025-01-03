@@ -14,12 +14,12 @@
 
 use crate::domain::models::{
     Endpoint, EndpointSetting, JsonSchema, ProviderService, ProviderSpec, ResourceProvider,
-    SchemaType, ServiceConfig, ServiceEndpoint,
+    SchemaType, ServiceConfig, ServiceEndpoint, ServiceIdentity,
 };
 
 use super::{
     EndpointDto, EndpointSettingDto, JsonSchemaDto, ProviderServiceDto, ProviderSpecDto,
-    ResourceProviderDto, SchemaTypeDto, ServiceConfigDto, ServiceEndpointDto,
+    ResourceProviderDto, SchemaTypeDto, ServiceConfigDto, ServiceEndpointDto, ServiceIdentityDto,
 };
 impl<TSpec, TSpecDto> From<ResourceProviderDto<TSpecDto>> for ResourceProvider<TSpec>
 where
@@ -64,6 +64,64 @@ impl From<ServiceConfigDto> for ServiceConfig {
                     .map(|(k, v)| (k, v.unwrap().into()))
                     .collect()
             }),
+        }
+    }
+}
+
+impl From<ServiceIdentityDto> for ServiceIdentity {
+    fn from(identity: ServiceIdentityDto) -> Self {
+        match identity {
+            ServiceIdentityDto::MicrosoftEntraWorkloadID { client_id } => {
+                ServiceIdentity::MicrosoftEntraWorkloadID { client_id }
+            }
+            ServiceIdentityDto::MicrosoftEntraApplication {
+                tenant_id,
+                client_id,
+                secret,
+                certificate,
+            } => ServiceIdentity::MicrosoftEntraApplication {
+                tenant_id: tenant_id.into(),
+                client_id: client_id.into(),
+                secret: secret.map(|secret| secret.into()),
+                certificate: certificate.map(|certificate| certificate.into()),
+            },
+            ServiceIdentityDto::ConnectionString { connection_string } => {
+                ServiceIdentity::ConnectionString {
+                    connection_string: connection_string.into(),
+                }
+            }
+            ServiceIdentityDto::AccessKey { access_key } => ServiceIdentity::AccessKey {
+                access_key: access_key.into(),
+            },
+        }
+    }
+}
+
+impl From<ServiceIdentity> for ServiceIdentityDto {
+    fn from(identity: ServiceIdentity) -> Self {
+        match identity {
+            ServiceIdentity::MicrosoftEntraWorkloadID { client_id } => {
+                ServiceIdentityDto::MicrosoftEntraWorkloadID { client_id }
+            }
+            ServiceIdentity::MicrosoftEntraApplication {
+                tenant_id,
+                client_id,
+                secret,
+                certificate,
+            } => ServiceIdentityDto::MicrosoftEntraApplication {
+                tenant_id: tenant_id.into(),
+                client_id: client_id.into(),
+                secret: secret.map(|secret| secret.into()),
+                certificate: certificate.map(|certificate| certificate.into()),
+            },
+            ServiceIdentity::ConnectionString { connection_string } => {
+                ServiceIdentityDto::ConnectionString {
+                    connection_string: connection_string.into(),
+                }
+            }
+            ServiceIdentity::AccessKey { access_key } => ServiceIdentityDto::AccessKey {
+                access_key: access_key.into(),
+            },
         }
     }
 }

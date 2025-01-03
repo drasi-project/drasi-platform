@@ -19,6 +19,8 @@ enum Op {
     Update: "u",
     Delete: "d",
     ControlSignal: "x",
+    ReloadHeader: "h",
+    ReloadItem: "r"
 };
 
 @discriminator("op")
@@ -29,17 +31,37 @@ model Notification {
     metadata?: Record<unknown>
 }
 
-
 @extension("title", "ChangeNotification")
 model ChangeNotification extends Notification {
     "op": Op.Insert | Op.Update | Op.Delete;
     payload: ChangePayload;
+
+    @doc("The sequence number of the source change")
+    seq: int64;
 }
 
 @extension("title", "ControlSignalNotification")
 model ControlSignalNotification extends Notification {
     "op": Op.ControlSignal;
     payload: ControlPayload;
+
+    @doc("The sequence number of the control signal")
+    seq: int64;
+}
+
+@extension("title", "ReloadHeader")
+model ReloadHeader extends Notification {
+    "op": Op.ReloadHeader;
+    
+    @doc("The sequence number of last known source change")
+    seq: int64;
+}
+
+@extension("title", "ReloadItem")
+model ReloadItem extends Notification {
+    "op": Op.ReloadItem;
+    
+    payload: ChangePayload;
 }
 
 @extension("title", "ChangePayload")

@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::models::{Component, ComponentSpec};
+use crate::models::{Component, ComponentSpec, ResourceType};
 
 use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
-    build_deployment_spec, SpecBuilder,
+    build_deployment_spec,
+    identity::apply_identity,
+    SpecBuilder,
 };
 use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::{
@@ -36,19 +38,19 @@ pub struct ReactionSpecBuilder {}
 impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
     fn build(
         &self,
-        source: ResourceRequest<ReactionSpec>,
+        reaction: ResourceRequest<ReactionSpec>,
         runtime_config: &RuntimeConfig,
         instance_id: &str,
     ) -> Vec<KubernetesSpec> {
         let mut specs = Vec::new();
 
-        let properties = source.spec.properties.clone().unwrap_or_default();
+        let properties = reaction.spec.properties.clone().unwrap_or_default();
         let mut env: BTreeMap<String, ConfigValue> = properties.into_iter().collect();
 
         env.insert(
-            "RESTART_HACK".to_string(),
+            "CONFIG_HASH".to_string(),
             ConfigValue::Inline {
-                value: calc_hash(&source.spec),
+                value: calc_hash(&reaction.spec),
             },
         );
 
@@ -59,7 +61,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             },
         );
 
-        let pub_sub_name = format!("drasi-pubsub-{}", source.id);
+        let pub_sub_name = format!("drasi-pubsub-{}", reaction.id);
         env.insert(
             "PubsubName".to_string(),
             ConfigValue::Inline {
@@ -67,18 +69,19 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             },
         );
 
-        let mut labels = BTreeMap::new();
-        labels.insert("drasi/type".to_string(), "reaction".to_string());
-        labels.insert("drasi/resource".to_string(), source.id.to_string());
-        labels.insert("drasi/service".to_string(), "reaction".to_string());
-
-        let config_name = format!("{}-{}-{}", source.id, "reaction", "queries");
-
-        let services = source.spec.services.clone().unwrap_or_default();
+        let services = reaction.spec.services.clone().unwrap_or_default();
 
         for (service_name, service_spec) in services {
             let mut config_volumes = BTreeMap::new();
             let mut config_maps = BTreeMap::new();
+
+            let mut labels = BTreeMap::new();
+            labels.insert("drasi/type".to_string(), ResourceType::Reaction.to_string());
+            labels.insert("drasi/resource".to_string(), reaction.id.to_string());
+            labels.insert("drasi/service".to_string(), service_name.clone());
+
+            let config_name = format!("{}-{}-{}", reaction.id, service_name, "queries");
+
             config_maps.insert(
                 config_name.clone(),
                 ConfigMap {
@@ -87,7 +90,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                         labels: Some(labels.clone()),
                         ..Default::default()
                     },
-                    data: Some(source.spec.queries.clone().into_iter().collect()),
+                    data: Some(reaction.spec.queries.clone().into_iter().collect()),
                     ..Default::default()
                 },
             );
@@ -143,9 +146,9 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 
             let deployment_spec = build_deployment_spec(
                 runtime_config,
-                "reaction",
-                &source.id,
-                "reaction",
+                ResourceType::Reaction,
+                &reaction.id,
+                &service_name,
                 image.as_str(),
                 service_spec.external_image.unwrap_or(false),
                 replica.parse::<i32>().unwrap(),
@@ -160,13 +163,14 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             let mut pub_sub_metadata = runtime_config.pub_sub_config.clone();
             pub_sub_metadata.push(EnvVar {
                 name: "consumerID".to_string(),
-                value: Some(source.id.to_string()),
+                value: Some(reaction.id.to_string()),
                 value_from: None,
             });
 
-            specs.push(KubernetesSpec {
-                resource_id: source.id.to_string(),
-                service_name: "reaction".to_string(),
+            let mut k8s_spec = KubernetesSpec {
+                resource_type: ResourceType::Reaction,
+                resource_id: reaction.id.to_string(),
+                service_name: service_name.clone(),
                 deployment: deployment_spec,
                 services: k8s_services,
                 config_maps,
@@ -183,8 +187,15 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                         metadata: pub_sub_metadata,
                     },
                 }),
+                service_account: None,
                 removed: false,
-            });
+            };
+
+            if let Some(identity) = &reaction.spec.identity {
+                apply_identity(&mut k8s_spec, identity);
+            }
+
+            specs.push(k8s_spec);
         }
 
         specs
