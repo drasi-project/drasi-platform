@@ -145,6 +145,7 @@ pub enum BootstrapError {
     Other(Box<dyn Error + Send>),
 }
 
+
 impl BootstrapError {
     pub fn fetch_failed(source_id: String, inner: Box<dyn Error + Send>) -> Self {
         BootstrapError::FetchFailed { source_id, inner }
@@ -169,4 +170,12 @@ impl BootstrapError {
     pub fn other(inner: Box<dyn Error + Send>) -> Self {
         BootstrapError::Other(inner)
     }
+}
+
+#[derive(Error, Debug)]
+pub enum UnsubscriptionError {
+    #[error("Failed to unsubscribe: {0}")]
+    UnsubscribeFailed(String),
+    #[error("{0}")]
+    Other(Box<dyn Error + Send>),
 }

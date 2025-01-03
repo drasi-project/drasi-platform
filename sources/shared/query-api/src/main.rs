@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use api::{v2::AcquireRequest, ControlEvent, Source, SubscriptionPayload, SubscriptionRequest};
+use api::{
+    v2::AcquireRequest, ControlEvent, Source, SubscriptionPayload, SubscriptionRequest,
+    UnsubscriptionRequest,
+};
 use async_stream::stream;
 use axum::{
     extract::State,
@@ -78,6 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .route("/subscription", post(handle_subscription))
+        .route("/unsubscription", post(handle_unsubscription))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
@@ -151,6 +155,23 @@ async fn handle_subscription(
     }
 }
 
+async fn handle_unsubscription(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(unsubscription_request): Json<UnsubscriptionRequest>,
+) -> impl IntoResponse {
+    log::info!(
+        "Creating new unsubscription for query_id: {}",
+        unsubscription_request.query_id
+    );
+
+    if let Err(err) = dispatch_unsubscription_event(&unsubscription_request, &state).await {
+        return err;
+    }
+
+    "Unsubscription event dispatched".into_response()
+}
+
 async fn dispatch_control_event(
     subscription_request: &SubscriptionRequest,
     state: &Arc<AppState>,
@@ -183,6 +204,45 @@ async fn dispatch_control_event(
                 .into_response());
         }
     }
+    Ok(())
+}
+
+async fn dispatch_unsubscription_event(
+    unsubscription_request: &UnsubscriptionRequest,
+    state: &Arc<AppState>,
+) -> Result<(), axum::http::Response<axum::body::Body>> {
+    let publisher = &state.publisher;
+    let unsubscription_event = api::UnsubscriptionEvent {
+        payload: api::UnsubscriptionPayload {
+            source: api::Source {
+                db: "Drasi".to_string(),
+                table: "SourceUnsubscription".to_string(),
+            },
+            query_id: unsubscription_request.query_id.clone(),
+            query_node_id: unsubscription_request.query_node_id.clone(),
+        },
+    };
+    let unsubscription_event_json = json!([unsubscription_event]);
+    match publisher
+        .publish(
+            unsubscription_event_json,
+            Headers::new(std::collections::HashMap::new()),
+        )
+        .await
+    {
+        Ok(_) => {
+            log::info!("Published the unsubscription event");
+        }
+        Err(e) => {
+            log::error!("Error publishing the unsubscription event: {:?}", e);
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error publishing the unsubscription event: {:?}", e),
+            )
+                .into_response());
+        }
+    }
+
     Ok(())
 }
 
