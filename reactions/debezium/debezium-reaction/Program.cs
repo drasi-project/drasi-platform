@@ -35,11 +35,27 @@ var reaction = new ReactionBuilder()
                     // We are using the instanceId as the producer transaction id
                     string instanceId = config.GetValue<string>("INSTANCE_ID") ?? throw new ArgumentNullException("Debezium instanceId is required");
 
+                    ProducerConfig producerConfig = new ProducerConfig
+                    {
+                        BootstrapServers = brokers,
+                        TransactionalId = instanceId
+                    };
+
+                    string saslPassword = config.GetValue<string>("saslPassword");
+                    string saslUsername = config.GetValue<string>("saslUsername");
+                    if (!string.IsNullOrEmpty(saslPassword) && !string.IsNullOrEmpty(saslUsername))
+                    {
+                        
+                        producerConfig.SaslUsername = saslUsername;
+                        producerConfig.SaslPassword = saslPassword;
+                        producerConfig.SecurityProtocol = SecurityProtocol.SaslSsl;
+                        producerConfig.SaslMechanism = SaslMechanism.Plain;
+                    }
 
                     // Using UTF-8 for the key and value serialization 
                     // This allos us to send JSON string as JSON object 
                     // https://github.com/confluentinc/confluent-kafka-dotnet/blob/master/src/Confluent.Kafka/Serializers.cs
-                    var producer = new ProducerBuilder<Null, string>(new ProducerConfig { BootstrapServers = brokers,  TransactionalId = instanceId })
+                    var producer = new ProducerBuilder<Null, string>(producerConfig)
                         .SetValueSerializer(Serializers.Utf8)
                         .Build();
                     producer.InitTransactions(TimeSpan.FromSeconds(2));

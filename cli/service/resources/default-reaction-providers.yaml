@@ -44,6 +44,10 @@ spec:
         type: array
       topic:
         type: string
+      saslUsername:
+        type: string
+      saslPassword:
+        type: string
     required:
       - brokers
       - topic
