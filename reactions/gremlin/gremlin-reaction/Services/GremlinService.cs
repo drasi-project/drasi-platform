@@ -176,13 +176,13 @@ namespace Drasi.Reactions.Gremlin.Services {
 
             foreach (string param in _updatedResultCommandParamList)
             {
-                if (param.StartsWith("before"))
+                if (param.StartsWith("before."))
                 {
                     // Prepare the parameterized query by removing the @ sign
                     newCmd = newCmd.Replace($"@{param}", param);
                     updatedResultCommandParams.Add(param, ExtractQueryResultValue(param.Substring(7), updatedResult.Before));
                 }
-                else if (param.StartsWith("after"))
+                else if (param.StartsWith("after."))
                 {
                     // Prepare the parameterized query by removing the @ sign
                     newCmd = newCmd.Replace($"@{param}", param);
