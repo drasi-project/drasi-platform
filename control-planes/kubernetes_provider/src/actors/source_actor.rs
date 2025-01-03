@@ -13,7 +13,8 @@
 // limitations under the License.
 
 use crate::{
-    controller::reconciler::ReconcileStatus, models::RuntimeConfig,
+    controller::reconciler::ReconcileStatus,
+    models::{ResourceType, RuntimeConfig},
     spec_builder::source::SourceSpecBuilder,
 };
 use axum::{response::IntoResponse, Json};
@@ -40,7 +41,7 @@ impl SourceActor {
             actor_type: actor_type.to_string(),
             id: id.to_string(),
             dapr_client,
-            resource_type: "source".to_string(),
+            resource_type: ResourceType::Source.to_string(),
             runtime_config,
             spec_builder: Box::new(SourceSpecBuilder {}),
             controllers: RwLock::new(BTreeMap::new()),

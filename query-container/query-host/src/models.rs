@@ -128,29 +128,33 @@ pub enum BootstrapError {
     #[error("Failed to fetch data from source '{source_id}': {inner}")]
     FetchFailed {
         source_id: String,
-        inner: Box<dyn Error>,
+        inner: Box<dyn Error + Send>,
     },
 
     #[error("Failed to process element '{element_id}' from source '{source_id}': {inner}")]
     ProcessFailed {
         source_id: String,
         element_id: String,
-        inner: Box<dyn Error>,
+        inner: Box<dyn Error + Send>,
     },
 
     #[error("Failed to publish: {0}")]
-    PublishError(Box<dyn Error>),
+    PublishError(Box<dyn Error + Send>),
 
     #[error("{0}")]
-    Other(Box<dyn Error>),
+    Other(Box<dyn Error + Send>),
 }
 
 impl BootstrapError {
-    pub fn fetch_failed(source_id: String, inner: Box<dyn Error>) -> Self {
+    pub fn fetch_failed(source_id: String, inner: Box<dyn Error + Send>) -> Self {
         BootstrapError::FetchFailed { source_id, inner }
     }
 
-    pub fn process_failed(source_id: String, element_id: String, inner: Box<dyn Error>) -> Self {
+    pub fn process_failed(
+        source_id: String,
+        element_id: String,
+        inner: Box<dyn Error + Send>,
+    ) -> Self {
         BootstrapError::ProcessFailed {
             source_id,
             element_id,
@@ -158,11 +162,11 @@ impl BootstrapError {
         }
     }
 
-    pub fn publish_error(inner: Box<dyn Error>) -> Self {
+    pub fn publish_error(inner: Box<dyn Error + Send>) -> Self {
         BootstrapError::PublishError(inner)
     }
 
-    pub fn other(inner: Box<dyn Error>) -> Self {
+    pub fn other(inner: Box<dyn Error + Send>) -> Self {
         BootstrapError::Other(inner)
     }
 }

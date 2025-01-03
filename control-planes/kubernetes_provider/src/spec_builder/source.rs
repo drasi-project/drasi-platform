@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::models::ResourceType;
+
 use super::{
     super::models::{KubernetesSpec, RuntimeConfig},
-    build_deployment_spec, SpecBuilder,
+    build_deployment_spec,
+    identity::apply_identity,
+    SpecBuilder,
 };
 use k8s_openapi::{
     api::core::v1::{ServicePort, ServiceSpec},
@@ -43,11 +47,12 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
         let mut specs = Vec::new();
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::Source,
             resource_id: source.id.to_string(),
             service_name: "change-router".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "source",
+                ResourceType::Source,
                 &source.id,
                 "change-router",
                 "source-change-router",
@@ -67,15 +72,17 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
         });
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::Source,
             resource_id: source.id.to_string(),
             service_name: "change-dispatcher".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "source",
+                ResourceType::Source,
                 &source.id,
                 "change-dispatcher",
                 "source-change-dispatcher",
@@ -95,34 +102,54 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
         });
 
         specs.push(KubernetesSpec {
+            resource_type: ResourceType::Source,
             resource_id: source.id.to_string(),
             service_name: "query-api".to_string(),
             deployment: build_deployment_spec(
                 runtime_config,
-                "source",
+                ResourceType::Source,
                 &source.id,
                 "query-api",
                 "source-query-api",
                 false,
                 1,
-                Some(4001),
+                Some(80),
                 hashmap![
                 "SOURCE_ID" => ConfigValue::Inline { value: source.id.clone() },
                 "INSTANCE_ID" => ConfigValue::Inline { value: instance_id.to_string() }
                 ],
-                None,
+                Some(hashmap![
+                    "api" => 80
+                ]),
                 None,
                 None,
                 None,
             ),
-            services: BTreeMap::new(),
+            services: hashmap!(
+                "query-api".to_string() => ServiceSpec {
+                    type_: Some("ClusterIP".to_string()),
+                    selector: Some(hashmap![
+                        "drasi/type".to_string() => ResourceType::Source.to_string(),
+                        "drasi/resource".to_string() => source.id.to_string(),
+                        "drasi/service".to_string() => "query-api".to_string()
+                    ]),
+                    ports: Some(vec![ServicePort {
+                        port: 80,
+                        target_port: Some(IntOrString::String("api".to_string())),
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                }
+            ),
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
             pub_sub: None,
+            service_account: None,
             removed: false,
         });
 
@@ -183,7 +210,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                             let service_spec = ServiceSpec {
                                 type_: Some("ClusterIP".to_string()),
                                 selector: Some(hashmap![
-                                    "drasi/type".to_string() => "source".to_string(),
+                                    "drasi/type".to_string() => ResourceType::Source.to_string(),
                                     "drasi/resource".to_string() => source.id.clone(),
                                     "drasi/service".to_string() => service_name.clone()
                                 ]),
@@ -208,12 +235,13 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 }
             };
 
-            let k8s_spec = KubernetesSpec {
+            let mut k8s_spec = KubernetesSpec {
+                resource_type: ResourceType::Source,
                 resource_id: source.id.to_string(),
                 service_name: service_name.to_string(),
                 deployment: build_deployment_spec(
                     runtime_config,
-                    "source",
+                    ResourceType::Source,
                     &source.id,
                     &service_name,
                     service_spec.image.as_str(),
@@ -230,10 +258,39 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 config_maps: BTreeMap::new(),
                 volume_claims: BTreeMap::new(),
                 pub_sub: None,
+                service_account: None,
                 removed: false,
             };
+
+            if service_name == "proxy" {
+                apply_proxy_svc(&mut k8s_spec, app_port);
+            }
+
+            if let Some(identity) = &source_spec.identity {
+                apply_identity(&mut k8s_spec, identity);
+            }
+
             specs.push(k8s_spec);
         }
         specs
     }
+}
+
+fn apply_proxy_svc(spec: &mut KubernetesSpec, app_port: Option<u16>) {
+    let port = app_port.unwrap_or(80);
+    let svc = ServiceSpec {
+        type_: Some("ClusterIP".to_string()),
+        selector: Some(hashmap![
+            "drasi/type".to_string() => spec.resource_type.to_string(),
+            "drasi/resource".to_string() => spec.resource_id.to_string(),
+            "drasi/service".to_string() => spec.service_name.to_string()
+        ]),
+        ports: Some(vec![ServicePort {
+            port: 80,
+            target_port: Some(IntOrString::Int(port.into())),
+            ..Default::default()
+        }]),
+        ..Default::default()
+    };
+    spec.services.insert("proxy".to_string(), svc);
 }

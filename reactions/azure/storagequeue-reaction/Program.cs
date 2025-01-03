@@ -20,6 +20,7 @@ using Drasi.Reaction.SDK;
 using Drasi.Reactions.StorageQueue.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 var reaction = new ReactionBuilder()
     .UseChangeEventHandler<ChangeHandler>()
@@ -30,24 +31,28 @@ var reaction = new ReactionBuilder()
         services.AddSingleton<QueueClient>(sp => 
         {
             var config = sp.GetRequiredService<IConfiguration>();
-            var connectionString = config.GetValue<string>("connectionString");
-            var endpoint = config.GetValue<string>("endpoint");            
+            var logger = sp.GetRequiredService<ILogger<ReactionBuilder>>();
             var queueName = config.GetValue<string>("queueName");
-
             QueueServiceClient queueServiceClient;
-            if (!String.IsNullOrEmpty(connectionString)) 
+
+            switch (config.GetIdentityType())
             {
-                Console.WriteLine("Using connection string");
-                queueServiceClient = new QueueServiceClient(connectionString);
-            }
-            else
-            {
-                Console.WriteLine("Using DefaultAzureCredential authentication");
-                if (String.IsNullOrEmpty(endpoint))
-                {
-                    throw new Exception("Either connection string or endpoint must be provided");
-                }
-                queueServiceClient = new QueueServiceClient(new Uri(endpoint), new DefaultAzureCredential());
+                case IdentityType.MicrosoftEntraWorkloadID:
+                    logger.LogInformation("Using Microsoft Entra Workload ID");
+                    var widEndpoint = config.GetValue<string>("endpoint");
+                    if (String.IsNullOrEmpty(widEndpoint))
+                    {
+                        Reaction<object>.TerminateWithError("Endpoint not provided");
+                    }
+                    queueServiceClient = new QueueServiceClient(new Uri(widEndpoint), new DefaultAzureCredential());
+                    break;
+                case IdentityType.ConnectionString:
+                    logger.LogInformation("Using connection string");
+                    queueServiceClient = new QueueServiceClient(config.GetConnectionString());
+                    break;
+                default:
+                    Reaction<object>.TerminateWithError("Service identity not provided");
+                    throw new Exception("Service identity not provided");
             }
 
             return queueServiceClient.GetQueueClient(queueName);

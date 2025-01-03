@@ -44,6 +44,7 @@ impl From<SourceSpecDto> for SourceSpec {
             properties: spec
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            identity: spec.identity.map(|identity| identity.into()),
         }
     }
 }
@@ -58,6 +59,7 @@ impl From<SourceSpec> for SourceSpecDto {
             properties: spec
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            identity: spec.identity.map(|identity| identity.into()),
         }
     }
 }

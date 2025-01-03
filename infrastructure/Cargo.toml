@@ -2,7 +2,8 @@
 
 members = [
     "comms-abstractions",
-    "comms-dapr"
+    "comms-dapr",
+    "comms-http"
 ]
 
 [workspace.package]

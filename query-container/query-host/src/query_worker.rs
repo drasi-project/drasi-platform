@@ -14,8 +14,10 @@
 
 use dapr::client::TonicClient;
 use drasi_query_ast::ast::Query;
+use futures::StreamExt;
 use std::{
     error::Error,
+    pin::pin,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -572,41 +574,60 @@ async fn bootstrap(
 
     for source in &config.sources.subscriptions {
         let mut initial_data = match source_client
-            .subscribe(query_container_id, query_id, source)
+            .subscribe(
+                query_container_id.to_string(),
+                query_id.to_string(),
+                source.clone(),
+            )
             .await
         {
             Ok(r) => r,
             Err(e) => {
                 log::error!("Error subscribing to source: {} {}", source.id, e);
-                return Err(BootstrapError::fetch_failed(source.id.to_string(), e));
+                return Err(e);
             }
         };
 
-        for change in initial_data.drain(..) {
-            let timestamp = change.get_transaction_time();
-            let element_id = change.get_reference().element_id.to_string();
-            let change_results = match query.process_source_change(change).await {
-                Ok(r) => r,
-                Err(e) => {
-                    log::error!("Error processing source change: {}", e);
-                    return Err(BootstrapError::process_failed(
-                        source.id.to_string(),
-                        element_id,
-                        Box::new(e),
-                    ));
-                }
-            };
+        let mut initial_data = pin!(initial_data);
 
-            let seq = seq_manager.increment("bootstrap");
-            let output =
-                ResultEvent::from_query_results(query_id, change_results, seq, timestamp, None);
-            match publisher.publish(query_id, output).await {
-                Ok(_) => log::info!("Published result"),
-                Err(err) => {
-                    log::error!("Error publishing result: {}", err);
-                    return Err(BootstrapError::publish_error(err));
+        while let Some(change) = initial_data.next().await {
+            match change {
+                Ok(change) => {
+                    let timestamp = change.get_transaction_time();
+                    let element_id = change.get_reference().element_id.to_string();
+                    let change_results = match query.process_source_change(change).await {
+                        Ok(r) => r,
+                        Err(e) => {
+                            log::error!("Error processing source change: {}", e);
+                            return Err(BootstrapError::process_failed(
+                                source.id.to_string(),
+                                element_id,
+                                Box::new(e),
+                            ));
+                        }
+                    };
+
+                    let seq = seq_manager.increment("bootstrap");
+                    let output = ResultEvent::from_query_results(
+                        query_id,
+                        change_results,
+                        seq,
+                        timestamp,
+                        None,
+                    );
+                    match publisher.publish(query_id, output).await {
+                        Ok(_) => log::info!("Published result"),
+                        Err(err) => {
+                            log::error!("Error publishing result: {}", err);
+                            return Err(BootstrapError::publish_error(err));
+                        }
+                    };
                 }
-            };
+                Err(err) => {
+                    log::error!("Error fetching initial data: {}", err);
+                    return Err(err);
+                }
+            }
         }
     }
 
