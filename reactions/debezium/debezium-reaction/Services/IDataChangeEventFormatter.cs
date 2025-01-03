@@ -13,17 +13,13 @@
 // limitations under the License.
 
 
-using Drasi.Reaction.SDK;
-using Microsoft.Extensions.DependencyInjection;
-using Drasi.Reactions.Gremlin.Services;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 
 
-var reaction = new ReactionBuilder()
-				.UseChangeEventHandler<GremlinChangeHandler>()
-				.ConfigureServices((services) =>
-				 {
-					 services.AddSingleton<GremlinService>();
-				 }).Build();
-
-await reaction.StartAsync();
-
+namespace Drasi.Reactions.Debezium.Services
+{
+    public interface IDataChangeEventFormatter
+    {
+        List<string> ProcessChangeEvent(EventMetadata metadata, ChangeEvent evt);
+    }
+}
