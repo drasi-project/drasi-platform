@@ -89,8 +89,9 @@ impl SourceClient {
         &self,
         query_container_id: String,
         query_id: String,
+        subscription_id: String,
     ) -> Result<(), UnsubscriptionError> {
-        let app_id = format!("{}-query-api", query_id);
+        let app_id = format!("{}-query-api", subscription_id);
         let data = json!({
             "queryNodeId": query_container_id,
             "queryId": query_id,

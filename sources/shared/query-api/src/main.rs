@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use api::{v2::AcquireRequest, ControlEvent, Source, SubscriptionPayload, SubscriptionRequest};
+use api::{
+    v2::AcquireRequest, ControlEvent, Source, SubscriptionPayload, SubscriptionRequest,
+    UnsubscriptionRequest,
+};
 use async_stream::stream;
 use axum::{
     extract::State,
@@ -155,14 +158,14 @@ async fn handle_subscription(
 async fn handle_unsubscription(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Json(subscription_request): Json<SubscriptionRequest>,
+    Json(unsubscription_request): Json<UnsubscriptionRequest>,
 ) -> impl IntoResponse {
     log::info!(
         "Creating new unsubscription for query_id: {}",
-        subscription_request.query_id
+        unsubscription_request.query_id
     );
 
-    if let Err(err) = dispatch_unsubscription_event(&subscription_request, &state).await {
+    if let Err(err) = dispatch_unsubscription_event(&unsubscription_request, &state).await {
         return err;
     }
 
@@ -205,17 +208,20 @@ async fn dispatch_control_event(
 }
 
 async fn dispatch_unsubscription_event(
-    request: &SubscriptionRequest,
+    unsubscription_request: &UnsubscriptionRequest,
     state: &Arc<AppState>,
 ) -> Result<(), axum::http::Response<axum::body::Body>> {
-    let query_id = request.query_id.clone();
-    let query_node_id = request.query_node_id.clone();
-    let unsubscription_event = api::UnsubscriptionEvent {
-        query_id,
-        query_node_id,
-    };
-
     let publisher = &state.publisher;
+    let unsubscription_event = api::UnsubscriptionEvent {
+        payload: api::UnsubscriptionPayload {
+            source: api::Source {
+                db: "Drasi".to_string(),
+                table: "SourceUnsubscription".to_string(),
+            },
+            query_id: unsubscription_request.query_id.clone(),
+            query_node_id: unsubscription_request.query_node_id.clone(),
+        },
+    };
     let unsubscription_event_json = json!([unsubscription_event]);
     match publisher
         .publish(
