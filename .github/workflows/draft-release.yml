@@ -19,7 +19,11 @@ on:
     inputs:
       tag:
         description: 'Version Tag'
-        required: true        
+        required: true      
+      image_prefix:
+        description: 'Image Prefix'
+        required: false
+        default: 'ghcr.io/drasi-project'  
 
 permissions:
   id-token: write # Required for requesting the JWT
@@ -48,10 +52,28 @@ jobs:
       packages: write
       contents: read
     runs-on: ubuntu-latest
-
+    strategy: 
+      matrix:
+        component: [
+          { 
+            label: 'Query Host',
+            path: 'query-container/query-host', 
+            name: 'query-container-query-host'
+          },
+          { 
+            label: 'Publish API',
+            path: 'query-container/publish-api', 
+            name: 'query-container-publish-api'
+          },
+          { 
+            label: 'View Service',
+            path: 'query-container/view-svc', 
+            name: 'query-container-view-svc'
+          }
+        ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           submodules: true
           token: ${{ secrets.DRASI_CORE_PAT }}
@@ -70,42 +92,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build Query Host
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - name: Cache Docker layers
+        uses: actions/cache@v4
         with:
-          context: ./query-container/query-host
-          file: ./query-container/query-host/Dockerfile
-          platforms: linux/amd64, linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/query-container-query-host:${{ inputs.tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/query-host:cache,mode=max
-          push: true
+          path: /tmp/.buildx-cache
+          key: buildx-${{ matrix.component.name }}
+          restore-keys: |
+            buildx-${{ matrix.component.name }}
 
-      - name: Build Publish API
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: ./query-container/publish-api
-          file: ./query-container/publish-api/Dockerfile
-          platforms: linux/amd64, linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/query-container-publish-api:${{ inputs.tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/publish-api:cache
-          push: true
-
-      - name: Build View Service
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: ./query-container/view-svc
-          file: ./query-container/view-svc/Dockerfile
-          platforms: linux/amd64, linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/query-container-view-svc:${{ inputs.tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/view-svc:cache
-          push: true
+      - name: Build and Push to GHCR
+        run: |
+          cd ${{ matrix.component.path }}
+          DOCKER_TAG_VERSION=${{ inputs.tag }} \
+          IMAGE_PREFIX=${{ inputs.image_prefix }} \
+          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          make 
 
   build-control-plane:
     runs-on: ubuntu-latest
@@ -113,6 +114,20 @@ jobs:
     permissions:
       packages: write
       contents: read
+    strategy:
+      matrix:
+        component: [
+          { 
+            label: 'Management API',
+            path: 'control-planes/mgmt_api', 
+            name: 'api'
+          },
+          { 
+            label: 'k8s Resource Provider',
+            path: 'control-planes/kubernetes_provider', 
+            name: 'kubernetes-provider'
+          }
+        ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -131,30 +146,23 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+     
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-${{ matrix.component.name }}
+          restore-keys: |
+            buildx-${{ matrix.component.name }}
       
-      - name: Build Management API
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: '.'
-          file: ./control-planes/mgmt_api/Dockerfile
-          platforms: linux/amd64, linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/api:${{ inputs.tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/api:cache,mode=max
-          push: true
+      - name: Build and Push to GHCR
+        run: |
+          cd ${{ matrix.component.path }}
+          DOCKER_TAG_VERSION=${{ inputs.tag }} \
+          IMAGE_PREFIX=${{ inputs.image_prefix }} \
+          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          make
 
-      - name: Build k8s Resource Provider
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
-        with:
-          context: ./control-planes
-          file: ./control-planes/kubernetes_provider/Dockerfile
-          platforms: linux/amd64, linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/kubernetes-provider:${{ inputs.tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kubernetes-provider:cache,mode=max
-          push: true
 
   build-sources:
     runs-on: ubuntu-latest
@@ -167,83 +175,59 @@ jobs:
         component: [
           { 
             label: 'Change Router',
-            context: '.', 
-            file: './sources/shared/change-router/Dockerfile', 
-            name: 'source-change-router', 
-            platforms: 'linux/amd64,linux/arm64'
+            path: 'sources/shared/change-router', 
+            name: 'source-change-router'
           },
           { 
             label: 'Change Dispatcher',
-            context: '.', 
-            file: './sources/shared/change-dispatcher/Dockerfile', 
-            name: 'source-change-dispatcher', 
-            platforms: 'linux/amd64,linux/arm64'
+            path: 'sources/shared/change-dispatcher', 
+            name: 'source-change-dispatcher'
           },
           { 
             label: 'Query API',
-            context: '.', 
-            file: './sources/shared/query-api/Dockerfile', 
-            name: 'source-query-api', 
-            platforms: 'linux/amd64,linux/arm64'
+            path: 'sources/shared/query-api', 
+            name: 'source-query-api' 
           },
           { 
             label: 'Debezium Reactivator',
-            context: './sources/relational/debezium-reactivator', 
-            file: './sources/relational/debezium-reactivator/Dockerfile', 
-            name: 'source-debezium-reactivator', 
-            platforms: 'linux/amd64,linux/arm64' 
+            path: 'sources/relational/debezium-reactivator', 
+            name: 'source-debezium-reactivator'
           },
           { 
             label: 'SQL Proxy',
-            context: './sources/relational/sql-proxy', 
-            file: './sources/relational/sql-proxy/Dockerfile', 
-            name: 'source-sql-proxy', 
-            platforms: 'linux/amd64,linux/arm64'
+            path: 'sources/relational/sql-proxy', 
+            name: 'source-sql-proxy' 
           },
 
           { 
             label: 'CosmosDB Reactivator',
-            context: './sources/cosmosdb/cosmosdb-ffcf-reactivator', 
-            file: './sources/cosmosdb/cosmosdb-ffcf-reactivator/Dockerfile', 
-            name: 'source-cosmosdb-reactivator', 
-            platforms: 'linux/amd64,linux/arm64' 
+            path: './sources/cosmosdb/cosmosdb-ffcf-reactivator', 
+            name: 'source-cosmosdb-reactivator'
           },
           { 
             label: 'Gremlin Proxy',
-            context: './sources/cosmosdb/gremlin-proxy', 
-            file: './sources/cosmosdb/gremlin-proxy/Dockerfile', 
-            name: 'source-gremlin-proxy', 
-            platforms: 'linux/amd64,linux/arm64'
+            path: 'sources/cosmosdb/gremlin-proxy', 
+            name: 'source-gremlin-proxy'
           },
-
           { 
             label: 'Dataverse Reactivator',
-            context: './sources/dataverse/dataverse-reactivator', 
-            file: './sources/dataverse/dataverse-reactivator/Dockerfile', 
-            name: 'source-dataverse-reactivator', 
-            platforms: 'linux/amd64,linux/arm64' 
+            path: './sources/dataverse/dataverse-reactivator',
+            name: 'source-dataverse-reactivator'
           },
           { 
             label: 'Dataverse Proxy',
-            context: './sources/dataverse/dataverse-proxy', 
-            file: './sources/dataverse/dataverse-proxy/Dockerfile', 
-            name: 'source-dataverse-proxy', 
-            platforms: 'linux/amd64,linux/arm64' 
+            path: './sources/dataverse/dataverse-proxy', 
+            name: 'source-dataverse-proxy'
           },
-
           { 
             label: 'EventHub Reactivator',
-            context: './sources/eventhub/eventhub-reactivator', 
-            file: './sources/eventhub/eventhub-reactivator/Dockerfile', 
-            name: 'source-eventhub-reactivator', 
-            platforms: 'linux/amd64,linux/arm64' 
+            path: './sources/eventhub/eventhub-reactivator', 
+            name: 'source-eventhub-reactivator'
           },
           { 
             label: 'EventHub Proxy',
-            context: './sources/eventhub/eventhub-proxy', 
-            file: './sources/eventhub/eventhub-proxy/Dockerfile', 
-            name: 'source-eventhub-proxy', 
-            platforms: 'linux/amd64,linux/arm64' 
+            path: './sources/eventhub/eventhub-proxy', 
+            name: 'source-eventhub-proxy'
           }
         ]
 
@@ -265,17 +249,22 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build and push
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
         with:
-          context: ${{ matrix.component.context }}
-          file: ${{ matrix.component.file }}
-          platforms: ${{ matrix.component.platforms }}
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:${{ inputs.tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache,mode=max
-          push: true
+          path: /tmp/.buildx-cache
+          key: buildx-${{ matrix.component.name }}
+          restore-keys: |
+            buildx-${{ matrix.component.name }}
+
+      - name: Build and Push to GHCR
+        run: |
+          cd ${{ matrix.component.path }}
+          DOCKER_TAG_VERSION=${{ inputs.tag }} \
+          IMAGE_PREFIX=${{ inputs.image_prefix }} \
+          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          make
 
   build-reactions:
     needs: validate
@@ -288,65 +277,56 @@ jobs:
         component: [
           { 
             label: 'SignalR',
-            context: './reactions/signalr/signalr-reaction', 
-            file: './reactions/signalr/signalr-reaction/Dockerfile', 
-            name: 'reaction-signalr', 
+            path: 'reactions/signalr/signalr-reaction', 
+            name: 'reaction-signalr',
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Dataverse',
-            context: './reactions/power-platform/dataverse/dataverse-reaction', 
-            file: './reactions/power-platform/dataverse/dataverse-reaction/Dockerfile', 
-            name: 'reaction-dataverse', 
+            path: './reactions/power-platform/dataverse/dataverse-reaction', 
+            name: 'reaction-dataverse',
             platforms: 'linux/amd64'
           },
           { 
             label: 'Debezium',
-            context: './reactions/debezium/debezium-reaction', 
-            file: './reactions/debezium/debezium-reaction/Dockerfile', 
-            name: 'reaction-debezium', 
+            path: './reactions/debezium/debezium-reaction', 
+            name: 'reaction-debezium',
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Debug',
-            context: './reactions/platform/debug-reaction', 
-            file: './reactions/platform/debug-reaction/Dockerfile', 
-            name: 'reaction-debug', 
+            path: './reactions/platform/debug-reaction', 
+            name: 'reaction-debug',
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'EventGrid',
-            context: './reactions/azure/eventgrid-reaction', 
-            file: './reactions/azure/eventgrid-reaction/Dockerfile', 
-            name: 'reaction-eventgrid', 
+            path: './reactions/azure/eventgrid-reaction',
+            name: 'reaction-eventgrid',
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Gremlin',
-            context: './reactions/gremlin/gremlin-reaction', 
-            file: './reactions/gremlin/gremlin-reaction/Dockerfile', 
-            name: 'reaction-gremlin', 
+            path: './reactions/gremlin/gremlin-reaction', 
+            name: 'reaction-gremlin',
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'Result',
-            context: './reactions/platform/result-reaction', 
-            file: './reactions/platform/result-reaction/Dockerfile', 
-            name: 'reaction-result', 
+            path: './reactions/platform/result-reaction', 
+            name: 'reaction-result',
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'StorageQueue',
-            context: './reactions/azure/storagequeue-reaction', 
-            file: './reactions/azure/storagequeue-reaction/Dockerfile', 
-            name: 'reaction-storagequeue', 
+            path: './reactions/azure/storagequeue-reaction', 
+            name: 'reaction-storagequeue',
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
             label: 'StoredProc',
-            context: './reactions/sql/storedproc-reaction', 
-            file: './reactions/sql/storedproc-reaction/Dockerfile', 
-            name: 'reaction-storedproc', 
+            path: './reactions/sql/storedproc-reaction', 
+            name: 'reaction-storedproc',
             platforms: 'linux/amd64,linux/arm64'
           }
         ]
@@ -369,17 +349,22 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
      
-      - name: Build and push
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      - name: Cache Docker layers
+        uses: actions/cache@v4
         with:
-          context: ${{ matrix.component.context }}
-          file: ${{ matrix.component.file }}
-          platforms: ${{ matrix.component.platforms }}
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:${{ inputs.tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.component.name }}:cache,mode=max
-          push: true
-  
+          path: /tmp/.buildx-cache
+          key: buildx-${{ matrix.component.name }}
+          restore-keys: |
+            buildx-${{ matrix.component.name }}
+
+      - name: Build and Push to GHCR
+        run: |
+          cd ${{ matrix.component.path }}
+          DOCKER_TAG_VERSION=${{ inputs.tag }} \
+          IMAGE_PREFIX=${{ inputs.image_prefix }} \
+          DOCKERX_OPTS="--push --platform ${{ matrix.component.platforms }} --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          make
+
   build-cli:
     runs-on: ubuntu-latest
     needs: validate
