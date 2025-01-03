@@ -12,97 +12,76 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-﻿
-using EventgridReaction.Models;
+using Drasi.Reactions.EventGrid.Models.Unpacked;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 using System.Text.Json;
 
-namespace EventgridReaction.Services
+namespace Drasi.Reactions.EventGrid.Services
 {
     public class ChangeFormatter : IChangeFormatter
     {
-        public IEnumerable<ChangeNotification> FormatAdd(string queryId, JsonElement.ArrayEnumerator input)
+        public IEnumerable<ChangeNotification> Format(ChangeEvent evt)
         {
             var result = new List<ChangeNotification>();
-            foreach (var inputItem in input)
+            foreach (var inputItem in evt.AddedResults)
             {
                 var outputItem = new ChangeNotification
                 {
-                    Op = "i",
-                    TimestampMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    Schema = "",
-                    Payload = new ChangePayload()
+                    Op = ChangeNotificationOp.I,
+                    TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    Payload = new PayloadClass()
                     {
-                        Source = new ChangeSource()
+                        Source = new SourceClass()
                         {
-                            Db = "Drasi",
-                            Table = queryId
+                            QueryId = evt.QueryId,
+                            TsMs = evt.SourceTimeMs
                         },
-                        Before = null,
                         After = inputItem
                     }
                 };
-
                 result.Add(outputItem);
             }
 
-            return result;
-        }
-
-        public IEnumerable<ChangeNotification> FormatUpdate(string queryId, JsonElement.ArrayEnumerator input)
-        {
-            var result = new List<ChangeNotification>();
-            foreach (var inputItem in input)
+            foreach (var inputItem in evt.UpdatedResults)
             {
                 var outputItem = new ChangeNotification
                 {
-                    Op = "u",
-                    TimestampMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    Schema = "",
-                    Payload = new ChangePayload()
+                    Op = ChangeNotificationOp.U,
+                    TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    Payload = new PayloadClass()
                     {
-                        Source = new ChangeSource()
+                        Source = new SourceClass()
                         {
-                            Db = "Drasi",
-                            Table = queryId
+                            QueryId = evt.QueryId,
+                            TsMs = evt.SourceTimeMs
                         },
-                        Before = inputItem.GetProperty("before"),
-                        After = inputItem.GetProperty("after")
+                        Before = inputItem.Before,
+                        After = inputItem.After
                     }
                 };
-
                 result.Add(outputItem);
             }
 
-            return result;
-        }
-
-        public IEnumerable<ChangeNotification> FormatDelete(string queryId, JsonElement.ArrayEnumerator input)
-        {
-            var result = new List<ChangeNotification>();
-            foreach (var inputItem in input)
+            foreach (var inputItem in evt.DeletedResults)
             {
                 var outputItem = new ChangeNotification
                 {
-                    Op = "d",
-                    TimestampMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    Schema = "",
-                    Payload = new ChangePayload()
+                    Op = ChangeNotificationOp.D,
+                    TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    Payload = new PayloadClass()
                     {
-                        Source = new ChangeSource()
+                        Source = new SourceClass()
                         {
-                            Db = "Drasi",
-                            Table = queryId
+                            QueryId = evt.QueryId,
+                            TsMs = evt.SourceTimeMs
                         },
-                        Before = inputItem,
-                        After = null
+                        Before = inputItem
                     }
                 };
-
                 result.Add(outputItem);
             }
 
             return result;
-        }
-
+        }        
     }
 }
