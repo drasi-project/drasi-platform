@@ -1,0 +1,174 @@
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devops-data-init
+data:
+  init.sql: >
+    CREATE TABLE IF NOT EXISTS public."RiskyImage"
+        (
+            "Id" integer NOT NULL,
+            "Image" character varying(100) COLLATE pg_catalog."default" NOT NULL,
+            "Reason" character varying(100) COLLATE pg_catalog."default",
+            CONSTRAINT "RiskyImage_pkey" PRIMARY KEY ("Id")
+        );
+
+        insert into "RiskyImage" ("Id", "Image", "Reason") values (1, 'drasidemo.azurecr.io/my-app:0.1', 'Security Risk');
+        insert into "RiskyImage" ("Id", "Image", "Reason") values (2, 'docker.io/library/redis:6.2.3-alpine', 'Compliance Issue');
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devops-pg-config
+  labels:
+    app: devops-pg
+data:
+  POSTGRES_DB: devops
+  POSTGRES_USER: test
+  POSTGRES_PASSWORD: test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-pg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-pg
+  template:
+    metadata:
+      labels:
+        app: devops-pg
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          args: ["-c", "wal_level=logical"]
+          volumeMounts:
+            - name: init
+              mountPath: "/docker-entrypoint-initdb.d"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: devops-pg-config
+      volumes:
+        - name: init
+          configMap:
+            name: devops-data-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-pg
+  labels:
+    app: devops-pg
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+  selector:
+    app: devops-pg
+---
+apiVersion: v1
+kind: Source
+name: devops
+spec:
+  kind: PostgreSQL
+  properties:
+    host: devops-pg.default.svc.cluster.local
+    port: 5432
+    user: test
+    password: test
+    database: devops
+    ssl: false
+    tables:
+      - public.RiskyImage
+---
+apiVersion: v1
+kind: Source
+name: k8s
+spec:
+  kind: Kubernetes
+  properties:
+    kubeConfig:
+      kind: Secret
+      name: k8s-context
+      key: context
+---
+apiVersion: v1
+kind: ContinuousQuery
+name: risky-containers
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: k8s
+        nodes:
+          - sourceLabel: Pod
+        pipeline:
+          - extract-containers
+      - id: devops
+        nodes:
+          - sourceLabel: RiskyImage
+    joins:
+      - id: HAS_IMAGE
+        keys:
+          - label: RiskyImage
+            property: Image
+          - label: Container
+            property: image
+    middleware:
+      - kind: unwind
+        name: extract-containers
+        Pod:
+          - selector: $.status.containerStatuses[*]
+            label: Container
+            key: $.containerID
+            relation: OWNS
+
+  query: >
+    MATCH
+      (p:Pod)-[:OWNS]->(c:Container)-[:HAS_IMAGE]->(i:RiskyImage)
+    RETURN
+      p.name as pod,
+      c.image as image,
+      c.name as name,
+      c.ready as ready,
+      c.started as started,
+      c.restartCount as restartCount,
+      i.Reason as reason
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-1
+spec:
+  containers:
+    - name: app
+      image: "drasidemo.azurecr.io/my-app:0.1"
+      imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-2
+spec:
+  containers:
+    - name: app
+      image: "drasidemo.azurecr.io/my-app:0.2"
+      imagePullPolicy: Always
