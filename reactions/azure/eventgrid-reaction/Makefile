@@ -1,4 +1,4 @@
-.PHONY: default docker-build kind-load
+.PHONY: default docker-build kind-load generate-types
 
 CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
@@ -18,3 +18,8 @@ test:
 
 lint-check:
 	@echo "No lint checks to run yet"
+
+generate-types:
+	npm run clean --prefix ../../../typespec
+	npm run build ./output-unpacked --prefix ../../../typespec
+	quicktype --src-lang schema -l cs -o Models/Unpacked.generated.cs ../../../typespec/output-unpacked/_generated/@typespec/json-schema/*.yaml --framework SystemTextJson --namespace Drasi.Reactions.EventGrid.Models.Unpacked
