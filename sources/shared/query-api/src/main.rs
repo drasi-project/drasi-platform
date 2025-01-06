@@ -12,17 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use api::{
-    v2::AcquireRequest, ControlEvent, Source, SubscriptionPayload, SubscriptionRequest,
-    UnsubscriptionRequest,
-};
+use api::{v2::AcquireRequest, ControlEvent, Source, SubscriptionPayload, SubscriptionRequest};
 use async_stream::stream;
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     response::Json,
-    routing::post,
+    routing::{delete, post},
     Router,
 };
 use axum_streams::StreamBodyAs;
@@ -81,7 +78,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .route("/subscription", post(handle_subscription))
-        .route("/unsubscription", post(handle_unsubscription))
+        .route(
+            "/subscription/:queryNodeId/:queryId",
+            delete(handle_unsubscription),
+        )
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
@@ -158,14 +158,11 @@ async fn handle_subscription(
 async fn handle_unsubscription(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Json(unsubscription_request): Json<UnsubscriptionRequest>,
+    Path((query_node_id, query_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    log::info!(
-        "Creating new unsubscription for query_id: {}",
-        unsubscription_request.query_id
-    );
+    log::info!("Creating new unsubscription for query_id: {}", query_id);
 
-    if let Err(err) = dispatch_unsubscription_event(&unsubscription_request, &state).await {
+    if let Err(err) = dispatch_unsubscription_event(&query_node_id, &query_id, &state).await {
         return err;
     }
 
@@ -208,21 +205,30 @@ async fn dispatch_control_event(
 }
 
 async fn dispatch_unsubscription_event(
-    unsubscription_request: &UnsubscriptionRequest,
+    query_node_id: &str,
+    query_id: &str,
     state: &Arc<AppState>,
 ) -> Result<(), axum::http::Response<axum::body::Body>> {
     let publisher = &state.publisher;
-    let unsubscription_event = api::UnsubscriptionEvent {
-        payload: api::UnsubscriptionPayload {
-            source: api::Source {
+    let request = SubscriptionRequest {
+        query_id: query_id.to_string(),
+        query_node_id: query_node_id.to_string(),
+        node_labels: vec![],
+        rel_labels: vec![],
+    };
+    let control_event = ControlEvent {
+        op: "d".to_string(),
+        ts_ms: Utc::now().timestamp_millis() as u64,
+        payload: SubscriptionPayload {
+            source: Source {
                 db: "Drasi".to_string(),
-                table: "SourceUnsubscription".to_string(),
+                table: "SourceSubscription".to_string(),
             },
-            query_id: unsubscription_request.query_id.clone(),
-            query_node_id: unsubscription_request.query_node_id.clone(),
+            before: None,
+            after: request.clone(),
         },
     };
-    let unsubscription_event_json = json!([unsubscription_event]);
+    let unsubscription_event_json = json!([control_event]);
     match publisher
         .publish(
             unsubscription_event_json,

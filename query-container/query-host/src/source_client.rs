@@ -92,23 +92,18 @@ impl SourceClient {
         subscription_id: String,
     ) -> Result<(), UnsubscriptionError> {
         let app_id = format!("{}-query-api", subscription_id);
-        let data = json!({
-            "queryNodeId": query_container_id,
-            "queryId": query_id,
-        });
         
         let resp = match self
             .client
-            .post(format!("http://{}/unsubscription", app_id))
-            .json(&data)
+            .delete(format!("http://{}/subscription/{}/{}", app_id, query_container_id, query_id))
             .send()
             .await
         {
             Ok(resp) => resp,
             Err(e) => {
                 return Err(UnsubscriptionError::UnsubscribeFailed(format!(
-                    "Failed to unsubscribe from query node '{}': {}",
-                    query_id, e
+                    "Failed to unsubscribe from app '{}': {}",
+                    app_id, e
                 )))
             }
         };

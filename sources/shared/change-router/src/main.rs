@@ -271,147 +271,142 @@ async fn process_changes(
             );
             debug!("ChangeEvent: {}", change);
 
-            // Bootstrap
-            if change["payload"]["source"]["db"] == "Drasi" {
-                match change["payload"]["source"]["table"].as_str() {
-                    Some("SourceSubscription") => {
-                        if change["op"] == "i" {
-                            info!(
-                                "Activating new SourceSubscription: id:{}",
-                                change["payload"]["after"]["id"]
-                            );
-                            let node_labels: Vec<&str> =
-                                match change["payload"]["after"]["nodeLabels"].as_array() {
-                                    Some(labels) => labels
-                                        .iter()
-                                        .map(|label| label.as_str().unwrap_or(""))
-                                        .collect(),
-                                    None => {
-                                        log::error!(
-                                            "Error loading nodeLabels from the ChangeEvent: {:?}",
-                                            change
-                                        );
-                                        log::error!("Error path: 'payload' -> 'after' -> 'nodeLabels'");
-                                        continue;
-                                    }
-                                };
-                            node_subscriber.add_labels(
-                                node_labels,
-                                match change["payload"]["after"]["queryNodeId"].as_str() {
-                                    Some(query_node_id) => query_node_id,
-                                    None => {
-                                        log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
-                                        log::error!("The queryNodeId field must be a valid string");
-                                        log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
-                                        continue;
-                                    }
-                                },
-                                match change["payload"]["after"]["queryId"].as_str() {
-                                    Some(query_id) => query_id,
-                                    None => {
-                                        log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
-                                        log::error!("The queryId field must be a valid string");
-                                        log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
-                                        continue;
-                                    }
+            // Subscription and unsubscription events
+            if change["payload"]["source"]["db"] == "Drasi" && change["payload"]["source"]["table"] == "SourceSubscription" {
+                match change["op"].as_str() {
+                    Some("i") => {  // Handle SourceSubscription
+                        info!(
+                            "Activating new SourceSubscription: id:{}",
+                            change["payload"]["after"]["id"]
+                        );
+                        let node_labels: Vec<&str> =
+                            match change["payload"]["after"]["nodeLabels"].as_array() {
+                                Some(labels) => labels
+                                    .iter()
+                                    .map(|label| label.as_str().unwrap_or(""))
+                                    .collect(),
+                                None => {
+                                    log::error!(
+                                        "Error loading nodeLabels from the ChangeEvent: {:?}",
+                                        change
+                                    );
+                                    log::error!("Error path: 'payload' -> 'after' -> 'nodeLabels'");
+                                    continue;
                                 }
-                            );
-                            let rel_labels: Vec<&str> =
-                                match change["payload"]["after"]["relLabels"].as_array() {
-                                    Some(labels) => labels
-                                        .iter()
-                                        .map(|label| label.as_str().unwrap_or(""))
-                                        .collect(),
-                                    None => {
-                                        log::error!(
-                                            "Error loading relLabels from the ChangeEvent: {:?}",
-                                            change
-                                        );
-                                        log::error!("Error path: 'payload' -> 'after' -> 'relLabels'");
-                                        continue;
-                                    }
-                                };
-                            rel_subscriber.add_labels(
-                                rel_labels,
-                                match change["payload"]["after"]["queryNodeId"].as_str() {
-                                    Some(query_node_id) => query_node_id,
-                                    None => {
-                                        log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
-                                        log::error!("The queryNodeId field must be a valid string");
-                                        log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
-                                        continue;
-                                    }
-                                },
-                                match change["payload"]["after"]["queryId"].as_str() {
-                                    Some(query_id) => query_id,
-                                    None => {
-                                        log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
-                                        log::error!("The queryId field must be a valid string");
-                                        log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
-                                        continue;
-                                    }
+                            };
+                        node_subscriber.add_labels(
+                            node_labels,
+                            match change["payload"]["after"]["queryNodeId"].as_str() {
+                                Some(query_node_id) => query_node_id,
+                                None => {
+                                    log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
+                                    log::error!("The queryNodeId field must be a valid string");
+                                    log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
+                                    continue;
                                 }
-                            );
-    
-                            let source_subscription_value = json!({
-                                "type": "SourceSubscription",
-                                "queryId": change["payload"]["after"]["queryId"],
-                                "queryNodeId": change["payload"]["after"]["queryNodeId"],
-                                "nodeLabels": change["payload"]["after"]["nodeLabels"],
-                                "relLabels": change["payload"]["after"]["relLabels"]
-                            });
-    
-                            let state_key = format!(
-                                "SourceSubscription-{}-{}",
-                                match change["payload"]["after"]["queryNodeId"].as_str() {
-                                    Some(query_node_id) => query_node_id,
-                                    None =>
-                                        return Err(Box::<dyn std::error::Error>::from(
-                                            "Error loading queryNodeId from the ChangeEvent"
-                                        )),
-                                },
-                                match change["payload"]["after"]["queryId"].as_str() {
-                                    Some(query_id) => query_id,
-                                    None =>
-                                        return Err(Box::<dyn std::error::Error>::from(
-                                            "Error loading queryId from the ChangeEvent"
-                                        )),
-                                }
-                            );
-    
-                            // combine statekey and source_subscription_value into a json
-                            // where the key is the state key and the value is the source subscription value
-                            let states = vec![StateEntry::new(&state_key, source_subscription_value)];
-    
-                            match state_manager.save_state(states).await {
-                                Ok(_) => info!("Saved SourceSubscription to state store"),
-                                Err(e) => {
-                                    return Err(e);
+                            },
+                            match change["payload"]["after"]["queryId"].as_str() {
+                                Some(query_id) => query_id,
+                                None => {
+                                    log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
+                                    log::error!("The queryId field must be a valid string");
+                                    log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
+                                    continue;
                                 }
                             }
-                        } else {
-                            // TODO - supprt other ops on SourceSubscriptions
-                        }
-                    },
-                    Some("SourceUnsubscription") => {
-                        // Handle SourceUnsubscription
-                        let state_key = format!(
-                                "SourceSubscription-{}-{}",
-                                match change["payload"]["queryNodeId"].as_str() {
-                                    Some(query_node_id) => query_node_id,
-                                    None =>
-                                        return Err(Box::<dyn std::error::Error>::from(
-                                            "Error loading queryNodeId from the ChangeEvent"
-                                        )),
-                                },
-                                match change["payload"]["queryId"].as_str() {
-                                    Some(query_id) => query_id,
-                                    None =>
-                                        return Err(Box::<dyn std::error::Error>::from(
-                                            "Error loading queryId from the ChangeEvent"
-                                        )),
+                        );
+                        let rel_labels: Vec<&str> =
+                            match change["payload"]["after"]["relLabels"].as_array() {
+                                Some(labels) => labels
+                                    .iter()
+                                    .map(|label| label.as_str().unwrap_or(""))
+                                    .collect(),
+                                None => {
+                                    log::error!(
+                                        "Error loading relLabels from the ChangeEvent: {:?}",
+                                        change
+                                    );
+                                    log::error!("Error path: 'payload' -> 'after' -> 'relLabels'");
+                                    continue;
                                 }
-                            );
+                            };
+                        rel_subscriber.add_labels(
+                            rel_labels,
+                            match change["payload"]["after"]["queryNodeId"].as_str() {
+                                Some(query_node_id) => query_node_id,
+                                None => {
+                                    log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
+                                    log::error!("The queryNodeId field must be a valid string");
+                                    log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
+                                    continue;
+                                }
+                            },
+                            match change["payload"]["after"]["queryId"].as_str() {
+                                Some(query_id) => query_id,
+                                None => {
+                                    log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
+                                    log::error!("The queryId field must be a valid string");
+                                    log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
+                                    continue;
+                                }
+                            }
+                        );
+
+                        let source_subscription_value = json!({
+                            "type": "SourceSubscription",
+                            "queryId": change["payload"]["after"]["queryId"],
+                            "queryNodeId": change["payload"]["after"]["queryNodeId"],
+                            "nodeLabels": change["payload"]["after"]["nodeLabels"],
+                            "relLabels": change["payload"]["after"]["relLabels"]
+                        });
+
+                        let state_key = format!(
+                            "SourceSubscription-{}-{}",
+                            match change["payload"]["after"]["queryNodeId"].as_str() {
+                                Some(query_node_id) => query_node_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryNodeId from the ChangeEvent"
+                                    )),
+                            },
+                            match change["payload"]["after"]["queryId"].as_str() {
+                                Some(query_id) => query_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryId from the ChangeEvent"
+                                    )),
+                            }
+                        );
+
+                        // combine statekey and source_subscription_value into a json
+                        // where the key is the state key and the value is the source subscription value
+                        let states = vec![StateEntry::new(&state_key, source_subscription_value)];
+
+                        match state_manager.save_state(states).await {
+                            Ok(_) => info!("Saved SourceSubscription to state store"),
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+                    }, 
+                    Some("d") => {  // Handle unsubscription
+                        let state_key = format!(
+                            "SourceSubscription-{}-{}",
+                            match change["payload"]["after"]["queryNodeId"].as_str() {
+                                Some(query_node_id) => query_node_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryNodeId from the ChangeEvent"
+                                    )),
+                            },
+                            match change["payload"]["after"]["queryId"].as_str() {
+                                Some(query_id) => query_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryId from the ChangeEvent"
+                                    )),
+                            }
+                        );
                         match state_manager.delete_state(&state_key, None).await {
                             Ok(_) => info!("Deleted Subscription {} from state store", state_key),
                             Err(e) => {
@@ -420,7 +415,7 @@ async fn process_changes(
                         }
                     },
                     _ => {
-                        log::info!("Unknown table: {}", change["payload"]["source"]["table"]);
+                        // TODO - supprt other ops on SourceSubscriptions
                     }
                 }
                 return Ok(());

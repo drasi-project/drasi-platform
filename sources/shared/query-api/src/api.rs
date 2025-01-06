@@ -26,33 +26,11 @@ pub struct SubscriptionRequest {
     pub rel_labels: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct UnsubscriptionRequest {
-    #[serde(rename = "queryId")]
-    pub query_id: String,
-    #[serde(rename = "queryNodeId")]
-    pub query_node_id: String,
-}
-
 #[derive(Serialize)]
 pub struct ControlEvent {
     pub op: String,
     pub ts_ms: u64,
     pub payload: SubscriptionPayload,
-}
-
-#[derive(Serialize)]
-pub struct UnsubscriptionEvent {
-    pub payload: UnsubscriptionPayload,
-}
-
-#[derive(Serialize)]
-pub struct UnsubscriptionPayload {
-    pub source: Source,
-    #[serde(rename = "queryId")]
-    pub query_id: String,
-    #[serde(rename = "queryNodeId")]
-    pub query_node_id: String,
 }
 
 #[derive(Serialize)]
