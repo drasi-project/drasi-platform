@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Source
+name: test-source
+spec:
+  kind: MySource
+  properties:
+    connectionString: "my-connection-string"
+  

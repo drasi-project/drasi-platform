@@ -37,7 +37,7 @@ const images = [
 
   "drasi-project/reaction-signalr",
   "drasi-project/reaction-storedproc",
-  //"drasi-project/reaction-gremlin",
+  "drasi-project/reaction-gremlin",
 ];
 
 async function loadDrasiImages(clusterName) {
