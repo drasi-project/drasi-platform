@@ -272,9 +272,12 @@ async fn process_changes(
             debug!("ChangeEvent: {}", change);
 
             // Subscription and unsubscription events
-            if change["payload"]["source"]["db"] == "Drasi" && change["payload"]["source"]["table"] == "SourceSubscription" {
+            if change["payload"]["source"]["db"] == "Drasi"
+                && change["payload"]["source"]["table"] == "SourceSubscription"
+            {
                 match change["op"].as_str() {
-                    Some("i") => {  // Handle SourceSubscription
+                    Some("i") => {
+                        // Handle SourceSubscription
                         info!(
                             "Activating new SourceSubscription: id:{}",
                             change["payload"]["after"]["id"]
@@ -388,8 +391,9 @@ async fn process_changes(
                                 return Err(e);
                             }
                         }
-                    }, 
-                    Some("d") => {  // Handle unsubscription
+                    }
+                    Some("d") => {
+                        // Handle unsubscription
                         let state_key = format!(
                             "SourceSubscription-{}-{}",
                             match change["payload"]["before"]["queryNodeId"].as_str() {
@@ -413,7 +417,7 @@ async fn process_changes(
                                 return Err(e);
                             }
                         }
-                    },
+                    }
                     _ => {
                         // TODO - supprt other ops on SourceSubscriptions
                     }

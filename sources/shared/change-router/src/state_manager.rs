@@ -112,9 +112,8 @@ impl DaprStateManager {
         }
     }
 
-
     pub async fn delete_state(
-        &self, 
+        &self,
         key: &str,
         metadata: Option<HashMap<String, String>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -124,14 +123,15 @@ impl DaprStateManager {
             .expect("Unable to connect to Dapr");
 
         let response = match dapr_client
-                            .delete_state(&self.store_name, &key.to_string(), metadata)
-                            .await {
-                                Ok(_) => (),
-                                Err(e) => {
-                                    log::error!("Error deleting the Dapr state store: {:?}", e);
-                                    return Err(Box::new(e));
-                                }
-                            };
+            .delete_state(&self.store_name, &key.to_string(), metadata)
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                log::error!("Error deleting the Dapr state store: {:?}", e);
+                return Err(Box::new(e));
+            }
+        };
 
         Ok(())
     }
