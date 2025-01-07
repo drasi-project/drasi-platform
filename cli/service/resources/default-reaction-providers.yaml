@@ -66,6 +66,9 @@ spec:
         type: string
       eventGridKey:
         type: string
+      eventGridSchema:
+        type: string
+        default: CloudEvents
     required:
       - eventGridUri
 ---

@@ -33,12 +33,19 @@ public class ChangeHandler : IChangeEventHandler
     private readonly IChangeFormatter _formatter;
     private readonly ILogger<ChangeHandler> _logger;
 
+    private readonly string _eventGridSchema;
+
     public ChangeHandler(EventGridPublisherClient publisherClient,IConfiguration config, IChangeFormatter formatter, ILogger<ChangeHandler> logger)
     {
         _publisherClient = publisherClient;
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _formatter = formatter;
         _logger = logger;
+        _eventGridSchema = config.GetValue<string>("eventGridSchema").ToLower();
+        if (_eventGridSchema != "eventgrid" && _eventGridSchema != "cloudevents")
+        {
+            throw new ArgumentException("Invalid event grid schema. Supported schemas are 'EventGrid' and 'CloudEvents'.");
+        }
     }
 
     public async Task HandleChange(ChangeEvent evt, object? queryConfig)
@@ -47,27 +54,53 @@ public class ChangeHandler : IChangeEventHandler
         switch(_format)
         {
             case OutputFormat.Packed:
-                CloudEvent egEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", _formatter.Format(evt));
-                var resp = await _publisherClient.SendEventAsync(egEvent);
-                if (resp.IsError) 
-                {
-                    _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
-                    throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                if (_eventGridSchema == "cloudevents") {
+                    CloudEvent cloudEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", _formatter.Format(evt));
+                    var resp = await _publisherClient.SendEventAsync(cloudEvent);
+                    if (resp.IsError) 
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                    }
+                } else if (_eventGridSchema == "eventgrid") {
+                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", _formatter.Format(evt));
+                    var resp = await _publisherClient.SendEventAsync(egEvent);
+                    if (resp.IsError) 
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                    }
                 }
                 break;
+                
             case OutputFormat.Unpacked:
                 var formattedResults = _formatter.Format(evt);
-                List<CloudEvent> events = new List<CloudEvent>();
-                foreach (var notification in formattedResults)
-                {
-                    CloudEvent currEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", notification);
-                    events.Add(currEvent);
-                }
-                var currResp = await _publisherClient.SendEventsAsync(events);
-                if (currResp.IsError) 
-                {
-                    _logger.LogError($"Error sending message to Event Grid: {currResp.Content.ToString()}");
-                    throw new Exception($"Error sending message to Event Grid: {currResp.Content.ToString()}");
+                if (_eventGridSchema == "eventgrid") {
+                    List<EventGridEvent> events = new List<EventGridEvent>();
+                    foreach (var notification in formattedResults)
+                    {
+                        EventGridEvent currEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", notification);
+                        events.Add(currEvent);
+                    }
+                    var currResp = await _publisherClient.SendEventsAsync(events);
+                    if (currResp.IsError) 
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {currResp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {currResp.Content.ToString()}");
+                    }
+                } else if (_eventGridSchema == "cloudevents") {
+                    List<CloudEvent> events = new List<CloudEvent>();
+                    foreach (var notification in formattedResults)
+                    {
+                        CloudEvent currEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", notification);
+                        events.Add(currEvent);
+                    }
+                    var currResp = await _publisherClient.SendEventsAsync(events);
+                    if (currResp.IsError) 
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {currResp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {currResp.Content.ToString()}");
+                    }
                 }
             
                 break;
