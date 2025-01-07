@@ -72,6 +72,12 @@ spec:
           - "CloudEvents"
           - "EventGrid"
         default: "CloudEvents"
+      format:
+        type: string
+        enum:
+          - "packed"
+          - "unpacked"
+        default: "packed"
     required:
       - eventGridUri
 ---

@@ -39,11 +39,6 @@ public class ControlSignalHandler: IControlEventHandler
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _logger = logger;
         _eventGridSchema = config.GetValue<string>("eventGridSchema").ToLower();
-        if (_eventGridSchema != "eventgrid" && _eventGridSchema != "cloudevents")
-        {
-            throw new ArgumentException("Invalid event grid schema. Supported schemas are 'EventGrid' and 'CloudEvents'.");
-        }
-        Console.WriteLine("schema: " + _eventGridSchema);
     }
 
     public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)

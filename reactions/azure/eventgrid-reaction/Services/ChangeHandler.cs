@@ -42,10 +42,6 @@ public class ChangeHandler : IChangeEventHandler
         _formatter = formatter;
         _logger = logger;
         _eventGridSchema = config.GetValue<string>("eventGridSchema").ToLower();
-        if (_eventGridSchema != "eventgrid" && _eventGridSchema != "cloudevents")
-        {
-            throw new ArgumentException("Invalid event grid schema. Supported schemas are 'EventGrid' and 'CloudEvents'.");
-        }
     }
 
     public async Task HandleChange(ChangeEvent evt, object? queryConfig)
