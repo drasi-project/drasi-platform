@@ -31,14 +31,14 @@ public class ControlSignalHandler: IControlEventHandler
 
     private readonly ILogger<ControlSignalHandler> _logger;
 
-    private readonly string _eventGridSchema;
+    private readonly EventGridSchema _eventGridSchema;
 
     public ControlSignalHandler(EventGridPublisherClient publisherClient, IConfiguration config, ILogger<ControlSignalHandler> logger)
     {
         _publisherClient = publisherClient;
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _logger = logger;
-        _eventGridSchema = config.GetValue<string>("eventGridSchema").ToLower();
+        _eventGridSchema = Enum.Parse<EventGridSchema>(config.GetValue<string>("eventGridSchema") ?? "CloudEvents", true);
     }
 
     public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
@@ -46,7 +46,7 @@ public class ControlSignalHandler: IControlEventHandler
         switch (_format)
         {
             case OutputFormat.Packed:
-                if (_eventGridSchema == "cloudevents")
+                if (_eventGridSchema == EventGridSchema.CloudEvents)
                 {
                     CloudEvent egEvent = new CloudEvent(evt.QueryId, "Drasi.ControlEvent", evt);
                     var resp = await _publisherClient.SendEventAsync(egEvent);
@@ -56,7 +56,7 @@ public class ControlSignalHandler: IControlEventHandler
                         throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
                     }
                     break;
-                } else if (_eventGridSchema == "eventgrid")
+                } else if (_eventGridSchema == EventGridSchema.EventGrid)
                 {
                     EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ControlEvent", "1", evt);
                     var resp = await _publisherClient.SendEventAsync(egEvent);
@@ -84,7 +84,7 @@ public class ControlSignalHandler: IControlEventHandler
                     }
                 };
 
-                if (_eventGridSchema == "eventgrid")
+                if (_eventGridSchema == EventGridSchema.EventGrid)
                 {
                     EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ControlSignal", "1", notification);
                     var resp = await _publisherClient.SendEventAsync(egEvent);
@@ -94,7 +94,7 @@ public class ControlSignalHandler: IControlEventHandler
                         throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
                     }
                     break;
-                } else if (_eventGridSchema == "cloudevents")
+                } else if (_eventGridSchema == EventGridSchema.CloudEvents)
                 {
                     CloudEvent unpackedEvent = new CloudEvent(evt.QueryId, "Drasi.ControlSignal", notification);
                     var dzresp = await _publisherClient.SendEventAsync(unpackedEvent);

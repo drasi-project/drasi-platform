@@ -26,6 +26,8 @@ using Microsoft.Extensions.Logging;
 // using CloudNative.CloudEvents;
 
 
+
+
 public class ChangeHandler : IChangeEventHandler
 {
     private readonly EventGridPublisherClient _publisherClient;
@@ -33,7 +35,7 @@ public class ChangeHandler : IChangeEventHandler
     private readonly IChangeFormatter _formatter;
     private readonly ILogger<ChangeHandler> _logger;
 
-    private readonly string _eventGridSchema;
+    private readonly EventGridSchema _eventGridSchema;
 
     public ChangeHandler(EventGridPublisherClient publisherClient,IConfiguration config, IChangeFormatter formatter, ILogger<ChangeHandler> logger)
     {
@@ -41,7 +43,7 @@ public class ChangeHandler : IChangeEventHandler
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _formatter = formatter;
         _logger = logger;
-        _eventGridSchema = config.GetValue<string>("eventGridSchema").ToLower();
+        _eventGridSchema = Enum.Parse<EventGridSchema>(config.GetValue<string>("eventGridSchema"));
     }
 
     public async Task HandleChange(ChangeEvent evt, object? queryConfig)
@@ -50,7 +52,7 @@ public class ChangeHandler : IChangeEventHandler
         switch(_format)
         {
             case OutputFormat.Packed:
-                if (_eventGridSchema == "cloudevents") {
+                if (_eventGridSchema == EventGridSchema.CloudEvents) {
                     CloudEvent cloudEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", _formatter.Format(evt));
                     var resp = await _publisherClient.SendEventAsync(cloudEvent);
                     if (resp.IsError) 
@@ -58,7 +60,7 @@ public class ChangeHandler : IChangeEventHandler
                         _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
                         throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
                     }
-                } else if (_eventGridSchema == "eventgrid") {
+                } else if (_eventGridSchema == EventGridSchema.EventGrid) {
                     EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", _formatter.Format(evt));
                     var resp = await _publisherClient.SendEventAsync(egEvent);
                     if (resp.IsError) 
@@ -71,7 +73,7 @@ public class ChangeHandler : IChangeEventHandler
                 
             case OutputFormat.Unpacked:
                 var formattedResults = _formatter.Format(evt);
-                if (_eventGridSchema == "eventgrid") {
+                if (_eventGridSchema == EventGridSchema.EventGrid) {
                     List<EventGridEvent> events = new List<EventGridEvent>();
                     foreach (var notification in formattedResults)
                     {
@@ -84,7 +86,7 @@ public class ChangeHandler : IChangeEventHandler
                         _logger.LogError($"Error sending message to Event Grid: {currResp.Content.ToString()}");
                         throw new Exception($"Error sending message to Event Grid: {currResp.Content.ToString()}");
                     }
-                } else if (_eventGridSchema == "cloudevents") {
+                } else if (_eventGridSchema == EventGridSchema.CloudEvents) {
                     List<CloudEvent> events = new List<CloudEvent>();
                     foreach (var notification in formattedResults)
                     {
@@ -112,3 +114,9 @@ enum OutputFormat
     Packed,
     Unpacked
 }
+
+enum EventGridSchema
+{
+    CloudEvents,
+    EventGrid
+}   
