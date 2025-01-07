@@ -104,6 +104,8 @@ spec:
   services:
     reaction:
       image: reaction-result
+      dapr:
+        app-port: "8080"
       endpoints:
         gateway:
           setting: internal
@@ -114,6 +116,11 @@ spec:
           result-portConfigKey:
             type: number
             default: 8080
+  config_schema:
+    type: object
+    properties: 
+      QueryContainerId:
+        type: string
 ---
 apiVersion: v1
 kind: ReactionProvider
