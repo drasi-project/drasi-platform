@@ -392,14 +392,14 @@ async fn process_changes(
                     Some("d") => {  // Handle unsubscription
                         let state_key = format!(
                             "SourceSubscription-{}-{}",
-                            match change["payload"]["after"]["queryNodeId"].as_str() {
+                            match change["payload"]["before"]["queryNodeId"].as_str() {
                                 Some(query_node_id) => query_node_id,
                                 None =>
                                     return Err(Box::<dyn std::error::Error>::from(
                                         "Error loading queryNodeId from the ChangeEvent"
                                     )),
                             },
-                            match change["payload"]["after"]["queryId"].as_str() {
+                            match change["payload"]["before"]["queryId"].as_str() {
                                 Some(query_id) => query_id,
                                 None =>
                                     return Err(Box::<dyn std::error::Error>::from(

@@ -183,7 +183,7 @@ async fn dispatch_control_event(
                 table: "SourceSubscription".to_string(),
             },
             before: None,
-            after: subscription_request.clone(),
+            after: Some(subscription_request.clone()),
         },
     };
     let publisher = &state.publisher;
@@ -224,8 +224,8 @@ async fn dispatch_unsubscription_event(
                 db: "Drasi".to_string(),
                 table: "SourceSubscription".to_string(),
             },
-            before: None,
-            after: request.clone(),
+            before: Some(request.clone()),
+            after: None,
         },
     };
     let unsubscription_event_json = json!([control_event]);
