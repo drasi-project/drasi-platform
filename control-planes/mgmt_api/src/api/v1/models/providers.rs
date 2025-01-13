@@ -76,6 +76,10 @@ pub enum ServiceIdentityDto {
         #[serde(rename = "accessKey")]
         access_key: ConfigValueDto,
     },
+    AwsIamRole {
+        #[serde(rename = "roleArn")]
+        role_arn: ConfigValueDto,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

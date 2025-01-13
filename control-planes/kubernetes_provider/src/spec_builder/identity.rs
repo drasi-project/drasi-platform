@@ -91,6 +91,17 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
             env_vars.insert("ACCESS_KEY".to_string(), access_key.clone());
             id_type = "AccessKey";
         }
+        ServiceIdentity::AwsIamRole { role_arn } => {
+            env_vars.insert("AWS_ROLE_ARN".to_string(), role_arn.clone());
+            id_type = "AwsIamRole";
+
+            if let Some(metadata) = spec.deployment.template.metadata.as_mut() {
+                metadata.labels.get_or_insert(BTreeMap::new()).insert(
+                    "eks.amazonaws.com/role-arn".to_string(),
+                    role_arn.clone(),
+                );
+            }
+        }
     }
 
     if let Some(pod_spec) = &mut spec.deployment.template.spec {

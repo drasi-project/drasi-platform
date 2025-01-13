@@ -93,6 +93,9 @@ impl From<ServiceIdentityDto> for ServiceIdentity {
             ServiceIdentityDto::AccessKey { access_key } => ServiceIdentity::AccessKey {
                 access_key: access_key.into(),
             },
+            ServiceIdentityDto::AwsIamRole { role_arn } => ServiceIdentity::AwsIamRole {
+                role_arn: role_arn.into(),
+            },
         }
     }
 }
@@ -121,6 +124,9 @@ impl From<ServiceIdentity> for ServiceIdentityDto {
             }
             ServiceIdentity::AccessKey { access_key } => ServiceIdentityDto::AccessKey {
                 access_key: access_key.into(),
+            },
+            ServiceIdentity::AwsIamRole { role_arn } => ServiceIdentityDto::AwsIamRole {
+                role_arn: role_arn.into(),
             },
         }
     }

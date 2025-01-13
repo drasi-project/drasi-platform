@@ -208,6 +208,10 @@ pub enum ServiceIdentity {
         #[serde(rename = "accessKey")]
         access_key: ConfigValue,
     },
+    AwsIamRole {
+        #[serde(rename = "roleArn")]
+        role_arn: ConfigValue,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
