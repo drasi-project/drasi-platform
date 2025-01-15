@@ -49,11 +49,19 @@ public class ControlSignalHandler: IControlEventHandler
         switch (_format)
         {
             case OutputFormat.Packed:
+                var cloudEvent = new CloudEvent
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Type = "Drasi.ControlEvent.Packed",
+                    Source = evt.QueryId,
+                    Data = JsonSerializer.Serialize(evt),
+                    Version = "1.0"
+                };
                 var requestEntry =  new PutEventsRequestEntry()
                 {
                     Source = evt.QueryId,
-                    Detail = JsonSerializer.Serialize(evt),
-                    DetailType = "Drasi.ControlEvent",
+                    Detail = JsonSerializer.Serialize(cloudEvent),
+                    DetailType = "Drasi.ControlEvent.Packed",
                     EventBusName = _eventBusName
                 };
                 var response = await _client.PutEventsAsync(new PutEventsRequest()
@@ -83,11 +91,19 @@ public class ControlSignalHandler: IControlEventHandler
                     }
                 };
 
+                var controlCloudEvent = new CloudEvent
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Type = "Drasi.ControlEvent.Unpacked",
+                    Source = evt.QueryId,
+                    Data = JsonSerializer.Serialize(notification),
+                    Version = "1.0"
+                };
                 var unpackedRequestEntry = new PutEventsRequestEntry()
                 {
                     Source = evt.QueryId,
-                    Detail = JsonSerializer.Serialize(notification, Reaction.SDK.Models.QueryOutput.ModelOptions.JsonOptions),
-                    DetailType = "Drasi.ControlEvent",
+                    Detail = JsonSerializer.Serialize(controlCloudEvent),
+                    DetailType = "Drasi.ControlEvent.Unpacked",
                     EventBusName = _eventBusName
                 };
 

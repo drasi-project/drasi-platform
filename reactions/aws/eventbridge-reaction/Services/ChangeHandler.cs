@@ -19,6 +19,7 @@ using Amazon.EventBridge.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
+using System;
 using System.Text.Json;
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
@@ -47,12 +48,19 @@ public class ChangeHandler : IChangeEventHandler
         switch (_format)
         {
             case OutputFormat.Packed:
-                var formattedEvent = _formatter.Format(evt);
+                var cloudEvent = new CloudEvent
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Type = "Drasi.ChangeEvent.Packed",
+                    Source = evt.QueryId,
+                    Data = _formatter.Format(evt),
+                    Version = "1.0"
+                };
                 var packedRequestEntry = new PutEventsRequestEntry()
                 {
                     Source = evt.QueryId,
-                    Detail = JsonSerializer.Serialize(formattedEvent),
-                    DetailType = "Drasi.ChangeEvent",
+                    Detail = JsonSerializer.Serialize(cloudEvent),
+                    DetailType = "Drasi.ChangeEvent.Packed",
                     EventBusName = _eventBusName
                 };
                 var packedResponse = await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()
@@ -71,11 +79,19 @@ public class ChangeHandler : IChangeEventHandler
                 List<PutEventsRequestEntry> unpackedRequestEntries = new List<PutEventsRequestEntry>();
                 foreach (var result in formattedResults)
                 {
+                    var currCloudEvent = new CloudEvent
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Type = "Drasi.ChangeEvent.Unpacked",
+                        Source = evt.QueryId,
+                        Data = result,
+                        Version = "1.0"
+                    };
                     var unpackedRequestEntry = new PutEventsRequestEntry()
                     {
                         Source = evt.QueryId,
-                        Detail = JsonSerializer.Serialize(result),
-                        DetailType = "Drasi.ChangeEvent",
+                        Detail = JsonSerializer.Serialize(currCloudEvent),
+                        DetailType = "Drasi.ChangeEvent.Unpacked",
                         EventBusName = _eventBusName
                     };
                     unpackedRequestEntries.Add(unpackedRequestEntry);
