@@ -122,7 +122,7 @@ impl DaprStateManager {
             .await
             .expect("Unable to connect to Dapr");
 
-        let response = match dapr_client
+        match dapr_client
             .delete_state(&self.store_name, &key.to_string(), metadata)
             .await
         {
