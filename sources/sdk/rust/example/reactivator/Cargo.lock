@@ -447,9 +447,9 @@ dependencies = [
 
 [[package]]
 name = "drasi-source-sdk"
-version = "0.1.10"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c79b2023f162ad3917cafc0f334335de7c7cbc6478a9d084c36c98eee125ec3a"
+checksum = "9d3163765e1c001730574f4f84935f2417adf14b4610d0685c85c30f1b0ee231"
 dependencies = [
  "async-stream",
  "async-trait",

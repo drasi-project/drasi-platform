@@ -228,6 +228,16 @@ jobs:
             label: 'EventHub Proxy',
             path: './sources/eventhub/eventhub-proxy', 
             name: 'source-eventhub-proxy'
+          },
+          { 
+            label: 'Kubernetes Reactivator',
+            path: './sources/kubernetes/kubernetes-reactivator', 
+            name: 'source-kubernetes-reactivator'
+          },
+          { 
+            label: 'Kubernetes Proxy',
+            path: './sources/kubernetes/kubernetes-proxy', 
+            name: 'source-kubernetes-proxy'
           }
         ]
 
