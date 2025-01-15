@@ -92,10 +92,13 @@ impl SourceClient {
         subscription_id: String,
     ) -> Result<(), UnsubscriptionError> {
         let app_id = format!("{}-query-api", subscription_id);
-        
+
         let resp = match self
             .client
-            .delete(format!("http://{}/subscription/{}/{}", app_id, query_container_id, query_id))
+            .delete(format!(
+                "http://{}/subscription/{}/{}",
+                app_id, query_container_id, query_id
+            ))
             .send()
             .await
         {
@@ -116,7 +119,6 @@ impl SourceClient {
             )));
         }
         Ok(())
-
     }
 }
 

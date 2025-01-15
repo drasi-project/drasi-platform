@@ -145,7 +145,6 @@ pub enum BootstrapError {
     Other(Box<dyn Error + Send>),
 }
 
-
 impl BootstrapError {
     pub fn fetch_failed(source_id: String, inner: Box<dyn Error + Send>) -> Self {
         BootstrapError::FetchFailed { source_id, inner }
