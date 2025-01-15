@@ -145,7 +145,11 @@ where
 
             let label = match properties.get("kind") {
                 Some(Value::String(kind)) => kind.clone(),
-                _ => continue,
+                _ => {
+                    return Err(BootstrapError::InternalError(
+                        "Invalid 'kind' from Kubernetes response".to_string(),
+                    ))
+                }
             };
 
             _ = tx.send(SourceElement::Node {
