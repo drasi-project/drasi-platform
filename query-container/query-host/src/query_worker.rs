@@ -295,6 +295,13 @@ impl QueryWorker {
                                     _ = result_index.clear().await;
                                     _ = archive_index.clear().await;
                                     _ = change_stream.unsubscribe().await;
+                                    // Iterate over the subscriptions and unsubscribe from each one
+                                    for subscription in &modified_config.sources.subscriptions {
+                                        match source_client.unsubscribe(query_container_id.to_string(), query_id.to_string(), subscription.id.to_string()).await {
+                                            Ok(_) => {},
+                                            Err(err) => log::error!("Error unsubscribing from source {}: {}", subscription.id, err),
+                                        };
+                                    }
                                     match publisher.publish(
                                         &query_id,
                                         ResultEvent::from_control_signal(
