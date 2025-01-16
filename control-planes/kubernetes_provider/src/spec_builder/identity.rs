@@ -99,12 +99,18 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
                 ConfigValue::Inline { value } => value,
                 _ => panic!("role_arn must be an inline value"),
             };
-            if let Some(metadata) = spec.deployment.template.metadata.as_mut() {
-                metadata.labels.get_or_insert(BTreeMap::new()).insert(
-                    "eks.amazonaws.com/role-arn".to_string(),
-                    arn.to_string(),
-                );
-            }
+
+            let token_file = ConfigValue::Inline {
+                value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token".to_string(),
+            };
+            env_vars.insert("AWS_WEB_IDENTITY_TOKEN_FILE".to_string(), token_file);
+
+            // annotate the label for the service account
+            service_account.annotations_mut().insert(
+                "eks.amazonaws.com/role-arn".to_string(),
+                arn.to_string(),
+            );
+
         }
     }
 

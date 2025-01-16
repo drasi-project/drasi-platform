@@ -27,7 +27,10 @@ var reaction = new ReactionBuilder()
                    .ConfigureServices((services) =>
                    {
                       services.AddSingleton<IChangeFormatter, ChangeFormatter>();
-                      services.AddSingleton<AmazonEventBridgeClient>(new AmazonEventBridgeClient());
+                      services.AddSingleton<AmazonEventBridgeClient>(sp =>
+                      {
+                          return new AmazonEventBridgeClient();
+                      });
                    })
                      .Build();
 

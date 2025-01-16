@@ -34,12 +34,13 @@ public class ChangeHandler : IChangeEventHandler
 
     private readonly IChangeFormatter _formatter;
 
-    public ChangeHandler(AmazonEventBridgeClient eventBridgeClient, IConfiguration config, ILogger<ChangeHandler> logger)
+    public ChangeHandler(AmazonEventBridgeClient eventBridgeClient, IChangeFormatter formatter, IConfiguration config, ILogger<ChangeHandler> logger)
     {
         _eventBridgeClient = eventBridgeClient;
         _logger = logger;
         _eventBusName = config.GetValue<string>("eventBusName") ?? "default";
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
+        _formatter = formatter;
     }
 
     public async Task HandleChange(ChangeEvent evt, object? queryConfig)

@@ -36,12 +36,15 @@ public class ControlSignalHandler: IControlEventHandler
 
     private readonly string _eventBusName;
 
-    public ControlSignalHandler(AmazonEventBridgeClient client, IConfiguration config, ILogger<ControlSignalHandler> logger)
+    private readonly IChangeFormatter _formatter;
+
+    public ControlSignalHandler(AmazonEventBridgeClient client, IConfiguration config, IChangeFormatter formatter, ILogger<ControlSignalHandler> logger)
     {
         _client = client;
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _logger = logger;
         _eventBusName = config.GetValue<string>("eventBusName") ?? "default";
+        _formatter = formatter;
     }
 
     public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
