@@ -287,6 +287,8 @@ pub enum ServiceIdentity {
         access_key_id: ConfigValue,
         #[serde(rename = "secretAccessKey")]
         secret_access_key: ConfigValue,
+        #[serde(rename = "region")]
+        aws_region: ConfigValue,
     },
 }
 

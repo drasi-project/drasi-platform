@@ -99,9 +99,11 @@ impl From<ServiceIdentityDto> for ServiceIdentity {
             ServiceIdentityDto::AwsIamAccessKey {
                 access_key_id,
                 secret_access_key,
+                aws_region,
             } => ServiceIdentity::AwsIamAccessKey {
                 access_key_id: access_key_id.into(),
                 secret_access_key: secret_access_key.into(),
+                aws_region: aws_region.into(),
             },
         }
     }
@@ -138,9 +140,11 @@ impl From<ServiceIdentity> for ServiceIdentityDto {
             ServiceIdentity::AwsIamAccessKey {
                 access_key_id,
                 secret_access_key,
+                aws_region,
             } => ServiceIdentityDto::AwsIamAccessKey {
                 access_key_id: access_key_id.into(),
                 secret_access_key: secret_access_key.into(),
+                aws_region: aws_region.into(),
             },
         }
     }
