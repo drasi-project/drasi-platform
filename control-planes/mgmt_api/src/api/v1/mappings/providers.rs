@@ -102,7 +102,7 @@ impl From<ServiceIdentityDto> for ServiceIdentity {
             } => ServiceIdentity::AwsIamAccessKey {
                 access_key_id: access_key_id.into(),
                 secret_access_key: secret_access_key.into(),
-            }
+            },
         }
     }
 }
@@ -141,7 +141,7 @@ impl From<ServiceIdentity> for ServiceIdentityDto {
             } => ServiceIdentityDto::AwsIamAccessKey {
                 access_key_id: access_key_id.into(),
                 secret_access_key: secret_access_key.into(),
-            }
+            },
         }
     }
 }

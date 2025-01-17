@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 
 use k8s_openapi::api::core::v1::{EnvVar, ServiceAccount};
 use kube::{api::ObjectMeta, ResourceExt};
-use resource_provider_api::models::{ServiceIdentity, ConfigValue};
+use resource_provider_api::models::{ConfigValue, ServiceIdentity};
 
 use crate::models::KubernetesSpec;
 
@@ -94,7 +94,7 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
         ServiceIdentity::AwsIamRole { role_arn } => {
             env_vars.insert("AWS_ROLE_ARN".to_string(), role_arn.clone());
             id_type = "AwsIamRole";
-            
+
             let arn = match role_arn {
                 ConfigValue::Inline { value } => value,
                 _ => panic!("role_arn must be an inline value"),
@@ -106,17 +106,19 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
             env_vars.insert("AWS_WEB_IDENTITY_TOKEN_FILE".to_string(), token_file);
 
             // annotate the label for the service account
-            service_account.annotations_mut().insert(
-                "eks.amazonaws.com/role-arn".to_string(),
-                arn.to_string(),
-            );
+            service_account
+                .annotations_mut()
+                .insert("eks.amazonaws.com/role-arn".to_string(), arn.to_string());
         }
         ServiceIdentity::AwsIamAccessKey {
             access_key_id,
             secret_access_key,
         } => {
             env_vars.insert("AWS_ACCESS_KEY_ID".to_string(), access_key_id.clone());
-            env_vars.insert("AWS_SECRET_ACCESS_KEY".to_string(), secret_access_key.clone());
+            env_vars.insert(
+                "AWS_SECRET_ACCESS_KEY".to_string(),
+                secret_access_key.clone(),
+            );
 
             id_type = "AwsIamAccessKey";
         }
