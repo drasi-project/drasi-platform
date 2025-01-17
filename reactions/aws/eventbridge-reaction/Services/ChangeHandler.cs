@@ -54,7 +54,7 @@ public class ChangeHandler : IChangeEventHandler
                     Id = Guid.NewGuid().ToString(),
                     Type = "Drasi.ChangeEvent.Packed",
                     Source = evt.QueryId,
-                    Data = _formatter.Format(evt),
+                    Data = evt,
                     Version = "1.0"
                 };
                 var packedRequestEntry = new PutEventsRequestEntry()

@@ -57,7 +57,7 @@ public class ControlSignalHandler: IControlEventHandler
                     Id = Guid.NewGuid().ToString(),
                     Type = "Drasi.ControlEvent.Packed",
                     Source = evt.QueryId,
-                    Data = JsonSerializer.Serialize(evt),
+                    Data = evt,
                     Version = "1.0"
                 };
                 var requestEntry =  new PutEventsRequestEntry()
