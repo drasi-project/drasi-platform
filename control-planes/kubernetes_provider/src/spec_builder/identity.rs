@@ -110,7 +110,15 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
                 "eks.amazonaws.com/role-arn".to_string(),
                 arn.to_string(),
             );
+        }
+        ServiceIdentity::AwsIamAccessKey {
+            access_key_id,
+            secret_access_key,
+        } => {
+            env_vars.insert("AWS_ACCESS_KEY_ID".to_string(), access_key_id.clone());
+            env_vars.insert("AWS_SECRET_ACCESS_KEY".to_string(), secret_access_key.clone());
 
+            id_type = "AwsIamAccessKey";
         }
     }
 

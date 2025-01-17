@@ -96,6 +96,13 @@ impl From<ServiceIdentityDto> for ServiceIdentity {
             ServiceIdentityDto::AwsIamRole { role_arn } => ServiceIdentity::AwsIamRole {
                 role_arn: role_arn.into(),
             },
+            ServiceIdentityDto::AwsIamAccessKey {
+                access_key_id,
+                secret_access_key,
+            } => ServiceIdentity::AwsIamAccessKey {
+                access_key_id: access_key_id.into(),
+                secret_access_key: secret_access_key.into(),
+            }
         }
     }
 }
@@ -128,6 +135,13 @@ impl From<ServiceIdentity> for ServiceIdentityDto {
             ServiceIdentity::AwsIamRole { role_arn } => ServiceIdentityDto::AwsIamRole {
                 role_arn: role_arn.into(),
             },
+            ServiceIdentity::AwsIamAccessKey {
+                access_key_id,
+                secret_access_key,
+            } => ServiceIdentityDto::AwsIamAccessKey {
+                access_key_id: access_key_id.into(),
+                secret_access_key: secret_access_key.into(),
+            }
         }
     }
 }

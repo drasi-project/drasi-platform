@@ -219,6 +219,13 @@ impl From<ServiceIdentity> for resource_provider_api::models::ServiceIdentity {
                     role_arn: role_arn.into(),
                 }
             }
+            ServiceIdentity::AwsIamAccessKey {
+                access_key_id,
+                secret_access_key,
+            } => resource_provider_api::models::ServiceIdentity::AwsIamAccessKey {
+                access_key_id: access_key_id.into(),
+                secret_access_key: secret_access_key.into(),
+            },
         }
     }
 }

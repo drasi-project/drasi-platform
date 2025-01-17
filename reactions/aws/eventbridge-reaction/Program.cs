@@ -29,7 +29,19 @@ var reaction = new ReactionBuilder()
                       services.AddSingleton<IChangeFormatter, ChangeFormatter>();
                       services.AddSingleton<AmazonEventBridgeClient>(sp =>
                       {
-                          return new AmazonEventBridgeClient();
+                          var configuration = sp.GetRequiredService<IConfiguration>();
+                          switch (configuration.GetIdentityType())
+                          {
+                            case IdentityType.AwsIamRole:
+                              return new AmazonEventBridgeClient();
+                            case IdentityType.AwsIamAccessKey:
+                              var accessKey = configuration.GetAwsIamAccessKeyId();
+                              var secretKey = configuration.GetAwsIamSecretKey();
+                              return new AmazonEventBridgeClient(accessKey, secretKey);
+                            default:
+                              Reaction<object>.TerminateWithError("Invalid Identity Type. Valid values are AwsIamRole and AwsIamAccessKey");
+                              throw new Exception("Invalid Identity Type. Valid values are AwsIamRole and AwsIamAccessKey");
+                          }
                       });
                    })
                      .Build();
