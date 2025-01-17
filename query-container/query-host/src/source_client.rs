@@ -18,7 +18,7 @@ use futures::{Stream, StreamExt};
 use reqwest_streams::JsonStreamResponse;
 use serde_json::json;
 
-use crate::models::BootstrapError;
+use crate::models::{BootstrapError, UnsubscriptionError};
 
 #[derive(Debug)]
 pub struct SourceClient {
@@ -83,6 +83,42 @@ impl SourceClient {
                 }
             }
         })
+    }
+
+    pub async fn unsubscribe(
+        &self,
+        query_container_id: String,
+        query_id: String,
+        subscription_id: String,
+    ) -> Result<(), UnsubscriptionError> {
+        let app_id = format!("{}-query-api", subscription_id);
+
+        let resp = match self
+            .client
+            .delete(format!(
+                "http://{}/subscription/{}/{}",
+                app_id, query_container_id, query_id
+            ))
+            .send()
+            .await
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                return Err(UnsubscriptionError::UnsubscribeFailed(format!(
+                    "Failed to unsubscribe from app '{}': {}",
+                    app_id, e
+                )))
+            }
+        };
+
+        if !resp.status().is_success() {
+            return Err(UnsubscriptionError::UnsubscribeFailed(format!(
+                "Failed to unsubscribe from query node '{}': {}",
+                query_id,
+                resp.text().await.unwrap_or_default()
+            )));
+        }
+        Ok(())
     }
 }
 

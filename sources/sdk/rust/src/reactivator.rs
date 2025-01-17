@@ -45,20 +45,23 @@ pub enum ReactivatorError {
 
 pub type ChangeStream = Pin<Box<dyn Stream<Item = SourceChange> + Send>>;
 
-pub struct ReactivatorBuilder<Response, DeprovisionResponse>
+pub struct ReactivatorBuilder<Response, DeprovisionResponse, Context = ()>
 where
+    Context: Send + Sync + 'static,
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + 'static,
     DeprovisionResponse: Future<Output = ()> + Send + 'static,
 {
-    stream_producer: Option<fn(Arc<dyn StateStore + Send + Sync>) -> Response>,
+    stream_producer: Option<fn(Context, Arc<dyn StateStore + Send + Sync>) -> Response>,
     publisher: Option<Box<dyn Publisher>>,
     state_store: Option<Arc<dyn StateStore + Send + Sync>>,
+    context: Option<Context>,
     deprovision_handler: Option<fn(Arc<dyn StateStore + Send + Sync>) -> DeprovisionResponse>,
     port: Option<u16>,
 }
 
-impl<Response, DeprovisionResponse> ReactivatorBuilder<Response, DeprovisionResponse>
+impl<Response, DeprovisionResponse, Context> ReactivatorBuilder<Response, DeprovisionResponse, Context>
 where
+    Context: Send + Sync,
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send,
     DeprovisionResponse: Future<Output = ()> + Send + 'static,
 {
@@ -67,6 +70,7 @@ where
             stream_producer: None,
             publisher: None,
             state_store: None,
+            context: None,
             deprovision_handler: None,
             port: None,
         }
@@ -74,7 +78,7 @@ where
 
     pub fn with_stream_producer(
         mut self,
-        stream_producer: fn(Arc<dyn StateStore + Send + Sync>) -> Response,
+        stream_producer: fn(Context, Arc<dyn StateStore + Send + Sync>) -> Response,
     ) -> Self {
         self.stream_producer = Some(stream_producer);
         self
@@ -93,6 +97,14 @@ where
         self
     }
 
+    pub fn with_context(
+        mut self,
+        context: Context
+    ) -> Self {
+        self.context = Some(context);
+        self
+    }
+
     pub fn with_deprovision_handler(
         mut self,
         handler: fn(Arc<dyn StateStore + Send + Sync>) -> DeprovisionResponse,
@@ -106,7 +118,15 @@ where
         self
     }
 
-    pub async fn build(self) -> Reactivator<Response, DeprovisionResponse> {
+}
+
+impl<Response, DeprovisionResponse, Context> ReactivatorBuilder<Response, DeprovisionResponse, Context>
+where
+    Context: Send + Sync,
+    Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send,
+    DeprovisionResponse: Future<Output = ()> + Send + 'static,
+{ 
+    pub async fn build(self) -> Reactivator<Context, Response, DeprovisionResponse> {
         Reactivator {
             stream_fn: self.stream_producer.expect("Stream producer is required"),
             publisher: self
@@ -116,30 +136,50 @@ where
                 Some(ss) => ss,
                 None => Arc::new(DaprStateStore::connect().await.unwrap()),
             },
+            context: match self.context {
+                Some(s) => s,
+                None => panic!("context not defined"),
+            },
             deprovision_handler: self.deprovision_handler,
             port: self.port,
         }
     }
 }
 
-pub struct Reactivator<Response, DeprovisionResponse>
+impl<Response, DeprovisionResponse> ReactivatorBuilder<Response, DeprovisionResponse, ()>
 where
+    Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send,
+    DeprovisionResponse: Future<Output = ()> + Send + 'static,
+{ 
+    pub fn without_context(
+        mut self
+    ) -> Self {
+        self.context = Some(());
+        self
+    }    
+}
+
+pub struct Reactivator<Context, Response, DeprovisionResponse>
+where
+    Context: Send + Sync + 'static,
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + 'static,
     DeprovisionResponse: Future<Output = ()> + Send + 'static,
 {
-    stream_fn: fn(Arc<dyn StateStore + Send + Sync>) -> Response,
+    stream_fn: fn(Context, Arc<dyn StateStore + Send + Sync>) -> Response,
     publisher: Box<dyn Publisher>,
     state_store: Arc<dyn StateStore + Send + Sync>,
+    context: Context,
     deprovision_handler: Option<fn(Arc<dyn StateStore + Send + Sync>) -> DeprovisionResponse>,
     port: Option<u16>,
 }
 
-impl<Response, DeprovisionResponse> Reactivator<Response, DeprovisionResponse>
+impl<Context, Response, DeprovisionResponse> Reactivator<Context, Response, DeprovisionResponse>
 where
+    Context: Send + Sync,
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send + 'static,
     DeprovisionResponse: Future<Output = ()> + Send + 'static,
 {
-    pub async fn start(&mut self) {
+    pub async fn start(self) {
         env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
         panic::set_hook(Box::new(|info| {
@@ -169,9 +209,9 @@ where
 
         log::info!("Initialized tracing");
 
-        let producer = &self.stream_fn;
+        let producer = self.stream_fn;        
         let state_store = self.state_store.clone();
-        let mut stream = producer(state_store.clone()).await.unwrap().fuse();
+        let mut stream = producer(self.context, state_store.clone()).await.unwrap().fuse();
         let port = self.port.unwrap_or(80);
         let deprovision_handler = self.deprovision_handler;
 

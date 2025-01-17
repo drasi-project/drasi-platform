@@ -70,7 +70,12 @@ impl Publisher for DaprPublisher {
         let response = request.send().await;
 
         match response {
-            Ok(_) => Ok(()),
+            Ok(r) => {
+                match r.error_for_status() {
+                    Ok(_) => Ok(()),
+                    Err(e) => return Err(Box::new(e)),
+                }
+            },
             Err(e) => Err(Box::new(e)),
         }
     }

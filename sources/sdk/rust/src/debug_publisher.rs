@@ -31,7 +31,7 @@ impl Publisher for DebugPublisher {
         &self,
         change: SourceChange,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        log::info!("{:?}", serde_json::to_string(&change));
+        log::info!("{:#?}", &change);
         Ok(())
     }
 }

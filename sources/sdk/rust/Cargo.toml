@@ -1,6 +1,6 @@
 [package]
 name = "drasi-source-sdk"
-version = "0.1.11"
+version = "0.1.16"
 edition = "2021"
 license = "Apache-2.0"
 description = "Source SDK for Drasi"
