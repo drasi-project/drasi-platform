@@ -9,7 +9,7 @@ RELEASE ?= 0  # if set to 1, it will use the `release` cargo profile (LTO set to
 default: docker-build
 
 docker-build:
-	docker buildx build ../../.. --build-arg RELEASE=$(RELEASE) -f ./Dockerfile -t $(IMAGE_PREFIX)/source-change-dispatcher:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
+	docker buildx build ../../.. -f ./Dockerfile -t $(IMAGE_PREFIX)/source-change-dispatcher:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
 
 kind-load:
 	kind load docker-image $(IMAGE_PREFIX)/source-change-dispatcher:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
