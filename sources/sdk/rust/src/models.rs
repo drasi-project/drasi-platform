@@ -43,7 +43,7 @@ pub enum SourceElement {
     },
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone, Copy)]
 pub enum ChangeOp {
     #[serde(rename = "i")]
     Create,
@@ -55,6 +55,7 @@ pub enum ChangeOp {
     Delete,
 }
 
+#[derive(Debug)]
 pub struct SourceChange {
     op: ChangeOp,
     element: SourceElement,

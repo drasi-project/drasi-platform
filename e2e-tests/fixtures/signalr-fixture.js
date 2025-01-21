@@ -16,17 +16,24 @@
 
 const signalR = require("@microsoft/signalr");
 const deployResources = require("./deploy-resources");
-const PortForward = require('./port-forward');
+const PortForward = require("./port-forward");
+const crypto = require("crypto");
+const deleteResources = require("./delete-resources");
 
 class SignalrFixture {
-
   /**
-  * @param {Array} queryIds
-  */
+   * @param {Array} queryIds
+   */
   constructor(queryIds) {
     //this.queryIds = resources.filter(x => !!x && x.kind == "ContinuousQuery").map(x => x.metadata.name);
     this.queryIds = queryIds;
-    this.portForward = new PortForward("test-signalr-gateway", 8080, "drasi-system");
+    this.reactionManifest = signalrReactionManifest(queryIds);
+    this.portForward = new PortForward(
+      `${this.reactionManifest.name}-gateway`,
+      8080,
+      "drasi-system",
+    );
+
     this.changeListeners = new Map();
 
     for (let queryId of this.queryIds) {
@@ -35,7 +42,7 @@ class SignalrFixture {
   }
 
   async start() {
-    await deployResources([signalrReactionManifest(this.queryIds)]);
+    await deployResources([this.reactionManifest]);
     this.localPort = await this.portForward.start();
     this.signalr = new signalR.HubConnectionBuilder()
       .withUrl(`http://127.0.0.1:${this.localPort}/hub`)
@@ -57,6 +64,7 @@ class SignalrFixture {
   async stop() {
     await this.signalr?.stop();
     this.portForward?.stop();
+    await deleteResources([this.reactionManifest]);
   }
 
   /**
@@ -76,25 +84,24 @@ class SignalrFixture {
     let reloadData = [];
     const streamPromise = new Promise((resolve, reject) => {
       this.signalr?.stream("reload", queryId).subscribe({
-        next: item => {
-        console.log(queryId + " reload next: " + JSON.stringify(item));
+        next: (item) => {
+          console.log(queryId + " reload next: " + JSON.stringify(item));
 
-        switch (item['op']) {
-            case 'h':
-            reloadData = [];                  
-            break;
-            case 'r':
-            reloadData.push(item.payload.after);
-            break;
-        }
+          switch (item["op"]) {
+            case "h":
+              reloadData = [];
+              break;
+            case "r":
+              reloadData.push(item.payload.after);
+              break;
+          }
         },
         complete: () => {
           console.log(queryId + " reload complete");
           console.log("reload data" + JSON.stringify(reloadData));
           resolve(reloadData);
-          
         },
-        error: err => reject(err)
+        error: (err) => reject(err),
       });
     });
     return await streamPromise;
@@ -109,8 +116,7 @@ class SignalrFixture {
    * @param {any} data
    */
   async onEvent(queryId, data) {
-    if (!this.changeListeners.has(queryId))
-      return;
+    if (!this.changeListeners.has(queryId)) return;
 
     console.info(`SignalrFixture.onEvent ${queryId} ${JSON.stringify(data)}`);
 
@@ -118,12 +124,14 @@ class SignalrFixture {
     for (let listener of listeners) {
       listener.evaluate(data);
     }
-    this.changeListeners.set(queryId, listeners.filter((/** @type {{ complete: any; }} */ x) => !x.complete));
+    this.changeListeners.set(
+      queryId,
+      listeners.filter((/** @type {{ complete: any; }} */ x) => !x.complete),
+    );
   }
 }
 
 class ChangeListener {
-
   /**
    * @param {function} predicate
    * @param {number} timeoutMs
@@ -132,7 +140,7 @@ class ChangeListener {
     this.complete = false;
     this.predicate = predicate;
     // eslint-disable-next-line no-unused-vars
-    this.resolve = (/** @type {any} */ value) => { };
+    this.resolve = (/** @type {any} */ value) => {};
     let self = this;
     this.promise = new Promise((resolve, reject) => {
       self.resolve = resolve;
@@ -160,15 +168,14 @@ class ChangeListener {
   }
 
   /**
-   * 
+   *
    * @returns {Promise<boolean>}
    */
   async waitForCondition() {
     try {
       await this.promise;
       return true;
-    }
-    catch (err) {
+    } catch (err) {
       return false;
     }
   }
@@ -179,13 +186,13 @@ class ChangeListener {
  */
 function signalrReactionManifest(queryIds) {
   let result = {
-    "apiVersion": "v1",
-    "kind": "Reaction",
-    "name": "test-signalr",
-    "spec": {
-      "kind": "SignalR",
-      "queries": queryIds.reduce((a, v) => ({ ...a, [v]: ""}), {})
-    }
+    apiVersion: "v1",
+    kind: "Reaction",
+    name: `${crypto.randomUUID().toString()}-signalr`,
+    spec: {
+      kind: "SignalR",
+      queries: queryIds.reduce((a, v) => ({ ...a, [v]: "" }), {}),
+    },
   };
 
   return result;

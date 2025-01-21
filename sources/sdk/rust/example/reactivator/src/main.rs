@@ -6,16 +6,17 @@ use serde_json::{Map, Value};
 
 #[tokio::main]
 async fn main() {
-    let mut reactivator = ReactivatorBuilder::new()
-        .with_stream_producer(my_stream)
+    let reactivator = ReactivatorBuilder::new()
+        .with_stream_producer(my_stream)        
         .with_deprovision_handler(deprovision)
+        .without_context()
         .build()
         .await;
 
     reactivator.start().await;
 }
 
-async fn my_stream(state_store: Arc<dyn StateStore + Send + Sync>) -> Result<ChangeStream, ReactivatorError> {
+async fn my_stream(_context: (), state_store: Arc<dyn StateStore + Send + Sync>) -> Result<ChangeStream, ReactivatorError> {
     
     let mut cursor = match state_store.get("cursor").await.unwrap() {
         Some(cursor) => u64::from_be_bytes(cursor.try_into().unwrap()),

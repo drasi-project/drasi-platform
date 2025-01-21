@@ -36,8 +36,10 @@ pub struct ControlEvent {
 #[derive(Serialize)]
 pub struct SubscriptionPayload {
     pub source: Source,
-    pub before: Option<()>,
-    pub after: SubscriptionRequest,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub before: Option<SubscriptionRequest>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub after: Option<SubscriptionRequest>,
 }
 
 #[derive(Serialize)]
