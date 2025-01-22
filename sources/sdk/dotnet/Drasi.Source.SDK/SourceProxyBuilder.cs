@@ -16,8 +16,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using OpenTelemetry;
-using System;
 
 namespace Drasi.Source.SDK;
 
@@ -37,60 +35,12 @@ public class SourceProxyBuilder
             
             _webappBuilder.Configuration.AddEnvironmentVariables();
             _webappBuilder.Logging.AddConsole();
-
-            var otelEndpoint = Environment.GetEnvironmentVariable("OTEL_ENDPOINT") ?? "http://otel-collector:4317";
-
-            _webappBuilder.Services.AddOpenTelemetry()
-                .UseOtlpExporter(OpenTelemetry.Exporter.OtlpExportProtocol.Grpc, new Uri(otelEndpoint))
-                .WithTracing();
         }
 
-    public SourceProxyBuilder UseBootstrapHandler<THandler>() where THandler : class, IBootstrapHandler
-    {
-        _webappBuilder.Services.AddScoped<IBootstrapHandler, THandler>();
-        return this;
-    }
-
-    public SourceProxyBuilder Configure(Action<IConfigurationManager> configure)
-    {
-        configure(_webappBuilder.Configuration);
-        return this;
-    }
-
-    public SourceProxy Build()
-    {
-        var hasHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IBootstrapHandler));
-        if (!hasHandler)
-        {
-            throw new InvalidOperationException("No bootstrap handler registered");
-        }
-
-        var app = _webappBuilder.Build();
-        app.UseRouting();
-        
-        return new SourceProxy(app);
-    }
-
-    static SourceProxyBuilder()
-    {
-        AppDomain.CurrentDomain.UnhandledException += (sender, args) =>        
-        {
-            if (args.ExceptionObject is OperationCanceledException)
-            {
-                return;
-            }
-            
-            var message = args.ExceptionObject is Exception exception ? exception.Message : "Unknown error occurred";
-
-            try
-            {
-                File.WriteAllText("/dev/termination-log", message);
-            }
-            catch (Exception logException)
-            {
-                Console.Error.WriteLine($"Failed to write to /dev/termination-log: {logException}");
-            }
-        };
-    }
+        // public SourceProxyBuilder UseBootstrapHandler<TChangeEventHandler>() where TChangeEventHandler : class, IChangeEventHandler<TQueryConfig>
+        // {
+        //     _webappBuilder.Services.AddScoped<IChangeEventHandler<TQueryConfig>, TChangeEventHandler>();
+        //     return this;
+        // }
 
 }

@@ -8,8 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Drasi.Source.SDK" Version="0.1.1-alpha" />
+    <ProjectReference Include="..\..\Drasi.Source.SDK\Drasi.Source.SDK.csproj" />
   </ItemGroup>
-
 
 </Project>

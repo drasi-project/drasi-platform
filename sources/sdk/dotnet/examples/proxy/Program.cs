@@ -1,47 +1,19 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
-using Drasi.Source.SDK;
 using Drasi.Source.SDK.Models;
-using Microsoft.Extensions.Configuration;
 
-var proxy = new SourceProxyBuilder()
-    .UseBootstrapHandler<BootstrapHandler>()
-    .Build();
-
-await proxy.StartAsync();
+Console.WriteLine("Hello, World!");
 
 
-class BootstrapHandler : IBootstrapHandler
+var payload = new JsonObject()
 {
-    public BootstrapHandler(IConfiguration configuration)
-    {
-        Console.WriteLine($"Connection string: {configuration["connectionString"]}");
-    }
+    { "name", "John" },
+    { "age", 30 }
+};
 
-    public async IAsyncEnumerable<SourceElement> Bootstrap(BootstrapRequest request, [EnumeratorCancellation]CancellationToken cancellationToken = default)
-    {
-        if (request.NodeLabels.Contains("Person"))
-        {
-            yield return new SourceElement("person-1", ["Person"], new JsonObject
-            {
-                { "name", "Alice" },
-                { "age", 30 }
-            });
+var item = new SourceChange(ChangeOp.INSERT, new SourceElement("123", ["Person"], payload, "s", "e"), 123, 123);
 
-            yield return new SourceElement("person-2", ["Person"], new JsonObject
-            {
-                { "name", "Bob" },
-                { "age", 40 }
-            });
-        }
+Console.WriteLine(item.ToJson());
+//item.ToJson();
 
-        if (request.RelationLabels.Contains("Knows")) 
-        {
-            yield return new SourceElement("1-2", ["Knows"], new JsonObject
-            {
-                { "since", 2010 }
-            }, "person-1", "person-2");
-        }
-    }
-}
+//IBootstrapHandler handler = new BootstrapHandler();
