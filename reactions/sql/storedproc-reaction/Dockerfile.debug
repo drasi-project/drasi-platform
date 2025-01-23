@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM node@sha256:c13b26e7e602ef2f1074aef304ce6e9b7dd284c419b35d89fcf3cc8e44a8def9
+# node:20-alpine
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-cbl-mariner2.0 AS build
-ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
+WORKDIR /usr/src/app
+RUN apk add --no-cache bash
+
 COPY . .
-RUN dotnet restore
-RUN dotnet build -c $BUILD_CONFIGURATION -o /app/build
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0-cbl-mariner2.0 AS final
-WORKDIR /app
-COPY --from=build /app/build .
-ENTRYPOINT ["/app/eventgrid-reaction"]
+RUN npm install -g typescript
+RUN npm install
+RUN npm run build
+
+CMD ["npm", "start"]

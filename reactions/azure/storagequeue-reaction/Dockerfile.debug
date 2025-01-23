@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-cbl-mariner2.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
@@ -20,7 +19,8 @@ COPY . .
 RUN dotnet restore
 RUN dotnet build -c $BUILD_CONFIGURATION -o /app/build
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0-cbl-mariner2.0 AS final
+FROM --platform=$TARGETPLATFORM ubuntu:22.04 AS debug
+RUN apt-get update && apt-get install -y bash curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/build .
-ENTRYPOINT ["/app/eventgrid-reaction"]
+ENTRYPOINT ["/app/storagequeue-reaction"]
