@@ -1,19 +1,30 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
+using Drasi.Source.SDK;
 using Drasi.Source.SDK.Models;
 
-Console.WriteLine("Hello, World!");
+var proxy = new SourceProxyBuilder()
+    .UseBootstrapHandler<BootstrapHandler>()
+    .Build();
+
+await proxy.StartAsync();
 
 
-var payload = new JsonObject()
+class BootstrapHandler : IBootstrapHandler
 {
-    { "name", "John" },
-    { "age", 30 }
-};
+    public async IAsyncEnumerable<SourceElement> Bootstrap(BootstrapRequest request, [EnumeratorCancellation]CancellationToken cancellationToken = default)
+    {
+        yield return new SourceElement("1", ["Person"], new JsonObject
+        {
+            { "name", "Alice" },
+            { "age", 30 }
+        });
 
-var item = new SourceChange(ChangeOp.INSERT, new SourceElement("123", ["Person"], payload, "s", "e"), 123, 123);
-
-Console.WriteLine(item.ToJson());
-//item.ToJson();
-
-//IBootstrapHandler handler = new BootstrapHandler();
+        yield return new SourceElement("2", ["Person"], new JsonObject
+        {
+            { "name", "Bob" },
+            { "age", 40 }
+        });
+    }
+}
