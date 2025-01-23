@@ -22,6 +22,6 @@ public class BootstrapRequest
     public List<string> NodeLabels { get; set; } = [];
 
     [JsonPropertyName("relLabels")]
-    public List<string> RelLabels { get; set; } = [];
+    public List<string> RelationLabels { get; set; } = [];
 
 }

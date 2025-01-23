@@ -21,11 +21,14 @@ using System.Text.Json;
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using Drasi.Source.SDK.Models;
+using System.Text.Json.Nodes;
+using System.Diagnostics;
 
 namespace Drasi.Source.SDK;
 
 public class SourceProxy : IHost
 {
+    private static ActivitySource _traceSource = new("Drasi.SourceProxy");
     private readonly WebApplication _app;
     public IServiceProvider Services => _app.Services;
     public IConfiguration Configuration => _app.Configuration;
@@ -64,9 +67,14 @@ public class SourceProxy : IHost
         return Task.CompletedTask;
     }
 
-    private IAsyncEnumerable<SourceElement> Acquire(BootstrapRequest request, IBootstrapHandler bootstrapHandler)
+    private async Task Acquire(BootstrapRequest request, HttpResponse response, IBootstrapHandler bootstrapHandler)
     {
-        return bootstrapHandler.Bootstrap(request);
+        using Activity activity = _traceSource.StartActivity("Acquire");
+        await foreach (var element in bootstrapHandler.Bootstrap(request))
+        {
+            await response.WriteAsync(element.ToJson() + "\n");
+            await response.Body.FlushAsync();
+        }
     }
 
     public static void TerminateWithError(string message)

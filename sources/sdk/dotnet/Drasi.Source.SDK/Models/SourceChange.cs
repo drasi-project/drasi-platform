@@ -81,7 +81,7 @@ public class SourceChange
             { "payload", payload }
         };
         
-        return result.ToString();
+        return result.ToJsonString();
     }    
 }
 

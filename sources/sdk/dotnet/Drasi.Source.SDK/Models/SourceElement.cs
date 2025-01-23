@@ -15,6 +15,12 @@ public class SourceElement
 
     public ElementType Type { get; private set; }
 
+    /// <summary>
+    /// Create a new SourceElement that represents a node
+    /// </summary>
+    /// <param name="id">Unique ID of the node within the context of the entire source</param>
+    /// <param name="labels">Labels for the node in the property graph</param>
+    /// <param name="properties">Properties of the node</param>
     public SourceElement(string id, HashSet<string> labels, JsonObject? properties)
     {
         this.id = id;
@@ -23,6 +29,14 @@ public class SourceElement
         this.Type = ElementType.Node;
     }
 
+    /// <summary>
+    /// Create a new SourceElement that represents a relation
+    /// </summary>
+    /// <param name="id">Unique ID of the relation within the context of the entire source</param>
+    /// <param name="labels">Labels for the relation in the property graph</param>
+    /// <param name="properties">Properties of the relation</param>
+    /// <param name="startId">ID of the inbound node for this relationship</param>
+    /// <param name="endId">ID of the outbound  node for this relationship</param>
     public SourceElement(string id, HashSet<string> labels, JsonObject? properties, string startId, string endId)
     {
         this.id = id;
@@ -36,7 +50,7 @@ public class SourceElement
     public string ToJson()
     {
         var result = ToJsonObject();
-        return result.ToString();
+        return result.ToJsonString();
     }
 
     public JsonObject ToJsonObject()

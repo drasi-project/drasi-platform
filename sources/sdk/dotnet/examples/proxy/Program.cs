@@ -15,16 +15,27 @@ class BootstrapHandler : IBootstrapHandler
 {
     public async IAsyncEnumerable<SourceElement> Bootstrap(BootstrapRequest request, [EnumeratorCancellation]CancellationToken cancellationToken = default)
     {
-        yield return new SourceElement("1", ["Person"], new JsonObject
+        if (request.NodeLabels.Contains("Person"))
         {
-            { "name", "Alice" },
-            { "age", 30 }
-        });
+            yield return new SourceElement("person-1", ["Person"], new JsonObject
+            {
+                { "name", "Alice" },
+                { "age", 30 }
+            });
 
-        yield return new SourceElement("2", ["Person"], new JsonObject
+            yield return new SourceElement("person-2", ["Person"], new JsonObject
+            {
+                { "name", "Bob" },
+                { "age", 40 }
+            });
+        }
+
+        if (request.RelationLabels.Contains("Knows")) 
         {
-            { "name", "Bob" },
-            { "age", 40 }
-        });
+            yield return new SourceElement("1-2", ["Knows"], new JsonObject
+            {
+                { "since", 2010 }
+            }, "person-1", "person-2");
+        }
     }
 }

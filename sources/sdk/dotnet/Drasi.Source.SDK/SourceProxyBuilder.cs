@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
 using System;
 
 namespace Drasi.Source.SDK;
@@ -36,6 +37,12 @@ public class SourceProxyBuilder
             
             _webappBuilder.Configuration.AddEnvironmentVariables();
             _webappBuilder.Logging.AddConsole();
+
+            var otelEndpoint = Environment.GetEnvironmentVariable("OTEL_ENDPOINT") ?? "http://otel-collector:4317";
+
+            _webappBuilder.Services.AddOpenTelemetry()
+                .UseOtlpExporter(OpenTelemetry.Exporter.OtlpExportProtocol.Grpc, new Uri(otelEndpoint))
+                .WithTracing();
         }
 
     public SourceProxyBuilder UseBootstrapHandler<THandler>() where THandler : class, IBootstrapHandler
