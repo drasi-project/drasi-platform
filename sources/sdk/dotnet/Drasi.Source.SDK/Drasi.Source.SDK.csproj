@@ -19,8 +19,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\"/>
-    <None Include="drasi.png" Pack="true" PackagePath="\"/>
+    <Compile Remove="IBootstrapHandler.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="IBootstrapHandler.cs" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="drasi.png" Pack="true" PackagePath="\" />
     <PackageReference Include="Dapr.AspNetCore" Version="1.14.0" />
     <PackageReference Include="Dapr.Client" Version="1.14.0" />
   </ItemGroup>

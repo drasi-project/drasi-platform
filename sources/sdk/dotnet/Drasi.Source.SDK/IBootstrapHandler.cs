@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Drasi.Source.SDK.Models;
 using System;
 
 namespace Drasi.Source.SDK
 {
     public interface IBootstrapHandler
     {
-        IAsyncEnumerable<SourceElement> GetNumbersAsync(int count, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<SourceElement> Bootstrap(BootstrapRequest request, CancellationToken cancellationToken = default);
     }
 }

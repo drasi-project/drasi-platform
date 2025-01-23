@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace Drasi.Source.SDK;
 
@@ -37,10 +38,47 @@ public class SourceProxyBuilder
             _webappBuilder.Logging.AddConsole();
         }
 
-        // public SourceProxyBuilder UseBootstrapHandler<TChangeEventHandler>() where TChangeEventHandler : class, IChangeEventHandler<TQueryConfig>
-        // {
-        //     _webappBuilder.Services.AddScoped<IChangeEventHandler<TQueryConfig>, TChangeEventHandler>();
-        //     return this;
-        // }
+    public SourceProxyBuilder UseBootstrapHandler<THandler>() where THandler : class, IBootstrapHandler
+    {
+        _webappBuilder.Services.AddScoped<IBootstrapHandler, THandler>();
+        return this;
+    }
+
+    public SourceProxyBuilder Configure(Action<IConfigurationManager> configure)
+    {
+        configure(_webappBuilder.Configuration);
+        return this;
+    }
+
+    public SourceProxy Build()
+    {
+        var hasHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IBootstrapHandler));
+        if (!hasHandler)
+        {
+            throw new InvalidOperationException("No bootstrap handler registered");
+        }
+
+        var app = _webappBuilder.Build();
+        app.UseRouting();
+        
+        return new SourceProxy(app);
+    }
+
+    static SourceProxyBuilder()
+    {
+        AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+        {
+            var message = args.ExceptionObject is Exception exception ? exception.Message : "Unknown error occurred";
+
+            try
+            {
+                File.WriteAllText("/dev/termination-log", message);
+            }
+            catch (Exception logException)
+            {
+                Console.Error.WriteLine($"Failed to write to /dev/termination-log: {logException}");
+            }
+        };
+    }
 
 }
