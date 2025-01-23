@@ -22,6 +22,7 @@ COPY package*.json ./
 RUN npm install
 
 RUN npm audit fix
+RUN if [ "$RUNTIME_ENV" = "debug" ]; then apk add --no-cache bash curl ; fi
 COPY . .
 
 CMD ["node", "sourceProxy.js"]
