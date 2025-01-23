@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust@sha256:8fae3b1a63a4dcfb6cf277a49fb5967ccbf479b9e9cee4588a077a9cb216e6d4 as builder
-# rust:1.81-bullseye
-RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get clean
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@sha256:6df1177e48b55272316d08f19cb383483af82aca5cdc67a76c414bc200847624 AS build-env
 
-WORKDIR /usr/src
-COPY . .
-WORKDIR /usr/src
-RUN cargo install --force --path .
+WORKDIR /app
 
-FROM gcr.io/distroless/cc-debian11@sha256:55a5e011b2c4246b4c51e01fcc2b452d151e03df052e357465f0392fcd59fddf
-# gcr.io/distroless/cc-debian11
-ENV RUST_BACKTRACE=1
-COPY --from=builder /usr/local/cargo/bin/kubernetes-reactivator /usr/local/bin/kubernetes-reactivator
-CMD ["kubernetes-reactivator"]
+COPY *.csproj ./
+RUN dotnet restore
+
+COPY . ./
+RUN dotnet publish -o out
+
+
+FROM ubuntu:22.04 AS final
+RUN apt-get update && apt-get install -y bash curl && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=build-env /app/out .
+ENTRYPOINT [ "dotnet", "cosmosdb-reactivator.dll" ]

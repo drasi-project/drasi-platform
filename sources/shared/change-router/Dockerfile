@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG RUNTIME_ENV=production
 FROM rust@sha256:8fae3b1a63a4dcfb6cf277a49fb5967ccbf479b9e9cee4588a077a9cb216e6d4 as builder
 # rust:1.81-bullseye
 
@@ -28,12 +27,8 @@ RUN cargo fetch
 COPY ./sources/shared/change-router . 
 RUN cargo install --force --path .
 
-FROM gcr.io/distroless/cc@sha256:b6e1e913f633495eeb80a41e03de1a41aa863e9b19902309b180ffdc4b99db2c AS production
 
-FROM ubuntu:22.04 AS debug
-RUN apt-get update && apt-get install -y openssl bash curl libssl3  && rm -rf /var/lib/apt/lists/*
-
-FROM ${RUNTIME_ENV} AS final
+FROM gcr.io/distroless/cc-debian11@sha256:55a5e011b2c4246b4c51e01fcc2b452d151e03df052e357465f0392fcd59fddf
 ENV RUST_BACKTRACE=1
 # RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/local/cargo/bin/change-router /usr/local/bin/change-router

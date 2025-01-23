@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG RUNTIME_ENV=production
 FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet@sha256:38178966094e8ac38ac3377fa4195cbf63e9aef4030f5e62d2810f8a5df769e4 AS base
 # mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
@@ -31,11 +30,7 @@ RUN dotnet build "eventhub-reactivator.csproj" -c Release -o /app/build
 FROM build AS publish
 RUN dotnet publish "eventhub-reactivator.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet@sha256:38178966094e8ac38ac3377fa4195cbf63e9aef4030f5e62d2810f8a5df769e4 AS production
-FROM ubuntu:22.04 AS debug
-RUN apt-get update && apt-get install -y bash curl && rm -rf /var/lib/apt/lists/*
-
-FROM ${RUNTIME_ENV} AS final
+FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "eventhub-reactivator.dll"]

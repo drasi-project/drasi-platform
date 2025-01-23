@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG RUNTIME_ENV=production
 #
 # Build stage
 #
@@ -25,11 +24,6 @@ RUN cd /home/app && mvn dependency:tree
 #
 # Package stage
 #
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/openjdk/jdk:21-distroless as production
-
-FROM --platform=$TARGETPLATFORM ubuntu:20.04 AS debug
-RUN apt-get update && apt-get install -y bash curl openjdk-21-jdk && rm -rf /var/lib/apt/lists/*
-
-FROM ${RUNTIME_ENV} AS final
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/openjdk/jdk:21-distroless
 COPY --from=build /home/app/target /home/app
 CMD ["-jar","/home/app/sql-proxy-1.0.jar"]
