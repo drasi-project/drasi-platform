@@ -69,7 +69,7 @@ public class SourceProxy : IHost
 
     private async Task Acquire(BootstrapRequest request, HttpResponse response, IBootstrapHandler bootstrapHandler)
     {
-        using Activity activity = _traceSource.StartActivity("Acquire");
+        using var activity = _traceSource.StartActivity("Acquire");
         await foreach (var element in bootstrapHandler.Bootstrap(request))
         {
             await response.WriteAsync(element.ToJson() + "\n");

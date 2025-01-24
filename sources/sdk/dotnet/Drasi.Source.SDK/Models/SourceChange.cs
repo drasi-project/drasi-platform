@@ -80,7 +80,7 @@ public class SourceChange
             { "ts_ms", tsMS },
             { "payload", payload }
         };
-        
+
         return result.ToJsonString();
     }    
 }

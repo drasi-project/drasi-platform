@@ -21,7 +21,7 @@ using System;
 
 namespace Drasi.Source.SDK;
 
-public class SourceProxyBuilder
+public class ReactivatorBuilder
 {
     private readonly WebApplicationBuilder _webappBuilder;
 
@@ -29,7 +29,7 @@ public class SourceProxyBuilder
 
         public IConfiguration Configuration => _webappBuilder.Configuration;
 
-        public SourceProxyBuilder()
+        public ReactivatorBuilder()
         {
             _webappBuilder = WebApplication.CreateBuilder();
             _webappBuilder.Services.AddDaprClient();
@@ -43,44 +43,66 @@ public class SourceProxyBuilder
             _webappBuilder.Services.AddOpenTelemetry()
                 .UseOtlpExporter(OpenTelemetry.Exporter.OtlpExportProtocol.Grpc, new Uri(otelEndpoint))
                 .WithTracing();
+
+            _webappBuilder.Services.AddSingleton<IChangePublisher, DaprChangePublisher>();
+            _webappBuilder.Services.AddSingleton<IStateStore, DaprStateStore>();
         }
 
-    public SourceProxyBuilder UseBootstrapHandler<THandler>() where THandler : class, IBootstrapHandler
+    public ReactivatorBuilder UseChangeMonitor<T>() where T : class, IChangeMonitor
     {
-        _webappBuilder.Services.AddScoped<IBootstrapHandler, THandler>();
+        _webappBuilder.Services.AddSingleton<IChangeMonitor, T>();
         return this;
     }
 
-    public SourceProxyBuilder Configure(Action<IConfigurationManager> configure)
+    public ReactivatorBuilder UseChangePublisher<T>() where T : class, IChangePublisher
+    {
+        _webappBuilder.Services.AddSingleton<IChangePublisher, T>();
+        return this;
+    }
+
+    public ReactivatorBuilder UseStateStore<T>() where T : class, IStateStore
+    {
+        _webappBuilder.Services.AddSingleton<IStateStore, T>();
+        return this;
+    }
+
+    public ReactivatorBuilder UseDeprovisionHandler<T>() where T : class, IDeprovisionHandler
+    {
+        _webappBuilder.Services.AddSingleton<IDeprovisionHandler, T>();
+        return this;
+    }
+
+    public ReactivatorBuilder Configure(Action<IConfigurationManager> configure)
     {
         configure(_webappBuilder.Configuration);
         return this;
     }
 
-    public SourceProxy Build()
+    public Reactivator Build()
     {
-        var hasHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IBootstrapHandler));
+        var hasHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IChangeMonitor));
         if (!hasHandler)
         {
-            throw new InvalidOperationException("No bootstrap handler registered");
+            throw new InvalidOperationException("No change monitor registered");
         }
 
         var app = _webappBuilder.Build();
         app.UseRouting();
         
-        return new SourceProxy(app);
+        return new Reactivator(app);
     }
 
-    static SourceProxyBuilder()
+    static ReactivatorBuilder()
     {
-        AppDomain.CurrentDomain.UnhandledException += (sender, args) =>        
+        AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
         {
             if (args.ExceptionObject is OperationCanceledException)
             {
                 return;
             }
-            
+
             var message = args.ExceptionObject is Exception exception ? exception.Message : "Unknown error occurred";
+            Console.WriteLine(args.ExceptionObject);
 
             try
             {
