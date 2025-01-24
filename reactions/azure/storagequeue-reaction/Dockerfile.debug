@@ -20,7 +20,7 @@ RUN dotnet restore
 RUN dotnet build -c $BUILD_CONFIGURATION -o /app/build
 
 FROM --platform=$TARGETPLATFORM ubuntu:22.04 AS debug
-RUN apt-get update && apt-get install -y bash curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y bash curl dotnet-runtime-8.0 aspnetcore-runtime-8.0 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/build .
 ENTRYPOINT ["/app/storagequeue-reaction"]

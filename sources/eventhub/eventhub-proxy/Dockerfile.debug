@@ -31,7 +31,7 @@ FROM build AS publish
 RUN dotnet publish "eventhub-proxy.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM ubuntu:22.04 AS final
-RUN apt-get update && apt-get install -y bash curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y bash curl dotnet-runtime-8.0 aspnetcore-runtime-8.0 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "eventhub-proxy.dll"]
