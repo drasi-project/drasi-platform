@@ -27,6 +27,13 @@ public class SourceChange
 
     private readonly SourceElement element;
 
+    /// <summary>
+    /// Create a new SourceChange
+    /// </summary>
+    /// <param name="op">Type of change (insert/update/delete)</param>
+    /// <param name="element">The current state of the node or relation</param>
+    /// <param name="timestampMs">The Unix time in milliseconds of the change</param>
+    /// <param name="lsn">The sequence number of the change</param>
     public SourceChange(ChangeOp op, SourceElement element, long timestampMs, long lsn)
     {
         this.op = op;

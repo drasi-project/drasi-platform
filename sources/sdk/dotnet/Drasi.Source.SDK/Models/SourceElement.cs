@@ -74,12 +74,12 @@ public class SourceElement
 
         if (startId != null)
         {
-            result.Add("start_id", startId);
+            result.Add("startId", startId);
         }
 
         if (endId != null)
         {
-            result.Add("end_id", endId);
+            result.Add("endId", endId);
         }
 
         return result;

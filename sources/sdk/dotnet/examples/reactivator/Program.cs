@@ -1,13 +1,12 @@
-﻿// See https://aka.ms/new-console-template for more information
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Drasi.Source.SDK;
 using Drasi.Source.SDK.Models;
-using Microsoft.Extensions.ObjectPool;
+using Microsoft.Extensions.Configuration;
 
 var reactivator = new ReactivatorBuilder()
     .UseChangeMonitor<ChangeMonitor>()
-    .UseChangePublisher<DebugPublisher>()
+    .UseDeprovisionHandler<DeprovisionHandler>()
     .Build();
 
 await reactivator.StartAsync();
@@ -15,12 +14,12 @@ await reactivator.StartAsync();
 
 class ChangeMonitor : IChangeMonitor
 {
-
     private readonly IStateStore stateStore;
 
-    public ChangeMonitor(IStateStore stateStore)
+    public ChangeMonitor(IStateStore stateStore, IConfiguration configuration)
     {
         this.stateStore = stateStore;
+        Console.WriteLine($"Connection string: {configuration["connectionString"]}");
     }
 
     public async IAsyncEnumerable<SourceChange> Monitor([EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -55,8 +54,8 @@ class ChangeMonitor : IChangeMonitor
 
 class DeprovisionHandler : IDeprovisionHandler
 {
-    public Task Deprovision(IStateStore stateStore)
+    public async Task Deprovision(IStateStore stateStore)
     {
-        throw new NotImplementedException();
+        await stateStore.Delete("cursor");
     }
 }

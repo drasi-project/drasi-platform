@@ -16,11 +16,20 @@ using System.Text.Json.Serialization;
 
 namespace Drasi.Source.SDK.Models;
 
+/// <summary>
+/// A request to bootstrap a continuous query
+/// </summary>
 public class BootstrapRequest
 {
+    /// <summary>
+    /// Labels of nodes to bootstrap requested by the query
+    /// </summary>
     [JsonPropertyName("nodeLabels")]
     public List<string> NodeLabels { get; set; } = [];
 
+    /// <summary>
+    /// Labels of relations to bootstrap requested by the query
+    /// </summary>
     [JsonPropertyName("relLabels")]
     public List<string> RelationLabels { get; set; } = [];
 

@@ -17,11 +17,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using Drasi.Source.SDK.Models;
-using System.Text.Json.Nodes;
 using System.Diagnostics;
 
 namespace Drasi.Source.SDK;
