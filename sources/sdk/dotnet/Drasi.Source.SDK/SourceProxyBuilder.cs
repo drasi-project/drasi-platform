@@ -73,8 +73,13 @@ public class SourceProxyBuilder
 
     static SourceProxyBuilder()
     {
-        AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+        AppDomain.CurrentDomain.UnhandledException += (sender, args) =>        
         {
+            if (args.ExceptionObject is OperationCanceledException)
+            {
+                return;
+            }
+            
             var message = args.ExceptionObject is Exception exception ? exception.Message : "Unknown error occurred";
 
             try
