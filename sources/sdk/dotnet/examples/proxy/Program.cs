@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Drasi.Source.SDK;
 using Drasi.Source.SDK.Models;
+using Microsoft.Extensions.Configuration;
 
 var proxy = new SourceProxyBuilder()
     .UseBootstrapHandler<BootstrapHandler>()
@@ -13,6 +14,11 @@ await proxy.StartAsync();
 
 class BootstrapHandler : IBootstrapHandler
 {
+    public BootstrapHandler(IConfiguration configuration)
+    {
+        Console.WriteLine($"Connection string: {configuration["connectionString"]}");
+    }
+
     public async IAsyncEnumerable<SourceElement> Bootstrap(BootstrapRequest request, [EnumeratorCancellation]CancellationToken cancellationToken = default)
     {
         if (request.NodeLabels.Contains("Person"))
