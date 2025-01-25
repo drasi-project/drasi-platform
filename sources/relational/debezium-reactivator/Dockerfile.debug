@@ -25,6 +25,6 @@ RUN cd /home/app && mvn dependency:tree
 # Package stage
 #
 FROM --platform=$TARGETPLATFORM ubuntu:22.04 AS final
-RUN apt-get update && apt-get install -y bash curl openjdk-21-jdk && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl curl openjdk-21-jre-headless  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /home/app/target /home/app
-CMD ["-jar","/home/app/debezium-reactivator-1.0.jar"]
+CMD ["java", "-jar","/home/app/debezium-reactivator-1.0.jar"]

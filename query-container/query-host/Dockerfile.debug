@@ -21,8 +21,8 @@ COPY . .
 WORKDIR /usr/src
 RUN cargo install --path .
 
-FROM ubuntu:22.04 
-RUN apt-get update && apt-get install -y openssl curl libssl3  && rm -rf /var/lib/apt/lists/*
+FROM ubuntu:20.04 
+RUN apt-get update && apt-get install -y openssl curl libssl1.1  && rm -rf /var/lib/apt/lists/*
 # gcr.io/distroless/cc-debian11
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
