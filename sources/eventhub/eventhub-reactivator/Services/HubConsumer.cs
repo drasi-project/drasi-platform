@@ -12,33 +12,63 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Threading.Channels;
+using Azure.Identity;
 using Azure.Messaging.EventHubs.Consumer;
-using Microsoft.Extensions.ObjectPool;
+using Drasi.Source.SDK;
+using Drasi.Source.SDK.Models;
 
 namespace Reactivator.Services
 {
-    class HubConsumer(IChangePublisher changePublisher, ICheckpointStore checkpointStore, IEventMapper eventMapper, string connectionString, string consumerGroup, string entityName) : BackgroundService
+    class HubConsumer : BackgroundService
     {
-        private readonly IChangePublisher _changePublisher = changePublisher;
-        private readonly ICheckpointStore _checkpointStore = checkpointStore;
-        private readonly IEventMapper _eventMapper = eventMapper;
+        private readonly Channel<SourceChange> _channel;
+        private readonly IStateStore _checkpointStore;
+        private readonly IEventMapper _eventMapper;
 
-        private readonly string _consumerGroup = consumerGroup;
+        private readonly IConfiguration _configuration;
 
-        private readonly string _connectionString = connectionString;
+        private readonly EventHubConsumerClient _client;
 
-        private readonly string _entityName = entityName;
+        private readonly string _entityName;
+
+        private readonly ILogger _logger;
+
+        public HubConsumer(Channel<SourceChange> channel, IStateStore stateStore, IEventMapper eventMapper, IConfiguration configuration, ILogger logger, string entityName)
+        {
+            _channel = channel;
+            _checkpointStore = stateStore;
+            _eventMapper = eventMapper;
+            _configuration = configuration;
+            _entityName = entityName;
+            _logger = logger;
+            _client = BuildClient(entityName, configuration, logger);
+        }
+
+        private static EventHubConsumerClient BuildClient(string eventHub, IConfiguration configuration, ILogger logger)
+        {
+            var consumerGroup = configuration.GetValue<string>("consumerGroup") ?? EventHubConsumerClient.DefaultConsumerGroupName;
+            switch (configuration.GetIdentityType())
+            {
+                case IdentityType.MicrosoftEntraWorkloadID:
+                    logger.LogInformation("Using Microsoft Entra Workload ID");
+                    var fqn = configuration.GetValue<string>("fullyQualifiedNamespace");
+                    return new EventHubConsumerClient(consumerGroup, fqn, eventHub, new DefaultAzureCredential()); 
+                default:
+                    logger.LogInformation("Using Connection String");
+                    return new EventHubConsumerClient(consumerGroup, configuration.GetValue<string>("connectionString"), eventHub);
+            }
+        }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var consumer = new EventHubConsumerClient(_consumerGroup, _connectionString, _entityName);
-            var partitions = await consumer.GetPartitionIdsAsync(stoppingToken);
-            Console.WriteLine($"Found {partitions.Length} partitions for entity {_entityName}");
+            var partitions = await _client.GetPartitionIdsAsync(stoppingToken);
+            _logger.LogInformation($"Found {partitions.Length} partitions for entity {_entityName}");
             var tasks = new List<Task>();
 
             foreach (var partition in partitions)
             {
-                tasks.Add(ConsumePartition(consumer, partition, stoppingToken));
+                tasks.Add(ConsumePartition(_client, partition, stoppingToken));
             }            
             
             await Task.WhenAll(tasks);
@@ -51,32 +81,32 @@ namespace Reactivator.Services
                 try
                 {
                     var lastOffset = EventPosition.Latest;
-                    var lastSequenceNumber = await _checkpointStore.GetSequenceNumber(_entityName, partition);
-                    if (lastSequenceNumber.HasValue) {
-                        Console.WriteLine($"Resuming from sequence number {lastSequenceNumber.Value}");
-                        lastOffset = EventPosition.FromSequenceNumber(lastSequenceNumber.Value, false);
+                    
+                    var lastSequenceNumber = await _checkpointStore.Get($"{_entityName}-{partition}");
+                    if (lastSequenceNumber != null) {
+                        _logger.LogInformation($"Resuming from sequence number {BitConverter.ToInt64(lastSequenceNumber)}");
+                        lastOffset = EventPosition.FromSequenceNumber(BitConverter.ToInt64(lastSequenceNumber), false);
                     }
                     
                     await foreach (var partitionEvent in consumer.ReadEventsFromPartitionAsync(partition, lastOffset, stoppingToken))
                     {
                         var sequenceNumber = partitionEvent.Data.SequenceNumber;
                         var change = await _eventMapper.MapEventAsync(partitionEvent);
-                        await _changePublisher.Publish([change]);
-                        await _checkpointStore.SetSequenceNumber(_entityName, partition, sequenceNumber);
-                        Console.WriteLine($"Published change for partition {_entityName} - {partition} at sequence number {sequenceNumber}");
+                        await _channel.Writer.WriteAsync(change, stoppingToken);
+                        await _checkpointStore.Put($"{_entityName}-{partition}", BitConverter.GetBytes(sequenceNumber));
+                        _logger.LogInformation($"Published change for partition {_entityName} - {partition} at sequence number {sequenceNumber}");
                     }
                 }
                 catch (TaskCanceledException)
                 {
-                    Console.WriteLine($"Shutting down partition consumer: {_entityName} - {partition}");
+                    _logger.LogInformation($"Shutting down partition consumer: {_entityName} - {partition}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error consuming partition {_entityName} - {partition}: {ex.Message} {ex.InnerException?.Message}");
+                    _logger.LogError($"Error consuming partition {_entityName} - {partition}: {ex.Message} {ex.InnerException?.Message}");
                     await Task.Delay(5000, stoppingToken);
                 }
             }
-            
         }
     }
 }
