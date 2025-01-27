@@ -250,7 +250,7 @@ spec:
     properties:
       connectionString:
         type: string
-      fullyQualifiedNamespace:
+      host:
         type: string
       consumerGroup:
         type: string

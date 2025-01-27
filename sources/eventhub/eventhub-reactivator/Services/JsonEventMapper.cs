@@ -26,7 +26,7 @@ namespace Reactivator.Services
             var elementId = rawEvent.Data.MessageId ?? $"{rawEvent.Partition.EventHubName}-{rawEvent.Partition.PartitionId}-{rawEvent.Data.SequenceNumber}";
             var data = new SourceElement(elementId, [rawEvent.Partition.EventHubName], JsonNode.Parse(rawEvent.Data.EventBody)?.AsObject());
 
-            return Task.FromResult(new SourceChange(ChangeOp.INSERT, data, rawEvent.Data.EnqueuedTime.ToUnixTimeMilliseconds(), rawEvent.Data.SequenceNumber));
+            return Task.FromResult(new SourceChange(ChangeOp.INSERT, data, rawEvent.Data.EnqueuedTime.ToUnixTimeMilliseconds(), rawEvent.Data.SequenceNumber, rawEvent.Partition.PartitionId));
         }
     }
 }

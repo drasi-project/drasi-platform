@@ -53,7 +53,7 @@ namespace Proxy.Services
             {
                 case IdentityType.MicrosoftEntraWorkloadID:
                     logger.LogInformation("Using Microsoft Entra Workload ID");
-                    var fqn = configuration.GetValue<string>("fullyQualifiedNamespace");
+                    var fqn = configuration.GetValue<string>("host");
                     return new EventHubConsumerClient(consumerGroup, fqn, eventHub, new DefaultAzureCredential()); 
                 default:
                     logger.LogInformation("Using Connection String");
