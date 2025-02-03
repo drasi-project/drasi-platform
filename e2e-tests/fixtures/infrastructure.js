@@ -106,7 +106,7 @@ async function tryLoadInfraImages(clusterName) {
 
 async function installDrasi() {
   await waitForChildProcess(
-    cp.exec("../cli/bin/drasi init --version 0.1.8", {
+    cp.exec("drasi init --local", {
       encoding: "utf-8",
     }),
     "install",
