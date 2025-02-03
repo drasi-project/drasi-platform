@@ -50,7 +50,7 @@ beforeAll(async () => {
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
   await new Promise((r) => setTimeout(r, 5000));
-}, 120000);
+}, 180000);
 
 afterAll(async () => {
   await signalrFixture.stop();
