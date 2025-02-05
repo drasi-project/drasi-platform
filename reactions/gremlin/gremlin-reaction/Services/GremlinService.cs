@@ -140,7 +140,7 @@ namespace Drasi.Reactions.Gremlin.Services {
         {
             if (_addedResultCommand == null)
             {
-                _logger.LogInformation("No Deleted Result Command Specified");
+                _logger.LogInformation("No Added Result Command Specified");
                 return;
             }
             string newCmd = _addedResultCommand;
@@ -180,7 +180,7 @@ namespace Drasi.Reactions.Gremlin.Services {
         {
             if (_updatedResultCommand == null)
             {
-                _logger.LogInformation("No Deleted Result Command Specified");
+                _logger.LogInformation("No Updated Result Command Specified");
                 return;
             }
             _logger.LogInformation($"Updated Result {updatedResult}");
