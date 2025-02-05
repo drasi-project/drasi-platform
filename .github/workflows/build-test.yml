@@ -372,7 +372,7 @@ jobs:
     permissions:
       packages: write
       contents: read
-    runs-on: e2e-tester
+    runs-on: ubuntu-latest
     needs: 
       - build-query-container
       - build-control-plane
