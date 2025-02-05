@@ -43,6 +43,7 @@ class SignalrFixture {
 
   async start() {
     await deployResources([this.reactionManifest]);
+    await new Promise((r) => setTimeout(r, 10000));
     this.localPort = await this.portForward.start();
     this.signalr = new signalR.HubConnectionBuilder()
       .withUrl(`http://127.0.0.1:${this.localPort}/hub`)
@@ -188,7 +189,7 @@ function signalrReactionManifest(queryIds) {
   let result = {
     apiVersion: "v1",
     kind: "Reaction",
-    name: `${crypto.randomUUID().toString()}-signalr`,
+    name: `signalr-${crypto.randomUUID().toString()}`,
     spec: {
       kind: "SignalR",
       queries: queryIds.reduce((a, v) => ({ ...a, [v]: "" }), {}),
