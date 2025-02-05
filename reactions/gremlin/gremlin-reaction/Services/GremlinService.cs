@@ -138,6 +138,11 @@ namespace Drasi.Reactions.Gremlin.Services {
 
         public void ProcessAddedQueryResults(Dictionary<string, object> res)
         {
+            if (_addedResultCommand == null)
+            {
+                _logger.LogInformation("No Deleted Result Command Specified");
+                return;
+            }
             string newCmd = _addedResultCommand;
 
             // Dictionary to hold the parameters for the command
@@ -149,6 +154,11 @@ namespace Drasi.Reactions.Gremlin.Services {
                 // Prepare the parameterized query by removing the @ sign
                 newCmd = newCmd.Replace($"@{param}", param);
                 var queryResultValue = ExtractQueryResultValue(param, res);
+                if (addedResultCommandParams.ContainsKey(param))
+                {
+                    _logger.LogInformation($"Parameter {param} already exists. Skipping.");
+                    continue;
+                }
                 addedResultCommandParams.Add(param, queryResultValue);
             }
             _logger.LogInformation($"Issuing added result command: {newCmd}");
@@ -168,6 +178,11 @@ namespace Drasi.Reactions.Gremlin.Services {
 
         public void ProcessUpdatedQueryResults(UpdatedResultElement updatedResult)
         {
+            if (_updatedResultCommand == null)
+            {
+                _logger.LogInformation("No Deleted Result Command Specified");
+                return;
+            }
             _logger.LogInformation($"Updated Result {updatedResult}");
 
             string newCmd = _updatedResultCommand;
@@ -180,18 +195,33 @@ namespace Drasi.Reactions.Gremlin.Services {
                 {
                     // Prepare the parameterized query by removing the @ sign
                     newCmd = newCmd.Replace($"@{param}", param);
+                    if (updatedResultCommandParams.ContainsKey(param))
+                    {
+                        _logger.LogInformation($"Parameter {param} already exists. Skipping.");
+                        continue;
+                    }
                     updatedResultCommandParams.Add(param, ExtractQueryResultValue(param.Substring(7), updatedResult.Before));
                 }
                 else if (param.StartsWith("after."))
                 {
                     // Prepare the parameterized query by removing the @ sign
                     newCmd = newCmd.Replace($"@{param}", param);
+                    if (updatedResultCommandParams.ContainsKey(param))
+                    {
+                        _logger.LogInformation($"Parameter {param} already exists. Skipping.");
+                        continue;
+                    }
                     updatedResultCommandParams.Add(param, ExtractQueryResultValue(param.Substring(6), updatedResult.After));
                 }
                 else
                 {
                     // Prepare the parameterized query by removing the @ sign
                     newCmd = newCmd.Replace($"@{param}", param);
+                    if (updatedResultCommandParams.ContainsKey(param))
+                    {
+                        _logger.LogInformation($"Parameter {param} already exists. Skipping.");
+                        continue;
+                    }
                     updatedResultCommandParams.Add(param, ExtractQueryResultValue(param, updatedResult.After));
                 }
             }
@@ -212,6 +242,11 @@ namespace Drasi.Reactions.Gremlin.Services {
 
         public void ProcessDeletedQueryResults(Dictionary<string, object> deletedResults)
         {
+            if (_deletedResultCommand == null)
+            {
+                _logger.LogInformation("No Deleted Result Command Specified");
+                return;
+            }
             _logger.LogInformation($"Deleted Result {deletedResults}");
 
             string newCmd = _deletedResultCommand;
@@ -222,6 +257,11 @@ namespace Drasi.Reactions.Gremlin.Services {
             {
                 // Prepare the parameterized query by removing the @ sign
                 newCmd = newCmd.Replace($"@{param}", param);
+                if (deletedResultCommandParams.ContainsKey(param))
+                {
+                    _logger.LogInformation($"Parameter {param} already exists. Skipping.");
+                    continue;
+                }
                 deletedResultCommandParams.Add(param, ExtractQueryResultValue(param, deletedResults));
             }
             _logger.LogInformation($"Issuing deleted result command: {newCmd}");
