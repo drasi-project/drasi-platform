@@ -625,7 +625,7 @@ func (t *Installer) checkDaprInstallation(output output.TaskOutput) (bool, error
 	podsClient := t.kubeClient.CoreV1().Pods("dapr-system")
 
 	pods, err := podsClient.List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=dapr",
+		LabelSelector: "app.kubernetes.io/part-of: dapr",
 	})
 	if err != nil {
 		output.FailTask("Dapr-Check", fmt.Sprintf("Error checking for Dapr: %v", err.Error()))
