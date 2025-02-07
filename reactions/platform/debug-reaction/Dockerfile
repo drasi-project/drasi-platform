@@ -1,37 +1,35 @@
-# Copyright 2024 The Drasi Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Stage 1: Build the Frontend
+FROM node:22 AS frontend
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install
+COPY frontend ./
+RUN npm run build  # Vite builds to "dist" by default
 
-#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
+# Stage 2: Build the Backend
+FROM node:22 AS backend
+WORKDIR /app/backend
+COPY backend/package.json backend/package-lock.json ./
+RUN npm install
+COPY backend ./
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet@sha256:22414f335b79654fb42257326e7f17f18edf8f912578fc33a55c5dd609bd022e AS base
-# mcr.microsoft.com/dotnet/aspnet:6.0
+# Stage 3: Create the Final Image
+FROM node:22 AS final
 WORKDIR /app
-EXPOSE 80
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@sha256:6df1177e48b55272316d08f19cb383483af82aca5cdc67a76c414bc200847624 AS build
-# mcr.microsoft.com/dotnet/sdk:6.0
-WORKDIR /src
-COPY ["debug-reaction.csproj", "."]
-RUN dotnet restore "./debug-reaction.csproj"
-COPY . .
-WORKDIR "/src/."
-RUN dotnet build "debug-reaction.csproj" -c Release -o /app/build
+# Copy backend files
+COPY --from=backend /app/backend /app/backend
 
-FROM build AS publish
-RUN dotnet publish "debug-reaction.csproj" -c Release -o /app/publish /p:UseAppHost=false
+# Copy frontend build to serve it with backend
+COPY --from=frontend /app/frontend/dist /app/backend/public
 
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "debug-reaction.dll"]
+# Set working directory for backend
+WORKDIR /app/backend
+
+# Expose backend API (if needed)
+EXPOSE 3000
+# Expose frontend (if served via backend)
+EXPOSE 8080
+
+# Start the backend (serving frontend too)
+CMD ["node", "index.js"]
