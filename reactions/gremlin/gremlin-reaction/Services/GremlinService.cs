@@ -222,9 +222,9 @@ namespace Drasi.Reactions.Gremlin.Services {
                 _logger.LogInformation($"Skipping command execution for {_updatedResultCommand}");
 
             }
-            _logger.LogInformation($"Issuing updated result command: {_deletedResultCommand}");
+            _logger.LogInformation($"Issuing updated result command: {_updatedResultCommand}");
 
-            var resultSet = SubmitRequest(_gremlinClient, _deletedResultCommand, updatedResultCommandParams).Result;
+            var resultSet = SubmitRequest(_gremlinClient, _updatedResultCommand, updatedResultCommandParams).Result;
             if (resultSet.Count > 0)
             {
                 _logger.LogInformation("Updated Command Result:");
