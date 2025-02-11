@@ -50,8 +50,8 @@ beforeAll(async () => {
   await new Promise((r) => setTimeout(r, 5000));
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
-  await new Promise((r) => setTimeout(r, 10000)); // reactivator is slow to startup
-}, 120000);
+  await new Promise((r) => setTimeout(r, 5000)); // reactivator is slow to startup
+}, 180000);
 
 afterAll(async () => {
   await signalrFixture.stop();

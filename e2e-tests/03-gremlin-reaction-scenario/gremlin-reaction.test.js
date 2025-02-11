@@ -96,6 +96,23 @@ test('Test Gremlin Reaction - deletedResultCommand', async () => {
 }, 140000);
 
 
+test('Test Gremlin Reaction - addedResultCommand with duplicate parameters', async () => {
+  const gremlinReaction = yaml.loadAll(fs.readFileSync(__dirname + '/gremlin-reaction-duplicate.yaml', 'utf8'));
+  await deployResources(gremlinReaction);
+
+  await postgresClient.query(`INSERT INTO "Item" ("ItemId", "Name", "Category") VALUES (5, 'Drasi', '3')`);
+  await waitForCondition(async () => {
+    const result = await gremlinClient.V().has('ItemName', 'Drasi').hasNext();
+    return result;
+  }, 1000,30000)
+  .then(() => {
+    expect(true).toBeTruthy(); 
+  })
+  .catch(() => {
+    expect(false).toBeTruthy();
+  });
+}, 140000);
+
 afterAll(async () => {
   await postgresClient.end();
   postgresPortForward.stop();
@@ -116,6 +133,7 @@ afterAll(async () => {
   const gremlinReactionDeletion = yaml.loadAll(fs.readFileSync(__dirname + '/gremlin-reaction-deletion.yaml', 'utf8'));
   await deleteResources(gremlinReactionDeletion);
 });
+
 
 
 function waitForCondition(checkFn, interval = 1000, timeout = 30000) {
