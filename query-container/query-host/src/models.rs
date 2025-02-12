@@ -170,3 +170,11 @@ impl BootstrapError {
         BootstrapError::Other(inner)
     }
 }
+
+#[derive(Error, Debug)]
+pub enum UnsubscriptionError {
+    #[error("Failed to unsubscribe: {0}")]
+    UnsubscribeFailed(String),
+    #[error("{0}")]
+    Other(Box<dyn Error + Send>),
+}

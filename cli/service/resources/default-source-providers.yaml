@@ -27,7 +27,7 @@ spec:
           connector:
             type: string
             default: PostgreSQL
-    reactivator: 
+    reactivator:
       image: source-debezium-reactivator
       deprovisionHandler: true
       dapr:
@@ -66,8 +66,60 @@ spec:
 ---
 apiVersion: v1
 kind: SourceProvider
+name: MySQL
+spec:
+  services:
+    proxy:
+      image: source-sql-proxy
+      dapr:
+        app-port: "4002"
+      config_schema:
+        type: object
+        properties:
+          connector:
+            type: string
+            default: MySQL
+    reactivator: 
+      image: source-debezium-reactivator
+      deprovisionHandler: true
+      dapr:
+        app-port: "80"
+      config_schema:
+        type: object
+        properties:
+          connector:
+            type: string
+            default: MySQL
+  config_schema:
+    type: object
+    properties:
+      database:
+        type: string
+      host:
+        type: string
+      password:
+        type: string
+      port:
+        type: number
+      ssl:
+        type: boolean
+        default: false
+      user:
+        type: string
+      tables:
+        type: array
+    required:
+      - database
+      - host
+      - port
+      - password
+      - user
+      - tables
+---
+apiVersion: v1
+kind: SourceProvider
 name: SQLServer
-spec: 
+spec:
   services:
     proxy:
       image: source-sql-proxy
@@ -79,7 +131,7 @@ spec:
           connector:
             type: string
             default: SQLServer
-    reactivator: 
+    reactivator:
       image: source-debezium-reactivator
       deprovisionHandler: true
       dapr:
@@ -122,7 +174,7 @@ spec:
 apiVersion: v1
 kind: SourceProvider
 name: CosmosGremlin
-spec: 
+spec:
   config_schema:
     type: object
     properties:
@@ -132,7 +184,7 @@ spec:
         type: string
       container:
         type: string
-    required: 
+    required:
       - accountEndpoint
       - database
       - container
@@ -154,13 +206,13 @@ spec:
 apiVersion: v1
 kind: SourceProvider
 name: Dataverse
-spec: 
+spec:
   services:
     proxy:
       image: source-dataverse-proxy
       dapr:
         app-port: "80"
-    reactivator: 
+    reactivator:
       image: source-dataverse-reactivator
   config_schema:
     type: object
@@ -185,13 +237,13 @@ spec:
 apiVersion: v1
 kind: SourceProvider
 name: EventHub
-spec: 
+spec:
   services:
     proxy:
       image: source-eventhub-proxy
       dapr:
         app-port: "80"
-    reactivator: 
+    reactivator:
       image: source-eventhub-reactivator
   config_schema:
     type: object
@@ -209,3 +261,25 @@ spec:
     required:
       - connectionString
       - eventHubs
+---
+apiVersion: v1
+kind: SourceProvider
+name: Kubernetes
+spec:
+  services:
+    proxy:
+      image: source-kubernetes-proxy
+      dapr:
+        app-port: "80"
+    reactivator:
+      image: source-kubernetes-reactivator
+      deprovisionHandler: true
+      dapr:
+        app-port: "80"
+  config_schema:
+    type: object
+    properties:
+      kubeConfig:
+        type: string
+    required:
+      - kubeConfig

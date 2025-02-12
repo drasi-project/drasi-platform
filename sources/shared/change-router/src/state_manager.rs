@@ -111,4 +111,28 @@ impl DaprStateManager {
             Err(e) => Err(Box::new(e)),
         }
     }
+
+    pub async fn delete_state(
+        &self,
+        key: &str,
+        metadata: Option<HashMap<String, String>>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let addr = "https://127.0.0.1".to_string();
+        let mut dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
+            .await
+            .expect("Unable to connect to Dapr");
+
+        match dapr_client
+            .delete_state(&self.store_name, &key.to_string(), metadata)
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                log::error!("Error deleting the Dapr state store: {:?}", e);
+                return Err(Box::new(e));
+            }
+        };
+
+        Ok(())
+    }
 }

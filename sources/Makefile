@@ -18,6 +18,8 @@ docker-build:
 	$(MAKE) -C eventhub/eventhub-proxy $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-reactivator $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-proxy $(MAKECMDGOALS)
+	$(MAKE) -C kubernetes/kubernetes-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C kubernetes/kubernetes-proxy $(MAKECMDGOALS)
 
 kind-load:
 	$(MAKE) -C cosmosdb/cosmosdb-ffcf-reactivator $(MAKECMDGOALS)
@@ -31,6 +33,8 @@ kind-load:
 	$(MAKE) -C eventhub/eventhub-proxy $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-reactivator $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-proxy $(MAKECMDGOALS)
+	$(MAKE) -C kubernetes/kubernetes-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C kubernetes/kubernetes-proxy $(MAKECMDGOALS)
 
 test:
 	$(MAKE) -C cosmosdb/cosmosdb-ffcf-reactivator $(MAKECMDGOALS)
@@ -44,6 +48,8 @@ test:
 	$(MAKE) -C eventhub/eventhub-proxy $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-reactivator $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-proxy $(MAKECMDGOALS)
+	$(MAKE) -C kubernetes/kubernetes-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C kubernetes/kubernetes-proxy $(MAKECMDGOALS)
 
 lint-check:
 	$(MAKE) -C cosmosdb/cosmosdb-ffcf-reactivator $(MAKECMDGOALS)
@@ -57,3 +63,5 @@ lint-check:
 	$(MAKE) -C eventhub/eventhub-proxy $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-reactivator $(MAKECMDGOALS)
 	$(MAKE) -C dataverse/dataverse-proxy $(MAKECMDGOALS)
+	$(MAKE) -C kubernetes/kubernetes-reactivator $(MAKECMDGOALS)
+	$(MAKE) -C kubernetes/kubernetes-proxy $(MAKECMDGOALS)
