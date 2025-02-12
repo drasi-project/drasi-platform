@@ -189,7 +189,7 @@ function signalrReactionManifest(queryIds) {
   let result = {
     apiVersion: "v1",
     kind: "Reaction",
-    name: `${crypto.randomUUID().toString()}-signalr`,
+    name: `signalr-${crypto.randomUUID().toString()}`,
     spec: {
       kind: "SignalR",
       queries: queryIds.reduce((a, v) => ({ ...a, [v]: "" }), {}),
