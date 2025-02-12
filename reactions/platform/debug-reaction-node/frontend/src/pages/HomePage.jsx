@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
+const API_URL = "http://localhost:3001";
+
 const HomePage = () => {
   const [queries, setQueries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -9,8 +11,9 @@ const HomePage = () => {
   useEffect(() => {
     const fetchQueries = async () => {
       try {
+
         // Fetch from the backend API
-        const response = await fetch("/queries");  // Adjust this URL if needed
+        const response = await fetch("http://localhost:3001/queries");
         if (!response.ok) {
           throw new Error("Failed to fetch queries");
         }
