@@ -33,19 +33,19 @@ public class ResultStream implements BootstrapStream {
 
     public SourceElement next() {
         var cursor = cursors.peek();
-        if (cursor == null) {
+        if (cursor == null)
             return null;
-        }
+
         var next = cursor.next(connection);
         while (next == null) {
             cursors.poll().close();
             cursor = cursors.peek();
-            if (cursor == null) {
+            if (cursor == null)
                 return null;
-            }
+
             next = cursor.next(connection);
         }
-
+        
         return next;
     }
 
@@ -68,6 +68,15 @@ public class ResultStream implements BootstrapStream {
                 propsPG.setProperty("sslmode", SourceProxy.GetConfigValue("sslMode", "prefer"));
 
                 return DriverManager.getConnection("jdbc:postgresql://" + SourceProxy.GetConfigValue("host") + ":" + SourceProxy.GetConfigValue("port") + "/" + SourceProxy.GetConfigValue("database"), propsPG);
+            case "MySQL":
+                var propsMySql = new Properties();
+                propsMySql.setProperty("user", SourceProxy.GetConfigValue("user"));
+                propsMySql.setProperty("password", SourceProxy.GetConfigValue("password"));
+                propsMySql.setProperty("sslmode", SourceProxy.GetConfigValue("sslMode", "prefer"));
+
+                var jdbcConnectionString = "jdbc:mysql://" + SourceProxy.GetConfigValue("host") + ":" + SourceProxy.GetConfigValue("port") + "/" + SourceProxy.GetConfigValue("database");
+
+                return DriverManager.getConnection(jdbcConnectionString, propsMySql);
             case "SQLServer":
                 var propsSQL = new Properties();
                 propsSQL.setProperty("user", SourceProxy.GetConfigValue("user"));
