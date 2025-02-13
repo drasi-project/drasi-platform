@@ -317,7 +317,7 @@ spec:
   version: v1
   metadata:
     - name: connectionString
-      value: "mongodb://drasi-mongo-0.drasi-mongo:27017/?replicaSet=rs0"
+      value: "mongodb://drasi-mongo:27017/?replicaSet=rs0"
       # The replicaSet parameter is required to enable MongoDB transactions.
       # Without this, MongoDB treats the connection as a standalone instance,
       # which does not support transactions (which ultimately means we won't be
