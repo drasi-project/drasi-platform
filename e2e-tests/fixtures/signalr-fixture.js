@@ -43,7 +43,7 @@ class SignalrFixture {
 
   async start() {
     await deployResources([this.reactionManifest]);
-    await new Promise((r) => setTimeout(r, 10000));
+    await new Promise((r) => setTimeout(r, 5000));
     this.localPort = await this.portForward.start();
     this.signalr = new signalR.HubConnectionBuilder()
       .withUrl(`http://127.0.0.1:${this.localPort}/hub`)

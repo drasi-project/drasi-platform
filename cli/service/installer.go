@@ -329,6 +329,7 @@ func (t *Installer) installQueryContainer(output output.TaskOutput, namespace st
 	if err := drasiClient.Apply(manifests, subOutput); err != nil {
 		return err
 	}
+
 	if err := drasiClient.ReadyWait(manifests, 180, subOutput); err != nil {
 		return err
 	}
