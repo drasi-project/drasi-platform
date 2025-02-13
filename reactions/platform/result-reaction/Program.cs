@@ -31,7 +31,6 @@ foreach (var qpath in Directory.GetFiles(queryConfigPath))
 	queryIds.Add(queryId);
 }
 
-Console.WriteLine("QueryContainerId: " + queryContainerId);
 
 builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
 
