@@ -1,0 +1,22 @@
+*.pdb
+*.exe
+debug-reaction.client/node_modules
+
+dist
+# Ignore .git folder
+.git
+
+# Ignore build output from both the client and server
+debug-reaction.client/build
+debug-reaction.server/bin
+debug-reaction.server/obj
+
+# Ignore logs and temp files
+*.log
+*.tmp
+
+# Ignore IDE and OS-specific files
+.vscode
+.idea
+.DS_Store
+Thumbs.db
