@@ -316,12 +316,12 @@ spec:
   type: state.mongodb
   version: v1
   metadata:
-    - name: host
-      value: drasi-mongo:27017
-    - name: username
-      value:
-    - name: password
-      value:
+    - name: connectionString
+      value: "mongodb://drasi-mongo:27017/?replicaSet=rs0"
+      # The replicaSet parameter is required to enable MongoDB transactions.
+      # Without this, MongoDB treats the connection as a standalone instance,
+      # which does not support transactions (which ultimately means we won't be
+      # able to use it as an actor statestore).
     - name: actorStateStore
       value: "true"
 ---
@@ -343,5 +343,4 @@ spec:
       value: "drasi"
     - name: redisPassword
       value: ""
-
 

@@ -189,7 +189,9 @@ function signalrReactionManifest(queryIds) {
   let result = {
     apiVersion: "v1",
     kind: "Reaction",
-    name: `signalr-${crypto.randomUUID().toString()}`,
+    name: `signalr-${crypto.randomUUID().toString()}`, 
+    // Sometimes the uuid will begin with a number, which is not allowed in k8s resource names
+    // as a result, we prepend the name with 'signalr-' to ensure it is a valid name
     spec: {
       kind: "SignalR",
       queries: queryIds.reduce((a, v) => ({ ...a, [v]: "" }), {}),
