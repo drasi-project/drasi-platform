@@ -32,7 +32,6 @@ var reaction = new ReactionBuilder()
                         var configuration = sp.GetRequiredService<IConfiguration>();
                         var logger = sp.GetRequiredService<ILogger<EventGridPublisherClient>>();
                         var eventGridUri = configuration.GetValue<string>("eventGridUri");
-                        // var eventGridKey = configuration.GetValue<string>("eventGridKey");
 
                         EventGridPublisherClient publisherClient; 
                         switch (configuration.GetIdentityType())
