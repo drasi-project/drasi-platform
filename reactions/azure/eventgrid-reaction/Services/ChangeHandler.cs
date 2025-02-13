@@ -47,7 +47,7 @@ public class ChangeHandler : IChangeEventHandler
         switch(_format)
         {
             case OutputFormat.Packed:
-                CloudEvent egEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", _formatter.Format(evt));
+                CloudEvent egEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", evt.ToJson());
                 var resp = await _publisherClient.SendEventAsync(egEvent);
                 if (resp.IsError) 
                 {
