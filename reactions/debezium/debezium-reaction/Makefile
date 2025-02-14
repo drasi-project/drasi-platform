@@ -11,6 +11,9 @@ default: docker-build
 docker-build:
 	docker buildx build . -t $(IMAGE_PREFIX)/reaction-debezium:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
 
+docker-build-debug:
+	docker buildx build . -f Dockerfile.debug -t $(IMAGE_PREFIX)/reaction-debezium:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
+
 kind-load:
 	kind load docker-image $(IMAGE_PREFIX)/reaction-debezium:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
 
