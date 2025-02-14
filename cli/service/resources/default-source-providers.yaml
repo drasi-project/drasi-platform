@@ -250,6 +250,8 @@ spec:
     properties:
       connectionString:
         type: string
+      host:
+        type: string
       consumerGroup:
         type: string
         default: "$Default"
@@ -259,7 +261,6 @@ spec:
         type: integer
         default: 0
     required:
-      - connectionString
       - eventHubs
 ---
 apiVersion: v1

@@ -14,47 +14,19 @@
 
 namespace Reactivator.Services 
 {
-    using System.Text.Json;
+    using System.Text.Json.Nodes;
     using System.Threading.Tasks;
     using Azure.Messaging.EventHubs.Consumer;
-    using Reactivator.Models;
+    using Drasi.Source.SDK.Models;
 
-    class JsonEventMapper(string sourceId) : IEventMapper
+    class JsonEventMapper() : IEventMapper
     {
-        private readonly string _sourceId = sourceId;
-
-        public Task<ChangeNotification> MapEventAsync(PartitionEvent rawEvent)
+        public Task<SourceChange> MapEventAsync(PartitionEvent rawEvent)
         {
-            var data = new VertexState();
-            if (!String.IsNullOrEmpty(rawEvent.Data.MessageId)) 
-            {
-                data.Id = rawEvent.Data.MessageId;
-            }
-            else
-            {
-                data.Id = $"{rawEvent.Partition.EventHubName}-{rawEvent.Partition.PartitionId}-{rawEvent.Data.SequenceNumber}";
-            }
-            data.Labels = [rawEvent.Partition.EventHubName];
-            data.Label = rawEvent.Partition.EventHubName;
-            data.Properties = JsonDocument.Parse(rawEvent.Data.EventBody);
+            var elementId = rawEvent.Data.MessageId ?? $"{rawEvent.Partition.EventHubName}-{rawEvent.Partition.PartitionId}-{rawEvent.Data.SequenceNumber}";
+            var data = new SourceElement(elementId, [rawEvent.Partition.EventHubName], JsonNode.Parse(rawEvent.Data.EventBody)?.AsObject());
 
-            return Task.FromResult(new ChangeNotification()
-            {
-                Op = "i",
-                TimestampMilliseconds = rawEvent.Data.EnqueuedTime.ToUnixTimeMilliseconds(),
-                Payload = new ChangePayload()
-                {
-                    Source = new ChangeSource()
-                    {
-                        Db = _sourceId,
-                        Table = "node",
-                        LSN = rawEvent.Data.SequenceNumber,
-                        Partition = rawEvent.Partition.PartitionId,
-                        TimestampMilliseconds = rawEvent.Data.EnqueuedTime.ToUnixTimeMilliseconds()
-                    },
-                    After = data
-                }
-            });
+            return Task.FromResult(new SourceChange(ChangeOp.INSERT, data, rawEvent.Data.EnqueuedTime.ToUnixTimeMilliseconds(), rawEvent.Data.SequenceNumber, rawEvent.Partition.PartitionId));
         }
     }
 }

@@ -13,12 +13,12 @@
 // limitations under the License.
 
 using Azure.Messaging.EventHubs.Consumer;
-using Reactivator.Models;
+using Drasi.Source.SDK.Models;
 
 namespace Reactivator.Services
 {
     interface IEventMapper
     {
-        Task<ChangeNotification> MapEventAsync(PartitionEvent rawEvent);
+        Task<SourceChange> MapEventAsync(PartitionEvent rawEvent);
     }
 }

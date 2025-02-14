@@ -24,6 +24,7 @@ public class SourceChange
     private readonly  ChangeOp op;
     private readonly long tsMS;
     private readonly long lsn;
+    private readonly string? partition;
 
     private readonly SourceElement element;
 
@@ -34,12 +35,13 @@ public class SourceChange
     /// <param name="element">The current state of the node or relation</param>
     /// <param name="timestampMs">The Unix time in milliseconds of the change</param>
     /// <param name="lsn">The sequence number of the change</param>
-    public SourceChange(ChangeOp op, SourceElement element, long timestampMs, long lsn)
+    public SourceChange(ChangeOp op, SourceElement element, long timestampMs, long lsn, string? partition = null)
     {
         this.op = op;
         this.tsMS = timestampMs;
         this.element = element;
         this.lsn = lsn;
+        this.partition = partition;
     }
 
     public string ToJson()
@@ -55,6 +57,7 @@ public class SourceChange
                 } 
             },
             { "lsn", lsn },
+            { "partition", partition },            
             { "ts_ms", tsMS }
         };
 
