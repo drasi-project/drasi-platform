@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, useParams } from 'react-router-dom';
-// import QueryPage from './pages/QueryPage';
+import QueryPage from './pages/QueryPage';
 import './App.css';
 
 function App() {
@@ -24,11 +24,11 @@ function App() {
                     </ul>
                 </div>
 
-                {/* <div className="content">
+                <div className="content">
                     <Routes>
                         <Route path="/query/:queryId" element={<QueryPage />} />
                     </Routes>
-                </div> */}
+                </div>
             </div>
         </Router>
     );
@@ -46,17 +46,5 @@ function App() {
         }
     }
 }
-
-function QueryPage() {
-    const { queryId } = useParams(); // useParams hook for getting the route parameter
-
-    return (
-        <div>
-            <h1>Query {queryId}</h1>
-            {/* Add the fetching and display of query data here */}
-        </div>
-    );
-}
-
 
 export default App;

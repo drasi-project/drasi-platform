@@ -1,35 +1,72 @@
-# Use the official .NET SDK image for building the app
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# Set working directory inside container
-WORKDIR /src
+#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-# Copy the project file and restore the dependencies for the Server
-COPY ["debug-reaction.Server.csproj", "."]
-
-# Restore the dependencies
-RUN dotnet restore "debug-reaction.Server.csproj"
-
-# Copy the rest of the Server files
-COPY . .
-
-# Build the app
-RUN dotnet build "debug-reaction.Server.csproj" -c Release -o /app/build
-
-# Publish the app for a smaller image
-FROM build AS publish
-RUN dotnet publish "debug-reaction.Server.csproj" -c Release -o /app/publish
-
-# Final stage: Create a smaller runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
-
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-
-# Copy the published files from the build container
-COPY --from=publish /app/publish .
-
-# Expose the port that the app will run on (make sure this is the correct port)
 EXPOSE 5195
 
-# Set entry point to run the app
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["debug-reaction.Server.csproj", "."]
+RUN dotnet restore "./debug-reaction.Server.csproj"
+COPY . .
+WORKDIR "/src/."
+RUN dotnet build "debug-reaction.Server.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "debug-reaction.Server.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "debug-reaction.Server.dll"]
+# # Copyright 2024 The Drasi Authors.
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+
+# #See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+# FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet@sha256:22414f335b79654fb42257326e7f17f18edf8f912578fc33a55c5dd609bd022e AS base
+# # mcr.microsoft.com/dotnet/aspnet:6.0
+# WORKDIR /app
+# EXPOSE 80
+
+# FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@sha256:6df1177e48b55272316d08f19cb383483af82aca5cdc67a76c414bc200847624 AS build
+# # mcr.microsoft.com/dotnet/sdk:6.0
+# WORKDIR /src
+# COPY ["debug-reaction.csproj", "."]
+# RUN dotnet restore "./debug-reaction.csproj"
+# COPY . .
+# WORKDIR "/src/."
+# RUN dotnet build "debug-reaction.csproj" -c Release -o /app/build
+
+# FROM build AS publish
+# RUN dotnet publish "debug-reaction.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# FROM base AS final
+# WORKDIR /app
+# COPY --from=publish /app/publish .
+# ENTRYPOINT ["dotnet", "debug-reaction.dll"]

@@ -16,6 +16,7 @@ using Dapr;
 using Dapr.Actors;
 using Dapr.Actors.Client;
 using Dapr.Client;
+
 using System.Net.WebSockets;
 using Drasi.Reactions.Debug.Server.Models;
 using System.Collections.Concurrent;
@@ -32,17 +33,20 @@ namespace Drasi.Reactions.Debug.Server.Services
 
         private readonly ConcurrentDictionary<string, QueryResult> _results = new();        
 
+        private readonly ConcurrentDictionary<string, WebSocket> _querySockets = new();
         private readonly string _queryDir;
         private readonly string _queryContainerId;
 
+        private readonly WebSocketService _webSocketService;
         // public event EventRecievedHandler? OnEventRecieved;
 
-        public QueryDebugService(IResultViewClient queryApi, IActorProxyFactory actorProxyFactory, DaprClient daprClient, string queryDir, string queryContainerId)
+        public QueryDebugService(IResultViewClient queryApi, IActorProxyFactory actorProxyFactory, DaprClient daprClient, WebSocketService webSocketService, string queryDir, string queryContainerId)
         {
             _daprClient = daprClient;
             _queryApi = queryApi;
             _queryDir = queryDir;
             _queryContainerId = queryContainerId;
+            _webSocketService = webSocketService;
             _actorProxyFactory = actorProxyFactory;
         }
 
@@ -75,7 +79,7 @@ namespace Drasi.Reactions.Debug.Server.Services
             return _results.GetOrAdd(queryId, await InitResult(queryId));
         }
 
-        public void ProcessRawChange(JsonElement change)
+        public async Task ProcessRawChange(JsonElement change)
         {
             var queryId = change.GetProperty("queryId").GetString();
 
@@ -95,9 +99,11 @@ namespace Drasi.Reactions.Debug.Server.Services
                 item.TryGetProperty("grouping_keys", out groupingKeys);
                 queryResult.Update(item.GetProperty("before"), item.GetProperty("after"), groupingKeys);
             }
+
+            await _webSocketService.BroadcastToQueryId(queryId, queryResult);
         }
 
-        public void ProcessControlSignal(JsonElement change)
+        public async Task ProcessControlSignal(JsonElement change)
         {
             var queryId = change.GetProperty("queryId").GetString();
 
@@ -105,6 +111,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 
             if (!_results.ContainsKey(queryId))
                 return;
+
 
             var queryResult = _results[queryId];
 
@@ -116,7 +123,9 @@ namespace Drasi.Reactions.Debug.Server.Services
                 case "bootstrapStarted":
                     queryResult.Clear();
                     break;
-            }            
+            }         
+
+            await _webSocketService.BroadcastToQueryId(queryId, queryResult);   
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -166,35 +175,35 @@ namespace Drasi.Reactions.Debug.Server.Services
     }
 
 
-    public class WebSocketManager
-    {
-        private readonly ConcurrentBag<WebSocket> _sockets = new();
+    // public class WebSocketManager
+    // {
+    //     private readonly ConcurrentBag<WebSocket> _sockets = new();
 
-        public async Task AddClient(WebSocket socket)
-        {
-            _sockets.Add(socket);
-            var buffer = new byte[1024 * 4];
-            while (socket.State == WebSocketState.Open)
-            {
-                var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    _sockets.TryTake(out _);
-                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed", CancellationToken.None);
-                }
-            }
-        }
+    //     public async Task AddClient(WebSocket socket)
+    //     {
+    //         _sockets.Add(socket);
+    //         var buffer = new byte[1024 * 4];
+    //         while (socket.State == WebSocketState.Open)
+    //         {
+    //             var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+    //             if (result.MessageType == WebSocketMessageType.Close)
+    //             {
+    //                 _sockets.TryTake(out _);
+    //                 await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed", CancellationToken.None);
+    //             }
+    //         }
+    //     }
 
-        public void BroadcastMessage(string message)
-        {
-            var buffer = Encoding.UTF8.GetBytes(message);
-            foreach (var socket in _sockets)
-            {
-                if (socket.State == WebSocketState.Open)
-                {
-                    socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
-                }
-            }
-        }
-    }
+    //     public void BroadcastMessage(string message)
+    //     {
+    //         var buffer = Encoding.UTF8.GetBytes(message);
+    //         foreach (var socket in _sockets)
+    //         {
+    //             if (socket.State == WebSocketState.Open)
+    //             {
+    //                 socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+    //             }
+    //         }
+    //     }
+    // }
 }

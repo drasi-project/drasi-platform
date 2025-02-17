@@ -20,11 +20,6 @@ namespace Drasi.Reactions.Debug.Server.Controllers
         [HttpGet(Name = "GetQueries")]
         public IEnumerable<string> Get()
         {
-            // var queryList = new List<string>{
-            //     "query1",
-            //     "query2",
-            //     "query3"
-            // };
             var queryList = new List<string>();
             foreach (var qpath in Directory.GetFiles(_configDirectory))
             {
