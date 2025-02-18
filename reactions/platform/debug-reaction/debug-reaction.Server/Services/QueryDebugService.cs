@@ -37,6 +37,8 @@ namespace Drasi.Reactions.Debug.Server.Services
         private readonly string _queryDir;
         private readonly string _queryContainerId;
 
+        
+
         private readonly WebSocketService _webSocketService;
         // public event EventRecievedHandler? OnEventRecieved;
 

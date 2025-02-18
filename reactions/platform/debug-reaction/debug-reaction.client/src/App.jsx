@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, useParams } from 'react-router-dom';
 import QueryPage from './pages/QueryPage';
+import EventStreamPage from './pages/EventStream';
 import './App.css';
 
 function App() {
@@ -14,7 +15,16 @@ function App() {
         <Router>
             <div className="app-container">
                 <div className="sidebar">
-                    <h2>Queries</h2>
+                    <ul>
+                        <li>
+                            <Link to="/">Home</Link>
+                        </li>
+                    </ul>
+                    <ul>
+                        <li>
+                            <Link to="/stream">Event Stream</Link>
+                        </li>
+                    </ul>
                     <ul>
                         {queries.map((query) => (
                             <li key={query}>
@@ -26,6 +36,7 @@ function App() {
 
                 <div className="content">
                     <Routes>
+                        <Route path="stream" element={<EventStreamPage/> } />
                         <Route path="/query/:queryId" element={<QueryPage />} />
                     </Routes>
                 </div>

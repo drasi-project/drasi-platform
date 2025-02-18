@@ -5,7 +5,9 @@ import { useParams } from 'react-router-dom';
 function QueryPage() {
   const { queryId } = useParams(); // useParams hook for getting the route parameter
   const [queries, setQueries] = useState([]);
+  const [queryError, setQueryError] = useState([]);
   const [socket, setSocket] = useState(null);
+  const [debugInfo, setDebugInfo] = useState({});
 
   // Fetch the initial data on page load 
   const intialize = async () => {
@@ -16,6 +18,7 @@ function QueryPage() {
       
       const data = await response.json();
       setQueries(data.data); // Set initial data
+      setQueryError(data.error); // Set initial data
     } catch (error) {
       console.error("Error fetching initial data:", error);
     }
@@ -29,10 +32,26 @@ function QueryPage() {
       
       const data = await response.json();
       setQueries(data.data); // Set initial data
+      setQueryError(data.error); // Set initial data
     } catch (error) {
       console.error("Error fetching initial data:", error);
     }
   };
+
+  const debugQuery = async () => {
+    try {
+      const debug_url = `http://localhost:5195/query/debug/${queryId}`;
+        const response = await fetch(debug_url);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+        const data = await response.json();
+        setDebugInfo(data); // Set initial data    
+
+    } catch (error) {
+        console.error("Error fetching initial data:", error);
+    }
+  };
+
   useEffect(() => {
       if (!queryId) return;
       const WEBSOCKET_URL = `ws://localhost:5195/ws/query/${queryId}`;
@@ -40,7 +59,7 @@ function QueryPage() {
 
   
       intialize();
-
+      debugQuery();
       const ws = new WebSocket(WEBSOCKET_URL);
 
       ws.onopen = () => {
@@ -55,6 +74,7 @@ function QueryPage() {
             //   const message = JSON.parse(event);
               console.log('Received message data:', message["Data"]);
               setQueries(message["Data"]);
+              setQueryError(message["Error"]);
               console.log('current queries:', queries);
           } catch (error) {
               console.error('Error parsing WebSocket message:', error);
@@ -78,12 +98,18 @@ function QueryPage() {
   }, [queryId]);
 return (
         <div>
-                <h1>Query: {queryId}</h1>
+                <h1>Query Results - {queryId}</h1>
                 <ul>
                         {queries.map((query, index) => (
                                 <li key={index}>{JSON.stringify(query)}</li>
                         ))}
                 </ul>
+                <h2>Debug Info</h2>
+                {Object.entries(debugInfo).map(([key, value]) => (
+                    <p key={key}>
+                        {key}: {JSON.stringify(value)}
+                    </p>
+                ))}
                 <button onClick={reinitialize}>Refetch Query Cache </button>
         </div>
 );

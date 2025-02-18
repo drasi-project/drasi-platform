@@ -67,6 +67,8 @@ app.MapControllers();
 app.UseCloudEvents();
 app.UseWebSockets();
 
+LinkedList<JsonElement> stream = new();
+
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapSubscribeHandler();
@@ -91,6 +93,45 @@ app.MapGet("/query/reinitialize/{queryId}", async (string queryId, IQueryDebugSe
 {
     var result = await debugService.ReinitializeQuery(queryId);
     return Results.Json(result);
+});
+
+
+// Debug info
+app.MapGet("/query/debug/{queryId}", async (string queryId, IQueryDebugService debugService) =>
+{
+    var result = await debugService.GetDebugInfo(queryId);
+    return Results.Json(result);
+});
+
+// Event stream
+app.MapGet("/stream", async (HttpContext context) =>
+{
+    return Results.Json(stream);
+    // var buffer = new byte[1024 * 4];
+    // var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+    // Console.WriteLine("WebSocket connected");
+
+    // while (webSocket.State == WebSocketState.Open)
+    // {
+    //     lock (stream)
+    //     {
+    //         foreach (var item in stream)
+    //         {
+    //             var jsonMessage = item.GetRawText();
+    //             var buffer = Encoding.UTF8.GetBytes(jsonMessage);
+    //             await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+    //         }
+    //     }
+
+    //     // Wait for a message from the client
+    //     var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+    //     if (result.MessageType == WebSocketMessageType.Close)
+    //     {
+    //         Console.WriteLine("WebSocket closing");
+    //         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
+    //         return;
+    //     }
+    // }
 });
 
 app.Use(async (context, next) =>
@@ -125,16 +166,17 @@ app.Use(async (context, next) =>
             var lastPingTime = DateTime.Now;
             while (webSocket.State == WebSocketState.Open)
             {
-                // ... your message handling ...
-
-                // Send a ping every X seconds (e.g., 30 seconds)
-                if (DateTime.Now - lastPingTime > TimeSpan.FromSeconds(30))
+                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                
+                if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    await webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("{\"type\": \"ping\"}")), WebSocketMessageType.Text, true, CancellationToken.None);
-                    lastPingTime = DateTime.Now;
+                    Console.WriteLine($"WebSocket closing for queryId: {queryId}");
+                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
+                    return;
                 }
 
-                await Task.Delay(1000); // Small delay to avoid busy-waiting
+                // Handle incoming messages (if needed)
+                Console.WriteLine($"Received message for queryId {queryId}: {Encoding.UTF8.GetString(buffer, 0, result.Count)}");
             }
         }
         else
@@ -174,6 +216,14 @@ async Task ProcessEvent(HttpContext context)
 
         var evt = data.RootElement;
         var queryId = evt.GetProperty("queryId").GetString();
+        lock (stream)
+        {
+            stream.AddFirst(evt);
+            while (stream.Count > 100)
+            {
+                stream.RemoveLast();
+            }
+        }
         if (!File.Exists(Path.Combine(configDirectory, queryId)))
         {
             Console.WriteLine("Skipping " + queryId);
@@ -201,123 +251,3 @@ async Task ProcessEvent(HttpContext context)
         throw;
     }
 }
-// using Dapr.Actors.Client;
-// using Dapr.Client;
-// using Microsoft.Extensions.Configuration;
-// using System.Net.WebSockets;
-// using System.Text.Json;
-// using System.Text;
-// using Drasi.Reactions.Debug.Server.Services;
-
-
-// var builder = WebApplication.CreateBuilder(args);
-// var configuration = BuildConfiguration();
-// // Add services to the container.
-
-// builder.Services.AddControllers();
-
-// var pubsubName = configuration.GetValue<string>("PubsubName", "drasi-pubsub");
-// var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
-// var queryContainerId = configuration.GetValue<string>("QueryContainer", "default");
-
-
-// builder.Services.AddDaprClient();
-// builder.Services.AddActors(x => { });
-// builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
-// builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(sp.GetRequiredService<IResultViewClient>(), sp.GetRequiredService<IActorProxyFactory>(), sp.GetRequiredService<DaprClient>(), sp.GetRequiredService<WebSocketService>(), configDirectory, queryContainerId));
-// builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
-
-// builder.Services.AddSingleton<WebSocketService>();
-
-// var app = builder.Build();
-// app.UseCors("AllowAll");
-// // app.UseDefaultFiles();
-// app.UseStaticFiles();
-// app.UseWebSockets();
-
-// // // Configure the HTTP request pipeline.
-// // if (app.Environment.IsDevelopment())
-// // {
-// //     app.UseSwagger();
-// //     app.UseSwaggerUI();
-// // }
-
-// // app.Urls.Add("http://0.0.0.0:80"); 
-// app.Urls.Add("http://0.0.0.0:5195"); 
-
-// app.UseRouting();
-// app.UseCloudEvents();
-
-// app.UseEndpoints(endpoints =>
-// {
-//     var ep = endpoints.MapPost("event", ProcessEvent);
-
-//     foreach (var qpath in Directory.GetFiles(configDirectory))
-//     {
-//         var queryId = Path.GetFileName(qpath);
-//         Console.WriteLine($"Registering {queryId}");
-//         ep.WithTopic(pubsubName, queryId + "-results");
-//     }        
-// });
-
-// // // TODO:controller
-
-
-
-// app.UseHttpsRedirection();
-
-// app.UseAuthorization();
-
-// 
-
-// app.MapFallbackToFile("/index.html");
-
-// app.Run();
-
-// async Task ProcessEvent(HttpContext context)
-// {
-//     try
-//     {
-//         var debugService = context.RequestServices.GetRequiredService<IQueryDebugService>();
-//         var data = await JsonDocument.ParseAsync(context.Request.Body);
-
-//         Console.WriteLine("Got event: " + data.RootElement.GetRawText());
-
-//         // var evt = data.RootElement;
-//         // var queryId = evt.GetProperty("queryId").GetString();
-//         // if (!File.Exists(Path.Combine(configDirectory, queryId)))
-//         // {
-//         //     Console.WriteLine("Skipping " + queryId);
-//         //     context.Response.StatusCode = 200;
-//         //     return;
-//         // }
-        
-//         // switch (evt.GetProperty("kind").GetString()) 
-//         // {
-//         //     case "control":
-//         //         Console.WriteLine("Processing signal " + queryId);
-//         //         debugService.ProcessControlSignal(evt);
-//         //         break;
-//         //     case "change":
-//         //         Console.WriteLine("Processing change " + queryId);
-//         //         debugService.ProcessRawChange(evt);
-//         //         break;
-//         // }        
-
-//         context.Response.StatusCode = 200;
-//     }
-//     catch (Exception ex)
-//     {
-//         Console.WriteLine($"Error processing event: {ex.Message}");
-//         throw;
-//     }
-// }
-
-// static IConfiguration BuildConfiguration()
-// {
-//     return new ConfigurationBuilder()
-//         .SetBasePath(Directory.GetCurrentDirectory())
-//         .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-//         .AddEnvironmentVariables()
-//         .Build();
-// }
