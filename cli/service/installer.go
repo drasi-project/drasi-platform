@@ -329,7 +329,7 @@ func (t *Installer) installQueryContainer(output output.TaskOutput, namespace st
 	if err := drasiClient.Apply(manifests, subOutput); err != nil {
 		return err
 	}
-	if err := drasiClient.ReadyWait(manifests, 180, subOutput); err != nil {
+	if err := drasiClient.ReadyWait(manifests, 150, subOutput); err != nil {
 		return err
 	}
 	output.SucceedTask("Query-Container", "Query container created")
