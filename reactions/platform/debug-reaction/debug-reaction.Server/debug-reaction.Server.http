@@ -1,8 +1,0 @@
-@debug_reaction.Server_HostAddress = http://localhost:5195
-
-
-GET {{debug_reaction.Server_HostAddress}}/queries/
-Accept: application/json
-
-
-###
