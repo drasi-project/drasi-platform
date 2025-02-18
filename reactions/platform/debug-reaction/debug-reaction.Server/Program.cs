@@ -95,6 +95,11 @@ app.MapGet("/query/reinitialize/{queryId}", async (string queryId, IQueryDebugSe
     return Results.Json(result);
 });
 
+app.MapGet("/stream", async (IQueryDebugService debugService) =>
+{
+    return Results.Json(stream);
+});
+
 
 // Debug info
 app.MapGet("/query/debug/{queryId}", async (string queryId, IQueryDebugService debugService) =>
@@ -103,36 +108,6 @@ app.MapGet("/query/debug/{queryId}", async (string queryId, IQueryDebugService d
     return Results.Json(result);
 });
 
-// Event stream
-app.MapGet("/stream", async (HttpContext context) =>
-{
-    return Results.Json(stream);
-    // var buffer = new byte[1024 * 4];
-    // var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-    // Console.WriteLine("WebSocket connected");
-
-    // while (webSocket.State == WebSocketState.Open)
-    // {
-    //     lock (stream)
-    //     {
-    //         foreach (var item in stream)
-    //         {
-    //             var jsonMessage = item.GetRawText();
-    //             var buffer = Encoding.UTF8.GetBytes(jsonMessage);
-    //             await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
-    //         }
-    //     }
-
-    //     // Wait for a message from the client
-    //     var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-    //     if (result.MessageType == WebSocketMessageType.Close)
-    //     {
-    //         Console.WriteLine("WebSocket closing");
-    //         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
-    //         return;
-    //     }
-    // }
-});
 
 app.Use(async (context, next) =>
 {
@@ -183,13 +158,38 @@ app.Use(async (context, next) =>
         {
             context.Response.StatusCode = 400; // Bad Request if not a WebSocket request
         }
+    } else if (context.Request.Path.StartsWithSegments("/ws/stream"))
+    {
+        if (context.WebSockets.IsWebSocketRequest)
+        {
+            var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+            Console.WriteLine("WebSocket connected");
+
+            var streamService = context.RequestServices.GetRequiredService<WebSocketService>();
+            streamService.AddConnection("stream", webSocket);
+
+            var buffer = new byte[1024 * 4];
+            while (webSocket.State == WebSocketState.Open)
+            {
+                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    Console.WriteLine("WebSocket closing");
+                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
+                    return;
+                }
+            }
+        }
+        else
+        {
+            context.Response.StatusCode = 400; // Bad Request if not a WebSocket request
+        }
     }
     else
     {
         await next();
     }
 });
-
 
 app.Urls.Add("http://0.0.0.0:5195"); //app
 app.Run();
@@ -216,6 +216,8 @@ async Task ProcessEvent(HttpContext context)
 
         var evt = data.RootElement;
         var queryId = evt.GetProperty("queryId").GetString();
+        // send to websocket
+        var webSocketService = context.RequestServices.GetRequiredService<WebSocketService>();
         lock (stream)
         {
             stream.AddFirst(evt);
@@ -224,6 +226,7 @@ async Task ProcessEvent(HttpContext context)
                 stream.RemoveLast();
             }
         }
+        await webSocketService.BroadcastToStream("stream", stream);
         if (!File.Exists(Path.Combine(configDirectory, queryId)))
         {
             Console.WriteLine("Skipping " + queryId);

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 
 function EventStream() {
     const [stream, setStream] = useState([]);
-    
+    const WEBSOCKET_URL = "ws://localhost:5195/ws/stream";
+
     const fetchStream = async () => {
         try {
             const url = "http://localhost:5195/stream";
@@ -19,10 +20,47 @@ function EventStream() {
             console.error("Error fetching stream:", error);
         }
     };
-
     useEffect(() => {
+        const ws = new WebSocket(WEBSOCKET_URL);
+
         fetchStream();
+        ws.onopen = () => {
+            console.log("WebSocket connected");
+            setInterval(() => {
+                if (ws.readyState == WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "ping" }));
+                }
+            }, 25000);
+        };
+
+        ws.onmessage = (event) => {
+            try  {
+                console.log("Message from server:", event.data);
+                const data = JSON.parse(event.data);
+                setStream(data);
+            } catch (error) {
+                console.error("Error parsing message:", error);
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+  
+        ws.onclose = (event) => {
+          console.log("WebSocket closed:", event.code, event.reason);
+        };
+
+        // Closing the web socket on component unmount
+        return () => {
+            ws.close();
+        }
     }, []);
+    
+
+    // useEffect(() => {
+    //     fetchStream();
+    // }, []);
     
 
     return (

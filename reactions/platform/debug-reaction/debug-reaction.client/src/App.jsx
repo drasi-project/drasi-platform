@@ -15,16 +15,10 @@ function App() {
         <Router>
             <div className="app-container">
                 <div className="sidebar">
-                    <ul>
-                        <li>
-                            <Link to="/">Home</Link>
-                        </li>
-                    </ul>
-                    <ul>
-                        <li>
-                            <Link to="/stream">Event Stream</Link>
-                        </li>
-                    </ul>
+                    <h2>
+                        <Link to="/stream">Event Stream</Link>
+                    </h2>
+                    <h2>Active Queries: </h2>
                     <ul>
                         {queries.map((query) => (
                             <li key={query}>

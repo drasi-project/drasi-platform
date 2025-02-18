@@ -6,7 +6,8 @@ function QueryPage() {
   const { queryId } = useParams(); // useParams hook for getting the route parameter
   const [queries, setQueries] = useState([]);
   const [queryError, setQueryError] = useState([]);
-  const [socket, setSocket] = useState(null);
+  const [fieldNames, setFieldNames] = useState([]);
+  // const [socket, setSocket] = useState(null);
   const [debugInfo, setDebugInfo] = useState({});
 
   // Fetch the initial data on page load 
@@ -19,6 +20,7 @@ function QueryPage() {
       const data = await response.json();
       setQueries(data.data); // Set initial data
       setQueryError(data.error); // Set initial data
+      setFieldNames(data.fieldNames); // Set initial data
     } catch (error) {
       console.error("Error fetching initial data:", error);
     }
@@ -33,6 +35,7 @@ function QueryPage() {
       const data = await response.json();
       setQueries(data.data); // Set initial data
       setQueryError(data.error); // Set initial data
+      setFieldNames(data.fieldNames); // Set initial data
     } catch (error) {
       console.error("Error fetching initial data:", error);
     }
@@ -64,17 +67,21 @@ function QueryPage() {
 
       ws.onopen = () => {
           console.log(`WebSocket connected for Query ID: ${queryId}`);
-          ws.send(JSON.stringify({ type: 'subscribe', queryId }));
+          setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "ping" }));
+            }
+          }, 25000);
       };
 
       ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
             console.log('Received message:', event.data);
-            //   const message = JSON.parse(event);
               console.log('Received message data:', message["Data"]);
               setQueries(message["Data"]);
               setQueryError(message["Error"]);
+              setFieldNames(message["FieldNames"]);
               console.log('current queries:', queries);
           } catch (error) {
               console.error('Error parsing WebSocket message:', error);
@@ -89,7 +96,6 @@ function QueryPage() {
         console.log("WebSocket closed:", event.code, event.reason);
         };
 
-      setSocket(ws);
 
       return () => {
         console.log(`Closing WebSocket for Query ID: ${queryId}`);
@@ -99,18 +105,31 @@ function QueryPage() {
 return (
         <div>
                 <h1>Query Results - {queryId}</h1>
-                <ul>
-                        {queries.map((query, index) => (
-                                <li key={index}>{JSON.stringify(query)}</li>
-                        ))}
-                </ul>
+                <table className="table">
+                    <thead>
+                      <tr>
+                          {fieldNames.map((fieldName, index) => (
+                              <th key={index}>{fieldName}</th>
+                          ))}
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {queries.map((query, index) => (
+                          <tr key={index}>
+                              {Object.values(query).map((value, i) => (
+                                  <td key={i}>{value}</td>
+                              ))}
+                          </tr>
+                      ))}
+                  </tbody>
+                </table>
                 <h2>Debug Info</h2>
                 {Object.entries(debugInfo).map(([key, value]) => (
                     <p key={key}>
-                        {key}: {JSON.stringify(value)}
+                        {key}: {value}
                     </p>
                 ))}
-                <button onClick={reinitialize}>Refetch Query Cache </button>
+                <button className="btn btn-secondary" onClick={reinitialize}>Refetch Query Cache </button>
         </div>
 );
 }
