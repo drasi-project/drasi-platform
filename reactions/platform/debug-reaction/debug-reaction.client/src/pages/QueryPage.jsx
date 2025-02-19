@@ -7,7 +7,6 @@ function QueryPage() {
   const [queries, setQueries] = useState([]);
   const [queryError, setQueryError] = useState([]);
   const [fieldNames, setFieldNames] = useState([]);
-  // const [socket, setSocket] = useState(null);
   const [debugInfo, setDebugInfo] = useState({});
 
   // Fetch the initial data on page load 
@@ -33,9 +32,9 @@ function QueryPage() {
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       
       const data = await response.json();
-      setQueries(data.data); // Set initial data
-      setQueryError(data.error); // Set initial data
-      setFieldNames(data.fieldNames); // Set initial data
+      setQueries(data.data);
+      setQueryError(data.error);
+      setFieldNames(data.fieldNames);
     } catch (error) {
       console.error("Error fetching initial data:", error);
     }
@@ -77,12 +76,9 @@ function QueryPage() {
       ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
-            console.log('Received message:', event.data);
-              console.log('Received message data:', message["Data"]);
               setQueries(message["Data"]);
               setQueryError(message["Error"]);
               setFieldNames(message["FieldNames"]);
-              console.log('current queries:', queries);
           } catch (error) {
               console.error('Error parsing WebSocket message:', error);
           }

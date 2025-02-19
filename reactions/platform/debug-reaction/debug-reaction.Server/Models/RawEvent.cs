@@ -16,15 +16,15 @@ using System.Text.Json;
 
 namespace Drasi.Reactions.Debug.Server.Models
 {
-    public class RawEvent
-    {
-        public RawEvent(JsonElement payload)
-        {
-            Payload = payload;
-        }
+	public class RawEvent
+	{
+		public RawEvent(JsonElement payload)
+		{
+			Payload = payload;
+		}
 
-        public JsonElement Payload { get; }
-    }
+		public JsonElement Payload { get; }
+	}
 
-    public delegate void EventRecievedHandler(RawEvent evt);
+	public delegate void EventRecievedHandler(RawEvent evt);
 }

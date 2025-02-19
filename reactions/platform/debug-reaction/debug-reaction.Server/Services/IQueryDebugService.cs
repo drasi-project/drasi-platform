@@ -14,22 +14,20 @@
 
 using Drasi.Reactions.Debug.Server.Models;
 using System.Text.Json;
-using Drasi.Reaction.SDK.Models.QueryOutput;
 
 namespace Drasi.Reactions.Debug.Server.Services
 {
-    public interface IQueryDebugService : IHostedService
-    {
-        Task<QueryResult> GetQueryResult(string queryId);
-        Task ProcessRawChange(string queryId, JsonElement change);
-        Task ProcessControlSignal(string queryId, JsonElement change);
-        IEnumerable<string> ActiveQueries { get; }
-        Task<Dictionary<string, object>> GetDebugInfo(string queryId);
-        Task<QueryResult> ReinitializeQuery(string queryId);
+	public interface IQueryDebugService : IHostedService
+	{
+		Task<QueryResult> GetQueryResult(string queryId);
+		Task ProcessRawChange(string queryId, JsonElement change);
+		Task ProcessControlSignal(string queryId, JsonElement change);
+		IEnumerable<string> ActiveQueries { get; }
+		Task<Dictionary<string, object>> GetDebugInfo(string queryId);
+		Task<QueryResult> ReinitializeQuery(string queryId);
 
-        Task<LinkedList<JsonElement>> GetRawEvents();
+		Task<LinkedList<JsonElement>> GetRawEvents();
 
-        Task ProcessRawEvent(JsonElement change);
-        // event EventRecievedHandler? OnEventRecieved;
-    }
+		Task ProcessRawEvent(JsonElement change);
+	}
 }

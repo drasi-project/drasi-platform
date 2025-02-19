@@ -12,9 +12,7 @@ function EventStream() {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-
             const stream = await response.json();
-            console.log(stream);
             setStream(stream);
         } catch (error) {
             console.error("Error fetching stream:", error);
@@ -25,7 +23,6 @@ function EventStream() {
 
         fetchStream();
         ws.onopen = () => {
-            console.log("WebSocket connected");
             setInterval(() => {
                 if (ws.readyState == WebSocket.OPEN) {
                     ws.send(JSON.stringify({ type: "ping" }));
@@ -35,7 +32,6 @@ function EventStream() {
 
         ws.onmessage = (event) => {
             try  {
-                console.log("Message from server:", event.data);
                 const data = JSON.parse(event.data);
                 setStream(data);
             } catch (error) {
@@ -56,11 +52,6 @@ function EventStream() {
             ws.close();
         }
     }, []);
-    
-
-    // useEffect(() => {
-    //     fetchStream();
-    // }, []);
     
 
     return (

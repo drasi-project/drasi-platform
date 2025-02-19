@@ -17,8 +17,8 @@ using System.Text.Json;
 
 namespace Drasi.Reactions.Debug.Server.Services
 {
-    public interface IResultViewClient
-    {
-        IAsyncEnumerable<JsonDocument> GetCurrentResult(string queryContainerId, string queryId, CancellationToken cancellationToken = default);
-    }
+	public interface IResultViewClient
+	{
+		IAsyncEnumerable<JsonDocument> GetCurrentResult(string queryContainerId, string queryId, CancellationToken cancellationToken = default);
+	}
 }
