@@ -273,9 +273,14 @@ jobs:
             name: 'reaction-debezium'
           },
           { 
-            label: 'Debug',
-            path: './reactions/platform/debug-reaction', 
-            name: 'reaction-debug'
+            label: 'Debug Frontend',
+            path: './reactions/platform/debug-reaction/debug-reaction.client', 
+            name: 'reaction-debug-frontend'
+          },
+          {
+            label: 'Debug Backend',
+            path: './reactions/platform/debug-reaction/debug-reaction.Server',
+            name: 'reaction-debug-backend'
           },
           { 
             label: 'EventGrid',
