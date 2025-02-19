@@ -31,11 +31,14 @@ public class ControlSignalHandler: IControlEventHandler
 
     private readonly ILogger<ControlSignalHandler> _logger;
 
+    private readonly EventGridSchema _eventGridSchema;
+
     public ControlSignalHandler(EventGridPublisherClient publisherClient, IConfiguration config, ILogger<ControlSignalHandler> logger)
     {
         _publisherClient = publisherClient;
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _logger = logger;
+        _eventGridSchema = Enum.Parse<EventGridSchema>(config.GetValue<string>("eventGridSchema") ?? "CloudEvents", true);
     }
 
     public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
@@ -43,12 +46,26 @@ public class ControlSignalHandler: IControlEventHandler
         switch (_format)
         {
             case OutputFormat.Packed:
-                CloudEvent egEvent = new CloudEvent(evt.QueryId, "Drasi.ControlEvent", evt);
-                var resp = await _publisherClient.SendEventAsync(egEvent);
-                if (resp.IsError)
+                if (_eventGridSchema == EventGridSchema.CloudEvents)
                 {
-                    _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
-                    throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                    CloudEvent egEvent = new CloudEvent(evt.QueryId, "Drasi.ControlEvent", evt);
+                    var resp = await _publisherClient.SendEventAsync(egEvent);
+                    if (resp.IsError)
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                    }
+                    break;
+                } else if (_eventGridSchema == EventGridSchema.EventGrid)
+                {
+                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ControlEvent", "1", evt);
+                    var resp = await _publisherClient.SendEventAsync(egEvent);
+                    if (resp.IsError)
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                    }
+                    break;
                 }
                 break;
             case OutputFormat.Unpacked:
@@ -67,12 +84,26 @@ public class ControlSignalHandler: IControlEventHandler
                     }
                 };
 
-                CloudEvent unpackedEvent = new CloudEvent(evt.QueryId, "Drasi.ControlSignal", notification);
-                var dzresp = await _publisherClient.SendEventAsync(unpackedEvent);
-                if (dzresp.IsError)
+                if (_eventGridSchema == EventGridSchema.EventGrid)
                 {
-                    _logger.LogError($"Error sending message to Event Grid: {dzresp.Content.ToString()}");
-                    throw new Exception($"Error sending message to Event Grid: {dzresp.Content.ToString()}");
+                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ControlSignal", "1", notification);
+                    var resp = await _publisherClient.SendEventAsync(egEvent);
+                    if (resp.IsError)
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
+                    }
+                    break;
+                } else if (_eventGridSchema == EventGridSchema.CloudEvents)
+                {
+                    CloudEvent unpackedEvent = new CloudEvent(evt.QueryId, "Drasi.ControlSignal", notification);
+                    var dzresp = await _publisherClient.SendEventAsync(unpackedEvent);
+                    if (dzresp.IsError)
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {dzresp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {dzresp.Content.ToString()}");
+                    }
+                    break;
                 }
                 break;
             default:

@@ -15,7 +15,6 @@
     <RepositoryUrl>https://github.com/drasi-project/drasi-platform.git</RepositoryUrl>
     <Version>0.1.9</Version>
     <PackageIcon>drasi.png</PackageIcon>
-    <PackageVersion>0.1.9-alpha</PackageVersion>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
