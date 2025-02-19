@@ -39,6 +39,7 @@ mod subscribers;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     log::info!("Starting Source Change Router");
 
     let config = ChangeRouterConfig::from_env();

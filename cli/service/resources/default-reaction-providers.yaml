@@ -80,6 +80,18 @@ spec:
         type: string
       eventGridKey:
         type: string
+      eventGridSchema:
+        type: string
+        enum:
+          - "CloudEvents"
+          - "EventGrid"
+        default: "CloudEvents"
+      format:
+        type: string
+        enum:
+          - "packed"
+          - "unpacked"
+        default: "packed"
     required:
       - eventGridUri
 ---

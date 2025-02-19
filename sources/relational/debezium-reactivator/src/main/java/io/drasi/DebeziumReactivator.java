@@ -16,6 +16,9 @@
 
 package io.drasi;
 
+import io.drasi.databases.MySql;
+import io.drasi.databases.PostgreSql;
+import io.drasi.databases.SqlServer;
 import io.drasi.source.sdk.ChangeMonitor;
 import io.drasi.source.sdk.Reactivator;
 import org.slf4j.Logger;
@@ -32,11 +35,14 @@ public class DebeziumReactivator {
 
         log.info("Starting Debezium Reactivator");
 
-        ChangeMonitor monitor = switch (Reactivator.GetConfigValue("connector")) {
-            case "PostgreSQL" -> new PostgresChangeMonitor();
-            case "SQLServer" -> new SqlServerChangeMonitor();
+        DatabaseStrategy strategy = switch (Reactivator.GetConfigValue("connector")) {
+            case "PostgreSQL" -> new PostgreSql();
+            case "SQLServer" -> new SqlServer();
+            case "MySQL" -> new MySql();
             default -> throw new IllegalArgumentException("Unknown connector");
         };
+
+        ChangeMonitor monitor = new RelationalChangeMonitor(strategy);
 
         var reactivator = Reactivator.builder()
                 .withChangeMonitor(monitor)
