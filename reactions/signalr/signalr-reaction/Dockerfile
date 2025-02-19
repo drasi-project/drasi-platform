@@ -20,7 +20,7 @@ COPY . .
 RUN dotnet restore
 RUN dotnet build -c $BUILD_CONFIGURATION -o /app/build
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0-cbl-mariner2.0 AS final
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0-cbl-mariner2.0 AS final
 WORKDIR /app
 COPY --from=build /app/build .
 ENTRYPOINT ["/app/Drasi.Reactions.SignalR"]
