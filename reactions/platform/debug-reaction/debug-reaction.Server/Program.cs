@@ -17,9 +17,9 @@ using Dapr.Actors.Client;
 using Dapr.Client;
 using Drasi.Reactions.Debug.Server.Models;
 using Drasi.Reactions.Debug.Server.Services;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.Extensions.DependencyInjection;
+using Drasi.Reaction.SDK;
+using Drasi.Reaction.SDK.Models.QueryOutput;
+
 using System.Text.Json;
 using System.Text;
 using System.Net.WebSockets;
@@ -33,95 +33,119 @@ var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/qu
 var queryContainerId = configuration.GetValue<string>("QueryContainer", "default");
 
 
+// Reaction SDK
+var reaction = new ReactionBuilder()
+                   .UseChangeEventHandler<ChangeHandler>()
+                   .UseControlEventHandler<ControlSignalHandler>()  
+                   .ConfigureServices((services) => 
+                   {
+                        services.AddSingleton<WebSocketService>();
+                        services.AddDaprClient();
+                        services.AddActors(x => { });
+                        services.AddSingleton<IResultViewClient, ResultViewClient>();
+                        // services.AddSingleton<IActorProxyFactory, ActorProxyFactory>();
+                        services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(sp.GetRequiredService<IResultViewClient>(), sp.GetRequiredService<IActorProxyFactory>(), sp.GetRequiredService<DaprClient>(), sp.GetRequiredService<WebSocketService>(), configDirectory, queryContainerId));
+                        services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
+                        services.AddCors(options =>
+                        {
+                            options.AddPolicy("AllowAll",
+                                policy =>
+                                {
+                                    policy.AllowAnyOrigin()  
+                                          .AllowAnyMethod()   
+                                          .AllowAnyHeader();  
+                                });
+                        });
+                   }).Build();
+
+
+// reaction.App().UseWebSockets();
+
+
 // Add services to the container.
-builder.Services.AddDaprClient();
-builder.Services.AddActors(x => { });
-builder.Services.AddControllers();
-builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
-builder.Services.AddSingleton<WebSocketService>();
-builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(sp.GetRequiredService<IResultViewClient>(), sp.GetRequiredService<IActorProxyFactory>(), sp.GetRequiredService<DaprClient>(), sp.GetRequiredService<WebSocketService>(), configDirectory, queryContainerId));
-builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
+// builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
+// builder.Services.AddSingleton<WebSocketService>();
+// builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(sp.GetRequiredService<IResultViewClient>(), sp.GetRequiredService<IActorProxyFactory>(), sp.GetRequiredService<DaprClient>(), sp.GetRequiredService<WebSocketService>(), configDirectory, queryContainerId));
+// builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        policy =>
-        {
-            policy.AllowAnyOrigin()   // Allow any origin (change this in production to a specific origin)
-                  .AllowAnyMethod()   // Allow any HTTP method (GET, POST, etc.)
-                  .AllowAnyHeader();  // Allow any header
-        });
-});
-var app = builder.Build();
+// builder.Services.AddCors(options =>
+// {
+//     options.AddPolicy("AllowAll",
+//         policy =>
+//         {
+//             policy.AllowAnyOrigin()  
+//                   .AllowAnyMethod()   
+//                   .AllowAnyHeader();  
+//         });
+// });
+// var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (!reaction.App().Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    reaction.App().UseExceptionHandler("/Error");
 }
+reaction.App().UseStaticFiles();
+reaction.App().UseRouting();
+reaction.App().UseCors("AllowAll");
+reaction.App().UseCloudEvents();
+reaction.App().MapControllers();
+reaction.App().UseWebSockets();
 
-app.UseStaticFiles();
-app.UseCors("AllowAll");
-app.UseRouting();
-app.MapControllers();
-app.UseCloudEvents();
-app.UseWebSockets();
+// // Configure the HTTP request pipeline.
+// if (!app.Environment.IsDevelopment())
+// {
+//     app.UseExceptionHandler("/Error");
+// }
+
+// app.UseStaticFiles();
+// app.UseCors("AllowAll");
+// app.UseRouting();
+// app.MapControllers();
+// app.UseCloudEvents();
+// app.UseWebSockets();
 
 LinkedList<JsonElement> stream = new();
 
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapSubscribeHandler();
-    var ep = endpoints.MapPost("event", ProcessEvent);
-
-    foreach (var qpath in Directory.GetFiles(configDirectory))
-    {
-        var queryId = Path.GetFileName(qpath);
-        ep.WithTopic(pubsubName, queryId + "-results");
-    }        
-});
-
 // Add a get endpoint
-app.MapGet("/query/initialize/{queryId}", async (string queryId, IQueryDebugService debugService) =>
+reaction.App().MapGet("/query/initialize/{queryId}", async (string queryId, IQueryDebugService debugService) =>
 {
     var result = await debugService.GetQueryResult(queryId);
     return Results.Json(result);
 });
 
 // Used for reinitializing a query
-app.MapGet("/query/reinitialize/{queryId}", async (string queryId, IQueryDebugService debugService) =>
+reaction.App().MapGet("/query/reinitialize/{queryId}", async (string queryId, IQueryDebugService debugService) =>
 {
     var result = await debugService.ReinitializeQuery(queryId);
     return Results.Json(result);
 });
 
-app.MapGet("/stream", async (IQueryDebugService debugService) =>
+reaction.App().MapGet("/stream", async (IQueryDebugService debugService) =>
 {
-    return Results.Json(stream);
+    return Results.Json(await debugService.GetRawEvents());
 });
 
 
 // Debug info
-app.MapGet("/query/debug/{queryId}", async (string queryId, IQueryDebugService debugService) =>
+reaction.App().MapGet("/query/debug/{queryId}", async (string queryId, IQueryDebugService debugService) =>
 {
     var result = await debugService.GetDebugInfo(queryId);
     return Results.Json(result);
 });
 
 
-app.Use(async (context, next) =>
+reaction.App().Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/ws/query"))
     {
         if (context.WebSockets.IsWebSocketRequest)
         {
             var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-            // var queryId = context.Request.Query["queryId"].ToString();
             var pathSegments = context.Request.Path.Value.Split('/');
             var queryId = string.Empty;
-            if (pathSegments.Length > 3) // Expected: ["", "ws", "query", "queryId"]
+            if (pathSegments.Length > 3) 
             {
-                queryId = pathSegments[3]; // Extract queryId manually
+                queryId = pathSegments[3];
             }
 
             if (string.IsNullOrEmpty(queryId))
@@ -149,9 +173,6 @@ app.Use(async (context, next) =>
                     await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
                     return;
                 }
-
-                // Handle incoming messages (if needed)
-                Console.WriteLine($"Received message for queryId {queryId}: {Encoding.UTF8.GetString(buffer, 0, result.Count)}");
             }
         }
         else
@@ -174,7 +195,7 @@ app.Use(async (context, next) =>
                 var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    Console.WriteLine("WebSocket closing");
+                    Console.WriteLine("WebSocket for Event Stream closing");
                     await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
                     return;
                 }
@@ -191,8 +212,8 @@ app.Use(async (context, next) =>
     }
 });
 
-app.Urls.Add("http://0.0.0.0:5195"); //app
-app.Run();
+// reaction.App().Urls.Add("http://0.0.0.0:5195"); //app
+// app.Run();
 
 
 static IConfiguration BuildConfiguration()
@@ -204,53 +225,47 @@ static IConfiguration BuildConfiguration()
         .Build();
 }
 
+await reaction.StartAsync();
 
-async Task ProcessEvent(HttpContext context)
+
+public class ChangeHandler: IChangeEventHandler
 {
-    try
+    private readonly IQueryDebugService _debugService;
+    private readonly ILogger<ChangeHandler> _logger;
+
+
+    public ChangeHandler(IQueryDebugService debugService, ILogger<ChangeHandler> logger)
     {
-        var debugService = context.RequestServices.GetRequiredService<IQueryDebugService>();
-        var data = await JsonDocument.ParseAsync(context.Request.Body);
-
-        Console.WriteLine("Got event: " + data.RootElement.GetRawText());
-
-        var evt = data.RootElement;
-        var queryId = evt.GetProperty("queryId").GetString();
-        // send to websocket
-        var webSocketService = context.RequestServices.GetRequiredService<WebSocketService>();
-        lock (stream)
-        {
-            stream.AddFirst(evt);
-            while (stream.Count > 100)
-            {
-                stream.RemoveLast();
-            }
-        }
-        await webSocketService.BroadcastToStream("stream", stream);
-        if (!File.Exists(Path.Combine(configDirectory, queryId)))
-        {
-            Console.WriteLine("Skipping " + queryId);
-            context.Response.StatusCode = 200;
-            return;
-        }
-        
-        switch (evt.GetProperty("kind").GetString()) 
-        {
-            case "control":
-                Console.WriteLine("Processing signal " + queryId);
-                await debugService.ProcessControlSignal(evt);
-                break;
-            case "change":
-                Console.WriteLine("Processing change " + queryId);
-                await debugService.ProcessRawChange(evt);
-                break;
-        }        
-
-        context.Response.StatusCode = 200;
+        _debugService = debugService;
+        _logger = logger;
     }
-    catch (Exception ex)
+    
+    public async Task HandleChange(ChangeEvent evt, object? queryConfig)
     {
-        Console.WriteLine($"Error processing event: {ex.Message}");
-        throw;
+        var queryId = evt.QueryId;
+        var jsonEvent = JsonSerializer.Deserialize<JsonElement>(evt.ToJson());
+        await _debugService.ProcessRawEvent(jsonEvent);
+        await _debugService.ProcessRawChange(queryId, jsonEvent);
+    }
+}
+
+
+public class ControlSignalHandler: IControlEventHandler
+{
+    private readonly IQueryDebugService _debugService;
+    private readonly ILogger<ControlSignalHandler> _logger;
+
+    public ControlSignalHandler(IQueryDebugService debugService, ILogger<ControlSignalHandler> logger)
+    {
+        _debugService = debugService;
+        _logger = logger;
+    }
+
+    public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
+    {
+        var queryId = evt.QueryId;
+        var jsonEvent = JsonSerializer.Deserialize<JsonElement>(evt.ToJson());
+        await _debugService.ProcessRawEvent(jsonEvent);
+        await _debugService.ProcessControlSignal(queryId,jsonEvent);
     }
 }

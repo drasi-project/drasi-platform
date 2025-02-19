@@ -20,6 +20,7 @@ using Dapr.Client;
 using System.Net.WebSockets;
 using Drasi.Reactions.Debug.Server.Models;
 using System.Collections.Concurrent;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 using System.Text.Json;
 using System.Text;
 
@@ -31,9 +32,10 @@ namespace Drasi.Reactions.Debug.Server.Services
         private readonly IActorProxyFactory _actorProxyFactory;
         private readonly DaprClient _daprClient;
 
+
         private readonly ConcurrentDictionary<string, QueryResult> _results = new();        
 
-        private readonly ConcurrentDictionary<string, WebSocket> _querySockets = new();
+        private readonly LinkedList<JsonElement> _rawEvents = new();
         private readonly string _queryDir;
         private readonly string _queryContainerId;
 
@@ -53,6 +55,22 @@ namespace Drasi.Reactions.Debug.Server.Services
         }
 
         public IEnumerable<string> ActiveQueries => _results.Keys;
+
+        public async Task<LinkedList<JsonElement>> GetRawEvents()
+        {
+            return _rawEvents;
+        }
+
+        public async Task ProcessRawEvent(JsonElement change)
+        {
+            lock (_rawEvents)
+            {
+                _rawEvents.AddFirst(change);
+                while (_rawEvents.Count > 100)
+                    _rawEvents.RemoveLast();
+            }
+            await _webSocketService.BroadcastToStream("stream",_rawEvents);
+        }
 
         public async Task<Dictionary<string, object>> GetDebugInfo(string queryId)
         {
@@ -81,10 +99,8 @@ namespace Drasi.Reactions.Debug.Server.Services
             return _results.GetOrAdd(queryId, await InitResult(queryId));
         }
 
-        public async Task ProcessRawChange(JsonElement change)
+        public async Task ProcessRawChange(string queryId, JsonElement change)
         {
-            var queryId = change.GetProperty("queryId").GetString();
-
             // OnEventRecieved?.Invoke(new RawEvent(change));
 
             if (!_results.ContainsKey(queryId))
@@ -105,9 +121,8 @@ namespace Drasi.Reactions.Debug.Server.Services
             await _webSocketService.BroadcastToQueryId(queryId, queryResult);
         }
 
-        public async Task ProcessControlSignal(JsonElement change)
+        public async Task ProcessControlSignal(string queryId, JsonElement change)
         {
-            var queryId = change.GetProperty("queryId").GetString();
 
             // OnEventRecieved?.Invoke(new RawEvent(change));
 
@@ -177,35 +192,4 @@ namespace Drasi.Reactions.Debug.Server.Services
     }
 
 
-    // public class WebSocketManager
-    // {
-    //     private readonly ConcurrentBag<WebSocket> _sockets = new();
-
-    //     public async Task AddClient(WebSocket socket)
-    //     {
-    //         _sockets.Add(socket);
-    //         var buffer = new byte[1024 * 4];
-    //         while (socket.State == WebSocketState.Open)
-    //         {
-    //             var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-    //             if (result.MessageType == WebSocketMessageType.Close)
-    //             {
-    //                 _sockets.TryTake(out _);
-    //                 await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed", CancellationToken.None);
-    //             }
-    //         }
-    //     }
-
-    //     public void BroadcastMessage(string message)
-    //     {
-    //         var buffer = Encoding.UTF8.GetBytes(message);
-    //         foreach (var socket in _sockets)
-    //         {
-    //             if (socket.State == WebSocketState.Open)
-    //             {
-    //                 socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
-    //             }
-    //         }
-    //     }
-    // }
 }

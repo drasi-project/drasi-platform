@@ -43,7 +43,6 @@ function App() {
             const response = await fetch('http://localhost:5195/queries');
             if (response.ok) {
                 const data = await response.json();
-                console.log(data);
                 setQueries(data);
             }
         } catch (error) {
