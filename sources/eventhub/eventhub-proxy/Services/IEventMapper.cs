@@ -13,12 +13,12 @@
 // limitations under the License.
 
 using Azure.Messaging.EventHubs.Consumer;
-using Proxy.Models;
+using Drasi.Source.SDK.Models;
 
 namespace Proxy.Services
 {
     interface IEventMapper
     {
-        Task<VertexState> MapEventAsync(PartitionEvent rawEvent);
+        Task<SourceElement> MapEventAsync(PartitionEvent rawEvent);
     }
 }

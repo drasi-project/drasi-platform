@@ -25,28 +25,28 @@ public class ReactivatorBuilder
 {
     private readonly WebApplicationBuilder _webappBuilder;
 
-        public IServiceCollection Services => _webappBuilder.Services;
+    public IServiceCollection Services => _webappBuilder.Services;
 
-        public IConfiguration Configuration => _webappBuilder.Configuration;
+    public IConfiguration Configuration => _webappBuilder.Configuration;
 
-        public ReactivatorBuilder()
-        {
-            _webappBuilder = WebApplication.CreateBuilder();
-            _webappBuilder.Services.AddDaprClient();
-            _webappBuilder.Services.AddControllers();
-            
-            _webappBuilder.Configuration.AddEnvironmentVariables();
-            _webappBuilder.Logging.AddConsole();
+    public ReactivatorBuilder()
+    {
+        _webappBuilder = WebApplication.CreateBuilder();
+        _webappBuilder.Services.AddDaprClient();
+        _webappBuilder.Services.AddControllers();
 
-            var otelEndpoint = Environment.GetEnvironmentVariable("OTEL_ENDPOINT") ?? "http://otel-collector:4317";
+        _webappBuilder.Configuration.AddEnvironmentVariables();
+        _webappBuilder.Logging.AddConsole();
 
-            _webappBuilder.Services.AddOpenTelemetry()
-                .UseOtlpExporter(OpenTelemetry.Exporter.OtlpExportProtocol.Grpc, new Uri(otelEndpoint))
-                .WithTracing();
+        var otelEndpoint = Environment.GetEnvironmentVariable("OTEL_ENDPOINT") ?? "http://otel-collector:4317";
 
-            _webappBuilder.Services.AddSingleton<IChangePublisher, DaprChangePublisher>();
-            _webappBuilder.Services.AddSingleton<IStateStore, DaprStateStore>();
-        }
+        _webappBuilder.Services.AddOpenTelemetry()
+            .UseOtlpExporter(OpenTelemetry.Exporter.OtlpExportProtocol.Grpc, new Uri(otelEndpoint))
+            .WithTracing();
+
+        _webappBuilder.Services.AddSingleton<IChangePublisher, DaprChangePublisher>();
+        _webappBuilder.Services.AddSingleton<IStateStore, DaprStateStore>();
+    }
 
     public ReactivatorBuilder UseChangeMonitor<T>() where T : class, IChangeMonitor
     {
@@ -78,6 +78,12 @@ public class ReactivatorBuilder
         return this;
     }
 
+    public ReactivatorBuilder ConfigureServices(Action<IServiceCollection> configureServices)
+    {
+        configureServices(_webappBuilder.Services);
+        return this;
+    }
+
     public Reactivator Build()
     {
         var hasHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IChangeMonitor));
@@ -88,7 +94,7 @@ public class ReactivatorBuilder
 
         var app = _webappBuilder.Build();
         app.UseRouting();
-        
+
         return new Reactivator(app);
     }
 

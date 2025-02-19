@@ -57,6 +57,13 @@ public class SourceProxyBuilder
         return this;
     }
 
+    public SourceProxyBuilder ConfigureServices(Action<IServiceCollection> configureServices)
+    {
+        configureServices(_webappBuilder.Services);
+        return this;
+    }
+
+
     public SourceProxy Build()
     {
         var hasHandler = _webappBuilder.Services.Any(x => x.ServiceType == typeof(IBootstrapHandler));
