@@ -43,7 +43,6 @@ var reaction = new ReactionBuilder()
 					   services.AddDaprClient();
 					   services.AddActors(x => { });
 					   services.AddSingleton<IResultViewClient, ResultViewClient>();
-					   // services.AddSingleton<IActorProxyFactory, ActorProxyFactory>();
 					   services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(sp.GetRequiredService<IResultViewClient>(), sp.GetRequiredService<IActorProxyFactory>(), sp.GetRequiredService<DaprClient>(), sp.GetRequiredService<WebSocketService>(), configDirectory, queryContainerId));
 					   services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
 					   services.AddCors(options =>
@@ -70,35 +69,10 @@ reaction.App().UseCloudEvents();
 reaction.App().MapControllers();
 reaction.App().UseWebSockets();
 
-LinkedList<JsonElement> stream = new();
-
-// Add a get endpoint
-// reaction.App().MapGet("/query/initialize/{queryId}", async (string queryId, IQueryDebugService debugService) =>
-// {
-// 	var result = await debugService.GetQueryResult(queryId);
-// 	return Results.Json(result);
-// });
-
-// // Used for reinitializing a query
-// reaction.App().MapGet("/query/reinitialize/{queryId}", async (string queryId, IQueryDebugService debugService) =>
-// {
-// 	var result = await debugService.ReinitializeQuery(queryId);
-// 	return Results.Json(result);
-// });
-
 reaction.App().MapGet("/stream", async (IQueryDebugService debugService) =>
 {
 	return Results.Json(await debugService.GetRawEvents());
 });
-
-
-// Debug info
-// reaction.App().MapGet("/query/debug/{queryId}", async (string queryId, IQueryDebugService debugService) =>
-// {
-// 	var result = await debugService.GetDebugInfo(queryId);
-// 	return Results.Json(result);
-// });
-
 
 reaction.App().Use(async (context, next) =>
 {
