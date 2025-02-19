@@ -71,12 +71,12 @@ function EventStream() {
     
 
     return (
-        <div>
+        <div className="event-stream-container">
             <h2>Event Stream</h2>
             <div>
                 {stream.map((event, index) => (
-                    <div key={index} className="alert alert-secondary">
-                        {JSON.stringify(event)}
+                    <div key={index} className="event-entry">
+                        {JSON.stringify(event, null, 2)}
                     </div>
                 ))}
             </div>

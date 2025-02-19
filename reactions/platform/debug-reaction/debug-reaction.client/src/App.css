@@ -173,3 +173,68 @@ th, td {
     padding-right: 1rem;
 } */
 
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar ul li {
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    background-color: #f4f4f4;
+    transition: background-color 0.3s ease;
+}
+
+.sidebar ul li a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    display: block;
+}
+
+.sidebar ul li:hover {
+    background-color: #ddd;
+}
+
+/* Styling for Event Stream Section */
+.event-stream-container {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    max-width: 95%;
+    width: 1200px;
+    margin: 20px auto;
+}
+
+.event-stream-container h2 {
+    font-size: 22px;
+    color: #333;
+    text-align: center;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #007bff;
+}
+
+.event-entry {
+    padding: 12px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    font-family: monospace;
+    white-space: pre-wrap; 
+    overflow-x: auto;
+}
+
+.event-entry:nth-child(odd) {
+    background-color: #f1f3f5;
+}
+
+.event-entry:hover {
+    background-color: #e9ecef;
+    transition: 0.2s ease-in-out;
+}
+
