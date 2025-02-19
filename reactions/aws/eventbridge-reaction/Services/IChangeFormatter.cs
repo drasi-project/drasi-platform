@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Reactivator.Models;
+using Drasi.Reactions.EventBridge.Models.Unpacked;
+using Drasi.Reaction.SDK.Models.QueryOutput;
+using System.Text.Json;
 
-namespace Reactivator.Services
+namespace Drasi.Reactions.EventBridge.Services
 {
-    internal interface IChangePublisher
+    public interface IChangeFormatter
     {
-        Task Publish(IEnumerable<ChangeNotification> changes);
+        IEnumerable<ChangeNotification> Format(ChangeEvent evt);
     }
 }

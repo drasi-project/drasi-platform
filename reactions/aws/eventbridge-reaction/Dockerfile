@@ -1,4 +1,3 @@
-
 # Copyright 2024 The Drasi Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-cbl-mariner2.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-cbl-mariner2.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY . . 
+COPY . .
 RUN dotnet restore
 RUN dotnet build -c $BUILD_CONFIGURATION -o /app/build
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0-cbl-mariner2.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-cbl-mariner2.0 AS final
 WORKDIR /app
 COPY --from=build /app/build .
-ENTRYPOINT ["/app/gremlin-reaction"]
+ENTRYPOINT ["/app/eventbridge-reaction"]

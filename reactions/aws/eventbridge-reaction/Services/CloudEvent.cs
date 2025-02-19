@@ -12,10 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Reactivator.Services;
-public interface ICheckpointStore
-{
-    Task<long?> GetSequenceNumber(string entityName, string partitionId);
-    Task SetSequenceNumber(string entityName, string partitionId, long sequenceNumber);
-}
+namespace Drasi.Reactions.EventBridge.Services;
+using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
+
+public class CloudEvent
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
+
+    [JsonPropertyName("type")]
+    public string Type { get; set; }
+
+    [JsonPropertyName("source")]
+    public string Source { get; set; }
+
+    [JsonPropertyName("data")]
+    public object Data { get; set; }
+
+    [JsonPropertyName("specversion")]
+    public string Version { get; set; } = "1.0";
+
+
+}
