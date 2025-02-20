@@ -26,9 +26,9 @@ function QueryPage() {
   const [debugInfo, setDebugInfo] = useState({});
 
   // Fetch the initial data on page load 
-  const intialize = async () => {
+  const getQueryResult = async () => {
     try {
-        const API_URL = `http://localhost:5195/query/initialize/${queryId}`;
+        const API_URL = `http://localhost:5195/queries/${queryId}`;
       const response = await fetch(API_URL);
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       
@@ -41,24 +41,9 @@ function QueryPage() {
     }
   };
 
-  const reinitialize = async () => {
-    try {
-        const API_URL = `http://localhost:5195/query/reinitialize/${queryId}`;
-      const response = await fetch(API_URL);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      
-      const data = await response.json();
-      setQueries(data.data);
-      setQueryError(data.error);
-      setFieldNames(data.fieldNames);
-    } catch (error) {
-      console.error("Error fetching initial data:", error);
-    }
-  };
-
   const debugQuery = async () => {
     try {
-      const debug_url = `http://localhost:5195/query/debug/${queryId}`;
+      const debug_url = `http://localhost:5195/queries/${queryId}/debug-information`;
         const response = await fetch(debug_url);
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
@@ -73,10 +58,8 @@ function QueryPage() {
   useEffect(() => {
       if (!queryId) return;
       const WEBSOCKET_URL = `ws://localhost:5195/ws/query/${queryId}`;
-      
-
   
-      intialize();
+      getQueryResult();
       debugQuery();
       const ws = new WebSocket(WEBSOCKET_URL);
 
@@ -141,7 +124,10 @@ return (
                         {key}: {value}
                     </p>
                 ))}
-                <button className="btn btn-secondary" onClick={reinitialize}>Refetch Query Cache </button>
+                <button className="btn btn-secondary" onClick={() => {
+                    getQueryResult();
+                    debugQuery();
+                }}>Refetch Query Cache </button>
         </div>
 );
 }

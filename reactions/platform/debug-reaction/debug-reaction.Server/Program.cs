@@ -44,7 +44,8 @@ public class Program
             sp.GetRequiredService<DaprClient>(),
             sp.GetRequiredService<WebSocketService>(),
 			Environment.GetEnvironmentVariable("QueryConfigPath") ?? "/etc/queries",
-			Environment.GetEnvironmentVariable("QueryContainer") ?? "default"));
+			Environment.GetEnvironmentVariable("QueryContainer") ?? "default",
+			sp.GetRequiredService<ILogger<QueryDebugService>>()));
         builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
         builder.Services.AddCors(options =>
         {

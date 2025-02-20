@@ -42,8 +42,9 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 		private readonly WebSocketService _webSocketService;
 
-		public QueryDebugService(IResultViewClient queryApi, IActorProxyFactory actorProxyFactory, DaprClient daprClient, WebSocketService webSocketService, string queryDir, string queryContainerId)
+		public QueryDebugService(IResultViewClient queryApi, IActorProxyFactory actorProxyFactory, DaprClient daprClient, WebSocketService webSocketService, string queryDir, string queryContainerId, ILogger<QueryDebugService> logger)
 		{
+			_logger = logger;
 			_daprClient = daprClient;
 			_queryApi = queryApi;
 			_queryDir = queryDir;
@@ -86,14 +87,9 @@ namespace Drasi.Reactions.Debug.Server.Services
 			}
 		}
 
-		public async Task<QueryResult> ReinitializeQuery(string queryId)
-		{
-			_results.TryRemove(queryId, out _);
-			return _results.GetOrAdd(queryId, await InitResult(queryId));
-		}
-
 		public async Task<QueryResult> GetQueryResult(string queryId)
 		{
+			_results.TryRemove(queryId, out _);
 			return _results.GetOrAdd(queryId, await InitResult(queryId));
 		}
 
