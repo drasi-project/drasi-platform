@@ -17,21 +17,28 @@ using System.Collections.Concurrent;
 using System.Text;
 using Drasi.Reactions.Debug.Server.Models;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 
 public class WebSocketService
 {
 	private readonly ConcurrentDictionary<string, WebSocket> _connections = new();
 
+	private readonly ILogger<WebSocketService> _logger;
+
+	public WebSocketService(ILogger<WebSocketService> logger)
+	{
+		_logger = logger;
+	}
 	public void AddConnection(string socketName, WebSocket webSocket)
 	{
 		_connections[socketName] = webSocket;
-		Console.WriteLine($"[{DateTime.UtcNow}] WebSocket registered for {socketName}");
+		_logger.LogInformation($"WebSocket registered for {socketName}");
 	}
 
 	public async Task BroadcastToQueryId(string socketName, QueryResult message)
 	{
-		Console.WriteLine($"[{DateTime.UtcNow}] Broadcasting message to query: {socketName}");
+		_logger.LogInformation($"[{DateTime.UtcNow}] Broadcasting message to query: {socketName}");
 		if (_connections.ContainsKey(socketName))
 		{
 			var jsonMessage = JsonSerializer.Serialize(message);
@@ -45,7 +52,7 @@ public class WebSocketService
 				}
 				catch (Exception ex)
 				{
-					Console.WriteLine($"[{DateTime.UtcNow}] Error sending message to WebSocket: {ex.Message}");
+					_logger.LogError($"[{DateTime.UtcNow}] Error sending message to WebSocket: {ex.Message}");
 				}
 			}
 		}
@@ -53,7 +60,7 @@ public class WebSocketService
 
 	public async Task BroadcastToStream(string socketName, LinkedList<JsonElement> message)
 	{
-		Console.WriteLine($"[{DateTime.UtcNow}] Broadcasting message to stream");
+		_logger.LogInformation($"[{DateTime.UtcNow}] Broadcasting message to stream");
 		if (_connections.ContainsKey(socketName))
 		{
 			var jsonMessage = JsonSerializer.Serialize(message);
@@ -67,7 +74,7 @@ public class WebSocketService
 				}
 				catch (Exception ex)
 				{
-					Console.WriteLine($"[{DateTime.UtcNow}] Error sending message to WebSocket: {ex.Message}");
+					_logger.LogError($"[{DateTime.UtcNow}] Error sending message to WebSocket: {ex.Message}");
 				}
 			}
 		}

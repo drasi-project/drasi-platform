@@ -26,10 +26,8 @@ namespace Drasi.Reactions.Debug.Server.Models
 		public string QueryContainerId { get; init; }
 
 		public event PropertyChangedEventHandler? PropertyChanged;
-
 		public void Add(JsonElement item)
 		{
-			Console.WriteLine($"Adding {item.GetRawText()}");
 			var entry = Flatten(item);
 			MergeFieldNames(entry);
 			Data.Add(entry);
@@ -38,7 +36,6 @@ namespace Drasi.Reactions.Debug.Server.Models
 
 		public void Update(JsonElement before, JsonElement after, JsonElement? groupingKeys)
 		{
-			Console.WriteLine($"Updating from {before.GetRawText()} to {after.GetRawText()}");
 			var entryBefore = Flatten(before);
 			var entryAfter = Flatten(after);
 			MergeFieldNames(entryAfter);
@@ -82,7 +79,6 @@ namespace Drasi.Reactions.Debug.Server.Models
 
 		public void Delete(JsonElement item)
 		{
-			Console.WriteLine($"Delete {item.GetRawText()}");
 			var entryBefore = Flatten(item);
 			Data.Remove(entryBefore);
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Data)));

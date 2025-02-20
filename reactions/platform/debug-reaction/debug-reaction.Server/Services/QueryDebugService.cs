@@ -19,6 +19,7 @@ using Dapr.Client;
 
 using System.Net.WebSockets;
 using Drasi.Reactions.Debug.Server.Models;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 using System.Text.Json;
@@ -32,7 +33,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 		private readonly IActorProxyFactory _actorProxyFactory;
 		private readonly DaprClient _daprClient;
 
-
+		private readonly ILogger<QueryDebugService> _logger;
 		private readonly ConcurrentDictionary<string, QueryResult> _results = new();
 
 		private readonly LinkedList<JsonElement> _rawEvents = new();
@@ -103,14 +104,23 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 			var queryResult = _results[queryId];
 			foreach (var item in change.GetProperty("deletedResults").EnumerateArray())
+			{
+				_logger.LogInformation($"Deleting {item.GetRawText()}");
 				queryResult.Delete(item);
+			}
 			foreach (var item in change.GetProperty("addedResults").EnumerateArray())
+			{
+				_logger.LogInformation($"Adding {item.GetRawText()}");
 				queryResult.Add(item);
+			}
 			foreach (var item in change.GetProperty("updatedResults").EnumerateArray())
 			{
 				JsonElement groupingKeys;
 				item.TryGetProperty("grouping_keys", out groupingKeys);
-				queryResult.Update(item.GetProperty("before"), item.GetProperty("after"), groupingKeys);
+				var before = item.GetProperty("before");
+				var after = item.GetProperty("after");
+				_logger.LogInformation($"Updating from {before.GetRawText()} to {after.GetRawText()}");
+				queryResult.Update(before, after, groupingKeys);
 			}
 
 			await _webSocketService.BroadcastToQueryId(queryId, queryResult);
@@ -151,7 +161,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 				}
 				catch (Exception ex)
 				{
-					Console.WriteLine(ex);
+					_logger.LogError(ex, "Error initializing query: " + queryId);
 				}
 			});
 
@@ -159,7 +169,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 		private async Task<QueryResult> InitResult(string queryId)
 		{
-			Console.WriteLine("init:" + queryId);
+			_logger.LogInformation("Initializing query: " + queryId);
 			var result = new QueryResult() { QueryContainerId = this._queryContainerId };
 			try
 			{
@@ -168,6 +178,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 					var element = item.RootElement;
 					if (element.TryGetProperty("data", out var data))
 					{
+						_logger.LogInformation($"Adding {data.GetRawText()}");
 						result.Add(data);
 					}
 				}
@@ -175,7 +186,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 			catch (Exception ex)
 			{
 				result.Errors.Add("Error fetching initial data: " + ex.Message);
-				Console.WriteLine(ex);
+				_logger.LogError(ex, "Error fetching initial data: " + ex.Message);
 			}
 
 			return result;

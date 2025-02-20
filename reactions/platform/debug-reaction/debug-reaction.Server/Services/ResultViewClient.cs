@@ -16,6 +16,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace Drasi.Reactions.Debug.Server.Services
 {
@@ -24,14 +25,17 @@ namespace Drasi.Reactions.Debug.Server.Services
 		private readonly HttpClient _httpClient;
 		private readonly JsonSerializerOptions _jsonSerializerOptions;
 
+		private readonly ILogger<ResultViewClient> _logger;
 
-		public ResultViewClient()
+		public ResultViewClient(ILogger<ResultViewClient> logger)
 		{
+			_logger = logger;
 			_httpClient = new HttpClient();
 			_jsonSerializerOptions = new JsonSerializerOptions
 			{
 				PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 			};
+			
 		}
 
 		public async IAsyncEnumerable<JsonDocument> GetCurrentResult(string queryContainerId, string queryId, [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -43,7 +47,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 			}
 			catch (HttpRequestException ex)
 			{
-				Console.WriteLine("Error getting current result: " + ex.Message);
+				_logger.LogInformation("Error getting current result: " + ex.Message);
 				yield break;
 			}
 

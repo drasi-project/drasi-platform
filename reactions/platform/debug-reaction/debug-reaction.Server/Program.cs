@@ -99,7 +99,7 @@ public class Program
 					webSocketService.AddConnection(queryId, webSocket);
 
 					// Handle WebSocket connection
-					Console.WriteLine($"WebSocket connected for queryId: {queryId}");
+					app.Logger.LogInformation($"WebSocket connected for queryId: {queryId}");
 
 					var buffer = new byte[1024 * 4];
 					var lastPingTime = DateTime.Now;
@@ -109,7 +109,7 @@ public class Program
 
 						if (result.MessageType == WebSocketMessageType.Close)
 						{
-							Console.WriteLine($"WebSocket closing for queryId: {queryId}");
+							app.Logger.LogInformation($"WebSocket closing for queryId: {queryId}");
 							await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
 							return;
 						}
@@ -125,7 +125,7 @@ public class Program
 				if (context.WebSockets.IsWebSocketRequest)
 				{
 					var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-					Console.WriteLine("WebSocket connected");
+					app.Logger.LogInformation($"WebSocket connected for Event Stream");
 
 					var streamService = context.RequestServices.GetRequiredService<WebSocketService>();
 					streamService.AddConnection("stream", webSocket);
@@ -136,7 +136,7 @@ public class Program
 						var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 						if (result.MessageType == WebSocketMessageType.Close)
 						{
-							Console.WriteLine("WebSocket for Event Stream closing");
+							app.Logger.LogInformation($"WebSocket closing for Event Stream");
 							await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
 							return;
 						}
