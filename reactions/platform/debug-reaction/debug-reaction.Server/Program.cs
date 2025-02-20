@@ -24,145 +24,156 @@ using System.Text.Json;
 using System.Text;
 using System.Net.WebSockets;
 
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
-var configuration = BuildConfiguration();
-
-var pubsubName = configuration.GetValue<string>("PubsubName", "drasi-pubsub");
-var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
-var queryContainerId = configuration.GetValue<string>("QueryContainer", "default");
-
-
-// Reaction SDK
-var reaction = new ReactionBuilder()
-				   .UseChangeEventHandler<ChangeHandler>()
-				   .UseControlEventHandler<ControlSignalHandler>()
-				   .ConfigureServices((services) =>
-				   {
-					   services.AddSingleton<WebSocketService>();
-					   services.AddDaprClient();
-					   services.AddActors(x => { });
-					   services.AddSingleton<IResultViewClient, ResultViewClient>();
-					   services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(sp.GetRequiredService<IResultViewClient>(), sp.GetRequiredService<IActorProxyFactory>(), sp.GetRequiredService<DaprClient>(), sp.GetRequiredService<WebSocketService>(), configDirectory, queryContainerId));
-					   services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
-					   services.AddCors(options =>
-					   {
-						   options.AddPolicy("AllowAll",
-							   policy =>
-							   {
-								   policy.AllowAnyOrigin()
-										 .AllowAnyMethod()
-										 .AllowAnyHeader();
-							   });
-					   });
-				   }).Build();
-
-
-if (!reaction.App().Environment.IsDevelopment())
+public class Program
 {
-	reaction.App().UseExceptionHandler("/Error");
-}
-reaction.App().UseStaticFiles();
-reaction.App().UseRouting();
-reaction.App().UseCors("AllowAll");
-reaction.App().UseCloudEvents();
-reaction.App().MapControllers();
-reaction.App().UseWebSockets();
-
-reaction.App().MapGet("/stream", async (IQueryDebugService debugService) =>
-{
-	return Results.Json(await debugService.GetRawEvents());
-});
-
-reaction.App().Use(async (context, next) =>
-{
-	if (context.Request.Path.StartsWithSegments("/ws/query"))
+	public static async Task Main(string[] args)
 	{
-		if (context.WebSockets.IsWebSocketRequest)
+		var builder = WebApplication.CreateBuilder();
+        builder.Services.AddSingleton<WebSocketService>();
+        builder.Services.AddDaprClient();
+		builder.Services.AddControllers();
+        builder.Services.AddActors(x => { });
+        builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
+        builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(
+            sp.GetRequiredService<IResultViewClient>(),
+            sp.GetRequiredService<IActorProxyFactory>(),
+            sp.GetRequiredService<DaprClient>(),
+            sp.GetRequiredService<WebSocketService>(),
+			Environment.GetEnvironmentVariable("QueryConfigPath") ?? "/etc/queries",
+			Environment.GetEnvironmentVariable("QueryContainer") ?? "default"));
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+
+		var app = builder.Build();
+		if (!app.Environment.IsDevelopment())
 		{
-			var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-			var pathSegments = context.Request.Path.Value.Split('/');
-			var queryId = string.Empty;
-			if (pathSegments.Length > 3)
+			app.UseExceptionHandler("/Error");
+		}
+		app.UseStaticFiles();
+		app.UseRouting();
+		app.UseCors("AllowAll");
+		app.UseCloudEvents();
+		app.MapControllers();
+		app.UseWebSockets();
+
+
+		app.MapGet("/stream", async (IQueryDebugService debugService) =>
+		{
+			return Results.Json(await debugService.GetRawEvents());
+		});
+
+		app.Use(async (context, next) =>
+		{
+			if (context.Request.Path.StartsWithSegments("/ws/query"))
 			{
-				queryId = pathSegments[3];
-			}
-
-			if (string.IsNullOrEmpty(queryId))
-			{
-				await webSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Invalid queryId", CancellationToken.None);
-				return;
-			}
-
-			// Add the WebSocket connection to the WebSocket service
-			var webSocketService = context.RequestServices.GetRequiredService<WebSocketService>();
-			webSocketService.AddConnection(queryId, webSocket);
-
-			// Handle WebSocket connection
-			Console.WriteLine($"WebSocket connected for queryId: {queryId}");
-
-			var buffer = new byte[1024 * 4];
-			var lastPingTime = DateTime.Now;
-			while (webSocket.State == WebSocketState.Open)
-			{
-				var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-
-				if (result.MessageType == WebSocketMessageType.Close)
+				if (context.WebSockets.IsWebSocketRequest)
 				{
-					Console.WriteLine($"WebSocket closing for queryId: {queryId}");
-					await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
-					return;
+					var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+					var pathSegments = context.Request.Path.Value.Split('/');
+					var queryId = string.Empty;
+					if (pathSegments.Length > 3)
+					{
+						queryId = pathSegments[3];
+					}
+
+					if (string.IsNullOrEmpty(queryId))
+					{
+						await webSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Invalid queryId", CancellationToken.None);
+						return;
+					}
+
+					// Add the WebSocket connection to the WebSocket service
+					var webSocketService = context.RequestServices.GetRequiredService<WebSocketService>();
+					webSocketService.AddConnection(queryId, webSocket);
+
+					// Handle WebSocket connection
+					Console.WriteLine($"WebSocket connected for queryId: {queryId}");
+
+					var buffer = new byte[1024 * 4];
+					var lastPingTime = DateTime.Now;
+					while (webSocket.State == WebSocketState.Open)
+					{
+						var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+						if (result.MessageType == WebSocketMessageType.Close)
+						{
+							Console.WriteLine($"WebSocket closing for queryId: {queryId}");
+							await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
+							return;
+						}
+					}
+				}
+				else
+				{
+					context.Response.StatusCode = 400; // Bad Request if not a WebSocket request
 				}
 			}
-		}
-		else
-		{
-			context.Response.StatusCode = 400; // Bad Request if not a WebSocket request
-		}
-	}
-	else if (context.Request.Path.StartsWithSegments("/ws/stream"))
-	{
-		if (context.WebSockets.IsWebSocketRequest)
-		{
-			var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-			Console.WriteLine("WebSocket connected");
-
-			var streamService = context.RequestServices.GetRequiredService<WebSocketService>();
-			streamService.AddConnection("stream", webSocket);
-
-			var buffer = new byte[1024 * 4];
-			while (webSocket.State == WebSocketState.Open)
+			else if (context.Request.Path.StartsWithSegments("/ws/stream"))
 			{
-				var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-				if (result.MessageType == WebSocketMessageType.Close)
+				if (context.WebSockets.IsWebSocketRequest)
 				{
-					Console.WriteLine("WebSocket for Event Stream closing");
-					await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
-					return;
+					var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+					Console.WriteLine("WebSocket connected");
+
+					var streamService = context.RequestServices.GetRequiredService<WebSocketService>();
+					streamService.AddConnection("stream", webSocket);
+
+					var buffer = new byte[1024 * 4];
+					while (webSocket.State == WebSocketState.Open)
+					{
+						var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+						if (result.MessageType == WebSocketMessageType.Close)
+						{
+							Console.WriteLine("WebSocket for Event Stream closing");
+							await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
+							return;
+						}
+					}
+				}
+				else
+				{
+					context.Response.StatusCode = 400; // Bad Request if not a WebSocket request
 				}
 			}
-		}
-		else
-		{
-			context.Response.StatusCode = 400; // Bad Request if not a WebSocket request
-		}
-	}
-	else
-	{
-		await next();
-	}
-});
+			else
+			{
+				await next();
+			}
+		});
 
-static IConfiguration BuildConfiguration()
-{
-	return new ConfigurationBuilder()
-		.SetBasePath(Directory.GetCurrentDirectory())
-		.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-		.AddEnvironmentVariables()
-		.Build();
+		app.Urls.Add("http://0.0.0.0:5195");
+
+		var reaction = new ReactionBuilder()
+            .UseChangeEventHandler<ChangeHandler>()
+            .UseControlEventHandler<ControlSignalHandler>()
+            .ConfigureServices(services =>
+            {
+                // Share services with the reaction system
+                services.AddSingleton(sp => app.Services.GetRequiredService<WebSocketService>());
+                services.AddSingleton(sp => app.Services.GetRequiredService<IQueryDebugService>());
+            })
+            .Build();
+
+		app.Lifetime.ApplicationStarted.Register(() => StartupTask.SetResult());
+		await Task.WhenAll(reaction.StartAsync(ShutdownToken.Token),app.RunAsync());
+	}
+	public static TaskCompletionSource StartupTask { get; } = new();
+
+	public static CancellationTokenSource ShutdownToken { get; } = new();
 }
 
-await reaction.StartAsync();
 
 
 public class ChangeHandler : IChangeEventHandler

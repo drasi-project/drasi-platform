@@ -54,7 +54,6 @@ public class Reaction<TQueryConfig> : IHost
         
     }
 
-    public WebApplication App() => _app;
 
     private async Task ProcessEvent(HttpContext context, IChangeEventHandler<TQueryConfig> changeHandler, IControlEventHandler<TQueryConfig> controlEventHandler)
     {
