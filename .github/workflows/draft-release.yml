@@ -79,7 +79,9 @@ jobs:
           token: ${{ secrets.DRASI_CORE_PAT }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v7.0.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -103,9 +105,10 @@ jobs:
       - name: Build and Push to GHCR
         run: |
           cd ${{ matrix.component.path }}
+          export CARGO_BUILD_JOBS=1
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
           IMAGE_PREFIX=${{ inputs.image_prefix }} \
-          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --memory 4g --shm-size 2g --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make 
 
   build-control-plane:
@@ -133,7 +136,9 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v7.0.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -158,9 +163,10 @@ jobs:
       - name: Build and Push to GHCR
         run: |
           cd ${{ matrix.component.path }}
+          export CARGO_BUILD_JOBS=1
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
           IMAGE_PREFIX=${{ inputs.image_prefix }} \
-          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --memory 4g --shm-size 2g --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
 
@@ -246,7 +252,9 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v7.0.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -271,9 +279,10 @@ jobs:
       - name: Build and Push to GHCR
         run: |
           cd ${{ matrix.component.path }}
+          export CARGO_BUILD_JOBS=1
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
           IMAGE_PREFIX=${{ inputs.image_prefix }} \
-          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --memory 4g --shm-size 2g --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
   build-reactions:
@@ -345,7 +354,9 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v7.0.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -370,9 +381,10 @@ jobs:
       - name: Build and Push to GHCR
         run: |
           cd ${{ matrix.component.path }}
+          export CARGO_BUILD_JOBS=1
           DOCKER_TAG_VERSION=${{ inputs.tag }} \
           IMAGE_PREFIX=${{ inputs.image_prefix }} \
-          DOCKERX_OPTS="--push --platform ${{ matrix.component.platforms }} --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          DOCKERX_OPTS="--push --platform ${{ matrix.component.platforms }} --memory 4g --shm-size 2g --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
           make
 
   build-cli:
