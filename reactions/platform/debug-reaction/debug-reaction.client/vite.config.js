@@ -18,19 +18,11 @@
 import { defineConfig } from 'vite';
 import plugin from '@vitejs/plugin-react';
 
-// const reactionName = process.env.PubsubName ? process.env.PubsubName.replace(/^drasi-pubsub-/, '') : '';
-// const reactionName = import.meta.env.PubsubName
-//     ? import.meta.env.PubsubName.replace(/^drasi-pubsub-/, '')
-//     : '';
-// const backendUrl = reactionName ? `http://${reactionName}-backend` : 'http://localhost:5195';
 
 export default defineConfig({
     plugins: [plugin()],
     server: {
-        port: 8080, // You can change this if needed
+        port: 8080, 
         https: false
     },
-    // define: {
-    //     __BACKEND_URL__: backendUrl
-    // }
 });
