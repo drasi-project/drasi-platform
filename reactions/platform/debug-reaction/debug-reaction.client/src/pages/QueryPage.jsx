@@ -21,7 +21,6 @@ import { useParams } from 'react-router-dom';
 function QueryPage() {
   const { queryId } = useParams(); // useParams hook for getting the route parameter
   const [queries, setQueries] = useState([]);
-  const [queryError, setQueryError] = useState([]);
   const [fieldNames, setFieldNames] = useState([]);
   const [debugInfo, setDebugInfo] = useState({});
 
@@ -34,7 +33,6 @@ function QueryPage() {
       
       const data = await response.json();
       setQueries(data.data); // Set initial data
-      setQueryError(data.error); // Set initial data
       setFieldNames(data.fieldNames); // Set initial data
     } catch (error) {
       console.error("Error fetching initial data:", error);
@@ -76,7 +74,6 @@ function QueryPage() {
           try {
             const message = JSON.parse(event.data);
               setQueries(message["Data"]);
-              setQueryError(message["Error"]);
               setFieldNames(message["FieldNames"]);
           } catch (error) {
               console.error('Error parsing WebSocket message:', error);
