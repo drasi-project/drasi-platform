@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Drasi.Reactions.Debug.Server.Models;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 using System.Text.Json;
 
 namespace Drasi.Reactions.Debug.Server.Services
@@ -20,8 +21,8 @@ namespace Drasi.Reactions.Debug.Server.Services
 	public interface IQueryDebugService : IHostedService
 	{
 		Task<QueryResult> GetQueryResult(string queryId);
-		Task ProcessRawChange(string queryId, JsonElement change);
-		Task ProcessControlSignal(string queryId, JsonElement change);
+		Task ProcessRawChange(ChangeEvent change);
+		Task ProcessControlSignal(ControlEvent change);
 		IEnumerable<string> ActiveQueries { get; }
 		Task<Dictionary<string, object>> GetDebugInfo(string queryId);
 		Task<LinkedList<JsonElement>> GetRawEvents();

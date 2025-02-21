@@ -11,7 +11,7 @@
     <PackageReference Include="Dapr.Actors.AspNetCore" Version="1.14.0" />
     <PackageReference Include="Dapr.AspNetCore" Version="1.14.0" />
     <PackageReference Include="Dapr.Client" Version="1.14.0" />
-    <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.9-alpha" />
+    <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.10-alpha" />
   </ItemGroup>
 
 

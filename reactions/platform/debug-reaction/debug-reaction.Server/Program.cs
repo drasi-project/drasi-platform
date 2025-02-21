@@ -197,7 +197,7 @@ public class ChangeHandler : IChangeEventHandler
 		var queryId = evt.QueryId;
 		var jsonEvent = JsonSerializer.Deserialize<JsonElement>(evt.ToJson());
 		await _debugService.ProcessRawEvent(jsonEvent);
-		await _debugService.ProcessRawChange(queryId, jsonEvent);
+		await _debugService.ProcessRawChange(evt);
 	}
 }
 
@@ -218,6 +218,6 @@ public class ControlSignalHandler : IControlEventHandler
 		var queryId = evt.QueryId;
 		var jsonEvent = JsonSerializer.Deserialize<JsonElement>(evt.ToJson());
 		await _debugService.ProcessRawEvent(jsonEvent);
-		await _debugService.ProcessControlSignal(queryId, jsonEvent);
+		await _debugService.ProcessControlSignal(evt);
 	}
 }

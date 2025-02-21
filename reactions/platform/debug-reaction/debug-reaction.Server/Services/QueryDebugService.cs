@@ -94,48 +94,48 @@ namespace Drasi.Reactions.Debug.Server.Services
 			return _results.GetOrAdd(queryId, await InitResult(queryId));
 		}
 
-		public async Task ProcessRawChange(string queryId, JsonElement change)
+		public async Task ProcessRawChange(ChangeEvent change)
 		{
+			var queryId = change.QueryId;
 			if (!_results.ContainsKey(queryId))
 				return;
 
 			var queryResult = _results[queryId];
-			foreach (var item in change.GetProperty("deletedResults").EnumerateArray())
+			foreach (var item in change.DeletedResults)
 			{
-				_logger.LogInformation($"Deleting {item.GetRawText()}");
-				queryResult.Delete(item);
+				var result = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item));
+				queryResult.Delete(result);
 			}
-			foreach (var item in change.GetProperty("addedResults").EnumerateArray())
+			foreach (var item in change.AddedResults)
 			{
-				_logger.LogInformation($"Adding {item.GetRawText()}");
-				queryResult.Add(item);
+				var result = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item));
+				queryResult.Add(result);
 			}
-			foreach (var item in change.GetProperty("updatedResults").EnumerateArray())
+			foreach (var item in change.UpdatedResults)
 			{
-				JsonElement groupingKeys;
-				item.TryGetProperty("grouping_keys", out groupingKeys);
-				var before = item.GetProperty("before");
-				var after = item.GetProperty("after");
-				_logger.LogInformation($"Updating from {before.GetRawText()} to {after.GetRawText()}");
+				var groupingKeys = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item.GroupingKeys));
+				var before = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item.Before));
+				var after = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item.After));
 				queryResult.Update(before, after, groupingKeys);
 			}
 
 			await _webSocketService.BroadcastToQueryId(queryId, queryResult);
 		}
 
-		public async Task ProcessControlSignal(string queryId, JsonElement change)
+		public async Task ProcessControlSignal(ControlEvent change)
 		{
+			var queryId = change.QueryId;
 			if (!_results.ContainsKey(queryId))
 				return;
 
 			var queryResult = _results[queryId];
 
-			switch (change.GetProperty("kind").GetString())
+			switch (change.ControlSignal.Kind)
 			{
-				case "deleted":
+				case ControlSignalKind.Deleted:
 					queryResult.Clear();
 					break;
-				case "bootstrapStarted":
+				case ControlSignalKind.BootstrapStarted:
 					queryResult.Clear();
 					break;
 			}
