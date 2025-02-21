@@ -23,7 +23,6 @@ namespace Drasi.Reactions.Debug.Server.Models
 		public HashSet<string> FieldNames { get; } = new();
 		public HashSet<Dictionary<string, string>> Data { get; } = new(new EntryComparer());
 		public List<string> Errors { get; } = new();
-		public string QueryContainerId { get; init; }
 
 		public event PropertyChangedEventHandler? PropertyChanged;
 		public void Add(JsonElement item)

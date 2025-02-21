@@ -38,20 +38,19 @@ namespace Drasi.Reactions.Debug.Server.Services
 		private readonly ConcurrentDictionary<string, QueryResult> _results = new();
 
 		private readonly LinkedList<JsonElement> _rawEvents = new();
-		private readonly string _queryDir;
-		private readonly string _queryContainerId;
 
 		private readonly WebSocketService _webSocketService;
 
-		public QueryDebugService(IResultViewClient queryApi, IActorProxyFactory actorProxyFactory, DaprClient daprClient, WebSocketService webSocketService, string queryDir, string queryContainerId, ILogger<QueryDebugService> logger)
+		private readonly IManagementClient _managementClient;
+
+		public QueryDebugService(IResultViewClient queryApi, IActorProxyFactory actorProxyFactory, DaprClient daprClient, WebSocketService webSocketService, ILogger<QueryDebugService> logger, IManagementClient managementClient)
 		{
 			_logger = logger;
 			_daprClient = daprClient;
 			_queryApi = queryApi;
-			_queryDir = queryDir;
-			_queryContainerId = queryContainerId;
 			_webSocketService = webSocketService;
 			_actorProxyFactory = actorProxyFactory;
+			_managementClient = managementClient;
 		}
 
 		public IEnumerable<string> ActiveQueries => _results.Keys;
@@ -76,7 +75,8 @@ namespace Drasi.Reactions.Debug.Server.Services
 		{
 			try
 			{
-				var actor = _actorProxyFactory.Create(new ActorId(queryId), $"{this._queryContainerId}.ContinuousQuery");
+				var queryContainerId = await _managementClient.GetQueryContainerId(queryId);
+				var actor = _actorProxyFactory.Create(new ActorId(queryId), $"{queryContainerId}.ContinuousQuery");
 				return await actor.InvokeMethodAsync<Dictionary<string, object>>("getStatus");
 			}
 			catch (Exception ex)
@@ -143,31 +143,11 @@ namespace Drasi.Reactions.Debug.Server.Services
 			await _webSocketService.BroadcastToQueryId(queryId, queryResult);
 		}
 
-		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-		{
-			await _daprClient.WaitForSidecarAsync(stoppingToken);
-
-			Parallel.ForEach(Directory.GetFiles(_queryDir), async qpath =>
-			{
-				var queryId = Path.GetFileName(qpath);
-				if (_results.ContainsKey(queryId))
-					return;
-				try
-				{
-					_results.TryAdd(queryId, await InitResult(queryId));
-				}
-				catch (Exception ex)
-				{
-					_logger.LogError(ex, "Error initializing query: " + queryId);
-				}
-			});
-
-		}
 
 		private async Task<QueryResult> InitResult(string queryId)
 		{
 			_logger.LogInformation("Initializing query: " + queryId);
-			var result = new QueryResult() { QueryContainerId = this._queryContainerId };
+			var result = new QueryResult();
 			try
 			{
 				await foreach (var item in _queryApi.GetCurrentResult(queryId))
@@ -197,7 +177,26 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 			return result;
 		}
+		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+		{
+			_logger.LogInformation("QueryDebugService background task is starting.");
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    _logger.LogDebug("QueryDebugService is running...");
+                    await Task.Delay(15000, stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in QueryDebugService background task.");
+                }
+            }
+
+            _logger.LogInformation("QueryDebugService background task is stopping.");
+		}
 	}
 
-
+	
 }

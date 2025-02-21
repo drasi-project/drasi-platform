@@ -24,8 +24,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 		Task ProcessControlSignal(string queryId, JsonElement change);
 		IEnumerable<string> ActiveQueries { get; }
 		Task<Dictionary<string, object>> GetDebugInfo(string queryId);
-		// Task<QueryResult> InitializeQuery(string queryId);
-
 		Task<LinkedList<JsonElement>> GetRawEvents();
 
 		Task ProcessRawEvent(JsonElement change);

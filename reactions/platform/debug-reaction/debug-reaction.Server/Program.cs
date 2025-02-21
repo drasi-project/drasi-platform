@@ -41,13 +41,12 @@ public class Program
         builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
 		builder.Services.AddSingleton<IManagementClient, ManagementClient>();
         builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(
-            sp.GetRequiredService<Drasi.Reaction.SDK.Services.IResultViewClient>(),
+            sp.GetRequiredService<IResultViewClient>(),
             sp.GetRequiredService<IActorProxyFactory>(),
             sp.GetRequiredService<DaprClient>(),
             sp.GetRequiredService<WebSocketService>(),
-			Environment.GetEnvironmentVariable("QueryConfigPath") ?? "/etc/queries",
-			Environment.GetEnvironmentVariable("QueryContainer") ?? "default",
-			sp.GetRequiredService<ILogger<QueryDebugService>>()));
+			sp.GetRequiredService<ILogger<QueryDebugService>>(),
+			sp.GetRequiredService<IManagementClient>()));
         builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
         builder.Services.AddCors(options =>
         {
