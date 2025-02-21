@@ -304,9 +304,15 @@ jobs:
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
-            label: 'Debug',
-            path: './reactions/platform/debug-reaction', 
-            name: 'reaction-debug',
+            label: 'Debug Backend',
+            path: './reactions/platform/debug-reaction/debug-reaction.Server', 
+            name: 'reaction-debug-backend',
+            platforms: 'linux/amd64,linux/arm64'
+          },
+          {
+            label: 'Debug Frontend',
+            path: './reactions/platform/debug-reaction/debug-reaction.client',
+            name: 'reaction-debug-frontend',
             platforms: 'linux/amd64,linux/arm64'
           },
           { 
