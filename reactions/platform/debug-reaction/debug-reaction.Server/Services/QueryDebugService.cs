@@ -39,11 +39,11 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 		private readonly LinkedList<JsonElement> _rawEvents = new();
 
-		private readonly WebSocketService _webSocketService;
+		private readonly IChangeBroadcaster _webSocketService;
 
 		private readonly IManagementClient _managementClient;
 
-		public QueryDebugService(IResultViewClient queryApi, IActorProxyFactory actorProxyFactory, DaprClient daprClient, WebSocketService webSocketService, ILogger<QueryDebugService> logger, IManagementClient managementClient)
+		public QueryDebugService(IResultViewClient queryApi, IActorProxyFactory actorProxyFactory, DaprClient daprClient, IChangeBroadcaster webSocketService, ILogger<QueryDebugService> logger, IManagementClient managementClient)
 		{
 			_logger = logger;
 			_daprClient = daprClient;
@@ -164,7 +164,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 						_logger.LogWarning("Item.Data is null for queryId: {QueryId}", queryId);
 						continue;
 					}
-					_logger.LogInformation($"Adding {data.ToString()}");
 					var jsonElement = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(data));
 					result.Add(jsonElement);
 				}

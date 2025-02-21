@@ -34,7 +34,7 @@ public class Program
 	public static async Task Main(string[] args)
 	{
 		var builder = WebApplication.CreateBuilder();
-        builder.Services.AddSingleton<WebSocketService>();
+        builder.Services.AddSingleton<IChangeBroadcaster, WebSocketService>();
         builder.Services.AddDaprClient();
 		builder.Services.AddControllers();
         builder.Services.AddActors(x => { });
@@ -44,7 +44,7 @@ public class Program
             sp.GetRequiredService<IResultViewClient>(),
             sp.GetRequiredService<IActorProxyFactory>(),
             sp.GetRequiredService<DaprClient>(),
-            sp.GetRequiredService<WebSocketService>(),
+            sp.GetRequiredService<IChangeBroadcaster>(),
 			sp.GetRequiredService<ILogger<QueryDebugService>>(),
 			sp.GetRequiredService<IManagementClient>()));
         builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
@@ -98,11 +98,11 @@ public class Program
 					}
 
 					// Add the WebSocket connection to the WebSocket service
-					var webSocketService = context.RequestServices.GetRequiredService<WebSocketService>();
+					var webSocketService = context.RequestServices.GetRequiredService<IChangeBroadcaster>();
 					webSocketService.AddConnection(queryId, webSocket);
 
 					// Handle WebSocket connection
-					server.Logger.LogInformation($"WebSocket connected for queryId: {queryId}");
+					server.Logger.LogInformation($"WebSocket connected for queryId: {queryId}hange");
 
 					var buffer = new byte[1024 * 4];
 					var lastPingTime = DateTime.Now;
@@ -130,7 +130,7 @@ public class Program
 					var webSocket = await context.WebSockets.AcceptWebSocketAsync();
 					server.Logger.LogInformation($"WebSocket connected for Event Stream");
 
-					var streamService = context.RequestServices.GetRequiredService<WebSocketService>();
+					var streamService = context.RequestServices.GetRequiredService<IChangeBroadcaster>();
 					streamService.AddConnection("stream", webSocket);
 
 					var buffer = new byte[1024 * 4];
@@ -165,7 +165,7 @@ public class Program
             .ConfigureServices(services =>
             {
                 // Share services with the reaction system
-                services.AddSingleton(sp => server.Services.GetRequiredService<WebSocketService>());
+                services.AddSingleton(sp => server.Services.GetRequiredService<IChangeBroadcaster>());
                 services.AddSingleton(sp => server.Services.GetRequiredService<IQueryDebugService>());
             })
             .Build();

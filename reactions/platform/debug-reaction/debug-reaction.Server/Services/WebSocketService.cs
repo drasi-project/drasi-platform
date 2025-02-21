@@ -16,11 +16,11 @@ using System.Net.WebSockets;
 using System.Collections.Concurrent;
 using System.Text;
 using Drasi.Reactions.Debug.Server.Models;
+using Drasi.Reactions.Debug.Server.Services;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
-
-public class WebSocketService
+public class WebSocketService : IChangeBroadcaster
 {
 	private readonly ConcurrentDictionary<string, WebSocket> _connections = new();
 
