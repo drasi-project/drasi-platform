@@ -22,6 +22,7 @@ using Drasi.Reactions.Debug.Server.Models;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reaction.SDK.Services;
 using System.Text.Json;
 using System.Text;
 
@@ -169,14 +170,23 @@ namespace Drasi.Reactions.Debug.Server.Services
 			var result = new QueryResult() { QueryContainerId = this._queryContainerId };
 			try
 			{
-				await foreach (var item in _queryApi.GetCurrentResult(this._queryContainerId, queryId))
+				await foreach (var item in _queryApi.GetCurrentResult(queryId))
 				{
-					var element = item.RootElement;
-					if (element.TryGetProperty("data", out var data))
+					if (item == null)
 					{
-						_logger.LogInformation($"Adding {data.GetRawText()}");
-						result.Add(data);
+						_logger.LogWarning("Received null item from GetCurrentResult for queryId: {QueryId}", queryId);
+						continue;
 					}
+
+					var data = item.Data;
+					if (data == null)
+					{
+						_logger.LogWarning("Item.Data is null for queryId: {QueryId}", queryId);
+						continue;
+					}
+					_logger.LogInformation($"Adding {data.ToString()}");
+					var jsonElement = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(data));
+					result.Add(jsonElement);
 				}
 			}
 			catch (Exception ex)

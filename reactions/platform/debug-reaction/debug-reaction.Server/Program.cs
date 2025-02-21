@@ -18,6 +18,7 @@ using Dapr.Client;
 using Drasi.Reactions.Debug.Server.Models;
 using Drasi.Reactions.Debug.Server.Services;
 using Drasi.Reaction.SDK;
+using Drasi.Reaction.SDK.Services;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 
 using System.Text.Json;
@@ -38,8 +39,9 @@ public class Program
 		builder.Services.AddControllers();
         builder.Services.AddActors(x => { });
         builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
+		builder.Services.AddSingleton<IManagementClient, ManagementClient>();
         builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(
-            sp.GetRequiredService<IResultViewClient>(),
+            sp.GetRequiredService<Drasi.Reaction.SDK.Services.IResultViewClient>(),
             sp.GetRequiredService<IActorProxyFactory>(),
             sp.GetRequiredService<DaprClient>(),
             sp.GetRequiredService<WebSocketService>(),
@@ -57,25 +59,26 @@ public class Program
             });
         });
 
-		var app = builder.Build();
-		if (!app.Environment.IsDevelopment())
+		var server = builder.Build();
+		if (!server.Environment.IsDevelopment())
 		{
-			app.UseExceptionHandler("/Error");
+			server.UseExceptionHandler("/Error");
 		}
-		app.UseStaticFiles();
-		app.UseRouting();
-		app.UseCors("AllowAll");
-		app.UseCloudEvents();
-		app.MapControllers();
-		app.UseWebSockets();
+		
+		server.UseCors("AllowAll");
+		server.UseStaticFiles();
+		server.UseRouting();
+		server.UseCloudEvents();
+		server.MapControllers();
+		server.UseWebSockets();
 
 
-		app.MapGet("/stream", async (IQueryDebugService debugService) =>
+		server.MapGet("/stream", async (IQueryDebugService debugService) =>
 		{
 			return Results.Json(await debugService.GetRawEvents());
 		});
 
-		app.Use(async (context, next) =>
+		server.Use(async (context, next) =>
 		{
 			if (context.Request.Path.StartsWithSegments("/ws/query"))
 			{
@@ -100,7 +103,7 @@ public class Program
 					webSocketService.AddConnection(queryId, webSocket);
 
 					// Handle WebSocket connection
-					app.Logger.LogInformation($"WebSocket connected for queryId: {queryId}");
+					server.Logger.LogInformation($"WebSocket connected for queryId: {queryId}");
 
 					var buffer = new byte[1024 * 4];
 					var lastPingTime = DateTime.Now;
@@ -110,7 +113,7 @@ public class Program
 
 						if (result.MessageType == WebSocketMessageType.Close)
 						{
-							app.Logger.LogInformation($"WebSocket closing for queryId: {queryId}");
+							server.Logger.LogInformation($"WebSocket closing for queryId: {queryId}");
 							await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
 							return;
 						}
@@ -126,7 +129,7 @@ public class Program
 				if (context.WebSockets.IsWebSocketRequest)
 				{
 					var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-					app.Logger.LogInformation($"WebSocket connected for Event Stream");
+					server.Logger.LogInformation($"WebSocket connected for Event Stream");
 
 					var streamService = context.RequestServices.GetRequiredService<WebSocketService>();
 					streamService.AddConnection("stream", webSocket);
@@ -137,7 +140,7 @@ public class Program
 						var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 						if (result.MessageType == WebSocketMessageType.Close)
 						{
-							app.Logger.LogInformation($"WebSocket closing for Event Stream");
+							server.Logger.LogInformation($"WebSocket closing for Event Stream");
 							await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed connection", CancellationToken.None);
 							return;
 						}
@@ -154,7 +157,8 @@ public class Program
 			}
 		});
 
-		app.Urls.Add("http://0.0.0.0:5195");
+		server.Urls.Add("http://0.0.0.0:5195");
+		server.Logger.LogInformation("Application configured to listen on: {Urls}", string.Join(", ", server.Urls));
 
 		var reaction = new ReactionBuilder()
             .UseChangeEventHandler<ChangeHandler>()
@@ -162,13 +166,13 @@ public class Program
             .ConfigureServices(services =>
             {
                 // Share services with the reaction system
-                services.AddSingleton(sp => app.Services.GetRequiredService<WebSocketService>());
-                services.AddSingleton(sp => app.Services.GetRequiredService<IQueryDebugService>());
+                services.AddSingleton(sp => server.Services.GetRequiredService<WebSocketService>());
+                services.AddSingleton(sp => server.Services.GetRequiredService<IQueryDebugService>());
             })
             .Build();
 
-		app.Lifetime.ApplicationStarted.Register(() => StartupTask.SetResult());
-		await Task.WhenAll(reaction.StartAsync(ShutdownToken.Token),app.RunAsync());
+		server.Lifetime.ApplicationStarted.Register(() => StartupTask.SetResult());
+		await Task.WhenAll(reaction.StartAsync(ShutdownToken.Token),server.RunAsync());
 	}
 	public static TaskCompletionSource StartupTask { get; } = new();
 
