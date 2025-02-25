@@ -118,7 +118,7 @@ afterAll(async () => {
   postgresPortForward.stop();
   
   gremlinPortForward.stop();
-  gremlinDriverConnection.close();
+  gremlinDriverConnection?.close();
 
   const postgresResources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
   await deleteResources(postgresResources);
