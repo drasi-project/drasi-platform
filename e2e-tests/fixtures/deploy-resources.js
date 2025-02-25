@@ -103,7 +103,7 @@ async function deployResources(resources) {
       }),
     );
     await waitForChildProcess(
-      cp.exec(`drasi wait ${source.kind} ${source.name} -t 120`, {
+      cp.exec(`drasi wait ${source.kind} ${source.name} -t 150`, {
         encoding: "utf-8",
       }),
       source.name,
@@ -152,7 +152,7 @@ async function deployResources(resources) {
       }),
     );
     await waitForChildProcess(
-      cp.exec(`drasi wait ${reaction.kind} ${reaction.name}`, {
+      cp.exec(`drasi wait ${reaction.kind} ${reaction.name} -t 120`, {
         encoding: "utf-8",
       }),
       reaction.name,
