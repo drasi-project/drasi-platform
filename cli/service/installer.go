@@ -251,7 +251,7 @@ func (t *Installer) createConfig(localMode bool, acr string, version string) err
 	} else {
 		cfg["ACR"] = acr
 		cfg["IMAGE_VERSION_TAG"] = version
-		cfg["IMAGE_PULL_POLICY"] = "Always"
+		cfg["IMAGE_PULL_POLICY"] = "IfNotPresent"
 	}
 
 	cfg["DAPR_SIDECAR"] = "daprio/daprd:" + DAPR_SIDECAR_VERSION
@@ -330,7 +330,7 @@ func (t *Installer) installQueryContainer(output output.TaskOutput, namespace st
 		return err
 	}
 
-	if err := drasiClient.ReadyWait(manifests, 180, subOutput); err != nil {
+	if err := drasiClient.ReadyWait(manifests, 240, subOutput); err != nil {
 		return err
 	}
 	output.SucceedTask("Query-Container", "Query container created")
