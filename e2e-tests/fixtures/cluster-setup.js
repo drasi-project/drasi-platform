@@ -21,7 +21,7 @@ module.exports = async function () {
   console.log("Creating cluster...");
   await waitForChildProcess(cp.exec(`kind delete cluster --name drasi-test`, { encoding: 'utf-8' }));
   await waitForChildProcess(cp.exec(`kind create cluster --name drasi-test`, { encoding: 'utf-8' }));
-  await waitForChildProcess(cp.exec(`docker update --memory=8g --cpus=4 drasi-test-control-plane`, { encoding: 'utf-8' }));
+  await waitForChildProcess(cp.exec(`docker update --memory=8g --memory-swap=8g --cpus=4 drasi-test-control-plane`, { encoding: 'utf-8' }));
 
   await Promise.all([
     tryLoadInfraImages("drasi-test"),
