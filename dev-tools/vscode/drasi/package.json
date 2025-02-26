@@ -169,12 +169,12 @@
     "esbuild": "^0.25.0",
     "eslint": "^8.56.0",
     "glob": "^8.1.0",
-    "mocha": "10.1.0",
+    "mocha": "^10.8.2",
     "ts-mockito": "^2.6.1",
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "@kubernetes/client-node": "^0.22.1",
+    "@kubernetes/client-node": "^1.0.0",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "ajv": "^8.12.0",
     "async-mutex": "^0.5.0",
