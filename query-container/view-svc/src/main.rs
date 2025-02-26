@@ -48,6 +48,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     _ = init_tracer();
     let meter_provider = init_metrics()?;
 
+    // Introduce delay so that dapr grpc port is assigned before app tries to connect
+    std::thread::sleep(std::time::Duration::new(3, 0));
+
     let mut dapr_server = dapr::server::DaprHttpServer::new().await;
 
     let query_container_id = match env::var_os("QUERY_NODE_ID") {

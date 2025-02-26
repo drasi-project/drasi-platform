@@ -32,6 +32,7 @@ class DaprStateStore implements StateStore {
         var stateStoreName = System.getenv("STATE_STORE_NAME");
         this.stateStoreName = stateStoreName != null ? stateStoreName : "drasi-state";
         this.client = new DaprClientBuilder().build();
+        this.client.waitForSidecar(3000).block();
     }
 
     @Override

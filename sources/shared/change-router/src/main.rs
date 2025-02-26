@@ -63,6 +63,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ));
         }
     };
+
+    state_manager::wait_for_dapr_start(dapr_port).await?;
+
     let publisher = DaprHttpPublisher::new(
         "127.0.0.1".to_string(),
         dapr_port,
