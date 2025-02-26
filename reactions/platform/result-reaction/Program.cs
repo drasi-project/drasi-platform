@@ -32,7 +32,6 @@ foreach (var qpath in Directory.GetFiles(queryConfigPath))
 }
 
 
-
 builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
 
 
@@ -139,7 +138,7 @@ app.MapGet("/{queryId}/{ts}/data", async (string queryId, string ts) =>
 });
 
 
-app.RunAsync();
+await app.RunAsync();
 
 bool isValidQueryId(string queryId)
 {
