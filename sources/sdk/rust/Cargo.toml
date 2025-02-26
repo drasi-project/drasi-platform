@@ -1,6 +1,6 @@
 [package]
 name = "drasi-source-sdk"
-version = "0.1.16"
+version = "0.1.17"
 edition = "2021"
 license = "Apache-2.0"
 description = "Source SDK for Drasi"
@@ -30,3 +30,4 @@ tracing = "0.1.37"
 tracing-opentelemetry = "0.21"
 tracing-subscriber = {version = "0.3.17", features = ["env-filter"]}
 env_logger = "0.11.5"
+retry = "2.0.0"
