@@ -38,6 +38,7 @@ mod change_dispatcher_config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     info!("Starting Source Change Dispatcher");
 
     let config = ChangeDispatcherConfig::new();

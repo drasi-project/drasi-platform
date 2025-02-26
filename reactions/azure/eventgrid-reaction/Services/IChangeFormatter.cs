@@ -12,16 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-﻿using EventgridReaction.Models;
-using Newtonsoft.Json.Linq;
+using Drasi.Reactions.EventGrid.Models.Unpacked;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 using System.Text.Json;
 
-namespace EventgridReaction.Services
+namespace Drasi.Reactions.EventGrid.Services
 {
     public interface IChangeFormatter
     {
-        IEnumerable<ChangeNotification> FormatAdd(string queryId, JsonElement.ArrayEnumerator input);
-        IEnumerable<ChangeNotification> FormatDelete(string queryId, JsonElement.ArrayEnumerator input);
-        IEnumerable<ChangeNotification> FormatUpdate(string queryId, JsonElement.ArrayEnumerator input);
+        IEnumerable<ChangeNotification> Format(ChangeEvent evt);
     }
 }
