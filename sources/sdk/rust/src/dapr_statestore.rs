@@ -26,9 +26,25 @@ pub struct DaprStateStore {
 
 impl DaprStateStore {
     pub async fn connect() -> Result<Self, dapr::error::Error> {
+
+        let client = {
+            let mut attempt = 0;
+            loop {
+                match Client::<dapr::client::TonicClient>::connect("https://127.0.0.1".to_string()).await {
+                    Ok(client) => break client,
+                    Err(e) => {
+                        attempt += 1;
+                        if attempt >= 5 {
+                            return Err(e);
+                        }
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    }
+                }
+            }
+        };
+
         Ok(DaprStateStore {
-            client: Client::<dapr::client::TonicClient>::connect("https://127.0.0.1".to_string())
-                .await?,
+            client,
             store_name: match env::var("STATE_STORE_NAME") {
                 Ok(val) => val,
                 Err(_) => "drasi-state".to_string(),

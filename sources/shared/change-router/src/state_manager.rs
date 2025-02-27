@@ -136,3 +136,36 @@ impl DaprStateManager {
         Ok(())
     }
 }
+
+pub async fn wait_for_dapr_start(port: u16) -> Result<(), Box<dyn std::error::Error>> {
+    let mut attempt = 0;
+    loop {
+        let url = format!("http://localhost:{}/v1.0/healthz/outbound", port);
+        let response = reqwest::get(&url).await;
+
+        match response {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    log::info!("Dapr is up and running on port {}", port);
+                    return Ok(());
+                } else {
+                    log::warn!("Dapr is not ready yet, status: {}", resp.status());
+                }
+            }
+            Err(e) => {
+                log::error!("Error connecting to Dapr: {:?}", e);
+            }
+        }
+
+        attempt += 1;
+        if attempt >= 10 {
+            log::error!("Dapr did not start within the expected time frame.");
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "Dapr did not start within the expected time frame.",
+            )));
+        }
+
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    }
+}
