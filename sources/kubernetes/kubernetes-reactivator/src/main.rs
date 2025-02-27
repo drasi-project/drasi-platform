@@ -29,6 +29,8 @@ use tokio::{pin, sync::mpsc::Sender, task::JoinHandle};
 
 #[tokio::main]
 async fn main() {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    
     let reactivator = ReactivatorBuilder::new()
         .with_stream_producer(my_stream)
         .with_deprovision_handler(deprovision)

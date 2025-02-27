@@ -180,8 +180,6 @@ where
     DeprovisionResponse: Future<Output = ()> + Send + 'static,
 {
     pub async fn start(self) {
-        env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-
         panic::set_hook(Box::new(|info| {
             if let Some(message) = info.payload().downcast_ref::<String>() {
                 log::error!("Panic occurred: {} \n{:?}", message, info.location());
