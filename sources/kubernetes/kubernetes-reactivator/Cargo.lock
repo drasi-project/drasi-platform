@@ -582,9 +582,9 @@ dependencies = [
 
 [[package]]
 name = "drasi-source-sdk"
-version = "0.1.14"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd1832b86c7c17fb2bf516917f12d7ae5ace2acf47052b786ee124f5064d4e44"
+checksum = "3a4e494ef059893e349d5949705c8746e31833ba72eaa440ab7c0ac04a74861d"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -599,6 +599,7 @@ dependencies = [
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
  "reqwest",
+ "retry",
  "serde",
  "serde_json",
  "thiserror 2.0.6",
@@ -2290,6 +2291,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "windows-registry",
+]
+
+[[package]]
+name = "retry"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9166d72162de3575f950507683fac47e30f6f2c3836b71b7fbc61aa517c9c5f4"
+dependencies = [
+ "rand",
 ]
 
 [[package]]
