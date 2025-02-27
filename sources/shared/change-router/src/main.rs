@@ -39,6 +39,7 @@ mod subscribers;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     log::info!("Starting Source Change Router");
 
     let config = ChangeRouterConfig::from_env();
@@ -62,6 +63,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ));
         }
     };
+
+    state_manager::wait_for_dapr_start(dapr_port).await?;
+
     let publisher = DaprHttpPublisher::new(
         "127.0.0.1".to_string(),
         dapr_port,
@@ -271,10 +275,13 @@ async fn process_changes(
             );
             debug!("ChangeEvent: {}", change);
 
-            // Bootstrap
-            if change["payload"]["source"]["db"] == "Drasi" {
-                if change["payload"]["source"]["table"] == "SourceSubscription" {
-                    if change["op"] == "i" {
+            // Subscription and unsubscription events
+            if change["payload"]["source"]["db"] == "Drasi"
+                && change["payload"]["source"]["table"] == "SourceSubscription"
+            {
+                match change["op"].as_str() {
+                    Some("i") => {
+                        // Handle SourceSubscription
                         info!(
                             "Activating new SourceSubscription: id:{}",
                             change["payload"]["after"]["id"]
@@ -388,7 +395,34 @@ async fn process_changes(
                                 return Err(e);
                             }
                         }
-                    } else {
+                    }
+                    Some("d") => {
+                        // Handle unsubscription
+                        let state_key = format!(
+                            "SourceSubscription-{}-{}",
+                            match change["payload"]["before"]["queryNodeId"].as_str() {
+                                Some(query_node_id) => query_node_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryNodeId from the ChangeEvent"
+                                    )),
+                            },
+                            match change["payload"]["before"]["queryId"].as_str() {
+                                Some(query_id) => query_id,
+                                None =>
+                                    return Err(Box::<dyn std::error::Error>::from(
+                                        "Error loading queryId from the ChangeEvent"
+                                    )),
+                            }
+                        );
+                        match state_manager.delete_state(&state_key, None).await {
+                            Ok(_) => info!("Deleted Subscription {} from state store", state_key),
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+                    }
+                    _ => {
                         // TODO - supprt other ops on SourceSubscriptions
                     }
                 }
