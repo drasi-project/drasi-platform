@@ -37,9 +37,9 @@
     <dependency>
       <groupId>io.drasi</groupId>
       <artifactId>source.sdk</artifactId>
-      <version>0.1.2</version>
+      <version>0.1.4</version>
     </dependency>
-
+    
     <dependency>
       <groupId>io.debezium</groupId>
       <artifactId>debezium-api</artifactId>
@@ -53,6 +53,11 @@
     <dependency>
       <groupId>io.debezium</groupId>
       <artifactId>debezium-connector-postgres</artifactId>
+      <version>${version.debezium}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.debezium</groupId>
+      <artifactId>debezium-connector-mysql</artifactId>
       <version>${version.debezium}</version>
     </dependency>
     <dependency>

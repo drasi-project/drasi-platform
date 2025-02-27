@@ -100,13 +100,14 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string) error {
+func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string, daprRegistry string) error {
 	daprInstalled, err := t.checkDaprInstallation(output)
 	if err != nil {
 		return err
 	}
+
 	if !daprInstalled {
-		if err = t.installDapr(output); err != nil {
+		if err = t.installDapr(output, daprRegistry); err != nil {
 			return err
 		}
 	}
@@ -250,7 +251,7 @@ func (t *Installer) createConfig(localMode bool, acr string, version string) err
 	} else {
 		cfg["ACR"] = acr
 		cfg["IMAGE_VERSION_TAG"] = version
-		cfg["IMAGE_PULL_POLICY"] = "Always"
+		cfg["IMAGE_PULL_POLICY"] = "IfNotPresent"
 	}
 
 	cfg["DAPR_SIDECAR"] = "daprio/daprd:" + DAPR_SIDECAR_VERSION
@@ -328,7 +329,8 @@ func (t *Installer) installQueryContainer(output output.TaskOutput, namespace st
 	if err := drasiClient.Apply(manifests, subOutput); err != nil {
 		return err
 	}
-	if err := drasiClient.ReadyWait(manifests, 120, subOutput); err != nil {
+
+	if err := drasiClient.ReadyWait(manifests, 240, subOutput); err != nil {
 		return err
 	}
 	output.SucceedTask("Query-Container", "Query container created")
@@ -541,7 +543,7 @@ func (t *Installer) waitForDeployment(selector string, output output.TaskOutput)
 	return nil
 }
 
-func (t *Installer) installDapr(output output.TaskOutput) error {
+func (t *Installer) installDapr(output output.TaskOutput, daprRegistry string) error {
 	output.AddTask("Dapr-Install", "Installing Dapr...")
 
 	ns := "dapr-system"
@@ -602,6 +604,8 @@ func (t *Installer) installDapr(output output.TaskOutput) error {
 	installClient.CreateNamespace = true
 	installClient.Timeout = time.Duration(120) * time.Second
 
+	helmChart.Values["global"].(map[string]interface{})["registry"] = daprRegistry
+
 	helmChart.Values["dapr_operator"] = make(map[string]interface{})
 	if daprOperator, ok := helmChart.Values["dapr_operator"].(map[string]interface{}); ok {
 		daprOperator["watchInterval"] = "10s"
@@ -622,7 +626,7 @@ func (t *Installer) checkDaprInstallation(output output.TaskOutput) (bool, error
 	podsClient := t.kubeClient.CoreV1().Pods("dapr-system")
 
 	pods, err := podsClient.List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=dapr",
+		LabelSelector: "app.kubernetes.io/part-of=dapr",
 	})
 	if err != nil {
 		output.FailTask("Dapr-Check", fmt.Sprintf("Error checking for Dapr: %v", err.Error()))

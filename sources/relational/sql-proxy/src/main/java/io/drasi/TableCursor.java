@@ -2,6 +2,8 @@ package io.drasi;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.drasi.source.sdk.SourceProxy;
 import io.drasi.source.sdk.models.SourceElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,8 +30,10 @@ class TableCursor {
         if (resultSet == null) {
             mapping = ReadMappingFromSchema(tableName, connection);
             var statement = connection.createStatement();
-            var sanitizedTableName = tableName.replace("\"", "").replace(";", "");
-            resultSet = statement.executeQuery("SELECT * FROM \"" + sanitizedTableName + "\"");
+
+            String quote = SourceProxy.GetConfigValue("connector").equalsIgnoreCase("MySQL") ? "`" : "\"";
+            var sanitizedTableName = tableName.replace(quote, "").replace(";", "");
+            resultSet = statement.executeQuery("SELECT * FROM " + quote + sanitizedTableName + quote);
             metaData = resultSet.getMetaData();
             columnCount = metaData.getColumnCount();
         }
@@ -66,9 +70,8 @@ class TableCursor {
 
     public void close() {
         try {
-            if (resultSet != null) {
+            if (resultSet != null)
                 resultSet.close();
-            }
         } catch (SQLException e) {
             log.error("Error closing result set", e);
         }

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gremlin-server
+  labels:
+    app: gremlin-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gremlin-server
+  template:
+    metadata:
+      labels:
+        app: gremlin-server
+    spec:
+      containers:
+      - name: gremlin-server
+        image: janusgraph/janusgraph:latest
+        ports:
+        - containerPort: 8182
+        env:
+        - name: JAVA_OPTIONS
+          value: "-Xms1G -Xmx2G"
+        resources:
+          requests:
+            memory: "1Gi"
+          limits:
+            memory: "2Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gremlin-server
+spec:
+  ports:
+    - port: 8182
+  selector:
+    app: gremlin-server
+  type: ClusterIP
