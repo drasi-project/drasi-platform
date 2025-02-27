@@ -582,9 +582,9 @@ dependencies = [
 
 [[package]]
 name = "drasi-source-sdk"
-version = "0.1.18"
+version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a4e494ef059893e349d5949705c8746e31833ba72eaa440ab7c0ac04a74861d"
+checksum = "9a955c3223cacb5a389b963a2cc7705fd6fe39e2ea37623455e6c31eadfc8c6d"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -674,9 +674,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.11.5"
+version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e13fa619b91fb2381732789fc5de83b45675e882f66623b7d8cb4f643017018d"
+checksum = "dcaee3d8e3cfc3fd92428d477bc97fc29ec8716d180c0d74c643bb26166660e0"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1605,6 +1605,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "drasi-source-sdk",
+ "env_logger",
  "futures",
  "k8s-openapi",
  "kube",
