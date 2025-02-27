@@ -4,6 +4,8 @@ use serde_json::{Number, Value};
 
 #[tokio::main]
 async fn main() {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    
     let proxy = SourceProxyBuilder::new()
         .with_stream_producer(my_stream)
         .without_context()

@@ -22,6 +22,8 @@ use tokio::sync::mpsc::UnboundedSender;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    
     let kube_config = {
         match env::var("kubeConfig") {
             Ok(config) => {
