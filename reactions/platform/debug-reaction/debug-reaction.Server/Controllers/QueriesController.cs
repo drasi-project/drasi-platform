@@ -20,46 +20,46 @@ using Drasi.Reactions.Debug.Server.Services;
 [Route("queries")]
 public class QueryController : ControllerBase
 {
-    private readonly IQueryDebugService _debugService;
+	private readonly IQueryDebugService _debugService;
 
-    private readonly string _configDirectory;
+	private readonly string _configDirectory;
 
-    public QueryController(IQueryDebugService debugService, IConfiguration configuration)
-    {
-        _debugService = debugService;
-        _configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
-    }
+	public QueryController(IQueryDebugService debugService, IConfiguration configuration)
+	{
+		_debugService = debugService;
+		_configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
+	}
 
-    // GET queries
-    // This endpoint returns a list of active queries.
-    [HttpGet]
-    public IEnumerable<string> GetQueries()
-    {
-        var queryList = new List<string>();
-        foreach (var qpath in Directory.GetFiles(_configDirectory))
-        {
-            var queryId = Path.GetFileName(qpath);
-            queryList.Add(queryId);
-        }
-        return queryList;
-    }
+	// GET queries
+	// This endpoint returns a list of active queries.
+	[HttpGet]
+	public IEnumerable<string> GetQueries()
+	{
+		var queryList = new List<string>();
+		foreach (var qpath in Directory.GetFiles(_configDirectory))
+		{
+			var queryId = Path.GetFileName(qpath);
+			queryList.Add(queryId);
+		}
+		return queryList;
+	}
 
 
-    // GET queries/{queryId}
-    // This endpoint returns the current result of a specific query.
-    [HttpGet("{queryId}")]
-    public async Task<IActionResult> GetQueryResult(string queryId)
-    {
-        var result = await _debugService.GetQueryResult(queryId);
-        return Ok(result);
-    }
+	// GET queries/{queryId}
+	// This endpoint returns the current result of a specific query.
+	[HttpGet("{queryId}")]
+	public async Task<IActionResult> GetQueryResult(string queryId)
+	{
+		var result = await _debugService.GetQueryResult(queryId);
+		return Ok(result);
+	}
 
-    // GET queries/{queryId}/debug-information
-    // This endpoint returns the debug information for a specific query.
-    [HttpGet("{queryId}/debug-information")]
-    public async Task<IActionResult> GetDebugInfo(string queryId)
-    {
-        var result = await _debugService.GetDebugInfo(queryId);
-        return Ok(result);
-    }
+	// GET queries/{queryId}/debug-information
+	// This endpoint returns the debug information for a specific query.
+	[HttpGet("{queryId}/debug-information")]
+	public async Task<IActionResult> GetDebugInfo(string queryId)
+	{
+		var result = await _debugService.GetDebugInfo(queryId);
+		return Ok(result);
+	}
 }

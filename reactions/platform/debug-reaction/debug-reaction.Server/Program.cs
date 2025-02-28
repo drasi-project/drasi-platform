@@ -34,36 +34,36 @@ public class Program
 	public static async Task Main(string[] args)
 	{
 		var builder = WebApplication.CreateBuilder();
-        builder.Services.AddSingleton<IChangeBroadcaster, WebSocketService>();
-        builder.Services.AddDaprClient();
+		builder.Services.AddSingleton<IChangeBroadcaster, WebSocketService>();
+		builder.Services.AddDaprClient();
 		builder.Services.AddControllers();
-        builder.Services.AddActors(x => { });
-        builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
+		builder.Services.AddActors(x => { });
+		builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
 		builder.Services.AddSingleton<IManagementClient, ManagementClient>();
-        builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(
-            sp.GetRequiredService<IResultViewClient>(),
-            sp.GetRequiredService<IActorProxyFactory>(),
-            sp.GetRequiredService<DaprClient>(),
-            sp.GetRequiredService<IChangeBroadcaster>(),
+		builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(
+			sp.GetRequiredService<IResultViewClient>(),
+			sp.GetRequiredService<IActorProxyFactory>(),
+			sp.GetRequiredService<DaprClient>(),
+			sp.GetRequiredService<IChangeBroadcaster>(),
 			sp.GetRequiredService<ILogger<QueryDebugService>>(),
 			sp.GetRequiredService<IManagementClient>()));
-        builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
-        builder.Services.AddCors(options =>
-        {
-            options.AddPolicy("AllowAll", policy =>
-            {
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
-                      .AllowAnyHeader();
-            });
-        });
+		builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
+		builder.Services.AddCors(options =>
+		{
+			options.AddPolicy("AllowAll", policy =>
+			{
+				policy.AllowAnyOrigin()
+					  .AllowAnyMethod()
+					  .AllowAnyHeader();
+			});
+		});
 
 		var server = builder.Build();
 		if (!server.Environment.IsDevelopment())
 		{
 			server.UseExceptionHandler("/Error");
 		}
-		
+
 		server.UseCors("AllowAll");
 		server.UseStaticFiles();
 		server.UseRouting();
@@ -160,18 +160,18 @@ public class Program
 		server.Logger.LogInformation("Application configured to listen on: {Urls}", string.Join(", ", server.Urls));
 
 		var reaction = new ReactionBuilder()
-            .UseChangeEventHandler<ChangeHandler>()
-            .UseControlEventHandler<ControlSignalHandler>()
-            .ConfigureServices(services =>
-            {
-                // Share services with the reaction system
-                services.AddSingleton(sp => server.Services.GetRequiredService<IChangeBroadcaster>());
-                services.AddSingleton(sp => server.Services.GetRequiredService<IQueryDebugService>());
-            })
-            .Build();
+			.UseChangeEventHandler<ChangeHandler>()
+			.UseControlEventHandler<ControlSignalHandler>()
+			.ConfigureServices(services =>
+			{
+				// Share services with the reaction system
+				services.AddSingleton(sp => server.Services.GetRequiredService<IChangeBroadcaster>());
+				services.AddSingleton(sp => server.Services.GetRequiredService<IQueryDebugService>());
+			})
+			.Build();
 
 		server.Lifetime.ApplicationStarted.Register(() => StartupTask.SetResult());
-		await Task.WhenAll(reaction.StartAsync(ShutdownToken.Token),server.RunAsync());
+		await Task.WhenAll(reaction.StartAsync(ShutdownToken.Token), server.RunAsync());
 	}
 	public static TaskCompletionSource StartupTask { get; } = new();
 

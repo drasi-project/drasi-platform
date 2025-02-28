@@ -180,22 +180,22 @@ namespace Drasi.Reactions.Debug.Server.Services
 		{
 			_logger.LogInformation("QueryDebugService background task is starting.");
 
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                try
-                {
-                    _logger.LogDebug("QueryDebugService is running...");
-                    await Task.Delay(15000, stoppingToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error in QueryDebugService background task.");
-                }
-            }
+			while (!stoppingToken.IsCancellationRequested)
+			{
+				try
+				{
+					_logger.LogDebug("QueryDebugService is running...");
+					await Task.Delay(15000, stoppingToken);
+				}
+				catch (Exception ex)
+				{
+					_logger.LogError(ex, "Error in QueryDebugService background task.");
+				}
+			}
 
-            _logger.LogInformation("QueryDebugService background task is stopping.");
+			_logger.LogInformation("QueryDebugService background task is stopping.");
 		}
 	}
 
-	
+
 }

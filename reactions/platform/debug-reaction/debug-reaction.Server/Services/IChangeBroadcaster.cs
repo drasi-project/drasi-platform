@@ -18,11 +18,11 @@ using Drasi.Reactions.Debug.Server.Models;
 
 namespace Drasi.Reactions.Debug.Server.Services
 {
-    public interface IChangeBroadcaster
-    {
-        void AddConnection(string socketName, WebSocket webSocket);
-        Task BroadcastToQueryId(string socketName, QueryResult message);
+	public interface IChangeBroadcaster
+	{
+		void AddConnection(string socketName, WebSocket webSocket);
+		Task BroadcastToQueryId(string socketName, QueryResult message);
 
-        Task BroadcastToStream(string socketName, LinkedList<JsonElement> message);
-    }
+		Task BroadcastToStream(string socketName, LinkedList<JsonElement> message);
+	}
 }
