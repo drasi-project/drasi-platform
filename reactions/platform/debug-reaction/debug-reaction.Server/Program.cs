@@ -156,7 +156,8 @@ public class Program
 			}
 		});
 
-		server.Urls.Add("http://0.0.0.0:5195");
+		var port = Environment.GetEnvironmentVariable("PORT") ?? "5195";
+		server.Urls.Add($"http://0.0.0.0:{port}");
 		server.Logger.LogInformation("Application configured to listen on: {Urls}", string.Join(", ", server.Urls));
 
 		var reaction = new ReactionBuilder()
@@ -178,46 +179,3 @@ public class Program
 	public static CancellationTokenSource ShutdownToken { get; } = new();
 }
 
-
-
-public class ChangeHandler : IChangeEventHandler
-{
-	private readonly IQueryDebugService _debugService;
-	private readonly ILogger<ChangeHandler> _logger;
-
-
-	public ChangeHandler(IQueryDebugService debugService, ILogger<ChangeHandler> logger)
-	{
-		_debugService = debugService;
-		_logger = logger;
-	}
-
-	public async Task HandleChange(ChangeEvent evt, object? queryConfig)
-	{
-		var queryId = evt.QueryId;
-		var jsonEvent = JsonSerializer.Deserialize<JsonElement>(evt.ToJson());
-		await _debugService.ProcessRawEvent(jsonEvent);
-		await _debugService.ProcessRawChange(evt);
-	}
-}
-
-
-public class ControlSignalHandler : IControlEventHandler
-{
-	private readonly IQueryDebugService _debugService;
-	private readonly ILogger<ControlSignalHandler> _logger;
-
-	public ControlSignalHandler(IQueryDebugService debugService, ILogger<ControlSignalHandler> logger)
-	{
-		_debugService = debugService;
-		_logger = logger;
-	}
-
-	public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
-	{
-		var queryId = evt.QueryId;
-		var jsonEvent = JsonSerializer.Deserialize<JsonElement>(evt.ToJson());
-		await _debugService.ProcessRawEvent(jsonEvent);
-		await _debugService.ProcessControlSignal(evt);
-	}
-}
