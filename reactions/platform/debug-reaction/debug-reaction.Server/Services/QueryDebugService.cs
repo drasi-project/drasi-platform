@@ -37,7 +37,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 		private readonly ILogger<QueryDebugService> _logger;
 
 		private List<string> _activeQueries = new();
-		// private readonly ConcurrentDictionary<string, QueryResult> _results = new();
 
 		private readonly LinkedList<JsonElement> _rawEvents = new();
 
@@ -60,8 +59,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 		{
 			return _rawEvents;
 		}
-
-
 
 		public void SetActiveQueries(IEnumerable<string> queries)
 		{
@@ -131,23 +128,23 @@ namespace Drasi.Reactions.Debug.Server.Services
 			var queryId = change.QueryId;
 			if (!_activeQueries.Contains(queryId))
 				return;
-				
-
-			// var queryResult = _results[queryId];
 
 			// TODO: update queryResult based on control signal
-			// switch (change.ControlSignal.Kind)
-			// {
-			// 	case ControlSignalKind.Deleted:
-			// 		queryResult.Clear();
-			// 		break;
-			// 	case ControlSignalKind.BootstrapStarted:
-			// 		queryResult.Clear();
-			// 		break;
-			// }
+			switch (change.ControlSignal.Kind)
+			{
+				case ControlSignalKind.Deleted:
+					var queryResult = new QueryResult();
+					queryResult.Add(JsonSerializer.SerializeToElement("Clear"));
+					await _webSocketService.BroadcastToQueryId(queryId, queryResult);
+					break;
+				case ControlSignalKind.BootstrapStarted:
+					queryResult = new QueryResult();
+					queryResult.Add(JsonSerializer.SerializeToElement("Clear"));
+					await _webSocketService.BroadcastToQueryId(queryId, queryResult);
+					break;
+			}
 
 			var jsonEvent = JsonSerializer.Deserialize<JsonElement>(change.ToJson());
-			// await _webSocketService.BroadcastToQueryId(queryId, change);
 			await _webSocketService.BroadcastToStream("stream", jsonEvent);
 		}
 

@@ -73,7 +73,11 @@ function QueryPage() {
       ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
-            setQueries((prevQueries) => [...prevQueries, ...message["Data"]]);
+            if (message["Data"].includes("Clear")) {
+              setQueries([]);
+            } else {
+              setQueries((prevQueries) => [...prevQueries, ...message["Data"]]);
+            }
           } catch (error) {
               console.error('Error parsing WebSocket message:', error);
           }
