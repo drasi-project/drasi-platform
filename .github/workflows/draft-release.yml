@@ -64,6 +64,7 @@ env:
     {"label": "Debezium", "path": "reactions/debezium/debezium-reaction", "name": "reaction-debezium", "platforms": "linux/amd64,linux/arm64"},
     {"label": "Debug", "path": "reactions/platform/debug-reaction", "name": "reaction-debug", "platforms": "linux/amd64,linux/arm64"},
     {"label": "EventGrid", "path": "reactions/azure/eventgrid-reaction", "name": "reaction-eventgrid", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "EventBridge", "path": "reactions/aws/eventbridge-reaction", "name": "reaction-eventbridge", "platforms": "linux/amd64,linux/arm64"},
     {"label": "Gremlin", "path": "reactions/gremlin/gremlin-reaction", "name": "reaction-gremlin", "platforms": "linux/amd64,linux/arm64"},
     {"label": "Result", "path": "reactions/platform/result-reaction", "name": "reaction-result", "platforms": "linux/amd64,linux/arm64"},
     {"label": "StorageQueue", "path": "reactions/azure/storagequeue-reaction", "name": "reaction-storagequeue", "platforms": "linux/amd64,linux/arm64"},
@@ -232,9 +233,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          submodules: true
-          token: ${{ secrets.DRASI_CORE_PAT }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -326,9 +324,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          submodules: true
-          token: ${{ secrets.DRASI_CORE_PAT }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -420,9 +415,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          submodules: true
-          token: ${{ secrets.DRASI_CORE_PAT }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
