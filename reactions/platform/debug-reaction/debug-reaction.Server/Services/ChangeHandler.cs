@@ -31,9 +31,10 @@ public class ChangeHandler : IChangeEventHandler
 
 	public async Task HandleChange(ChangeEvent evt, object? queryConfig)
 	{
-		var queryId = evt.QueryId;
-		var jsonEvent = JsonSerializer.Deserialize<JsonElement>(evt.ToJson());
-		await _debugService.ProcessRawEvent(jsonEvent);
-		await _debugService.ProcessRawChange(evt);
+		// var queryId = evt.QueryId;
+		// var jsonEvent = JsonSerializer.Deserialize<JsonElement>(evt.ToJson());
+		await _debugService.ProcessChange(evt);
+		// await _debugService.ProcessRawEvent(jsonEvent);
+		// await _debugService.ProcessRawChange(evt);
 	}
 }

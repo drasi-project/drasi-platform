@@ -28,7 +28,7 @@ using System.Text;
 
 namespace Drasi.Reactions.Debug.Server.Services
 {
-	public class QueryDebugService : BackgroundService, IQueryDebugService
+	public class QueryDebugService : IQueryDebugService
 	{
 		private readonly IResultViewClient _queryApi;
 		private readonly IActorProxyFactory _actorProxyFactory;
@@ -94,6 +94,12 @@ namespace Drasi.Reactions.Debug.Server.Services
 			return _results.GetOrAdd(queryId, await InitResult(queryId));
 		}
 
+		public async Task ProcessChange(ChangeEvent change)
+		{
+			var jsonEvent = JsonSerializer.Deserialize<JsonElement>(change.ToJson());
+			await ProcessRawEvent(jsonEvent);
+			await ProcessRawChange(change);
+		}
 		public async Task ProcessRawChange(ChangeEvent change)
 		{
 			var queryId = change.QueryId;
@@ -176,25 +182,25 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 			return result;
 		}
-		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-		{
-			_logger.LogInformation("QueryDebugService background task is starting.");
+		// protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+		// {
+		// 	_logger.LogInformation("QueryDebugService background task is starting.");
 
-			while (!stoppingToken.IsCancellationRequested)
-			{
-				try
-				{
-					_logger.LogDebug("QueryDebugService is running...");
-					await Task.Delay(15000, stoppingToken);
-				}
-				catch (Exception ex)
-				{
-					_logger.LogError(ex, "Error in QueryDebugService background task.");
-				}
-			}
+		// 	while (!stoppingToken.IsCancellationRequested)
+		// 	{
+		// 		try
+		// 		{
+		// 			_logger.LogDebug("QueryDebugService is running...");
+		// 			await Task.Delay(15000, stoppingToken);
+		// 		}
+		// 		catch (Exception ex)
+		// 		{
+		// 			_logger.LogError(ex, "Error in QueryDebugService background task.");
+		// 		}
+		// 	}
 
-			_logger.LogInformation("QueryDebugService background task is stopping.");
-		}
+		// 	_logger.LogInformation("QueryDebugService background task is stopping.");
+		// }
 	}
 
 

@@ -18,10 +18,12 @@ using System.Text.Json;
 
 namespace Drasi.Reactions.Debug.Server.Services
 {
-	public interface IQueryDebugService : IHostedService
+	public interface IQueryDebugService
 	{
 		Task<QueryResult> GetQueryResult(string queryId);
-		Task ProcessRawChange(ChangeEvent change);
+		
+		Task ProcessChange(ChangeEvent change);
+		// Task ProcessRawChange(ChangeEvent change);
 		Task ProcessControlSignal(ControlEvent change);
 		IEnumerable<string> ActiveQueries { get; }
 		Task<Dictionary<string, object>> GetDebugInfo(string queryId);

@@ -47,7 +47,7 @@ public class Program
 			sp.GetRequiredService<IChangeBroadcaster>(),
 			sp.GetRequiredService<ILogger<QueryDebugService>>(),
 			sp.GetRequiredService<IManagementClient>()));
-		builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
+		// builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
 		builder.Services.AddCors(options =>
 		{
 			options.AddPolicy("AllowAll", policy =>
