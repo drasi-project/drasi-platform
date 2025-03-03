@@ -20,24 +20,24 @@ function EventStream() {
     const [stream, setStream] = useState([]);
     const WEBSOCKET_URL = "ws://localhost:5195/ws/stream";
 
-    const fetchStream = async () => {
-        try {
-            const url = "http://localhost:5195/stream";
-            const response = await fetch(url);
+    // const fetchStream = async () => {
+    //     try {
+    //         const url = "http://localhost:5195/stream";
+    //         const response = await fetch(url);
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const stream = await response.json();
-            setStream(stream);
-        } catch (error) {
-            console.error("Error fetching stream:", error);
-        }
-    };
+    //         if (!response.ok) {
+    //             throw new Error(`HTTP error! Status: ${response.status}`);
+    //         }
+    //         const stream = await response.json();
+    //         setStream(stream);
+    //     } catch (error) {
+    //         console.error("Error fetching stream:", error);
+    //     }
+    // };
     useEffect(() => {
         const ws = new WebSocket(WEBSOCKET_URL);
 
-        fetchStream();
+        // fetchStream();
         ws.onopen = () => {
             setInterval(() => {
                 if (ws.readyState == WebSocket.OPEN) {
@@ -49,7 +49,13 @@ function EventStream() {
         ws.onmessage = (event) => {
             try  {
                 const data = JSON.parse(event.data);
-                setStream(data);
+                setStream((prevStream) => {
+                    const newStream = [data, ...prevStream];
+                    while (newStream.length > 100) {
+                        newStream.pop();
+                    }
+                    return newStream;
+                });
             } catch (error) {
                 console.error("Error parsing message:", error);
             }

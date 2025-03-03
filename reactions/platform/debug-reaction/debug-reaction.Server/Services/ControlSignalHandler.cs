@@ -37,8 +37,6 @@ public class ControlSignalHandler : IControlEventHandler
 	public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
 	{
 		var queryId = evt.QueryId;
-		var jsonEvent = JsonSerializer.Deserialize<JsonElement>(evt.ToJson());
-		await _debugService.ProcessRawEvent(jsonEvent);
-		await _debugService.ProcessControlSignal(evt);
+        await _debugService.ProcessControlSignal(evt);
 	}
 }

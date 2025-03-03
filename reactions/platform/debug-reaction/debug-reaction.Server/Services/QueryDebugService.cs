@@ -60,17 +60,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 			return _rawEvents;
 		}
 
-		public async Task ProcessRawEvent(JsonElement change)
-		{
-			lock (_rawEvents)
-			{
-				_rawEvents.AddFirst(change);
-				while (_rawEvents.Count > 100)
-					_rawEvents.RemoveLast();
-			}
-			await _webSocketService.BroadcastToStream("stream", _rawEvents);
-		}
-
 		public async Task<Dictionary<string, object>> GetDebugInfo(string queryId)
 		{
 			try
@@ -97,8 +86,9 @@ namespace Drasi.Reactions.Debug.Server.Services
 		public async Task ProcessChange(ChangeEvent change)
 		{
 			var jsonEvent = JsonSerializer.Deserialize<JsonElement>(change.ToJson());
-			await ProcessRawEvent(jsonEvent);
 			await ProcessRawChange(change);
+			await _webSocketService.BroadcastToStream("stream", jsonEvent);
+			
 		}
 		public async Task ProcessRawChange(ChangeEvent change)
 		{
@@ -133,6 +123,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 			var queryId = change.QueryId;
 			if (!_results.ContainsKey(queryId))
 				return;
+				
 
 			var queryResult = _results[queryId];
 
@@ -146,7 +137,9 @@ namespace Drasi.Reactions.Debug.Server.Services
 					break;
 			}
 
+			var jsonEvent = JsonSerializer.Deserialize<JsonElement>(change.ToJson());
 			await _webSocketService.BroadcastToQueryId(queryId, queryResult);
+			await _webSocketService.BroadcastToStream("stream", jsonEvent);
 		}
 
 
@@ -182,25 +175,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 			return result;
 		}
-		// protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-		// {
-		// 	_logger.LogInformation("QueryDebugService background task is starting.");
-
-		// 	while (!stoppingToken.IsCancellationRequested)
-		// 	{
-		// 		try
-		// 		{
-		// 			_logger.LogDebug("QueryDebugService is running...");
-		// 			await Task.Delay(15000, stoppingToken);
-		// 		}
-		// 		catch (Exception ex)
-		// 		{
-		// 			_logger.LogError(ex, "Error in QueryDebugService background task.");
-		// 		}
-		// 	}
-
-		// 	_logger.LogInformation("QueryDebugService background task is stopping.");
-		// }
 	}
 
 

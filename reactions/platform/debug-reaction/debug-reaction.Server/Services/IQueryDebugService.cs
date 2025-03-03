@@ -23,12 +23,10 @@ namespace Drasi.Reactions.Debug.Server.Services
 		Task<QueryResult> GetQueryResult(string queryId);
 		
 		Task ProcessChange(ChangeEvent change);
-		// Task ProcessRawChange(ChangeEvent change);
 		Task ProcessControlSignal(ControlEvent change);
 		IEnumerable<string> ActiveQueries { get; }
 		Task<Dictionary<string, object>> GetDebugInfo(string queryId);
 		Task<LinkedList<JsonElement>> GetRawEvents();
 
-		Task ProcessRawEvent(JsonElement change);
 	}
 }

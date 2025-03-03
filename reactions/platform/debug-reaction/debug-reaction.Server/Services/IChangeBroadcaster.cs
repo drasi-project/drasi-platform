@@ -23,6 +23,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 		void AddConnection(string socketName, WebSocket webSocket);
 		Task BroadcastToQueryId(string socketName, QueryResult message);
 
-		Task BroadcastToStream(string socketName, LinkedList<JsonElement> message);
+		Task BroadcastToStream(string socketName, JsonElement message);
 	}
 }

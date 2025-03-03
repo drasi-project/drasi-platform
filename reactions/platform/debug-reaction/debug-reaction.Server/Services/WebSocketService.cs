@@ -58,7 +58,7 @@ public class WebSocketService : IChangeBroadcaster
 		}
 	}
 
-	public async Task BroadcastToStream(string socketName, LinkedList<JsonElement> message)
+	public async Task BroadcastToStream(string socketName, JsonElement message)
 	{
 		_logger.LogInformation($"[{DateTime.UtcNow}] Broadcasting message to stream");
 		if (_connections.ContainsKey(socketName))
