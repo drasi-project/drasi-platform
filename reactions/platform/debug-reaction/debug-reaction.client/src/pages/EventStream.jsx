@@ -13,47 +13,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import React, { useState, useEffect } from "react";
 
 function EventStream() {
-    const [stream, setStream] = useState([]);
+    const [stream, setStream] = useState(() => {
+        // Load initial state from localStorage, fallback to empty array
+        // This local storage is only used to persist the eventstream data
+        const savedStream = localStorage.getItem("eventStream");
+        return savedStream ? JSON.parse(savedStream) : [];
+    });
     const WEBSOCKET_URL = "ws://localhost:5195/ws/stream";
 
-    // const fetchStream = async () => {
-    //     try {
-    //         const url = "http://localhost:5195/stream";
-    //         const response = await fetch(url);
-
-    //         if (!response.ok) {
-    //             throw new Error(`HTTP error! Status: ${response.status}`);
-    //         }
-    //         const stream = await response.json();
-    //         setStream(stream);
-    //     } catch (error) {
-    //         console.error("Error fetching stream:", error);
-    //     }
-    // };
     useEffect(() => {
         const ws = new WebSocket(WEBSOCKET_URL);
 
-        // fetchStream();
         ws.onopen = () => {
             setInterval(() => {
-                if (ws.readyState == WebSocket.OPEN) {
+                if (ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({ type: "ping" }));
                 }
             }, 25000);
         };
 
         ws.onmessage = (event) => {
-            try  {
+            try {
                 const data = JSON.parse(event.data);
                 setStream((prevStream) => {
                     const newStream = [data, ...prevStream];
                     while (newStream.length > 100) {
                         newStream.pop();
                     }
+                    // Persist to localStorage after updating
+                    localStorage.setItem("eventStream", JSON.stringify(newStream));
                     return newStream;
                 });
             } catch (error) {
@@ -62,19 +53,18 @@ function EventStream() {
         };
 
         ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
-  
-        ws.onclose = (event) => {
-          console.log("WebSocket closed:", event.code, event.reason);
+            console.error("WebSocket error:", error);
         };
 
-        // Closing the web socket on component unmount
+        ws.onclose = (event) => {
+            console.log("WebSocket closed:", event.code, event.reason);
+        };
+
+        // Cleanup WebSocket on unmount
         return () => {
             ws.close();
-        }
+        };
     }, []);
-    
 
     return (
         <div className="event-stream-container">

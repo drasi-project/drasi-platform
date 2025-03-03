@@ -35,7 +35,9 @@ namespace Drasi.Reactions.Debug.Server.Services
 		private readonly DaprClient _daprClient;
 
 		private readonly ILogger<QueryDebugService> _logger;
-		private readonly ConcurrentDictionary<string, QueryResult> _results = new();
+
+		private List<string> _activeQueries = new();
+		// private readonly ConcurrentDictionary<string, QueryResult> _results = new();
 
 		private readonly LinkedList<JsonElement> _rawEvents = new();
 
@@ -53,13 +55,18 @@ namespace Drasi.Reactions.Debug.Server.Services
 			_managementClient = managementClient;
 		}
 
-		public IEnumerable<string> ActiveQueries => _results.Keys;
 
 		public async Task<LinkedList<JsonElement>> GetRawEvents()
 		{
 			return _rawEvents;
 		}
 
+
+
+		public void SetActiveQueries(IEnumerable<string> queries)
+		{
+			_activeQueries = queries.ToList();
+		}
 		public async Task<Dictionary<string, object>> GetDebugInfo(string queryId)
 		{
 			try
@@ -79,8 +86,8 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 		public async Task<QueryResult> GetQueryResult(string queryId)
 		{
-			_results.TryRemove(queryId, out _);
-			return _results.GetOrAdd(queryId, await InitResult(queryId));
+			var queryResult = await InitResult(queryId);
+			return queryResult;
 		}
 
 		public async Task ProcessChange(ChangeEvent change)
@@ -93,10 +100,11 @@ namespace Drasi.Reactions.Debug.Server.Services
 		public async Task ProcessRawChange(ChangeEvent change)
 		{
 			var queryId = change.QueryId;
-			if (!_results.ContainsKey(queryId))
+			if (!_activeQueries.Contains(queryId))
 				return;
 
-			var queryResult = _results[queryId];
+			// var queryResult = _results[queryId];
+			var queryResult = new QueryResult();
 			foreach (var item in change.DeletedResults)
 			{
 				var result = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item));
@@ -121,24 +129,25 @@ namespace Drasi.Reactions.Debug.Server.Services
 		public async Task ProcessControlSignal(ControlEvent change)
 		{
 			var queryId = change.QueryId;
-			if (!_results.ContainsKey(queryId))
+			if (!_activeQueries.Contains(queryId))
 				return;
 				
 
-			var queryResult = _results[queryId];
+			// var queryResult = _results[queryId];
 
-			switch (change.ControlSignal.Kind)
-			{
-				case ControlSignalKind.Deleted:
-					queryResult.Clear();
-					break;
-				case ControlSignalKind.BootstrapStarted:
-					queryResult.Clear();
-					break;
-			}
+			// TODO: update queryResult based on control signal
+			// switch (change.ControlSignal.Kind)
+			// {
+			// 	case ControlSignalKind.Deleted:
+			// 		queryResult.Clear();
+			// 		break;
+			// 	case ControlSignalKind.BootstrapStarted:
+			// 		queryResult.Clear();
+			// 		break;
+			// }
 
 			var jsonEvent = JsonSerializer.Deserialize<JsonElement>(change.ToJson());
-			await _webSocketService.BroadcastToQueryId(queryId, queryResult);
+			// await _webSocketService.BroadcastToQueryId(queryId, change);
 			await _webSocketService.BroadcastToStream("stream", jsonEvent);
 		}
 

@@ -33,7 +33,7 @@ function QueryPage() {
       
       const data = await response.json();
       setQueries(data.data); // Set initial data
-      setFieldNames(data.fieldNames); // Set initial data
+      setFieldNames(data.fieldNames); // Set initial field names
     } catch (error) {
       console.error("Error fetching initial data:", error);
     }
@@ -73,8 +73,7 @@ function QueryPage() {
       ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
-              setQueries(message["Data"]);
-              setFieldNames(message["FieldNames"]);
+            setQueries((prevQueries) => [...prevQueries, ...message["Data"]]);
           } catch (error) {
               console.error('Error parsing WebSocket message:', error);
           }
