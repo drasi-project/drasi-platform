@@ -27,7 +27,7 @@ public class QueryController : ControllerBase
 	public QueryController(IQueryDebugService debugService, IConfiguration configuration)
 	{
 		_debugService = debugService;
-		_configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
+		_configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries")!;
 	}
 
 	// GET queries
