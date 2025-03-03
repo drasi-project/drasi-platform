@@ -19,21 +19,81 @@ on:
     inputs:
       tag:
         description: 'Version Tag'
-        required: true      
+        required: true
       image_prefix:
         description: 'Image Prefix'
         required: false
-        default: 'ghcr.io/drasi-project'  
+        default: 'ghcr.io/drasi-project'
 
 permissions:
-  id-token: write # Required for requesting the JWT
-  contents: read  # Required for actions/checkout
-  packages: read
+  id-token: write
+  contents: read
+  packages: write
 
+# Environment variables with consistent `platforms` fields
 env:
   RELEASE_PATH: ./release
 
+  QUERY_COMPONENTS: '[
+    {"label": "Query Host", "path": "query-container/query-host", "name": "query-container-query-host", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Publish API", "path": "query-container/publish-api", "name": "query-container-publish-api", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "View Service", "path": "query-container/view-svc", "name": "query-container-view-svc", "platforms": "linux/amd64,linux/arm64"}]'
+
+  CONTROL_PLANE_COMPONENTS: '[
+    {"label": "Management API", "path": "control-planes/mgmt_api", "name": "api", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "k8s Resource Provider", "path": "control-planes/kubernetes_provider", "name": "kubernetes-provider", "platforms": "linux/amd64,linux/arm64"}]'
+  
+  SOURCES_COMPONENTS: '[
+    {"label": "Change Router", "path": "sources/shared/change-router", "name": "source-change-router", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Change Dispatcher", "path": "sources/shared/change-dispatcher", "name": "source-change-dispatcher", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Query API", "path": "sources/shared/query-api", "name": "source-query-api", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Debezium Reactivator", "path": "sources/relational/debezium-reactivator", "name": "source-debezium-reactivator", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "SQL Proxy", "path": "sources/relational/sql-proxy", "name": "source-sql-proxy", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "CosmosDB Reactivator", "path": "sources/cosmosdb/cosmosdb-ffcf-reactivator", "name": "source-cosmosdb-reactivator", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Gremlin Proxy", "path": "sources/cosmosdb/gremlin-proxy", "name": "source-gremlin-proxy", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Dataverse Reactivator", "path": "sources/dataverse/dataverse-reactivator", "name": "source-dataverse-reactivator", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Dataverse Proxy", "path": "sources/dataverse/dataverse-proxy", "name": "source-dataverse-proxy", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "EventHub Reactivator", "path": "sources/eventhub/eventhub-reactivator", "name": "source-eventhub-reactivator", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "EventHub Proxy", "path": "sources/eventhub/eventhub-proxy", "name": "source-eventhub-proxy", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Kubernetes Reactivator", "path": "sources/kubernetes/kubernetes-reactivator", "name": "source-kubernetes-reactivator", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Kubernetes Proxy", "path": "sources/kubernetes/kubernetes-proxy", "name": "source-kubernetes-proxy", "platforms": "linux/amd64,linux/arm64"}]'
+  
+  REACTIONS_COMPONENTS: '[
+    {"label": "SignalR", "path": "reactions/signalr/signalr-reaction", "name": "reaction-signalr", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Dataverse", "path": "reactions/power-platform/dataverse/dataverse-reaction", "name": "reaction-dataverse", "platforms": "linux/amd64"},
+    {"label": "Debezium", "path": "reactions/debezium/debezium-reaction", "name": "reaction-debezium", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Debug", "path": "reactions/platform/debug-reaction", "name": "reaction-debug", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "EventGrid", "path": "reactions/azure/eventgrid-reaction", "name": "reaction-eventgrid", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Gremlin", "path": "reactions/gremlin/gremlin-reaction", "name": "reaction-gremlin", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "Result", "path": "reactions/platform/result-reaction", "name": "reaction-result", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "StorageQueue", "path": "reactions/azure/storagequeue-reaction", "name": "reaction-storagequeue", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "StoredProc", "path": "reactions/sql/storedproc-reaction", "name": "reaction-storedproc", "platforms": "linux/amd64,linux/arm64"}]'
+
 jobs:
+  # Setup job to parse and output component JSON
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      query_components: ${{ steps.set_components.outputs.query_components }}
+      control_plane_components: ${{ steps.set_components.outputs.control_plane_components }}
+      sources_components: ${{ steps.set_components.outputs.sources_components }}
+      reactions_components: ${{ steps.set_components.outputs.reactions_components }}
+    steps:
+      - name: Set Component Outputs
+        id: set_components
+        run: |
+          echo "query_components=$(echo '${{ env.QUERY_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
+          echo "control_plane_components=$(echo '${{ env.CONTROL_PLANE_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
+          echo "sources_components=$(echo '${{ env.SOURCES_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
+          echo "reactions_components=$(echo '${{ env.REACTIONS_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
+      - name: Debug Outputs
+        run: |
+          echo "Query Components: ${{ steps.set_components.outputs.query_components }}"
+          echo "Control Plane Components: ${{ steps.set_components.outputs.control_plane_components }}"
+          echo "Sources Components: ${{ steps.set_components.outputs.sources_components }}"
+          echo "Reactions Components: ${{ steps.set_components.outputs.reactions_components }}"
+  
+  # Validate the branch name
   validate:
     runs-on: ubuntu-latest
     steps:
@@ -46,41 +106,24 @@ jobs:
             exit 1
           fi
 
+  # Build job for Query components
   build-query-container:
-    needs: validate
+    needs: [validate, setup]
     permissions:
       packages: write
       contents: read
-    runs-on: ubuntu-latest
-    strategy: 
+    runs-on: ${{ matrix.runner }}
+    strategy:
       matrix:
-        component: [
-          { 
-            label: 'Query Host',
-            path: 'query-container/query-host', 
-            name: 'query-container-query-host'
-          },
-          { 
-            label: 'Publish API',
-            path: 'query-container/publish-api', 
-            name: 'query-container-publish-api'
-          },
-          { 
-            label: 'View Service',
-            path: 'query-container/view-svc', 
-            name: 'query-container-view-svc'
-          }
-        ]
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        component: ${{ fromJson(needs.setup.outputs.query_components) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           submodules: true
           token: ${{ secrets.DRASI_CORE_PAT }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
         with:
@@ -92,48 +135,106 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: buildx-${{ matrix.component.name }}
-          restore-keys: |
-            buildx-${{ matrix.component.name }}
+
+      - name: Determine platform and tag suffix
+        id: platform
+        run: |
+          if [[ "${{ matrix.runner }}" == "ubuntu-latest" ]]; then
+            echo "platform=linux/amd64" >> $GITHUB_OUTPUT
+            echo "suffix=-amd64" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.runner }}" == "ubuntu-24.04-arm" ]]; then
+            echo "platform=linux/arm64" >> $GITHUB_OUTPUT
+            echo "suffix=-arm64" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build and Push to GHCR
+        if: contains(matrix.component.platforms, steps.platform.outputs.platform)
         run: |
           cd ${{ matrix.component.path }}
-          DOCKER_TAG_VERSION=${{ inputs.tag }} \
+          DOCKER_TAG_VERSION=${{ inputs.tag }}${{ steps.platform.outputs.suffix }} \
           IMAGE_PREFIX=${{ inputs.image_prefix }} \
-          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
-          make 
+          DOCKERX_OPTS="--push --platform ${{ steps.platform.outputs.platform }}" \
+          make
+  
+  # Manifest creation for Query Container components
+  create-query-container-manifest:
+    needs: build-query-container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create and push manifest list
+        run: |
+          for component in $(echo '${{ env.QUERY_COMPONENTS }}' | jq -r '.[].name'); do
+            
+            # Initialize an array to hold the manifests
+            manifests=()
+
+            # Get the expected platforms for the component as stored in JSON
+            expected_platforms=$(echo '${{ env.QUERY_COMPONENTS }}' | jq -r ".[] | select(.name == \"$component\") | .platforms")
+
+            # Does this component need to be built for linux/amd64?
+            if echo "$expected_platforms" | grep -q "linux/amd64"; then
+              
+              # Check if the amd64 manifest exists and add it to the array
+              if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64 > /dev/null 2>&1; then
+                echo "Manifest for $component:${{ inputs.tag }}-amd64:"
+                docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64
+                manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64")
+              
+              # If the amd64 manifest is not found, print an error message
+              else
+                echo "Error: Expected amd64 manifest not found for $component:${{ inputs.tag }}-amd64" >&2
+                exit 1
+              fi
+            fi
+
+            # Does this component need to be built for linux/arm64?
+            if echo "$expected_platforms" | grep -q "linux/arm64"; then
+
+              # Check and handle arm64 manifest with debug output
+              if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64 > /dev/null 2>&1; then
+                echo "Manifest for $component:${{ inputs.tag }}-arm64:"
+                docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64
+                manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64")
+              
+              # If the arm64 manifest is not found, print an error message
+              else
+                echo "Error: Expected arm64 manifest found for $component:${{ inputs.tag }}-arm64" >&2
+                exit 1
+              fi
+            fi
+            
+            # Create the manifest list if there are manifests to combine
+            if [ ${#manifests[@]} -gt 0 ]; then
+              docker buildx imagetools create -t ghcr.io/drasi-project/$component:${{ inputs.tag }} ${manifests[@]}
+            else
+              echo "No manifests found for $component, skipping manifest creation."
+            fi
+          done
+
+  # Build job for Control Plane components
   build-control-plane:
-    runs-on: ubuntu-latest
-    needs: validate
+    needs: [validate, setup]
     permissions:
       packages: write
       contents: read
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        component: [
-          { 
-            label: 'Management API',
-            path: 'control-planes/mgmt_api', 
-            name: 'api'
-          },
-          { 
-            label: 'k8s Resource Provider',
-            path: 'control-planes/kubernetes_provider', 
-            name: 'kubernetes-provider'
-          }
-        ]
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        component: ${{ fromJson(needs.setup.outputs.control_plane_components) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        with:
+          submodules: true
+          token: ${{ secrets.DRASI_CORE_PAT }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -146,107 +247,88 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-     
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: buildx-${{ matrix.component.name }}
-          restore-keys: |
-            buildx-${{ matrix.component.name }}
-      
+
+      - name: Determine platform and tag suffix
+        id: platform
+        run: |
+          if [[ "${{ matrix.runner }}" == "ubuntu-latest" ]]; then
+            echo "platform=linux/amd64" >> $GITHUB_OUTPUT
+            echo "suffix=-amd64" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.runner }}" == "ubuntu-24.04-arm" ]]; then
+            echo "platform=linux/arm64" >> $GITHUB_OUTPUT
+            echo "suffix=-arm64" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and Push to GHCR
+        if: contains(matrix.component.platforms, steps.platform.outputs.platform)
         run: |
           cd ${{ matrix.component.path }}
-          DOCKER_TAG_VERSION=${{ inputs.tag }} \
+          DOCKER_TAG_VERSION=${{ inputs.tag }}${{ steps.platform.outputs.suffix }} \
           IMAGE_PREFIX=${{ inputs.image_prefix }} \
-          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          DOCKERX_OPTS="--push --platform ${{ steps.platform.outputs.platform }}" \
           make
 
+  # Manifest creation for Control Plane components
+  create-control-plane-manifest:
+    needs: build-control-plane
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create and push manifest list
+        run: |
+          for component in $(echo '${{ env.CONTROL_PLANE_COMPONENTS }}' | jq -r '.[].name'); do
+            manifests=()
+
+            # Check and handle amd64 manifest with debug output
+            if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64 > /dev/null 2>&1; then
+              echo "Manifest for $component:${{ inputs.tag }}-amd64:"
+              docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64
+              manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64")
+            else
+              echo "No amd64 manifest found for $component:${{ inputs.tag }}-amd64"
+            fi
+            
+            # Check and handle arm64 manifest with debug output
+            if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64 > /dev/null 2>&1; then
+              echo "Manifest for $component:${{ inputs.tag }}-arm64:"
+              docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64
+              manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64")
+            else
+              echo "No arm64 manifest found for $component:${{ inputs.tag }}-arm64"
+            fi
+            
+            # Create the manifest list if there are manifests to combine
+            if [ ${#manifests[@]} -gt 0 ]; then
+              docker buildx imagetools create -t ghcr.io/drasi-project/$component:${{ inputs.tag }} ${manifests[@]}
+            else
+              echo "No manifests found for $component, skipping manifest creation."
+            fi
+          
+          done
+  
+  # Build job for Sources components
   build-sources:
-    runs-on: ubuntu-latest
-    needs: validate
+    needs: [validate, setup]
     permissions:
       packages: write
       contents: read
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        component: [
-          { 
-            label: 'Change Router',
-            path: 'sources/shared/change-router', 
-            name: 'source-change-router'
-          },
-          { 
-            label: 'Change Dispatcher',
-            path: 'sources/shared/change-dispatcher', 
-            name: 'source-change-dispatcher'
-          },
-          { 
-            label: 'Query API',
-            path: 'sources/shared/query-api', 
-            name: 'source-query-api' 
-          },
-          { 
-            label: 'Debezium Reactivator',
-            path: 'sources/relational/debezium-reactivator', 
-            name: 'source-debezium-reactivator'
-          },
-          { 
-            label: 'SQL Proxy',
-            path: 'sources/relational/sql-proxy', 
-            name: 'source-sql-proxy' 
-          },
-
-          { 
-            label: 'CosmosDB Reactivator',
-            path: './sources/cosmosdb/cosmosdb-ffcf-reactivator', 
-            name: 'source-cosmosdb-reactivator'
-          },
-          { 
-            label: 'Gremlin Proxy',
-            path: 'sources/cosmosdb/gremlin-proxy', 
-            name: 'source-gremlin-proxy'
-          },
-          { 
-            label: 'Dataverse Reactivator',
-            path: './sources/dataverse/dataverse-reactivator',
-            name: 'source-dataverse-reactivator'
-          },
-          { 
-            label: 'Dataverse Proxy',
-            path: './sources/dataverse/dataverse-proxy', 
-            name: 'source-dataverse-proxy'
-          },
-          { 
-            label: 'EventHub Reactivator',
-            path: './sources/eventhub/eventhub-reactivator', 
-            name: 'source-eventhub-reactivator'
-          },
-          { 
-            label: 'EventHub Proxy',
-            path: './sources/eventhub/eventhub-proxy', 
-            name: 'source-eventhub-proxy'
-          },
-          { 
-            label: 'Kubernetes Reactivator',
-            path: './sources/kubernetes/kubernetes-reactivator', 
-            name: 'source-kubernetes-reactivator'
-          },
-          { 
-            label: 'Kubernetes Proxy',
-            path: './sources/kubernetes/kubernetes-proxy', 
-            name: 'source-kubernetes-proxy'
-          }
-        ]
-
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        component: ${{ fromJson(needs.setup.outputs.sources_components) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        with:
+          submodules: true
+          token: ${{ secrets.DRASI_CORE_PAT }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -260,92 +342,87 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: buildx-${{ matrix.component.name }}
-          restore-keys: |
-            buildx-${{ matrix.component.name }}
+      - name: Determine platform and tag suffix
+        id: platform
+        run: |
+          if [[ "${{ matrix.runner }}" == "ubuntu-latest" ]]; then
+            echo "platform=linux/amd64" >> $GITHUB_OUTPUT
+            echo "suffix=-amd64" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.runner }}" == "ubuntu-24.04-arm" ]]; then
+            echo "platform=linux/arm64" >> $GITHUB_OUTPUT
+            echo "suffix=-arm64" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build and Push to GHCR
+        if: contains(matrix.component.platforms, steps.platform.outputs.platform)
         run: |
           cd ${{ matrix.component.path }}
-          DOCKER_TAG_VERSION=${{ inputs.tag }} \
+          DOCKER_TAG_VERSION=${{ inputs.tag }}${{ steps.platform.outputs.suffix }} \
           IMAGE_PREFIX=${{ inputs.image_prefix }} \
-          DOCKERX_OPTS="--push --platform linux/amd64,linux/arm64 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          DOCKERX_OPTS="--push --platform ${{ steps.platform.outputs.platform }}" \
           make
 
+  # Manifest creation for Sources components
+  create-sources-manifest:
+    needs: build-sources
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push manifest list
+        run: |
+          for component in $(echo '${{ env.SOURCES_COMPONENTS }}' | jq -r '.[].name'); do
+            manifests=()
+            
+            # Check and handle amd64 manifest with debug output
+            if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64 > /dev/null 2>&1; then
+              echo "Manifest for $component:${{ inputs.tag }}-amd64:"
+              docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64
+              manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64")
+            else
+              echo "No amd64 manifest found for $component:${{ inputs.tag }}-amd64"
+            fi
+            
+            # Check and handle arm64 manifest with debug output
+            if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64 > /dev/null 2>&1; then
+              echo "Manifest for $component:${{ inputs.tag }}-arm64:"
+              docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64
+              manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64")
+            else
+              echo "No arm64 manifest found for $component:${{ inputs.tag }}-arm64"
+            fi
+            
+            # Create the manifest list if there are manifests to combine
+            if [ ${#manifests[@]} -gt 0 ]; then
+              docker buildx imagetools create -t ghcr.io/drasi-project/$component:${{ inputs.tag }} ${manifests[@]}
+            else
+              echo "No manifests found for $component, skipping manifest creation."
+            fi
+
+          done
+  
+  # Build job for Reactions components
   build-reactions:
-    needs: validate
+    needs: [validate, setup]
     permissions:
       packages: write
       contents: read
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        component: [
-          { 
-            label: 'SignalR',
-            path: 'reactions/signalr/signalr-reaction', 
-            name: 'reaction-signalr',
-            platforms: 'linux/amd64,linux/arm64'
-          },
-          { 
-            label: 'Dataverse',
-            path: './reactions/power-platform/dataverse/dataverse-reaction', 
-            name: 'reaction-dataverse',
-            platforms: 'linux/amd64'
-          },
-          { 
-            label: 'Debezium',
-            path: './reactions/debezium/debezium-reaction', 
-            name: 'reaction-debezium',
-            platforms: 'linux/amd64,linux/arm64'
-          },
-          { 
-            label: 'Debug',
-            path: './reactions/platform/debug-reaction', 
-            name: 'reaction-debug',
-            platforms: 'linux/amd64,linux/arm64'
-          },
-          { 
-            label: 'EventGrid',
-            path: './reactions/azure/eventgrid-reaction',
-            name: 'reaction-eventgrid',
-            platforms: 'linux/amd64,linux/arm64'
-          },
-          { 
-            label: 'Gremlin',
-            path: './reactions/gremlin/gremlin-reaction', 
-            name: 'reaction-gremlin',
-            platforms: 'linux/amd64,linux/arm64'
-          },
-          { 
-            label: 'Result',
-            path: './reactions/platform/result-reaction', 
-            name: 'reaction-result',
-            platforms: 'linux/amd64,linux/arm64'
-          },
-          { 
-            label: 'StorageQueue',
-            path: './reactions/azure/storagequeue-reaction', 
-            name: 'reaction-storagequeue',
-            platforms: 'linux/amd64,linux/arm64'
-          },
-          { 
-            label: 'StoredProc',
-            path: './reactions/sql/storedproc-reaction', 
-            name: 'reaction-storedproc',
-            platforms: 'linux/amd64,linux/arm64'
-          }
-        ]
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        component: ${{ fromJson(needs.setup.outputs.reactions_components) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        with:
+          submodules: true
+          token: ${{ secrets.DRASI_CORE_PAT }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -358,23 +435,71 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-     
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: buildx-${{ matrix.component.name }}
-          restore-keys: |
-            buildx-${{ matrix.component.name }}
+
+      - name: Determine platform and tag suffix
+        id: platform
+        run: |
+          if [[ "${{ matrix.runner }}" == "ubuntu-latest" ]]; then
+            echo "platform=linux/amd64" >> $GITHUB_OUTPUT
+            echo "suffix=-amd64" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.runner }}" == "ubuntu-24.04-arm" ]]; then
+            echo "platform=linux/arm64" >> $GITHUB_OUTPUT
+            echo "suffix=-arm64" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build and Push to GHCR
+        if: contains(matrix.component.platforms, steps.platform.outputs.platform)
         run: |
           cd ${{ matrix.component.path }}
-          DOCKER_TAG_VERSION=${{ inputs.tag }} \
+          DOCKER_TAG_VERSION=${{ inputs.tag }}${{ steps.platform.outputs.suffix }} \
           IMAGE_PREFIX=${{ inputs.image_prefix }} \
-          DOCKERX_OPTS="--push --platform ${{ matrix.component.platforms }} --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" \
+          DOCKERX_OPTS="--push --platform ${{ steps.platform.outputs.platform }}" \
           make
 
+  # Manifest creation for Reactions components
+  create-reactions-manifest:
+    needs: build-reactions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push manifest list
+        run: |
+          for component in $(echo '${{ env.REACTIONS_COMPONENTS }}' | jq -r '.[].name'); do
+            manifests=()
+
+            # Check and handle amd64 manifest with debug output
+            if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64 > /dev/null 2>&1; then
+              echo "Manifest for $component:${{ inputs.tag }}-amd64:"
+              docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64
+              manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64")
+            else
+              echo "No amd64 manifest found for $component:${{ inputs.tag }}-amd64"
+            fi
+            
+            # Check and handle arm64 manifest with debug output
+            if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64 > /dev/null 2>&1; then
+              echo "Manifest for $component:${{ inputs.tag }}-arm64:"
+              docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64
+              manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64")
+            else
+              echo "No arm64 manifest found for $component:${{ inputs.tag }}-arm64"
+            fi
+            
+            # Create the manifest list if there are manifests to combine
+            if [ ${#manifests[@]} -gt 0 ]; then
+              docker buildx imagetools create -t ghcr.io/drasi-project/$component:${{ inputs.tag }} ${manifests[@]}
+            else
+              echo "No manifests found for $component, skipping manifest creation."
+            fi
+          
+          done
+  
   build-cli:
     runs-on: ubuntu-latest
     needs: validate
@@ -436,7 +561,7 @@ jobs:
         run: |
           mkdir -p ${{ env.RELEASE_PATH}}/cli/${{ matrix.os }}-${{ matrix.arch }}/
           cp -r ${{ matrix.os }}-${{ matrix.arch }}/drasi ${{ env.RELEASE_PATH}}/drasi-${{ matrix.os }}-${{ matrix.arch }}
-      - name: Copy cli binaries to release (non-windows)
+      - name: Copy cli binaries to release (windows)
         if: matrix.os == 'windows'
         run: |
           mkdir -p ${{ env.RELEASE_PATH}}/cli/${{ matrix.os }}-${{ matrix.arch }}/
@@ -472,8 +597,9 @@ jobs:
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: drasi_vscode_extension
-          path: ${{ env.RELEASE_PATH}}
-   
+          path: ${{ env.RELEASE_PATH}}/drasi-*.vsix
+
+  # Final release job
   release:
     permissions:
       contents: write
@@ -483,17 +609,17 @@ jobs:
     name: Draft Release
     needs:
       - validate
-      - build-sources
-      - build-query-container
-      - build-reactions
-      - build-control-plane
-      - package-cli      
+      - create-query-container-manifest
+      - create-control-plane-manifest
+      - create-sources-manifest
+      - create-reactions-manifest
+      - package-cli
       - vscode-extension
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7 
+      
       - name: Download CLI release
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
@@ -505,7 +631,6 @@ jobs:
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: drasi_vscode_extension
-          merge-multiple: true
           path: ${{ env.RELEASE_PATH }}
 
       - name: Draft Release
