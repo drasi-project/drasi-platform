@@ -56,7 +56,7 @@ function App() {
 
     async function fetchQueries() {
         try {
-            const response = await fetch('http://localhost:5195/queries');
+            const response = await fetch('/api/queries');
             if (response.ok) {
                 const data = await response.json();
                 setQueries(data);

@@ -17,22 +17,8 @@ kind: ReactionProvider
 name: Debug
 spec:
   services:
-    backend:
+    reaction:
       image: reaction-debug-backend
-      endpoints:
-        gateway:
-          setting: internal
-          target: $portConfigKey
-      config_schema:
-        type: object
-        properties:
-          portConfigKey:
-            type: number
-            default: 5195
-    frontend:
-      image: reaction-debug-frontend
-      dapr:
-        app-port: "8080"
       endpoints:
         gateway:
           setting: internal

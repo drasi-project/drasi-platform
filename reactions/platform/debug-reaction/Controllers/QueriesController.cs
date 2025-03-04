@@ -17,7 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using Drasi.Reactions.Debug.Server.Services;
 
 [ApiController]
-[Route("queries")]
+[Route("api/queries")]
 public class QueryController : ControllerBase
 {
 	private readonly IQueryDebugService _debugService;

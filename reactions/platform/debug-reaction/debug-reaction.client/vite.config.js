@@ -15,14 +15,15 @@
  */
 
 
-import { defineConfig } from 'vite';
-import plugin from '@vitejs/plugin-react';
 
+
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react'; // Rename 'plugin' to 'react' for clarity
 
 export default defineConfig({
-    plugins: [plugin()],
-    server: {
-        port: 8080, 
-        https: false
+    plugins: [react()],
+    build: {
+        outDir: 'dist', // Ensure output goes to 'dist' (matches Dockerfile)
     },
+    base: '/', // Ensure assets are referenced from the root
 });

@@ -27,7 +27,7 @@ function QueryPage() {
   // Fetch the initial data on page load 
   const getQueryResult = async () => {
     try {
-        const API_URL = `http://localhost:5195/queries/${queryId}`;
+        const API_URL = `/api/queries/${queryId}`;
       const response = await fetch(API_URL);
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       
@@ -41,7 +41,7 @@ function QueryPage() {
 
   const debugQuery = async () => {
     try {
-      const debug_url = `http://localhost:5195/queries/${queryId}/debug-information`;
+      const debug_url = `/api/queries/${queryId}/debug-information`;
         const response = await fetch(debug_url);
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
@@ -55,7 +55,7 @@ function QueryPage() {
 
   useEffect(() => {
       if (!queryId) return;
-      const WEBSOCKET_URL = `ws://localhost:5195/ws/query/${queryId}`;
+      const WEBSOCKET_URL = `/api/ws/query/${queryId}`;
   
       getQueryResult();
       debugQuery();

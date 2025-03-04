@@ -23,7 +23,7 @@ using Drasi.Reactions.Debug.Server.Models;
 using Drasi.Reactions.Debug.Server.Services;
 
 
-[Route("ws")]
+[Route("api/ws")]
 public class WebSocketController : ControllerBase
 {
     private readonly IChangeBroadcaster _webSocketService;

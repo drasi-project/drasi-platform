@@ -47,7 +47,6 @@ public class Program
 			sp.GetRequiredService<IChangeBroadcaster>(),
 			sp.GetRequiredService<ILogger<QueryDebugService>>(),
 			sp.GetRequiredService<IManagementClient>()));
-		// builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
 		builder.Services.AddCors(options =>
 		{
 			options.AddPolicy("AllowAll", policy =>
@@ -67,18 +66,21 @@ public class Program
 		server.UseCors("AllowAll");
 		server.UseStaticFiles();
 		server.UseRouting();
-		server.UseCloudEvents();
-		server.MapControllers();
 		server.UseWebSockets();
+		server.UseEndpoints(endpoints =>
+		{
+			endpoints.MapControllers();
+			endpoints.MapFallbackToFile("index.html");
+		});
 
 
-		server.MapGet("/stream", async (IQueryDebugService debugService) =>
+		server.MapGet("/api/stream", async (IQueryDebugService debugService) =>
 		{
 			return Results.Json(await debugService.GetRawEvents());
 		});
 
 
-		var port = Environment.GetEnvironmentVariable("PORT") ?? "5195";
+		var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 		server.Urls.Add($"http://0.0.0.0:{port}");
 		server.Logger.LogInformation("Application configured to listen on: {Urls}", string.Join(", ", server.Urls));
 

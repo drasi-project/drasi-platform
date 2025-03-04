@@ -22,7 +22,7 @@ function EventStream() {
         const savedStream = localStorage.getItem("eventStream");
         return savedStream ? JSON.parse(savedStream) : [];
     });
-    const WEBSOCKET_URL = "ws://localhost:5195/ws/stream";
+    const WEBSOCKET_URL = "/api/ws/stream";
 
     useEffect(() => {
         const ws = new WebSocket(WEBSOCKET_URL);
