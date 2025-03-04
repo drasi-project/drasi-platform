@@ -39,6 +39,7 @@ mod subscribers;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     log::info!("Starting Source Change Router");
 
     let config = ChangeRouterConfig::from_env();
@@ -62,6 +63,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ));
         }
     };
+
+    state_manager::wait_for_dapr_start(dapr_port).await?;
+
     let publisher = DaprHttpPublisher::new(
         "127.0.0.1".to_string(),
         dapr_port,

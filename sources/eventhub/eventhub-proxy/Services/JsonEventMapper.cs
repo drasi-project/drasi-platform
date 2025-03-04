@@ -14,28 +14,17 @@
 
 namespace Proxy.Services 
 {
-    using System.Text.Json;
+    using System.Text.Json.Nodes;
     using System.Threading.Tasks;
     using Azure.Messaging.EventHubs.Consumer;
-    using Proxy.Models;
+    using Drasi.Source.SDK.Models;
 
-    class JsonEventMapper(string sourceId) : IEventMapper
+    class JsonEventMapper() : IEventMapper
     {
-        private readonly string _sourceId = sourceId;
-
-        public Task<VertexState> MapEventAsync(PartitionEvent rawEvent)
+        public Task<SourceElement> MapEventAsync(PartitionEvent rawEvent)
         {
-            var data = new VertexState();
-            if (!String.IsNullOrEmpty(rawEvent.Data.MessageId)) 
-            {
-                data.Id = rawEvent.Data.MessageId;
-            }
-            else
-            {
-                data.Id = $"{rawEvent.Partition.EventHubName}-{rawEvent.Partition.PartitionId}-{rawEvent.Data.SequenceNumber}";
-            }
-            data.Labels = [rawEvent.Partition.EventHubName];
-            data.Properties = JsonDocument.Parse(rawEvent.Data.EventBody);
+            var elementId = rawEvent.Data.MessageId ?? $"{rawEvent.Partition.EventHubName}-{rawEvent.Partition.PartitionId}-{rawEvent.Data.SequenceNumber}";
+            var data = new SourceElement(elementId, [rawEvent.Partition.EventHubName], JsonNode.Parse(rawEvent.Data.EventBody)?.AsObject());
 
             return Task.FromResult(data);
         }

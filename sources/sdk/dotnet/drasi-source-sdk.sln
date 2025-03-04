@@ -1,0 +1,47 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Drasi.Source.SDK", "Drasi.Source.SDK\Drasi.Source.SDK.csproj", "{ECEF31C2-0FE5-EE76-9C39-EA672C8693C0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{A5128062-B629-4505-B45D-4DC6721AA9DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "proxy", "examples\proxy\proxy.csproj", "{0BDC924B-B6AC-4A08-9308-66675C00B909}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "reactivator", "examples\reactivator\reactivator.csproj", "{3858EBFB-B957-4DA6-97F5-89BB922E337D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ECEF31C2-0FE5-EE76-9C39-EA672C8693C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECEF31C2-0FE5-EE76-9C39-EA672C8693C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECEF31C2-0FE5-EE76-9C39-EA672C8693C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECEF31C2-0FE5-EE76-9C39-EA672C8693C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{883AB71B-27D6-4861-B322-B597F9F54161}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{883AB71B-27D6-4861-B322-B597F9F54161}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{883AB71B-27D6-4861-B322-B597F9F54161}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{883AB71B-27D6-4861-B322-B597F9F54161}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BDC924B-B6AC-4A08-9308-66675C00B909}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BDC924B-B6AC-4A08-9308-66675C00B909}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BDC924B-B6AC-4A08-9308-66675C00B909}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BDC924B-B6AC-4A08-9308-66675C00B909}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3858EBFB-B957-4DA6-97F5-89BB922E337D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3858EBFB-B957-4DA6-97F5-89BB922E337D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3858EBFB-B957-4DA6-97F5-89BB922E337D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3858EBFB-B957-4DA6-97F5-89BB922E337D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {43089EE9-220C-4F97-8123-1B5EB75C042F}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{883AB71B-27D6-4861-B322-B597F9F54161} = {E636B6C4-7DAE-4421-A30A-3CD5F575E9B9}
+		{0BDC924B-B6AC-4A08-9308-66675C00B909} = {A5128062-B629-4505-B45D-4DC6721AA9DD}
+		{3858EBFB-B957-4DA6-97F5-89BB922E337D} = {A5128062-B629-4505-B45D-4DC6721AA9DD}
+	EndGlobalSection
+EndGlobal

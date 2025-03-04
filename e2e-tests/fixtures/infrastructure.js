@@ -125,13 +125,13 @@ function waitForChildProcess(childProcess, logPrefix = "") {
     });
     childProcess.stdout?.on("data", function (msg) {
       console.info(
-        `${logPrefix} ${childProcess.spawnfile} - ${msg.toString()}`,
+        `${logPrefix} ${childProcess.spawnfile} ${new Date()} - ${msg.toString()}`,
       );
     });
 
     childProcess.stderr?.on("data", function (msg) {
       console.error(
-        `${logPrefix} ${childProcess.spawnfile} - ${msg.toString()}`,
+        `${logPrefix} ${childProcess.spawnfile} ${new Date()} - ${msg.toString()}`,
       );
     });
   });

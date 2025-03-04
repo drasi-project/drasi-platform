@@ -251,7 +251,7 @@ func (t *Installer) createConfig(localMode bool, acr string, version string) err
 	} else {
 		cfg["ACR"] = acr
 		cfg["IMAGE_VERSION_TAG"] = version
-		cfg["IMAGE_PULL_POLICY"] = "Always"
+		cfg["IMAGE_PULL_POLICY"] = "IfNotPresent"
 	}
 
 	cfg["DAPR_SIDECAR"] = "daprio/daprd:" + DAPR_SIDECAR_VERSION
@@ -329,7 +329,8 @@ func (t *Installer) installQueryContainer(output output.TaskOutput, namespace st
 	if err := drasiClient.Apply(manifests, subOutput); err != nil {
 		return err
 	}
-	if err := drasiClient.ReadyWait(manifests, 120, subOutput); err != nil {
+
+	if err := drasiClient.ReadyWait(manifests, 240, subOutput); err != nil {
 		return err
 	}
 	output.SucceedTask("Query-Container", "Query container created")
@@ -625,7 +626,7 @@ func (t *Installer) checkDaprInstallation(output output.TaskOutput) (bool, error
 	podsClient := t.kubeClient.CoreV1().Pods("dapr-system")
 
 	pods, err := podsClient.List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=dapr",
+		LabelSelector: "app.kubernetes.io/part-of=dapr",
 	})
 	if err != nil {
 		output.FailTask("Dapr-Check", fmt.Sprintf("Error checking for Dapr: %v", err.Error()))

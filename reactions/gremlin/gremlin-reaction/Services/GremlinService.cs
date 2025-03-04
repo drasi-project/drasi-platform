@@ -86,7 +86,6 @@ namespace Drasi.Reactions.Gremlin.Services {
             }
             
 
-
             _addedResultCommand = configuration["addedResultCommand"];
             _updatedResultCommand = configuration["updatedResultCommand"];
             _deletedResultCommand = configuration["deletedResultCommand"];
@@ -107,7 +106,12 @@ namespace Drasi.Reactions.Gremlin.Services {
                     var param = match.Value.Substring(1);
 
                     _logger.LogInformation($"Extracted AddedResultCommand Param: {param}");
-                    _addedResultCommandParamList.Add(param);
+                    if (!_addedResultCommandParamList.Contains(param))
+                    {
+                        _addedResultCommandParamList.Add(param);
+                    }
+                    // Prepare the parameterized query by removing the @ sign
+                    _addedResultCommand = _addedResultCommand.Replace($"@{param}", param);
                 }
             }
 
@@ -119,7 +123,12 @@ namespace Drasi.Reactions.Gremlin.Services {
                     var param = match.Value.Substring(1);
 
                     _logger.LogInformation($"Extracted UpdatedResultCommand Param: {param}");
-                    _updatedResultCommandParamList.Add(param);
+                    if (!_updatedResultCommandParamList.Contains(param))
+                    {
+                        _updatedResultCommandParamList.Add(param);
+                    }
+                    // Prepare the parameterized query by removing the @ sign
+                    _updatedResultCommand = _updatedResultCommand.Replace($"@{param}", param);
                 }
             }
 
@@ -131,14 +140,23 @@ namespace Drasi.Reactions.Gremlin.Services {
                     var param = match.Value.Substring(1);
 
                     _logger.LogInformation($"Extracted DeletedResultCommand Param: {param}");
-                    _deletedResultCommandParamList.Add(param);
+                    if (!_deletedResultCommandParamList.Contains(param))
+                    {
+                        _deletedResultCommandParamList.Add(param);
+                    }
+                    // Prepare the parameterized query by removing the @ sign
+                    _deletedResultCommand = _deletedResultCommand.Replace($"@{param}", param);
                 }
             }
         }
 
         public void ProcessAddedQueryResults(Dictionary<string, object> res)
         {
-            string newCmd = _addedResultCommand;
+            if (_addedResultCommand == null)
+            {
+                _logger.LogInformation("No Added Result Command Specified");
+                return;
+            }
 
             // Dictionary to hold the parameters for the command
             Dictionary<string, object> addedResultCommandParams = new Dictionary<string, object>();
@@ -146,14 +164,21 @@ namespace Drasi.Reactions.Gremlin.Services {
 
             foreach (string param in _addedResultCommandParamList)
             {
-                // Prepare the parameterized query by removing the @ sign
-                newCmd = newCmd.Replace($"@{param}", param);
+                // Retrieve the value from the query result
                 var queryResultValue = ExtractQueryResultValue(param, res);
+                // Add the parameter to the dictionary
                 addedResultCommandParams.Add(param, queryResultValue);
             }
-            _logger.LogInformation($"Issuing added result command: {newCmd}");
 
-            var resultSet = SubmitRequest(_gremlinClient, newCmd, addedResultCommandParams).Result;
+            if (_addedResultCommandParamList.Count != addedResultCommandParams.Count)
+            {
+                _logger.LogInformation($"Parameter count mismatch: Expected {_addedResultCommandParamList.Count}, got {addedResultCommandParams.Count}");
+                _logger.LogInformation($"Skipping command execution for {_addedResultCommand}");
+
+            }
+            _logger.LogInformation($"Issuing added result command: {_addedResultCommand}");
+
+            var resultSet = SubmitRequest(_gremlinClient, _addedResultCommand, addedResultCommandParams).Result;
             if (resultSet.Count > 0)
             {
                 _logger.LogInformation("Added Command Result:");
@@ -168,9 +193,11 @@ namespace Drasi.Reactions.Gremlin.Services {
 
         public void ProcessUpdatedQueryResults(UpdatedResultElement updatedResult)
         {
-            _logger.LogInformation($"Updated Result {updatedResult}");
-
-            string newCmd = _updatedResultCommand;
+            if (_updatedResultCommand == null)
+            {
+                _logger.LogInformation("No Updated Result Command Specified");
+                return;
+            }
 
             Dictionary<string, object> updatedResultCommandParams = new Dictionary<string, object>();
 
@@ -178,26 +205,26 @@ namespace Drasi.Reactions.Gremlin.Services {
             {
                 if (param.StartsWith("before."))
                 {
-                    // Prepare the parameterized query by removing the @ sign
-                    newCmd = newCmd.Replace($"@{param}", param);
                     updatedResultCommandParams.Add(param, ExtractQueryResultValue(param.Substring(7), updatedResult.Before));
                 }
                 else if (param.StartsWith("after."))
                 {
-                    // Prepare the parameterized query by removing the @ sign
-                    newCmd = newCmd.Replace($"@{param}", param);
                     updatedResultCommandParams.Add(param, ExtractQueryResultValue(param.Substring(6), updatedResult.After));
                 }
                 else
                 {
-                    // Prepare the parameterized query by removing the @ sign
-                    newCmd = newCmd.Replace($"@{param}", param);
                     updatedResultCommandParams.Add(param, ExtractQueryResultValue(param, updatedResult.After));
                 }
             }
-            _logger.LogInformation($"Issuing updated result command: {newCmd}");
+            if (_updatedResultCommandParamList.Count != updatedResultCommandParams.Count)
+            {
+                _logger.LogInformation($"Parameter count mismatch: Expected {_updatedResultCommandParamList.Count}, got {updatedResultCommandParams.Count}");
+                _logger.LogInformation($"Skipping command execution for {_updatedResultCommand}");
 
-            var resultSet = SubmitRequest(_gremlinClient, newCmd, updatedResultCommandParams).Result;
+            }
+            _logger.LogInformation($"Issuing updated result command: {_updatedResultCommand}");
+
+            var resultSet = SubmitRequest(_gremlinClient, _updatedResultCommand, updatedResultCommandParams).Result;
             if (resultSet.Count > 0)
             {
                 _logger.LogInformation("Updated Command Result:");
@@ -212,21 +239,26 @@ namespace Drasi.Reactions.Gremlin.Services {
 
         public void ProcessDeletedQueryResults(Dictionary<string, object> deletedResults)
         {
-            _logger.LogInformation($"Deleted Result {deletedResults}");
-
-            string newCmd = _deletedResultCommand;
+            if (_deletedResultCommand == null)
+            {
+                _logger.LogInformation("No Deleted Result Command Specified");
+                return;
+            }
             Dictionary<string, object> deletedResultCommandParams = new Dictionary<string, object>();
-
 
             foreach (string param in _deletedResultCommandParamList)
             {
-                // Prepare the parameterized query by removing the @ sign
-                newCmd = newCmd.Replace($"@{param}", param);
                 deletedResultCommandParams.Add(param, ExtractQueryResultValue(param, deletedResults));
             }
-            _logger.LogInformation($"Issuing deleted result command: {newCmd}");
+            if (_deletedResultCommandParamList.Count != deletedResultCommandParams.Count)
+            {
+                _logger.LogInformation($"Parameter count mismatch: Expected {_deletedResultCommandParamList.Count}, got {deletedResultCommandParams.Count}");
+                _logger.LogInformation($"Skipping command execution for {_deletedResultCommand}");
 
-            var resultSet = SubmitRequest(_gremlinClient, newCmd, deletedResultCommandParams).Result;
+            }
+            _logger.LogInformation($"Issuing deleted result command: {_deletedResultCommand}");
+
+            var resultSet = SubmitRequest(_gremlinClient, _deletedResultCommand, deletedResultCommandParams).Result;
             if (resultSet.Count > 0)
             {
                 _logger.LogInformation("Deleted Command Result:");
