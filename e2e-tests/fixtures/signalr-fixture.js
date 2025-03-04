@@ -43,7 +43,7 @@ class SignalrFixture {
 
   async start() {
     await deployResources([this.reactionManifest]);
-    await new Promise((r) => setTimeout(r, 5000));
+    await new Promise((r) => setTimeout(r, 10000));
     this.localPort = await this.portForward.start();
     this.signalr = new signalR.HubConnectionBuilder()
       .withUrl(`http://127.0.0.1:${this.localPort}/hub`)
@@ -189,7 +189,9 @@ function signalrReactionManifest(queryIds) {
   let result = {
     apiVersion: "v1",
     kind: "Reaction",
-    name: `signalr-${crypto.randomUUID().toString()}`,
+    name: `signalr-${crypto.randomUUID().toString()}`, 
+    // Sometimes the uuid will begin with a number, which is not allowed in k8s resource names
+    // as a result, we prepend the name with 'signalr-' to ensure it is a valid name
     spec: {
       kind: "SignalR",
       queries: queryIds.reduce((a, v) => ({ ...a, [v]: "" }), {}),
