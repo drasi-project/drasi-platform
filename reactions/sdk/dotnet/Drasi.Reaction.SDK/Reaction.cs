@@ -54,6 +54,7 @@ public class Reaction<TQueryConfig> : IHost
         
     }
 
+
     private async Task ProcessEvent(HttpContext context, IChangeEventHandler<TQueryConfig> changeHandler, IControlEventHandler<TQueryConfig> controlEventHandler)
     {
         var data = await JsonDocument.ParseAsync(context.Request.Body);

@@ -1,0 +1,32 @@
+# Node modules and dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build artifacts
+build
+dist
+.cache
+
+# Environment files (secrets, configurations)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor and OS-specific files
+.vscode
+.idea
+*.swp
+*.swo
+*.swn
+*.bak
+.DS_Store
+Thumbs.db
+
+# Docker-related files
+.dockerignore
+docker-compose.yml
+docker-compose.override.yml
