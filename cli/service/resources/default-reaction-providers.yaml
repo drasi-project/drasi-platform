@@ -18,7 +18,7 @@ name: Debug
 spec:
   services:
     reaction:
-      image: reaction-debug-backend
+      image: reaction-debug
       endpoints:
         gateway:
           setting: internal

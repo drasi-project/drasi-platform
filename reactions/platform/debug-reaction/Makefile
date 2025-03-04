@@ -8,10 +8,10 @@ DOCKERX_OPTS ?= --load --cache-to type=inline,mode=max
 default: docker-build
 
 docker-build:
-	docker buildx build . -t $(IMAGE_PREFIX)/reaction-debug-backend:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
+	docker buildx build . -t $(IMAGE_PREFIX)/reaction-debug:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
 
 kind-load:
-	kind load docker-image $(IMAGE_PREFIX)/reaction-debug-backend:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
+	kind load docker-image $(IMAGE_PREFIX)/reaction-debug:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
 
 test:
 	@echo "No tests to run yet"
