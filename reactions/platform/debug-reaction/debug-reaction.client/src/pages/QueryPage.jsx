@@ -20,7 +20,7 @@ import { useParams } from 'react-router-dom';
 
 function QueryPage() {
   const { queryId } = useParams(); // useParams hook for getting the route parameter
-  const [queries, setQueries] = useState([]);
+  const [queries, setQueries] = useState(new Set());
   const [fieldNames, setFieldNames] = useState([]);
   const [debugInfo, setDebugInfo] = useState({});
 
@@ -32,8 +32,23 @@ function QueryPage() {
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       
       const data = await response.json();
-      setQueries(data.data); // Set initial data
-      setFieldNames(data.fieldNames); // Set initial field names
+      var queryResult = new Set();
+      var initialQueries = data.addedResults;
+
+      console.log("Initial Queries: ", initialQueries);
+
+      if (initialQueries.length > 0) {
+        const keys = Object.keys(initialQueries[0]);
+        console.log("Keys of first query: ", keys);
+        // Optionally set fieldNames if not provided by API
+        if (!data.fieldNames) {
+            setFieldNames(keys);
+        }
+    }
+      initialQueries.forEach((query) => {
+        queryResult.add(query);
+      });
+      setQueries(queryResult); // Set initial query results
     } catch (error) {
       console.error("Error fetching initial data:", error);
     }
@@ -73,11 +88,47 @@ function QueryPage() {
       ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
-            if (message["Data"].includes("Clear")) {
-              setQueries([]);
-            } else {
-              setQueries((prevQueries) => [...prevQueries, ...message["Data"]]);
-            }
+            setQueries((prevQueries) => {
+              const newQueries = new Set(prevQueries);
+
+              if (message.resultsClear === true) {
+                return new Set()
+              }
+              console.log("Message received: ", message);
+
+              if (message.addedResults && Array.isArray(message.addedResults)) {
+                message.addedResults.forEach((query) => {
+                  newQueries.add(query)
+                });
+              }
+
+              if (message.deletedResults && Array.isArray(message.deletedResults)) {
+                message.deletedResults.forEach(delItem => {
+                  newQueries.forEach(q => {
+                    if (JSON.stringify(q) === JSON.stringify(delItem)) {
+                      newQueries.delete(q);
+                    }
+                  });
+                });
+              }
+
+              if (message.updatedResults && Array.isArray(message.updatedResults)) {
+                message.updatedResults.forEach((query) => {
+                  newQueries.forEach(q => {
+                    if (JSON.stringify(q) === JSON.stringify(query.before)) {
+                      newQueries.delete(q);
+                    }
+                  });
+
+                  newQueries.add(query.after);
+                });
+              }
+
+              console.log("Updated Queries: ", newQueries);
+              return newQueries;
+
+
+            });
           } catch (error) {
               console.error('Error parsing WebSocket message:', error);
           }
@@ -109,12 +160,12 @@ return (
                       </tr>
                   </thead>
                   <tbody>
-                      {queries.map((query, index) => (
-                          <tr key={index}>
-                              {Object.values(query).map((value, i) => (
-                                  <td key={i}>{value}</td>
-                              ))}
-                          </tr>
+                  {Array.from(queries.values()).map((query, index) => (
+                        <tr key={index}>
+                            {Object.values(query).map((value, i) => (
+                                <td key={i}>{value}</td>
+                            ))}
+                        </tr>
                       ))}
                   </tbody>
                 </table>

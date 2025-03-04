@@ -100,24 +100,21 @@ namespace Drasi.Reactions.Debug.Server.Services
 			if (!_activeQueries.Contains(queryId))
 				return;
 
-			// var queryResult = _results[queryId];
 			var queryResult = new QueryResult();
 			foreach (var item in change.DeletedResults)
 			{
 				var result = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item));
-				queryResult.Delete(result);
+				queryResult.DeletedResults.Add(result);
 			}
 			foreach (var item in change.AddedResults)
 			{
 				var result = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item));
-				queryResult.Add(result);
+				queryResult.AddedResults.Add(result);
 			}
 			foreach (var item in change.UpdatedResults)
 			{
-				var groupingKeys = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item.GroupingKeys));
-				var before = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item.Before));
-				var after = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item.After));
-				queryResult.Update(before, after, groupingKeys);
+				var result = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item));
+				queryResult.UpdatedResults.Add(result);
 			}
 
 			await _webSocketService.BroadcastToQueryId(queryId, queryResult);
@@ -134,12 +131,12 @@ namespace Drasi.Reactions.Debug.Server.Services
 			{
 				case ControlSignalKind.Deleted:
 					var queryResult = new QueryResult();
-					queryResult.Add(JsonSerializer.SerializeToElement("Clear"));
+					queryResult.ResultsClear = true;
 					await _webSocketService.BroadcastToQueryId(queryId, queryResult);
 					break;
 				case ControlSignalKind.BootstrapStarted:
 					queryResult = new QueryResult();
-					queryResult.Add(JsonSerializer.SerializeToElement("Clear"));
+					queryResult.ResultsClear = true;
 					await _webSocketService.BroadcastToQueryId(queryId, queryResult);
 					break;
 			}
@@ -170,7 +167,9 @@ namespace Drasi.Reactions.Debug.Server.Services
 						continue;
 					}
 					var jsonElement = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(data));
-					result.Add(jsonElement);
+					result.AddedResults.Add(jsonElement);
+
+
 				}
 			}
 			catch (Exception ex)
