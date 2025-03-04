@@ -24,7 +24,7 @@ WORKDIR /usr/src/source/shared/change-dispatcher
 COPY ./sources/shared/change-dispatcher/Cargo.toml . 
 RUN cargo fetch
 COPY ./sources/shared/change-dispatcher .
-RUN cargo install --force --path .
+RUN cargo install --debug --force --path .
 
     
 FROM ubuntu:22.04 

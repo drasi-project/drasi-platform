@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libss
 WORKDIR /usr/src
 COPY . .
 WORKDIR /usr/src
-RUN cargo install --path .
+RUN cargo install  --debug --path .
 
 FROM ubuntu:20.04 
 RUN apt-get update && apt-get install -y openssl curl libssl1.1  && rm -rf /var/lib/apt/lists/*

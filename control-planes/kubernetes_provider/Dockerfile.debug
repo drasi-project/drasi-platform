@@ -24,7 +24,7 @@ COPY ./kubernetes_provider/Cargo.toml .
 RUN cargo fetch
 
 COPY ./kubernetes_provider .
-RUN cargo install --force --path .
+RUN cargo install --debug --force --path .
 
 FROM ubuntu:22.04 
 RUN apt-get update && apt-get install -y openssl curl libssl3  && rm -rf /var/lib/apt/lists/*

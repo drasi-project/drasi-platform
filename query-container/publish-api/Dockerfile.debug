@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get c
 WORKDIR /usr/src
 COPY . .
 WORKDIR /usr/src
-RUN cargo install --force --path .
+RUN cargo install  --debug --force --path .
 
 FROM ubuntu:22.04 
 RUN apt-get update && apt-get install -y openssl curl libssl3  && rm -rf /var/lib/apt/lists/*

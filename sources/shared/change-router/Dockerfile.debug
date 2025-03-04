@@ -25,7 +25,7 @@ WORKDIR /usr/src/source/shared/change-router
 COPY ./sources/shared/change-router/Cargo.toml . 
 RUN cargo fetch
 COPY ./sources/shared/change-router . 
-RUN cargo install --force --path .
+RUN cargo install  --debug --force --path .
 
 
 FROM ubuntu:20.04 

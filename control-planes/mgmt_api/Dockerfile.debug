@@ -25,7 +25,7 @@ WORKDIR /usr/src/control-planes/mgmt_api
 COPY ./control-planes/mgmt_api/Cargo.toml .
 RUN cargo fetch
 COPY ./control-planes/mgmt_api .
-RUN cargo install --force --path .
+RUN cargo install  --debug --force --path .
 
 FROM ubuntu:20.04 
 RUN apt-get update && apt-get install -y openssl curl libssl1.1  && rm -rf /var/lib/apt/lists/*
