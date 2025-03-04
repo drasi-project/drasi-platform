@@ -36,7 +36,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 		private readonly ILogger<QueryDebugService> _logger;
 
-		private List<string> _activeQueries = new();
+		private readonly ConcurrentDictionary<string, Task<QueryResult>> _activeQueries = new();
 
 		private readonly LinkedList<JsonElement> _rawEvents = new();
 
@@ -60,10 +60,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 			return _rawEvents;
 		}
 
-		public void SetActiveQueries(IEnumerable<string> queries)
-		{
-			_activeQueries = queries.ToList();
-		}
 		public async Task<Dictionary<string, object>> GetDebugInfo(string queryId)
 		{
 			try
@@ -92,30 +88,29 @@ namespace Drasi.Reactions.Debug.Server.Services
 			var jsonEvent = JsonSerializer.Deserialize<JsonElement>(change.ToJson());
 			await ProcessRawChange(change);
 			await _webSocketService.BroadcastToStream("stream", jsonEvent);
-			
+
 		}
 		public async Task ProcessRawChange(ChangeEvent change)
 		{
 			var queryId = change.QueryId;
-			if (!_activeQueries.Contains(queryId))
-				return;
 
 			var queryResult = new QueryResult();
 			foreach (var item in change.DeletedResults)
 			{
-				var result = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item));
+				var result = JsonSerializer.SerializeToElement(item);
 				queryResult.DeletedResults.Add(result);
 			}
 			foreach (var item in change.AddedResults)
 			{
-				var result = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item));
+				var result = JsonSerializer.SerializeToElement(item);
 				queryResult.AddedResults.Add(result);
 			}
 			foreach (var item in change.UpdatedResults)
 			{
-				var result = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(item));
+				var result = JsonSerializer.SerializeToElement(item);
 				queryResult.UpdatedResults.Add(result);
 			}
+
 
 			await _webSocketService.BroadcastToQueryId(queryId, queryResult);
 		}
@@ -123,10 +118,7 @@ namespace Drasi.Reactions.Debug.Server.Services
 		public async Task ProcessControlSignal(ControlEvent change)
 		{
 			var queryId = change.QueryId;
-			if (!_activeQueries.Contains(queryId))
-				return;
 
-			// TODO: update queryResult based on control signal
 			switch (change.ControlSignal.Kind)
 			{
 				case ControlSignalKind.Deleted:
@@ -149,37 +141,47 @@ namespace Drasi.Reactions.Debug.Server.Services
 		private async Task<QueryResult> InitResult(string queryId)
 		{
 			_logger.LogInformation("Initializing query: " + queryId);
-			var result = new QueryResult();
-			try
+
+			Task<QueryResult> resultTask = _activeQueries.GetOrAdd(queryId, async qId =>
 			{
-				await foreach (var item in _queryApi.GetCurrentResult(queryId))
+				var result = new QueryResult();
+				try
 				{
-					if (item == null)
+					await foreach (var item in _queryApi.GetCurrentResult(queryId))
 					{
-						_logger.LogWarning("Received null item from GetCurrentResult for queryId: {QueryId}", queryId);
-						continue;
+						if (item == null)
+						{
+							_logger.LogWarning("Received null item from GetCurrentResult for queryId: {QueryId}", queryId);
+							continue;
+						}
+
+						var data = item.Data;
+						if (data == null)
+						{
+							_logger.LogWarning("Item.Data is null for queryId: {QueryId}", queryId);
+							continue;
+						}
+						var jsonElement = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(data));
+						result.AddedResults.Add(jsonElement);
+
+
 					}
-
-					var data = item.Data;
-					if (data == null)
-					{
-						_logger.LogWarning("Item.Data is null for queryId: {QueryId}", queryId);
-						continue;
-					}
-					var jsonElement = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(data));
-					result.AddedResults.Add(jsonElement);
-
-
 				}
-			}
-			catch (Exception ex)
-			{
-				result.Errors.Add("Error fetching initial data: " + ex.Message);
-				_logger.LogError(ex, "Error fetching initial data: " + ex.Message);
-			}
+				catch (Exception ex)
+				{
+					result.Errors.Add("Error fetching initial data: " + ex.Message);
+					_logger.LogError(ex, "Error fetching initial data: " + ex.Message);
+				}
+				finally
+				{
+					_activeQueries.TryRemove(queryId, out _);
+				}
 
-			return result;
+				return result;
+			});
+			return await resultTask;
 		}
+
 	}
 
 

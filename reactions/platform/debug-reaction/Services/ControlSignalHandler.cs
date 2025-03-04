@@ -37,6 +37,6 @@ public class ControlSignalHandler : IControlEventHandler
 	public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
 	{
 		var queryId = evt.QueryId;
-        await _debugService.ProcessControlSignal(evt);
+		await _debugService.ProcessControlSignal(evt);
 	}
 }

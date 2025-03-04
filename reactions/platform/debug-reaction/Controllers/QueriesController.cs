@@ -41,7 +41,6 @@ public class QueryController : ControllerBase
 			var queryId = Path.GetFileName(qpath);
 			queryList.Add(queryId);
 		}
-		_debugService.SetActiveQueries(queryList);
 		return queryList;
 	}
 

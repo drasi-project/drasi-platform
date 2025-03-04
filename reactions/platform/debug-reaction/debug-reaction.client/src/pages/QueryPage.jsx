@@ -35,12 +35,9 @@ function QueryPage() {
       var queryResult = new Set();
       var initialQueries = data.addedResults;
 
-      console.log("Initial Queries: ", initialQueries);
 
       if (initialQueries.length > 0) {
         const keys = Object.keys(initialQueries[0]);
-        console.log("Keys of first query: ", keys);
-        // Optionally set fieldNames if not provided by API
         if (!data.fieldNames) {
             setFieldNames(keys);
         }
@@ -94,7 +91,6 @@ function QueryPage() {
               if (message.resultsClear === true) {
                 return new Set()
               }
-              console.log("Message received: ", message);
 
               if (message.addedResults && Array.isArray(message.addedResults)) {
                 message.addedResults.forEach((query) => {
@@ -123,8 +119,6 @@ function QueryPage() {
                   newQueries.add(query.after);
                 });
               }
-
-              console.log("Updated Queries: ", newQueries);
               return newQueries;
 
 

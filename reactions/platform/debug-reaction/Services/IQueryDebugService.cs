@@ -21,7 +21,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 	public interface IQueryDebugService
 	{
 		Task<QueryResult> GetQueryResult(string queryId);
-		void SetActiveQueries(IEnumerable<string> queries);
 		Task ProcessChange(ChangeEvent change);
 		Task ProcessControlSignal(ControlEvent change);
 		Task<Dictionary<string, object>> GetDebugInfo(string queryId);
