@@ -21,8 +21,6 @@ COPY ./debug-reaction.client/package.json ./debug-reaction.client/package-lock.j
 RUN npm install
 COPY ./debug-reaction.client/ ./
 RUN npm run build
-# Debug: Verify dist contents
-RUN ls -la /app/debug-reaction.client/dist/
 
 # Stage 2: Build .NET backend
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS backend
@@ -31,8 +29,6 @@ COPY ./debug-reaction.Server.csproj ./
 RUN dotnet restore
 COPY . ./
 COPY --from=frontend /app/debug-reaction.client/dist ./wwwroot/
-# Debug: Verify wwwroot contents
-RUN ls -la ./wwwroot/
 RUN dotnet publish -c Release -o /app/publish
 
 # Stage 3: Run the app
