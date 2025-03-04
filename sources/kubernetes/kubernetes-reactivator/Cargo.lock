@@ -582,9 +582,9 @@ dependencies = [
 
 [[package]]
 name = "drasi-source-sdk"
-version = "0.1.14"
+version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd1832b86c7c17fb2bf516917f12d7ae5ace2acf47052b786ee124f5064d4e44"
+checksum = "9a955c3223cacb5a389b963a2cc7705fd6fe39e2ea37623455e6c31eadfc8c6d"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -599,6 +599,7 @@ dependencies = [
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
  "reqwest",
+ "retry",
  "serde",
  "serde_json",
  "thiserror 2.0.6",
@@ -673,9 +674,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.11.5"
+version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e13fa619b91fb2381732789fc5de83b45675e882f66623b7d8cb4f643017018d"
+checksum = "dcaee3d8e3cfc3fd92428d477bc97fc29ec8716d180c0d74c643bb26166660e0"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1604,6 +1605,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "drasi-source-sdk",
+ "env_logger",
  "futures",
  "k8s-openapi",
  "kube",
@@ -2290,6 +2292,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "windows-registry",
+]
+
+[[package]]
+name = "retry"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9166d72162de3575f950507683fac47e30f6f2c3836b71b7fbc61aa517c9c5f4"
+dependencies = [
+ "rand",
 ]
 
 [[package]]

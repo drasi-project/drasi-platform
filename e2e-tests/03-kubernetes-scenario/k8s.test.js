@@ -45,13 +45,28 @@ beforeAll(async () => {
   const resources = yaml.loadAll(
     fs.readFileSync(__dirname + "/resources.yaml", "utf8"),
   );
-  await deployResources(resources);
+  try {
+    await deployResources(resources);
+  } catch (e) {
+    await waitForChildProcess(
+      cp.exec(
+        "kubectl describe pods --selector=dapr.io/app-id=k8s-reactivator -n drasi-system",
+        { encoding: "utf-8" },
+      ),
+    );
+    await waitForChildProcess(
+      cp.exec(
+        "kubectl logs -l dapr.io/app-id=k8s-reactivator --all-containers=true --since=0 -n drasi-system",
+        { encoding: "utf-8" },
+      ),
+    );
+    throw e;
+  }
   await signalrFixture.start();
-  await new Promise((r) => setTimeout(r, 5000));
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
-  await new Promise((r) => setTimeout(r, 10000)); // reactivator is slow to startup
-}, 120000);
+  await new Promise((r) => setTimeout(r, 5000));
+}, 180000);
 
 afterAll(async () => {
   await signalrFixture.stop();

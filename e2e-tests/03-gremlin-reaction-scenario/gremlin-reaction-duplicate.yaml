@@ -1,0 +1,11 @@
+kind: Reaction
+apiVersion: v1
+name: e2e-gremlin-reaction-duplicate
+spec:
+  kind: Gremlin
+  queries:
+    query3:
+  properties: 
+    addedResultCommand: g.addV('Item').property('ItemName', @Name).property('Name',@Name)
+    gremlinHost: gremlin-server.default.svc.cluster.local
+    gremlinPort: 8182

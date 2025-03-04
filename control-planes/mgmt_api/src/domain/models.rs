@@ -278,6 +278,18 @@ pub enum ServiceIdentity {
         #[serde(rename = "accessKey")]
         access_key: ConfigValue,
     },
+    AwsIamRole {
+        #[serde(rename = "roleArn")]
+        role_arn: ConfigValue,
+    },
+    AwsIamAccessKey {
+        #[serde(rename = "accessKeyId")]
+        access_key_id: ConfigValue,
+        #[serde(rename = "secretAccessKey")]
+        secret_access_key: ConfigValue,
+        #[serde(rename = "region")]
+        aws_region: ConfigValue,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -66,6 +66,58 @@ spec:
 ---
 apiVersion: v1
 kind: SourceProvider
+name: MySQL
+spec:
+  services:
+    proxy:
+      image: source-sql-proxy
+      dapr:
+        app-port: "4002"
+      config_schema:
+        type: object
+        properties:
+          connector:
+            type: string
+            default: MySQL
+    reactivator: 
+      image: source-debezium-reactivator
+      deprovisionHandler: true
+      dapr:
+        app-port: "80"
+      config_schema:
+        type: object
+        properties:
+          connector:
+            type: string
+            default: MySQL
+  config_schema:
+    type: object
+    properties:
+      database:
+        type: string
+      host:
+        type: string
+      password:
+        type: string
+      port:
+        type: number
+      ssl:
+        type: boolean
+        default: false
+      user:
+        type: string
+      tables:
+        type: array
+    required:
+      - database
+      - host
+      - port
+      - password
+      - user
+      - tables
+---
+apiVersion: v1
+kind: SourceProvider
 name: SQLServer
 spec:
   services:
@@ -198,6 +250,8 @@ spec:
     properties:
       connectionString:
         type: string
+      host:
+        type: string
       consumerGroup:
         type: string
         default: "$Default"
@@ -207,7 +261,6 @@ spec:
         type: integer
         default: 0
     required:
-      - connectionString
       - eventHubs
 ---
 apiVersion: v1
