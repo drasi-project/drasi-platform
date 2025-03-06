@@ -8,6 +8,12 @@ docker-build:
 	$(MAKE) -C sources $(MAKECMDGOALS)
 	$(MAKE) -C reactions $(MAKECMDGOALS)
 
+docker-build-debug:
+	$(MAKE) -C control-planes $(MAKECMDGOALS)
+	$(MAKE) -C query-container $(MAKECMDGOALS)
+	$(MAKE) -C sources $(MAKECMDGOALS)
+	$(MAKE) -C reactions $(MAKECMDGOALS)
+
 kind-load:
 	$(MAKE) -C control-planes $(MAKECMDGOALS)
 	$(MAKE) -C query-container $(MAKECMDGOALS)

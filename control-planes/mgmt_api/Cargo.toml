@@ -60,3 +60,6 @@ reqwest-streams = { version = "0.3", features=["json"] }
 
 [dev-dependencies]
 faux = "^0.1"
+
+[profile.release]
+lto = true
