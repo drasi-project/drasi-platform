@@ -151,8 +151,10 @@ async fn process_changes(
             );
 
             let mut dispatch_event = change_event.clone();
-            dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherStart_ms"] =
-                match serde_json::to_value(chrono::Utc::now().timestamp_millis()) {
+
+            // Start time, measured in nanoseconds
+            dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherStart_ns"] =
+                match serde_json::to_value(chrono::Utc::now().timestamp_nanos()) {
                     Ok(val) => val,
                     Err(_) => {
                         return Err(Box::<dyn std::error::Error>::from(
@@ -160,13 +162,13 @@ async fn process_changes(
                         ));
                     }
                 };
-            dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ms"] =
-                match serde_json::to_value(0) {
-                    Ok(val) => val,
-                    Err(_) => {
-                        unreachable!();
-                    }
-                };
+            // dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ms"] =
+            //     match serde_json::to_value(0) {
+            //         Ok(val) => val,
+            //         Err(_) => {
+            //             unreachable!();
+            //         }
+            //     };
 
             let subscriptions = match change_event["subscriptions"].as_array() {
                 Some(subs) => subs.clone(),
@@ -185,15 +187,7 @@ async fn process_changes(
             for query_node_id in query_nodes {
                 let app_id = format!("{}-publish-api", query_node_id);
 
-                dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ms"] =
-                    match serde_json::to_value(chrono::Utc::now().timestamp_millis()) {
-                        Ok(val) => val,
-                        Err(_) => {
-                            return Err(Box::<dyn std::error::Error>::from(
-                                "Error serializing timestamp into json value",
-                            ));
-                        }
-                    };
+                
                 let queries: Vec<_> = subscriptions
                     .iter()
                     .filter(|x| x["queryNodeId"] == query_node_id)
@@ -213,6 +207,17 @@ async fn process_changes(
                     headers.insert("traceparent".to_string(), traceparent.clone());
                 }
                 let headers = Headers::new(headers);
+
+                // End time, measured in nanoseconds
+                dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ns"] =
+                    match serde_json::to_value(chrono::Utc::now().timestamp_nanos()) {
+                        Ok(val) => val,
+                        Err(_) => {
+                            return Err(Box::<dyn std::error::Error>::from(
+                                "Error serializing timestamp into json value",
+                            ));
+                        }
+                    };
                 match invoker
                     .invoke(
                         Payload::Json(dispatch_event.clone()),

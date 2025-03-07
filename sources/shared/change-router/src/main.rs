@@ -266,8 +266,11 @@ async fn process_changes(
     }
     if let Some(changes) = changes.as_array() {
         for change in changes {
-            let change_router_start = chrono::Utc::now().timestamp_millis();
             let change_id = Uuid::new_v4().to_string();
+            info!("Begin processing change with id: {}", change_id);
+            // Capture the start time of this change
+            let change_router_start = chrono::Utc::now().timestamp_nanos();
+            
 
             info!(
                 "Processing change - db:{}, type:{}, id:{}",
@@ -523,8 +526,8 @@ async fn process_changes(
                                 "source": {
                                     "seq": change["payload"]["source"]["lsn"],
                                     "reactivator_ms": change["ts_ms"],
-                                    "changeSvcStart_ms": change_router_start,
-                                    "changeSvcEnd_ms": chrono::Utc::now().timestamp_millis()
+                                    "changeSvcStart_ns": change_router_start,
+                                    "changeSvcEnd_ns": chrono::Utc::now().timestamp_nanos(),
                                 }
                             }
                         }
