@@ -281,11 +281,6 @@ async fn process_changes(
             {
                 match change["op"].as_str() {
                     Some("i") => {
-                        // Handle SourceSubscription
-                        info!(
-                            "Activating new SourceSubscription: id:{}",
-                            change["payload"]["after"]["id"]
-                        );
                         let node_labels: Vec<&str> =
                             match change["payload"]["after"]["nodeLabels"].as_array() {
                                 Some(labels) => labels
@@ -524,7 +519,6 @@ async fn process_changes(
                         "before": change["payload"]["before"],
                         "after": change["payload"]["after"],
                         "metadata": {
-                            "changeEvent": change,
                             "tracking": {
                                 "source": {
                                     "seq": change["payload"]["source"]["lsn"],
@@ -540,6 +534,10 @@ async fn process_changes(
                     let mut headers = std::collections::HashMap::new();
                     headers.insert("traceparent".to_string(), traceparent.clone());
                     let headers = Headers::new(headers);
+                    info!(
+                        "Publishing event: {}",
+                        serde_json::to_string_pretty(&change_dispatch_event).unwrap()
+                    );
                     match publisher.publish(change_dispatch_event, headers).await {
                         Ok(_) => {
                             info!("published event to topic: {}", publish_topic);
