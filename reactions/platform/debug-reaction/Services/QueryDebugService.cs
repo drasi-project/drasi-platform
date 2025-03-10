@@ -38,7 +38,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 		private readonly ConcurrentDictionary<string, Task<QueryResult>> _activeQueries = new();
 
-		private readonly LinkedList<JsonElement> _rawEvents = new();
 
 		private readonly IChangeBroadcaster _webSocketService;
 
@@ -52,12 +51,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 			_webSocketService = webSocketService;
 			_actorProxyFactory = actorProxyFactory;
 			_managementClient = managementClient;
-		}
-
-
-		public async Task<LinkedList<JsonElement>> GetRawEvents()
-		{
-			return _rawEvents;
 		}
 
 		public async Task<Dictionary<string, object>> GetDebugInfo(string queryId)

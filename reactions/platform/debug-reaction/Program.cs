@@ -74,12 +74,6 @@ public class Program
 		});
 
 
-		server.MapGet("/api/stream", async (IQueryDebugService debugService) =>
-		{
-			return Results.Json(await debugService.GetRawEvents());
-		});
-
-
 		var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 		server.Urls.Add($"http://0.0.0.0:{port}");
 		server.Logger.LogInformation("Application configured to listen on: {Urls}", string.Join(", ", server.Urls));

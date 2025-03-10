@@ -24,7 +24,5 @@ namespace Drasi.Reactions.Debug.Server.Services
 		Task ProcessChange(ChangeEvent change);
 		Task ProcessControlSignal(ControlEvent change);
 		Task<Dictionary<string, object>> GetDebugInfo(string queryId);
-		Task<LinkedList<JsonElement>> GetRawEvents();
-
 	}
 }
