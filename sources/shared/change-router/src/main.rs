@@ -213,6 +213,9 @@ async fn receive(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
+    // Capture the start time when pubsub receives the event
+    // This is measured in nanoseconds
+    let start_time =  chrono::Utc::now().timestamp_nanos();
     let trace_parent = match headers.get("traceparent") {
         Some(trace_parent) => match trace_parent.to_str() {
             Ok(trace_parent) => trace_parent.to_string(),
@@ -235,6 +238,7 @@ async fn receive(
         rel_subscriber,
         trace_parent,
         state_manager,
+        start_time,
     )
     .await
     {
@@ -258,6 +262,7 @@ async fn process_changes(
     rel_subscriber: &Subscriber,
     traceparent: String,
     state_manager: &DaprStateManager,
+    start_time: i64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !changes.is_array() {
         return Err(Box::<dyn std::error::Error>::from(
@@ -267,10 +272,6 @@ async fn process_changes(
     if let Some(changes) = changes.as_array() {
         for change in changes {
             let change_id = Uuid::new_v4().to_string();
-            info!("Begin processing change with id: {}", change_id);
-            // Capture the start time of this change
-            let change_router_start = chrono::Utc::now().timestamp_nanos();
-            
 
             info!(
                 "Processing change - db:{}, type:{}, id:{}",
@@ -509,6 +510,11 @@ async fn process_changes(
                         })
                         .collect();
 
+                    let publish_topic = format!("{}-dispatch", config.source_id);
+                    let mut headers = std::collections::HashMap::new();
+                    headers.insert("traceparent".to_string(), traceparent.clone());
+                    let headers = Headers::new(headers);
+
                     let change_dispatch_event = json!([{
                         "id": change_id,
                         "sourceId": config.source_id,
@@ -526,21 +532,14 @@ async fn process_changes(
                                 "source": {
                                     "seq": change["payload"]["source"]["lsn"],
                                     "reactivator_ms": change["ts_ms"],
-                                    "changeSvcStart_ns": change_router_start,
-                                    "changeSvcEnd_ns": chrono::Utc::now().timestamp_nanos(),
+                                    "changeRouterStart_ns": start_time,
+                                    "changeRouterEnd_ns": chrono::Utc::now().timestamp_nanos(),
                                 }
                             }
                         }
                     }]);
 
-                    let publish_topic = format!("{}-dispatch", config.source_id);
-                    let mut headers = std::collections::HashMap::new();
-                    headers.insert("traceparent".to_string(), traceparent.clone());
-                    let headers = Headers::new(headers);
-                    info!(
-                        "Publishing event: {}",
-                        serde_json::to_string_pretty(&change_dispatch_event).unwrap()
-                    );
+                    
                     match publisher.publish(change_dispatch_event, headers).await {
                         Ok(_) => {
                             info!("published event to topic: {}", publish_topic);

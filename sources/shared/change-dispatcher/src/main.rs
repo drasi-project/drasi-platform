@@ -106,6 +106,9 @@ async fn receive(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
+    // Capture the start time when pubsub receives the event
+    // This is measured in nanoseconds
+    let start_time = chrono::Utc::now().timestamp_nanos();
     let traceparent = match headers.get("traceparent") {
         Some(tp) => match tp.to_str() {
             Ok(tp) => tp.to_string(),
@@ -117,7 +120,7 @@ async fn receive(
     let config = state.config.clone();
     let invoker = &state.invoker;
     let json_data = body["data"].clone();
-    match process_changes(invoker, json_data, config, traceparent).await {
+    match process_changes(invoker, json_data, config, traceparent,start_time).await {
         Ok(_) => StatusCode::OK.into_response(),
         Err(e) => {
             log::error!("Error processing changes: {:?}", e);
@@ -135,6 +138,7 @@ async fn process_changes(
     changes: Value,
     _config: ChangeDispatcherConfig,
     traceparent: String,
+    start_time: i64
 ) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(changes) = changes.as_array() {
         for change_event in changes {
@@ -149,26 +153,10 @@ async fn process_changes(
                         )),
                 }
             );
-
             let mut dispatch_event = change_event.clone();
+            dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherStart_ns"] = start_time.into();
 
-            // Start time, measured in nanoseconds
-            dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherStart_ns"] =
-                match serde_json::to_value(chrono::Utc::now().timestamp_nanos()) {
-                    Ok(val) => val,
-                    Err(_) => {
-                        return Err(Box::<dyn std::error::Error>::from(
-                            "Error serializing timestamp into json value",
-                        ));
-                    }
-                };
-            // dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ms"] =
-            //     match serde_json::to_value(0) {
-            //         Ok(val) => val,
-            //         Err(_) => {
-            //             unreachable!();
-            //         }
-            //     };
+            
 
             let subscriptions = match change_event["subscriptions"].as_array() {
                 Some(subs) => subs.clone(),
