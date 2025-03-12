@@ -206,7 +206,9 @@ async fn process_changes(
 
             // End time, measured in nanoseconds
             dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ns"] =
-                match serde_json::to_value(chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()) {
+                match serde_json::to_value(
+                    chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default(),
+                ) {
                     Ok(val) => val,
                     Err(_) => {
                         return Err(Box::<dyn std::error::Error>::from(
