@@ -213,9 +213,8 @@ async fn receive(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
-    // Capture the start time when pubsub receives the event
-    // This is measured in nanoseconds
-    let start_time =  chrono::Utc::now().timestamp_nanos();
+    // Capture the time when the pubsub receives the event
+    let receive_time = chrono::Utc::now().timestamp_nanos();
     let trace_parent = match headers.get("traceparent") {
         Some(trace_parent) => match trace_parent.to_str() {
             Ok(trace_parent) => trace_parent.to_string(),
@@ -238,7 +237,7 @@ async fn receive(
         rel_subscriber,
         trace_parent,
         state_manager,
-        start_time,
+        receive_time,
     )
     .await
     {
@@ -262,15 +261,18 @@ async fn process_changes(
     rel_subscriber: &Subscriber,
     traceparent: String,
     state_manager: &DaprStateManager,
-    start_time: i64,
+    receive_time: i64,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if !changes.is_array() {
-        return Err(Box::<dyn std::error::Error>::from(
-            "Changes must be an array",
-        ));
-    }
+    // Use the receive_time to capture the time when the events are received via pubsub
+    let mut start_time = receive_time;
+    let mut isFirstChange = true;
     if let Some(changes) = changes.as_array() {
         for change in changes {
+            // For the first change, we will use the receive_time from the pubsub
+            // For the rest of the changes, we will use the time when the change event is processed
+            if !isFirstChange {
+                start_time = chrono::Utc::now().timestamp_nanos();
+            } 
             let change_id = Uuid::new_v4().to_string();
 
             info!(
@@ -553,7 +555,12 @@ async fn process_changes(
                     log::info!("No subscribers for change: {:?}", change);
                 }
             }
+            isFirstChange = false;
         }
+    } else {
+        return Err(Box::<dyn std::error::Error>::from(
+            "Changes must be an array",
+        ));
     }
     Ok(())
 }
