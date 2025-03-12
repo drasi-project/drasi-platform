@@ -15,6 +15,7 @@
 namespace Drasi.Reactions.Debug.Server.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Drasi.Reactions.Debug.Server.Services;
+using Drasi.Reaction.SDK.Models.ViewService;
 
 [ApiController]
 [Route("api/queries")]
@@ -48,10 +49,9 @@ public class QueryController : ControllerBase
 	// GET queries/{queryId}
 	// This endpoint returns the current result of a specific query.
 	[HttpGet("{queryId}")]
-	public async Task<IActionResult> GetQueryResult(string queryId)
+	public IAsyncEnumerable<ViewItem> GetQueryResult(string queryId)
 	{
-		var result = await _debugService.GetQueryResult(queryId);
-		return Ok(result);
+		return _debugService.GetQueryResult(queryId);
 	}
 
 	// GET queries/{queryId}/debug-information

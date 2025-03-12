@@ -107,7 +107,6 @@ html, body {
 .table thead {
     background: #3a0647;
     color: white;
-    text-transform: uppercase;
     font-weight: bold;
 }
 

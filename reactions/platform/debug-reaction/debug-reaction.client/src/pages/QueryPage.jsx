@@ -33,17 +33,14 @@ function QueryPage() {
       
       const data = await response.json();
       var queryResult = new Set();
-      var initialQueries = data.addedResults;
-
+      const initialQueries = data.slice(1)
 
       if (initialQueries.length > 0) {
-        const keys = Object.keys(initialQueries[0]);
-        if (!data.fieldNames) {
-            setFieldNames(keys);
-        }
-    }
+        const keys = Object.keys(initialQueries[0].data);
+        setFieldNames(keys); // Set field names for the table header
+      }
       initialQueries.forEach((query) => {
-        queryResult.add(query);
+        queryResult.add(query.data);
       });
       setQueries(queryResult); // Set initial query results
     } catch (error) {

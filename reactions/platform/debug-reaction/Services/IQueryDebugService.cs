@@ -14,13 +14,14 @@
 
 using Drasi.Reactions.Debug.Server.Models;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reaction.SDK.Models.ViewService;
 using System.Text.Json;
 
 namespace Drasi.Reactions.Debug.Server.Services
 {
 	public interface IQueryDebugService
 	{
-		Task<QueryResult> GetQueryResult(string queryId);
+		IAsyncEnumerable<ViewItem> GetQueryResult(string queryId);
 		Task ProcessChange(ChangeEvent change);
 		Task ProcessControlSignal(ControlEvent change);
 		Task<Dictionary<string, object>> GetDebugInfo(string queryId);

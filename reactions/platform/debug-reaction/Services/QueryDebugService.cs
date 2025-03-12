@@ -22,6 +22,7 @@ using Drasi.Reactions.Debug.Server.Models;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reaction.SDK.Models.ViewService;
 using Drasi.Reaction.SDK.Services;
 using System.Text.Json;
 using System.Text;
@@ -70,10 +71,9 @@ namespace Drasi.Reactions.Debug.Server.Services
 			}
 		}
 
-		public async Task<QueryResult> GetQueryResult(string queryId)
+		public IAsyncEnumerable<ViewItem> GetQueryResult(string queryId)
 		{
-			var queryResult = await InitResult(queryId);
-			return queryResult;
+			return _queryApi.GetCurrentResult(queryId);
 		}
 
 		public async Task ProcessChange(ChangeEvent change)
@@ -128,51 +128,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 			var jsonEvent = JsonSerializer.Deserialize<JsonElement>(change.ToJson());
 			await _webSocketService.BroadcastToStream("stream", jsonEvent);
-		}
-
-
-		private async Task<QueryResult> InitResult(string queryId)
-		{
-			_logger.LogInformation("Initializing query: " + queryId);
-
-			Task<QueryResult> resultTask = _activeQueries.GetOrAdd(queryId, async qId =>
-			{
-				var result = new QueryResult();
-				try
-				{
-					await foreach (var item in _queryApi.GetCurrentResult(queryId))
-					{
-						if (item == null)
-						{
-							_logger.LogWarning("Received null item from GetCurrentResult for queryId: {QueryId}", queryId);
-							continue;
-						}
-
-						var data = item.Data;
-						if (data == null)
-						{
-							_logger.LogWarning("Item.Data is null for queryId: {QueryId}", queryId);
-							continue;
-						}
-						var jsonElement = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(data));
-						result.AddedResults.Add(jsonElement);
-
-
-					}
-				}
-				catch (Exception ex)
-				{
-					result.Errors.Add("Error fetching initial data: " + ex.Message);
-					_logger.LogError(ex, "Error fetching initial data: " + ex.Message);
-				}
-				finally
-				{
-					_activeQueries.TryRemove(queryId, out _);
-				}
-
-				return result;
-			});
-			return await resultTask;
 		}
 
 	}
