@@ -35,15 +35,15 @@ public class SourceUpdate extends SourceChange {
      * Create an update operation of a node with the given id, timestamp, properties, metadata and labels.
      *
      * @param id         The id of the element.
-     * @param tsMS       The timestamp of the event in milliseconds.
+     * @param tsNS       The timestamp of the event in milliseconds.
      * @param properties The properties of the element.
      * @param metadata   The metadata of the element.
      * @param labels     The labels of the element.
-     * @param sourceTsMS The timestamp of the event in the source database in milliseconds.
+     * @param sourceTsNS The timestamp of the event in the source database in milliseconds.
      * @param sequenceNumber The sequence number of the event in the source database.
      */
-    public SourceUpdate(String id, long tsMS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsMS, long sequenceNumber) {
-        super(id, tsMS, properties, metadata, labels, sourceTsMS, sequenceNumber);
+    public SourceUpdate(String id, long tsNS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long sequenceNumber) {
+        super(id, tsNS, properties, metadata, labels, sourceTsNS, sequenceNumber);
 
     }
 
@@ -51,16 +51,16 @@ public class SourceUpdate extends SourceChange {
      * Create an update operation of a relation with the given id, timestamp, properties, metadata, labels, startId and endId.
      *
      * @param id         The id of the element.
-     * @param tsMS       The timestamp of the event in milliseconds.
+     * @param tsNS       The timestamp of the event in milliseconds.
      * @param properties The properties of the element.
      * @param metadata   The metadata of the element.
      * @param labels     The labels of the element.
-     * @param sourceTsMS The timestamp of the event in the source database in milliseconds.
+     * @param sourceTsNS The timestamp of the event in the source database in milliseconds.
      * @param sequenceNumber The sequence number of the event in the source database.
      * @param startId    The id of the start node.
      * @param endId      The id of the end node.
      */
-    public SourceUpdate(String id, long tsMS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsMS, long sequenceNumber, String startId, String endId) {
-        super(id, tsMS, properties, metadata, labels, sourceTsMS, sequenceNumber, startId, endId);
+    public SourceUpdate(String id, long tsNS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long sequenceNumber, String startId, String endId) {
+        super(id, tsNS, properties, metadata, labels, sourceTsNS, sequenceNumber, startId, endId);
     }
 }

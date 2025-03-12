@@ -523,7 +523,8 @@ async fn process_changes(
                         "subscriptions": subscriptions,
                         "time": {
                             "seq": change["payload"]["source"]["lsn"],
-                            "ms": change["ts_ms"]
+                            "ms": change["ts_ms"],
+                            "source_ns": change["payload"]["source"]["ts_ns"],
                         },
                         "before": change["payload"]["before"],
                         "after": change["payload"]["after"],

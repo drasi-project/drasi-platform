@@ -71,13 +71,14 @@ public class RelationalChangeConsumer implements DebeziumEngine.ChangeConsumer<C
                           DebeziumEngine.RecordCommitter<ChangeEvent<String, String>> committer) 
                           throws InterruptedException {
         for (var record : records) {
+            long startTime = System.nanoTime();
             if (record.value() == null) {
                 continue;
             }
 
             try {
                 var sourceChange = objectMapper.readTree(record.value());
-                var drasiChange = ExtractDrasiChange(sourceChange);
+                var drasiChange = ExtractDrasiChange(sourceChange, startTime);
                 if (drasiChange != null) {
                     changePublisher.Publish(drasiChange);
                 } else {
@@ -94,7 +95,7 @@ public class RelationalChangeConsumer implements DebeziumEngine.ChangeConsumer<C
         committer.markBatchFinished();
     }
 
-    private SourceChange ExtractDrasiChange(JsonNode sourceChange) {
+    private SourceChange ExtractDrasiChange(JsonNode sourceChange, long startTime) {
         var payload = sourceChange.path("payload");
         if (!payload.has("op")) {
             return null;
@@ -124,13 +125,14 @@ public class RelationalChangeConsumer implements DebeziumEngine.ChangeConsumer<C
         }
 
         var nodeId = createNodeId(mapping.tableName, item.path(mapping.keyField).asText());
-        var timestamp = payload.path("ts_ms").asLong();
+        var sourceTsNS = source.path("ts_ns").asLong(); //In the source object, ts_ns indicates the time that the change was made in the database
+
         var lsn = dbStrategy.extractLsn(source);
 
         return switch (changeType) {
-            case "c" -> new SourceInsert(nodeId, timestamp, item, null, mapping.labels.stream().toList(), timestamp, lsn);
-            case "u" -> new SourceUpdate(nodeId, timestamp, item, null, mapping.labels.stream().toList(), timestamp, lsn);
-            case "d" -> new SourceDelete(nodeId, timestamp, null, mapping.labels.stream().toList(), timestamp, lsn);
+            case "c" -> new SourceInsert(nodeId, startTime, item, null, mapping.labels.stream().toList(), sourceTsNS, lsn);
+            case "u" -> new SourceUpdate(nodeId, startTime, item, null, mapping.labels.stream().toList(), sourceTsNS, lsn);
+            case "d" -> new SourceDelete(nodeId, startTime, null, mapping.labels.stream().toList(), sourceTsNS, lsn);
             default -> null;
         };
     }
