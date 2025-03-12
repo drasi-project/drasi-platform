@@ -214,7 +214,7 @@ async fn receive(
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
     // Capture the time when the pubsub receives the event
-    let receive_time = chrono::Utc::now().timestamp_nanos();
+    let receive_time = chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default();
     let trace_parent = match headers.get("traceparent") {
         Some(trace_parent) => match trace_parent.to_str() {
             Ok(trace_parent) => trace_parent.to_string(),
@@ -253,6 +253,7 @@ async fn receive(
     (StatusCode::OK, Json(json!({"message": "Success"})))
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn process_changes(
     publisher: &DaprHttpPublisher,
     changes: Value,
@@ -274,7 +275,7 @@ async fn process_changes(
         // For the first change, we will use the receive_time from the pubsub
         // For the rest of the changes, we will use the time when the change event is processed
         if index > 0 {
-            start_time = chrono::Utc::now().timestamp_nanos();
+            start_time = chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default();
         }
         let change_id = Uuid::new_v4().to_string();
 
@@ -549,7 +550,8 @@ async fn process_changes(
                                 "seq": change["payload"]["source"]["lsn"],
                                 "reactivator_ms": change["ts_ms"],
                                 "changeRouterStart_ns": start_time,
-                                "changeRouterEnd_ns": chrono::Utc::now().timestamp_nanos(),
+                                "changeRouterEnd_ns": chrono::Utc::now().timestamp_nanos_opt()
+                                    .unwrap_or_default(),
                             }
                         }
                     }

@@ -108,7 +108,7 @@ async fn receive(
 ) -> impl IntoResponse {
     // Capture the start time when pubsub receives the event
     // This is measured in nanoseconds
-    let receive_time = chrono::Utc::now().timestamp_nanos();
+    let receive_time = chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default();
     let traceparent = match headers.get("traceparent") {
         Some(tp) => match tp.to_str() {
             Ok(tp) => tp.to_string(),
@@ -150,7 +150,7 @@ async fn process_changes(
         // For the first change, we will use the receive_time from the pubsub
         // For the rest of the changes, we will use the time when the change event is processed
         if index > 0 {
-            start_time = chrono::Utc::now().timestamp_nanos();
+            start_time = chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default();
         }
         info!(
             "Processing change - id:{}, subscription:{}",
@@ -206,7 +206,7 @@ async fn process_changes(
 
             // End time, measured in nanoseconds
             dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherEnd_ns"] =
-                match serde_json::to_value(chrono::Utc::now().timestamp_nanos()) {
+                match serde_json::to_value(chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()) {
                     Ok(val) => val,
                     Err(_) => {
                         return Err(Box::<dyn std::error::Error>::from(
