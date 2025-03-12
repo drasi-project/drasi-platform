@@ -37,9 +37,6 @@ namespace Drasi.Reactions.Debug.Server.Services
 
 		private readonly ILogger<QueryDebugService> _logger;
 
-		private readonly ConcurrentDictionary<string, Task<QueryResult>> _activeQueries = new();
-
-
 		private readonly IChangeBroadcaster _webSocketService;
 
 		private readonly IManagementClient _managementClient;
