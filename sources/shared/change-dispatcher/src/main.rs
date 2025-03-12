@@ -120,7 +120,7 @@ async fn receive(
     let config = state.config.clone();
     let invoker = &state.invoker;
     let json_data = body["data"].clone();
-    match process_changes(invoker, json_data, config, traceparent,receive_time).await {
+    match process_changes(invoker, json_data, config, traceparent, receive_time).await {
         Ok(_) => StatusCode::OK.into_response(),
         Err(e) => {
             log::error!("Error processing changes: {:?}", e);
@@ -138,11 +138,12 @@ async fn process_changes(
     changes: Value,
     _config: ChangeDispatcherConfig,
     traceparent: String,
-    receive_time: i64
+    receive_time: i64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut start_time = receive_time;
 
-    let changes = changes.as_array()
+    let changes = changes
+        .as_array()
         .ok_or_else(|| Box::<dyn std::error::Error>::from("Changes must be an array"))?;
 
     for (index, change_event) in changes.iter().enumerate() {
@@ -163,9 +164,8 @@ async fn process_changes(
             }
         );
         let mut dispatch_event = change_event.clone();
-        dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherStart_ns"] = start_time.into();
-
-        
+        dispatch_event["metadata"]["tracking"]["source"]["changeDispatcherStart_ns"] =
+            start_time.into();
 
         let subscriptions = match change_event["subscriptions"].as_array() {
             Some(subs) => subs.clone(),
@@ -184,7 +184,6 @@ async fn process_changes(
         for query_node_id in query_nodes {
             let app_id = format!("{}-publish-api", query_node_id);
 
-            
             let queries: Vec<_> = subscriptions
                 .iter()
                 .filter(|x| x["queryNodeId"] == query_node_id)

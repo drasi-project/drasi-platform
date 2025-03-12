@@ -266,16 +266,16 @@ async fn process_changes(
     // Use the receive_time to capture the time when the events are received via pubsub
     let mut start_time = receive_time;
 
-    let changes = changes.as_array()
+    let changes = changes
+        .as_array()
         .ok_or_else(|| Box::<dyn std::error::Error>::from("Changes must be an array"))?;
-
 
     for (index, change) in changes.iter().enumerate() {
         // For the first change, we will use the receive_time from the pubsub
         // For the rest of the changes, we will use the time when the change event is processed
         if index > 0 {
             start_time = chrono::Utc::now().timestamp_nanos();
-        } 
+        }
         let change_id = Uuid::new_v4().to_string();
 
         info!(
@@ -310,7 +310,10 @@ async fn process_changes(
                         match change["payload"]["after"]["queryNodeId"].as_str() {
                             Some(query_node_id) => query_node_id,
                             None => {
-                                log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
+                                log::error!(
+                                    "Error loading queryNodeId from the ChangeEvent payload: {:?}",
+                                    change
+                                );
                                 log::error!("The queryNodeId field must be a valid string");
                                 log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
                                 continue;
@@ -319,12 +322,15 @@ async fn process_changes(
                         match change["payload"]["after"]["queryId"].as_str() {
                             Some(query_id) => query_id,
                             None => {
-                                log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
+                                log::error!(
+                                    "Error loading queryId from the ChangeEvent payload: {:?}",
+                                    change
+                                );
                                 log::error!("The queryId field must be a valid string");
                                 log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
                                 continue;
                             }
-                        }
+                        },
                     );
                     let rel_labels: Vec<&str> =
                         match change["payload"]["after"]["relLabels"].as_array() {
@@ -346,7 +352,10 @@ async fn process_changes(
                         match change["payload"]["after"]["queryNodeId"].as_str() {
                             Some(query_node_id) => query_node_id,
                             None => {
-                                log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
+                                log::error!(
+                                    "Error loading queryNodeId from the ChangeEvent payload: {:?}",
+                                    change
+                                );
                                 log::error!("The queryNodeId field must be a valid string");
                                 log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
                                 continue;
@@ -355,12 +364,15 @@ async fn process_changes(
                         match change["payload"]["after"]["queryId"].as_str() {
                             Some(query_id) => query_id,
                             None => {
-                                log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
+                                log::error!(
+                                    "Error loading queryId from the ChangeEvent payload: {:?}",
+                                    change
+                                );
                                 log::error!("The queryId field must be a valid string");
                                 log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
                                 continue;
                             }
-                        }
+                        },
                     );
 
                     let source_subscription_value = json!({
@@ -503,14 +515,13 @@ async fn process_changes(
                 let subscriptions: Vec<Value> = subscriptions
                     .iter()
                     .map(|subscription| {
-                        let parsed_subscription: Value =
-                            match serde_json::from_str(subscription) {
-                                Ok(parsed_subscription) => parsed_subscription,
-                                Err(e) => {
-                                    log::error!("Error parsing subscription: {:?}", e);
-                                    return json!({});
-                                }
-                            };
+                        let parsed_subscription: Value = match serde_json::from_str(subscription) {
+                            Ok(parsed_subscription) => parsed_subscription,
+                            Err(e) => {
+                                log::error!("Error parsing subscription: {:?}", e);
+                                return json!({});
+                            }
+                        };
                         parsed_subscription
                     })
                     .collect();
@@ -544,7 +555,6 @@ async fn process_changes(
                     }
                 }]);
 
-                
                 match publisher.publish(change_dispatch_event, headers).await {
                     Ok(_) => {
                         info!("published event to topic: {}", publish_topic);
@@ -558,6 +568,6 @@ async fn process_changes(
                 log::info!("No subscribers for change: {:?}", change);
             }
         }
-    } 
+    }
     Ok(())
 }
