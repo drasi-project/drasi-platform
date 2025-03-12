@@ -27,37 +27,37 @@ public abstract class SourceChange {
     protected abstract Op getOp();
 
     private String id;
-    private long tsMS;
+    private long tsNS;
     private JsonNode properties;
     private Map<String, Object> metadata;
     private List<String> labels;
     private String startId;
     private String endId;
-    private long sourceTsMS;
+    private long sourceTsNS;
     private long lsn;
     private String sourceTable;
 
 
-    protected SourceChange(String id, long tsMS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsMS, long lsn) {
+    protected SourceChange(String id, long tsNS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long lsn) {
         this.id = id;
-        this.tsMS = tsMS;
+        this.tsNS = tsNS;
         this.properties = properties;
         this.metadata = metadata;
         this.labels = labels;
-        this.sourceTsMS = sourceTsMS;
+        this.sourceTsNS = sourceTsNS;
         this.lsn = lsn;
         this.sourceTable = "node";
     }
 
-    protected SourceChange(String id, long tsMS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsMS, long lsn, String startId, String endId) {
+    protected SourceChange(String id, long tsNS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long lsn, String startId, String endId) {
         this.id = id;
-        this.tsMS = tsMS;
+        this.tsNS = tsNS;
         this.properties = properties;
         this.metadata = metadata;
         this.labels = labels;
         this.startId = startId;
         this.endId = endId;
-        this.sourceTsMS = sourceTsMS;
+        this.sourceTsNS = sourceTsNS;
         this.lsn = lsn;
         this.sourceTable = "rel";
     }
@@ -67,7 +67,7 @@ public abstract class SourceChange {
         rgSource.put("db", Reactivator.SourceId());
         rgSource.put("table", sourceTable);
         rgSource.put("lsn", lsn);
-        rgSource.put("ts_ms", sourceTsMS);
+        rgSource.put("ts_ns", sourceTsNS);
 
         var payload = JsonNodeFactory.instance.objectNode();
         payload.set("source", rgSource);
@@ -93,7 +93,9 @@ public abstract class SourceChange {
                 result.put("op", "d");
                 break;
         }
-        result.put("ts_ms", tsMS);
+        result.put("reactivatorStart_ns", tsNS);
+        long currentTime = System.nanoTime();
+        result.put("reactivatorEnd_ns", currentTime);
         result.set("payload", payload);
 
         return result.toString();
