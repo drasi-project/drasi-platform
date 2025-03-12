@@ -265,302 +265,299 @@ async fn process_changes(
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Use the receive_time to capture the time when the events are received via pubsub
     let mut start_time = receive_time;
-    let mut isFirstChange = true;
-    if let Some(changes) = changes.as_array() {
-        for change in changes {
-            // For the first change, we will use the receive_time from the pubsub
-            // For the rest of the changes, we will use the time when the change event is processed
-            if !isFirstChange {
-                start_time = chrono::Utc::now().timestamp_nanos();
-            } 
-            let change_id = Uuid::new_v4().to_string();
 
-            info!(
-                "Processing change - db:{}, type:{}, id:{}",
-                change["payload"]["source"]["db"], change["payload"]["source"]["table"], change_id
-            );
-            debug!("ChangeEvent: {}", change);
+    let changes = changes.as_array()
+        .ok_or_else(|| Box::<dyn std::error::Error>::from("Changes must be an array"))?;
 
-            // Subscription and unsubscription events
-            if change["payload"]["source"]["db"] == "Drasi"
-                && change["payload"]["source"]["table"] == "SourceSubscription"
-            {
-                match change["op"].as_str() {
-                    Some("i") => {
-                        let node_labels: Vec<&str> =
-                            match change["payload"]["after"]["nodeLabels"].as_array() {
-                                Some(labels) => labels
-                                    .iter()
-                                    .map(|label| label.as_str().unwrap_or(""))
-                                    .collect(),
-                                None => {
-                                    log::error!(
-                                        "Error loading nodeLabels from the ChangeEvent: {:?}",
-                                        change
-                                    );
-                                    log::error!("Error path: 'payload' -> 'after' -> 'nodeLabels'");
-                                    continue;
-                                }
-                            };
-                        node_subscriber.add_labels(
-                            node_labels,
-                            match change["payload"]["after"]["queryNodeId"].as_str() {
-                                Some(query_node_id) => query_node_id,
-                                None => {
-                                    log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
-                                    log::error!("The queryNodeId field must be a valid string");
-                                    log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
-                                    continue;
-                                }
-                            },
-                            match change["payload"]["after"]["queryId"].as_str() {
-                                Some(query_id) => query_id,
-                                None => {
-                                    log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
-                                    log::error!("The queryId field must be a valid string");
-                                    log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
-                                    continue;
-                                }
+
+    for (index, change) in changes.iter().enumerate() {
+        // For the first change, we will use the receive_time from the pubsub
+        // For the rest of the changes, we will use the time when the change event is processed
+        if index > 0 {
+            start_time = chrono::Utc::now().timestamp_nanos();
+        } 
+        let change_id = Uuid::new_v4().to_string();
+
+        info!(
+            "Processing change - db:{}, type:{}, id:{}",
+            change["payload"]["source"]["db"], change["payload"]["source"]["table"], change_id
+        );
+        debug!("ChangeEvent: {}", change);
+
+        // Subscription and unsubscription events
+        if change["payload"]["source"]["db"] == "Drasi"
+            && change["payload"]["source"]["table"] == "SourceSubscription"
+        {
+            match change["op"].as_str() {
+                Some("i") => {
+                    let node_labels: Vec<&str> =
+                        match change["payload"]["after"]["nodeLabels"].as_array() {
+                            Some(labels) => labels
+                                .iter()
+                                .map(|label| label.as_str().unwrap_or(""))
+                                .collect(),
+                            None => {
+                                log::error!(
+                                    "Error loading nodeLabels from the ChangeEvent: {:?}",
+                                    change
+                                );
+                                log::error!("Error path: 'payload' -> 'after' -> 'nodeLabels'");
+                                continue;
                             }
-                        );
-                        let rel_labels: Vec<&str> =
-                            match change["payload"]["after"]["relLabels"].as_array() {
-                                Some(labels) => labels
-                                    .iter()
-                                    .map(|label| label.as_str().unwrap_or(""))
-                                    .collect(),
-                                None => {
-                                    log::error!(
-                                        "Error loading relLabels from the ChangeEvent: {:?}",
-                                        change
-                                    );
-                                    log::error!("Error path: 'payload' -> 'after' -> 'relLabels'");
-                                    continue;
-                                }
-                            };
-                        rel_subscriber.add_labels(
-                            rel_labels,
-                            match change["payload"]["after"]["queryNodeId"].as_str() {
-                                Some(query_node_id) => query_node_id,
-                                None => {
-                                    log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
-                                    log::error!("The queryNodeId field must be a valid string");
-                                    log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
-                                    continue;
-                                }
-                            },
-                            match change["payload"]["after"]["queryId"].as_str() {
-                                Some(query_id) => query_id,
-                                None => {
-                                    log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
-                                    log::error!("The queryId field must be a valid string");
-                                    log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
-                                    continue;
-                                }
+                        };
+                    node_subscriber.add_labels(
+                        node_labels,
+                        match change["payload"]["after"]["queryNodeId"].as_str() {
+                            Some(query_node_id) => query_node_id,
+                            None => {
+                                log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
+                                log::error!("The queryNodeId field must be a valid string");
+                                log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
+                                continue;
                             }
-                        );
-
-                        let source_subscription_value = json!({
-                            "type": "SourceSubscription",
-                            "queryId": change["payload"]["after"]["queryId"],
-                            "queryNodeId": change["payload"]["after"]["queryNodeId"],
-                            "nodeLabels": change["payload"]["after"]["nodeLabels"],
-                            "relLabels": change["payload"]["after"]["relLabels"]
-                        });
-
-                        let state_key = format!(
-                            "SourceSubscription-{}-{}",
-                            match change["payload"]["after"]["queryNodeId"].as_str() {
-                                Some(query_node_id) => query_node_id,
-                                None =>
-                                    return Err(Box::<dyn std::error::Error>::from(
-                                        "Error loading queryNodeId from the ChangeEvent"
-                                    )),
-                            },
-                            match change["payload"]["after"]["queryId"].as_str() {
-                                Some(query_id) => query_id,
-                                None =>
-                                    return Err(Box::<dyn std::error::Error>::from(
-                                        "Error loading queryId from the ChangeEvent"
-                                    )),
-                            }
-                        );
-
-                        // combine statekey and source_subscription_value into a json
-                        // where the key is the state key and the value is the source subscription value
-                        let states = vec![StateEntry::new(&state_key, source_subscription_value)];
-
-                        match state_manager.save_state(states).await {
-                            Ok(_) => info!("Saved SourceSubscription to state store"),
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    }
-                    Some("d") => {
-                        // Handle unsubscription
-                        let state_key = format!(
-                            "SourceSubscription-{}-{}",
-                            match change["payload"]["before"]["queryNodeId"].as_str() {
-                                Some(query_node_id) => query_node_id,
-                                None =>
-                                    return Err(Box::<dyn std::error::Error>::from(
-                                        "Error loading queryNodeId from the ChangeEvent"
-                                    )),
-                            },
-                            match change["payload"]["before"]["queryId"].as_str() {
-                                Some(query_id) => query_id,
-                                None =>
-                                    return Err(Box::<dyn std::error::Error>::from(
-                                        "Error loading queryId from the ChangeEvent"
-                                    )),
-                            }
-                        );
-                        match state_manager.delete_state(&state_key, None).await {
-                            Ok(_) => info!("Deleted Subscription {} from state store", state_key),
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    }
-                    _ => {
-                        // TODO - supprt other ops on SourceSubscriptions
-                    }
-                }
-                return Ok(());
-            }
-
-            let mut subscriptions: Option<Vec<String>> = None;
-            if change["payload"]["source"]["table"] == "node" {
-                if change["op"] == "i" || change["op"] == "u" {
-                    let labels: Vec<&str> = match change["payload"]["after"]["labels"].as_array() {
-                        Some(labels) => labels
-                            .iter()
-                            .map(|label| label.as_str().unwrap_or(""))
-                            .collect(),
-                        None => {
-                            log::error!(
-                                "Error loading labels from the ChangeEvent payload: {:?}",
-                                change
-                            );
-                            log::error!("Error path: 'payload' -> 'after' -> 'labels'");
-                            continue;
-                        }
-                    };
-                    subscriptions = node_subscriber.get_subscribers_for_labels(labels);
-                } else if change["op"] == "d" {
-                    let labels: Vec<&str> = match change["payload"]["before"]["labels"].as_array() {
-                        Some(labels) => labels
-                            .iter()
-                            .map(|label| label.as_str().unwrap_or(""))
-                            .collect(),
-                        None => {
-                            log::error!(
-                                "Error loading labels from the ChangeEvent payload: {:?}",
-                                change
-                            );
-                            log::error!("Error path: 'payload' -> 'before' -> 'labels'");
-                            continue;
-                        }
-                    };
-                    subscriptions = node_subscriber.get_subscribers_for_labels(labels);
-                }
-            } else if change["payload"]["source"]["table"] == "rel" {
-                if change["op"] == "i" || change["op"] == "u" {
-                    let labels: Vec<&str> = match change["payload"]["after"]["labels"].as_array() {
-                        Some(labels) => labels
-                            .iter()
-                            .map(|label| label.as_str().unwrap_or(""))
-                            .collect(),
-                        None => {
-                            log::error!("Error loading labels from the ChangeEvent: {:?}", change);
-                            log::error!("Error path: 'payload' -> 'after' -> 'labels'");
-                            continue;
-                        }
-                    };
-                    subscriptions = rel_subscriber.get_subscribers_for_labels(labels);
-                } else if change["op"] == "d" {
-                    let labels: Vec<&str> = match change["payload"]["before"]["labels"].as_array() {
-                        Some(labels) => labels
-                            .iter()
-                            .map(|label| label.as_str().unwrap_or(""))
-                            .collect(),
-                        None => {
-                            log::error!("Error loading labels from the ChangeEvent: {:?}", change);
-                            log::error!("Error path: 'payload' -> 'before' -> 'labels'");
-                            continue;
-                        }
-                    };
-                    subscriptions = rel_subscriber.get_subscribers_for_labels(labels);
-                }
-            }
-
-            match subscriptions {
-                Some(subscriptions) => {
-                    let subscriptions: Vec<Value> = subscriptions
-                        .iter()
-                        .map(|subscription| {
-                            let parsed_subscription: Value =
-                                match serde_json::from_str(subscription) {
-                                    Ok(parsed_subscription) => parsed_subscription,
-                                    Err(e) => {
-                                        log::error!("Error parsing subscription: {:?}", e);
-                                        return json!({});
-                                    }
-                                };
-                            parsed_subscription
-                        })
-                        .collect();
-
-                    let publish_topic = format!("{}-dispatch", config.source_id);
-                    let mut headers = std::collections::HashMap::new();
-                    headers.insert("traceparent".to_string(), traceparent.clone());
-                    let headers = Headers::new(headers);
-
-                    let change_dispatch_event = json!([{
-                        "id": change_id,
-                        "sourceId": config.source_id,
-                        "type": change["op"],
-                        "elementType": change["payload"]["source"]["table"],
-                        "subscriptions": subscriptions,
-                        "time": {
-                            "seq": change["payload"]["source"]["lsn"],
-                            "ms": change["ts_ms"]
                         },
-                        "before": change["payload"]["before"],
-                        "after": change["payload"]["after"],
-                        "metadata": {
-                            "tracking": {
-                                "source": {
-                                    "seq": change["payload"]["source"]["lsn"],
-                                    "reactivator_ms": change["ts_ms"],
-                                    "changeRouterStart_ns": start_time,
-                                    "changeRouterEnd_ns": chrono::Utc::now().timestamp_nanos(),
-                                }
+                        match change["payload"]["after"]["queryId"].as_str() {
+                            Some(query_id) => query_id,
+                            None => {
+                                log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
+                                log::error!("The queryId field must be a valid string");
+                                log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
+                                continue;
                             }
                         }
-                    }]);
-
-                    
-                    match publisher.publish(change_dispatch_event, headers).await {
-                        Ok(_) => {
-                            info!("published event to topic: {}", publish_topic);
+                    );
+                    let rel_labels: Vec<&str> =
+                        match change["payload"]["after"]["relLabels"].as_array() {
+                            Some(labels) => labels
+                                .iter()
+                                .map(|label| label.as_str().unwrap_or(""))
+                                .collect(),
+                            None => {
+                                log::error!(
+                                    "Error loading relLabels from the ChangeEvent: {:?}",
+                                    change
+                                );
+                                log::error!("Error path: 'payload' -> 'after' -> 'relLabels'");
+                                continue;
+                            }
+                        };
+                    rel_subscriber.add_labels(
+                        rel_labels,
+                        match change["payload"]["after"]["queryNodeId"].as_str() {
+                            Some(query_node_id) => query_node_id,
+                            None => {
+                                log::error!("Error loading queryNodeId from the ChangeEvent payload: {:?}", change);
+                                log::error!("The queryNodeId field must be a valid string");
+                                log::error!("Error path: 'payload' -> 'after' -> 'queryNodeId'");
+                                continue;
+                            }
+                        },
+                        match change["payload"]["after"]["queryId"].as_str() {
+                            Some(query_id) => query_id,
+                            None => {
+                                log::error!("Error loading queryId from the ChangeEvent payload: {:?}", change);
+                                log::error!("The queryId field must be a valid string");
+                                log::error!("Error path: 'payload' -> 'after' -> 'queryId'");
+                                continue;
+                            }
                         }
+                    );
+
+                    let source_subscription_value = json!({
+                        "type": "SourceSubscription",
+                        "queryId": change["payload"]["after"]["queryId"],
+                        "queryNodeId": change["payload"]["after"]["queryNodeId"],
+                        "nodeLabels": change["payload"]["after"]["nodeLabels"],
+                        "relLabels": change["payload"]["after"]["relLabels"]
+                    });
+
+                    let state_key = format!(
+                        "SourceSubscription-{}-{}",
+                        match change["payload"]["after"]["queryNodeId"].as_str() {
+                            Some(query_node_id) => query_node_id,
+                            None =>
+                                return Err(Box::<dyn std::error::Error>::from(
+                                    "Error loading queryNodeId from the ChangeEvent"
+                                )),
+                        },
+                        match change["payload"]["after"]["queryId"].as_str() {
+                            Some(query_id) => query_id,
+                            None =>
+                                return Err(Box::<dyn std::error::Error>::from(
+                                    "Error loading queryId from the ChangeEvent"
+                                )),
+                        }
+                    );
+
+                    // combine statekey and source_subscription_value into a json
+                    // where the key is the state key and the value is the source subscription value
+                    let states = vec![StateEntry::new(&state_key, source_subscription_value)];
+
+                    match state_manager.save_state(states).await {
+                        Ok(_) => info!("Saved SourceSubscription to state store"),
                         Err(e) => {
                             return Err(e);
                         }
                     }
                 }
-                None => {
-                    log::info!("No subscribers for change: {:?}", change);
+                Some("d") => {
+                    // Handle unsubscription
+                    let state_key = format!(
+                        "SourceSubscription-{}-{}",
+                        match change["payload"]["before"]["queryNodeId"].as_str() {
+                            Some(query_node_id) => query_node_id,
+                            None =>
+                                return Err(Box::<dyn std::error::Error>::from(
+                                    "Error loading queryNodeId from the ChangeEvent"
+                                )),
+                        },
+                        match change["payload"]["before"]["queryId"].as_str() {
+                            Some(query_id) => query_id,
+                            None =>
+                                return Err(Box::<dyn std::error::Error>::from(
+                                    "Error loading queryId from the ChangeEvent"
+                                )),
+                        }
+                    );
+                    match state_manager.delete_state(&state_key, None).await {
+                        Ok(_) => info!("Deleted Subscription {} from state store", state_key),
+                        Err(e) => {
+                            return Err(e);
+                        }
+                    }
+                }
+                _ => {
+                    // TODO - supprt other ops on SourceSubscriptions
                 }
             }
-            isFirstChange = false;
+            return Ok(());
         }
-    } else {
-        return Err(Box::<dyn std::error::Error>::from(
-            "Changes must be an array",
-        ));
-    }
+
+        let mut subscriptions: Option<Vec<String>> = None;
+        if change["payload"]["source"]["table"] == "node" {
+            if change["op"] == "i" || change["op"] == "u" {
+                let labels: Vec<&str> = match change["payload"]["after"]["labels"].as_array() {
+                    Some(labels) => labels
+                        .iter()
+                        .map(|label| label.as_str().unwrap_or(""))
+                        .collect(),
+                    None => {
+                        log::error!(
+                            "Error loading labels from the ChangeEvent payload: {:?}",
+                            change
+                        );
+                        log::error!("Error path: 'payload' -> 'after' -> 'labels'");
+                        continue;
+                    }
+                };
+                subscriptions = node_subscriber.get_subscribers_for_labels(labels);
+            } else if change["op"] == "d" {
+                let labels: Vec<&str> = match change["payload"]["before"]["labels"].as_array() {
+                    Some(labels) => labels
+                        .iter()
+                        .map(|label| label.as_str().unwrap_or(""))
+                        .collect(),
+                    None => {
+                        log::error!(
+                            "Error loading labels from the ChangeEvent payload: {:?}",
+                            change
+                        );
+                        log::error!("Error path: 'payload' -> 'before' -> 'labels'");
+                        continue;
+                    }
+                };
+                subscriptions = node_subscriber.get_subscribers_for_labels(labels);
+            }
+        } else if change["payload"]["source"]["table"] == "rel" {
+            if change["op"] == "i" || change["op"] == "u" {
+                let labels: Vec<&str> = match change["payload"]["after"]["labels"].as_array() {
+                    Some(labels) => labels
+                        .iter()
+                        .map(|label| label.as_str().unwrap_or(""))
+                        .collect(),
+                    None => {
+                        log::error!("Error loading labels from the ChangeEvent: {:?}", change);
+                        log::error!("Error path: 'payload' -> 'after' -> 'labels'");
+                        continue;
+                    }
+                };
+                subscriptions = rel_subscriber.get_subscribers_for_labels(labels);
+            } else if change["op"] == "d" {
+                let labels: Vec<&str> = match change["payload"]["before"]["labels"].as_array() {
+                    Some(labels) => labels
+                        .iter()
+                        .map(|label| label.as_str().unwrap_or(""))
+                        .collect(),
+                    None => {
+                        log::error!("Error loading labels from the ChangeEvent: {:?}", change);
+                        log::error!("Error path: 'payload' -> 'before' -> 'labels'");
+                        continue;
+                    }
+                };
+                subscriptions = rel_subscriber.get_subscribers_for_labels(labels);
+            }
+        }
+
+        match subscriptions {
+            Some(subscriptions) => {
+                let subscriptions: Vec<Value> = subscriptions
+                    .iter()
+                    .map(|subscription| {
+                        let parsed_subscription: Value =
+                            match serde_json::from_str(subscription) {
+                                Ok(parsed_subscription) => parsed_subscription,
+                                Err(e) => {
+                                    log::error!("Error parsing subscription: {:?}", e);
+                                    return json!({});
+                                }
+                            };
+                        parsed_subscription
+                    })
+                    .collect();
+
+                let publish_topic = format!("{}-dispatch", config.source_id);
+                let mut headers = std::collections::HashMap::new();
+                headers.insert("traceparent".to_string(), traceparent.clone());
+                let headers = Headers::new(headers);
+
+                let change_dispatch_event = json!([{
+                    "id": change_id,
+                    "sourceId": config.source_id,
+                    "type": change["op"],
+                    "elementType": change["payload"]["source"]["table"],
+                    "subscriptions": subscriptions,
+                    "time": {
+                        "seq": change["payload"]["source"]["lsn"],
+                        "ms": change["ts_ms"]
+                    },
+                    "before": change["payload"]["before"],
+                    "after": change["payload"]["after"],
+                    "metadata": {
+                        "tracking": {
+                            "source": {
+                                "seq": change["payload"]["source"]["lsn"],
+                                "reactivator_ms": change["ts_ms"],
+                                "changeRouterStart_ns": start_time,
+                                "changeRouterEnd_ns": chrono::Utc::now().timestamp_nanos(),
+                            }
+                        }
+                    }
+                }]);
+
+                
+                match publisher.publish(change_dispatch_event, headers).await {
+                    Ok(_) => {
+                        info!("published event to topic: {}", publish_topic);
+                    }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+            }
+            None => {
+                log::info!("No subscribers for change: {:?}", change);
+            }
+        }
+    } 
     Ok(())
 }
