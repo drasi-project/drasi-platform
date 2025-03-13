@@ -284,7 +284,7 @@ async fn process_changes(
             change["payload"]["source"]["db"], change["payload"]["source"]["table"], change_id
         );
         debug!("ChangeEvent: {}", change);
-
+        info!("ChangeEvent: {:?}", change);
         // Subscription and unsubscription events
         if change["payload"]["source"]["db"] == "Drasi"
             && change["payload"]["source"]["table"] == "SourceSubscription"
@@ -540,7 +540,7 @@ async fn process_changes(
                     "subscriptions": subscriptions,
                     "time": {
                         "seq": change["payload"]["source"]["lsn"],
-                        "ms": change["ts_ms"]
+                        "ns": change["payload"]["source"]["ts_ns"],
                     },
                     "before": change["payload"]["before"],
                     "after": change["payload"]["after"],
@@ -552,10 +552,15 @@ async fn process_changes(
                                 "changeRouterStart_ns": start_time,
                                 "changeRouterEnd_ns": chrono::Utc::now().timestamp_nanos_opt()
                                     .unwrap_or_default(),
+                                "source_ns": change["payload"]["source"]["ts_ns"],
+                                "reactivatorStart_ns": change["reactivatorStart_ns"],
+                                "reactivatorEnd_ns": change["reactivatorEnd_ns"],
                             }
                         }
                     }
                 }]);
+
+                info!("dispatching change event: {:?}", change_dispatch_event);
 
                 match publisher.publish(change_dispatch_event, headers).await {
                     Ok(_) => {
