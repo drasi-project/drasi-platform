@@ -80,7 +80,7 @@ namespace ChangeFeedSample
                         try
                         {
                             // Reactivator start time
-                            var reactivatorStartTime = DateTime.UtcNow.Ticks * 100;
+                            var reactivatorStartTime = (DateTimeOffset.UtcNow.Ticks - DateTimeOffset.UnixEpoch.Ticks) * 100;
                             using StreamReader sr = new StreamReader(response.Content);
                             using JsonTextReader jtr = new JsonTextReader(sr);
 
@@ -134,8 +134,7 @@ namespace ChangeFeedSample
                     throw new NotSupportedException();
             }            
             
-            
-            result["schema"] = "";
+
 
             var isRelation = (bool)(source["_isEdge"] ?? false);
 
@@ -193,7 +192,7 @@ namespace ChangeFeedSample
             }
 
             result["reactivatorStart_ns"] = reactivatorStartTime;
-            result["reactivatorEnd_ns"] = DateTime.UtcNow.Ticks * 100;
+            result["reactivatorEnd_ns"] = (DateTimeOffset.UtcNow.Ticks - DateTimeOffset.UnixEpoch.Ticks) * 100; // 1 nanosecond = 100 ticks
             return result;
         }
 
