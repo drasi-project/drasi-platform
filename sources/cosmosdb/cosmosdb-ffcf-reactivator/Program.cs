@@ -79,6 +79,8 @@ namespace ChangeFeedSample
                     {
                         try
                         {
+                            // Reactivator start time
+                            var reactivatorStartTime = DateTime.UtcNow.Ticks * 100;
                             using StreamReader sr = new StreamReader(response.Content);
                             using JsonTextReader jtr = new JsonTextReader(sr);
 
@@ -88,7 +90,7 @@ namespace ChangeFeedSample
                             Console.WriteLine("\nProcessing {0} source changes...", documents.Count);
                             foreach (var document in documents)
                             {
-                                var debChange = FormatDebeziumEvent((JObject)document, changeEventSourceId, configuration["partitionKey"], sequenceGenerator);
+                                var debChange = FormatDebeziumEvent((JObject)document, changeEventSourceId, configuration["partitionKey"], sequenceGenerator, reactivatorStartTime);
                                 await daprClient.PublishEventAsync(pubSubName, sourceId + "-change", new[] { JsonDocument.Parse(debChange.ToString()) });
                             }
 
@@ -106,10 +108,11 @@ namespace ChangeFeedSample
         }
 
 
-        private static JObject FormatDebeziumEvent(JObject feedEvent, string changeEventSourceId, string partitionKey, ISequenceGenerator sequenceGenerator)
+        private static JObject FormatDebeziumEvent(JObject feedEvent, string changeEventSourceId, string partitionKey, ISequenceGenerator sequenceGenerator, long reactivatorStartTime)
         {
             var result = new JObject();
             var source = feedEvent["current"];
+            Console.WriteLine("Source: " + source.ToString(Formatting.Indented));
             var debBefore = new JObject();
             var debAfter = new JObject();
             var debState = debAfter;
@@ -131,7 +134,7 @@ namespace ChangeFeedSample
                     throw new NotSupportedException();
             }            
             
-            result["ts_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            
             result["schema"] = "";
 
             var isRelation = (bool)(source["_isEdge"] ?? false);
@@ -142,7 +145,7 @@ namespace ChangeFeedSample
             var debSource = new JObject();
             debPayload["source"] = debSource;
             debSource["lsn"] = sequenceGenerator.GetNext();
-            debSource["ts_sec"] = source["_ts"];
+            debSource["ts_ns"] = source["_ts"].Value<long>() * 1_000_000_000;  
             debSource["db"] = changeEventSourceId;
             debSource["table"] = isRelation ? "rel" : "node";
 
@@ -189,6 +192,8 @@ namespace ChangeFeedSample
                 }
             }
 
+            result["reactivatorStart_ns"] = reactivatorStartTime;
+            result["reactivatorEnd_ns"] = DateTime.UtcNow.Ticks * 100;
             return result;
         }
 

@@ -548,7 +548,6 @@ async fn process_changes(
                         "tracking": {
                             "source": {
                                 "seq": change["payload"]["source"]["lsn"],
-                                "reactivator_ms": change["ts_ms"],
                                 "changeRouterStart_ns": start_time,
                                 "changeRouterEnd_ns": chrono::Utc::now().timestamp_nanos_opt()
                                     .unwrap_or_default(),
