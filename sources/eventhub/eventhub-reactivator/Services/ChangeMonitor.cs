@@ -43,6 +43,15 @@ class ChangeMonitor : IChangeMonitor
 
         await foreach (var change in channel.Reader.ReadAllAsync(cancellationToken))
         {
+            var receivedTime = DateTime.UtcNow; // Capture the receipt time
+            // Create a new SourceChange with the received time
+                // var updatedChange = new SourceChange(
+                //     change.Op,           // Original operation (e.g., INSERT)
+                //     change.Data,         // Original data
+                //     receivedTime.ToUnixTimeMilliseconds(), // Use received time instead of enqueued time
+                //     change.SequenceNum,  // Original sequence number
+                //     change.PartitionId   // Original partition ID
+                // );
             yield return change;
         }
         

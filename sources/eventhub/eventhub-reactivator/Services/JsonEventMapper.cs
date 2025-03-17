@@ -21,12 +21,14 @@ namespace Reactivator.Services
 
     class JsonEventMapper() : IEventMapper
     {
-        public Task<SourceChange> MapEventAsync(PartitionEvent rawEvent)
+        // The reactivator start time is the time when the reactivator starts processing the event.
+        public Task<SourceChange> MapEventAsync(PartitionEvent rawEvent, long reactivatorStart_ns)
+            
         {
             var elementId = rawEvent.Data.MessageId ?? $"{rawEvent.Partition.EventHubName}-{rawEvent.Partition.PartitionId}-{rawEvent.Data.SequenceNumber}";
             var data = new SourceElement(elementId, [rawEvent.Partition.EventHubName], JsonNode.Parse(rawEvent.Data.EventBody)?.AsObject());
 
-            return Task.FromResult(new SourceChange(ChangeOp.INSERT, data, rawEvent.Data.EnqueuedTime.ToUnixTimeMilliseconds(), rawEvent.Data.SequenceNumber, rawEvent.Partition.PartitionId));
+            return Task.FromResult(new SourceChange(ChangeOp.INSERT, data, rawEvent.Data.EnqueuedTime.ToUnixTimeMilliseconds(), reactivatorStart_ns, rawEvent.Data.SequenceNumber, rawEvent.Partition.PartitionId));
         }
     }
 }
