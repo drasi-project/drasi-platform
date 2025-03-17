@@ -215,6 +215,11 @@ where
                     }
                 };
 
+                let reactivator_start_ns = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("Time went backwards")
+                    .as_nanos();
+
                 if let Some(rver) = p.resource_version() {
                     log::info!("received watch event for {} {:?} {}", K::KIND, op, rver);
                     cursor = rver.clone();
@@ -253,17 +258,14 @@ where
                     properties,
                 };
 
-                let time = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-                    * 1000;
-                match tx.send(SourceChange::new(op, node, time, 0, None)).await {
+                // Since we do not have a timestamp for the source change, we will use the reactivator start time
+                // as the timestamp for the source change
+                match tx.send(SourceChange::new(op, node,reactivator_start_ns,  reactivator_start_ns,0, None)).await {
                     Ok(_) => log::info!("sent node change for {} {}", label, id),
                     Err(e) => log::error!("failed to send node change for {} {}: {}", label, id, e),
                 }
                 for owner in owners {
-                    match tx.send(SourceChange::new(op, owner, time, 0, None)).await {
+                    match tx.send(SourceChange::new(op, owner,reactivator_start_ns, reactivator_start_ns, 0, None)).await {
                         Ok(_) => log::info!("sent relation change for {} {}", label, id),
                         Err(e) => log::error!(
                             "failed to send relation change for {} {}: {}",

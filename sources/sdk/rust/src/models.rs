@@ -155,6 +155,7 @@ impl Serialize for SourceChange {
         state.serialize_field("op", &self.op)?;
         state.serialize_field("payload", &Payload(self))?;
         state.serialize_field("reactivatorStart_ns", &self.reactivator_start_ns)?;
+        state.serialize_field("reactivatorEnd_ns", &self.reactivator_end_ns)?;
         if let Some(metadata) = &self.metadata {
             state.serialize_field("metadata", metadata)?;
         }
