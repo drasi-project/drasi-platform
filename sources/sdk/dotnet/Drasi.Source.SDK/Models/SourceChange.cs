@@ -63,9 +63,7 @@ public class SourceChange
             },
             { "lsn", lsn },
             { "partition", partition },            
-            { "source_ns", tsNS },
-            { "reactivatorStart_ns", reactivatorStartNs },
-            { "reactivatorEnd_ns", reactivatorEndNs },
+            { "ts_ns", tsNS },
         };
 
         var payload = new JsonObject
@@ -94,7 +92,8 @@ public class SourceChange
                     _ => throw new NotImplementedException()
                 }
             },
-            { "ts_ns", tsNS },
+            { "reactivatorStart_ns", reactivatorStartNs },
+            { "reactivatorEnd_ns", reactivatorEndNs },
             { "payload", payload }
         };
 

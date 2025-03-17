@@ -24,7 +24,7 @@ namespace Reactivator.Services
     {
         private readonly string _sourceId = sourceId;
 
-        public Task<ChangeNotification> MapEventAsync(IChangedItem rawEvent)
+        public Task<ChangeNotification> MapEventAsync(IChangedItem rawEvent, long reactivatorStartNs)
         {
             var result = new ChangeNotification();
             var data = new VertexState();
@@ -50,16 +50,17 @@ namespace Reactivator.Services
                         var dt = upsert.NewOrUpdatedEntity.Attributes["modifiedon"];
                         if (dt is DateTime time)
                         {
-                            result.TimestampMilliseconds = (long)(time.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalMilliseconds;
+                            result.TimestampNanoseconds = (long)(time.ToUniversalTime().Ticks - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks) * 100;
+                            // result.TimestampMilliseconds = (long)(time.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalMilliseconds;
                         }
                         else if (dt is DateTimeOffset offset)
                         {
-                            result.TimestampMilliseconds = offset.ToUnixTimeMilliseconds();
+                            result.TimestampNanoseconds = (offset.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) * 100;
                         }
                     }
                     else
                     {
-                        result.TimestampMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        result.TimestampNanoseconds = (DateTimeOffset.UtcNow.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) * 100;
                     }
 
                     result.Op = "u";
@@ -70,7 +71,7 @@ namespace Reactivator.Services
                         {
                             Db = _sourceId,
                             Table = "node",
-                            TimestampMilliseconds = result.TimestampMilliseconds
+                            TimestampNanoseconds = result.TimestampNanoseconds
                         }
                     };
                     break;
@@ -85,16 +86,16 @@ namespace Reactivator.Services
                         var dt = delete.RemovedItem.KeyAttributes["deletetime"];
                         if (dt is DateTime time)
                         {
-                            result.TimestampMilliseconds = (long)(time.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalMilliseconds;
+                            result.TimestampNanoseconds = (long)(time.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalMilliseconds;
                         }
                         else if (dt is DateTimeOffset offset)
                         {
-                            result.TimestampMilliseconds = offset.ToUnixTimeMilliseconds();
+                            result.TimestampNanoseconds = (offset.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) / 10000;
                         }
                     }
                     else
                     {
-                        result.TimestampMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        result.TimestampNanoseconds = (DateTimeOffset.UtcNow.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) * 100;
                     }
 
                     result.Op = "d";
@@ -105,12 +106,14 @@ namespace Reactivator.Services
                         {
                             Db = _sourceId,
                             Table = "node",
-                            TimestampMilliseconds = result.TimestampMilliseconds
+                            TimestampNanoseconds = result.TimestampNanoseconds
                         }
                     };
                     break;
             }
 
+            result.ReactivatorStartNs = reactivatorStartNs;
+            result.ReactivatorEndNs = (DateTimeOffset.UtcNow.Ticks - DateTimeOffset.UnixEpoch.Ticks) * 100;
             return Task.FromResult(result);
         }
     }
