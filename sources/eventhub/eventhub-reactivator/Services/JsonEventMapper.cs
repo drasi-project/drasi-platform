@@ -28,7 +28,9 @@ namespace Reactivator.Services
             var elementId = rawEvent.Data.MessageId ?? $"{rawEvent.Partition.EventHubName}-{rawEvent.Partition.PartitionId}-{rawEvent.Data.SequenceNumber}";
             var data = new SourceElement(elementId, [rawEvent.Partition.EventHubName], JsonNode.Parse(rawEvent.Data.EventBody)?.AsObject());
 
-            return Task.FromResult(new SourceChange(ChangeOp.INSERT, data, rawEvent.Data.EnqueuedTime.ToUnixTimeMilliseconds(), reactivatorStart_ns, rawEvent.Data.SequenceNumber, rawEvent.Partition.PartitionId));
+            // Converted the enqueued time to nanoseconds by multiplying it by 1000000. 
+            // We are not using ticks here because Event Hubs’ EnqueuedTime is millisecond-precise.
+            return Task.FromResult(new SourceChange(ChangeOp.INSERT, data, rawEvent.Data.EnqueuedTime.ToUnixTimeMilliseconds() * 1000000, reactivatorStart_ns, rawEvent.Data.SequenceNumber, rawEvent.Partition.PartitionId));
         }
     }
 }
