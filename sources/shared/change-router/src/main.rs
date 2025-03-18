@@ -284,7 +284,6 @@ async fn process_changes(
             change["payload"]["source"]["db"], change["payload"]["source"]["table"], change_id
         );
         debug!("ChangeEvent: {}", change);
-        info!("ChangeEvent: {:?}", change);
         // Subscription and unsubscription events
         if change["payload"]["source"]["db"] == "Drasi"
             && change["payload"]["source"]["table"] == "SourceSubscription"
@@ -558,8 +557,6 @@ async fn process_changes(
                         }
                     }
                 }]);
-
-                info!("dispatching change event: {:?}", change_dispatch_event);
 
                 match publisher.publish(change_dispatch_event, headers).await {
                     Ok(_) => {
