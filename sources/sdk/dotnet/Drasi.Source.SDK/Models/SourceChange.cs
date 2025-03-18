@@ -28,6 +28,8 @@ public class SourceChange
     private readonly long lsn;
     private readonly string? partition;
 
+    private long? reactivatorEndNs;
+
     private readonly SourceElement element;
 
     /// <summary>
@@ -38,7 +40,7 @@ public class SourceChange
     /// <param name="timestampNs">The Unix time in nanoseconds of the change</param>
     /// <param name="reactivatorStartNs">The Unix time in nanoseconds marking the start of the reactivator when it begins processing the change event
     /// <param name="lsn">The sequence number of the change</param>
-    public SourceChange(ChangeOp op, SourceElement element, long timestampNs, long reactivatorStartNs, long lsn, string? partition = null)
+    public SourceChange(ChangeOp op, SourceElement element, long timestampNs, long reactivatorStartNs, long lsn, string? partition = null, long? reactivatorEndNs = null)
     {
         this.op = op;
         this.tsNS = timestampNs;
@@ -46,11 +48,11 @@ public class SourceChange
         this.element = element;
         this.lsn = lsn;
         this.partition = partition;
+        this.reactivatorEndNs = reactivatorEndNs;
     }
 
     public string ToJson()
     {
-        var reactivatorEndNs = (DateTimeOffset.UtcNow.Ticks - DateTimeOffset.UnixEpoch.Ticks) * 100;
         var rgSource = new JsonObject
         {
             { "db", Reactivator.SourceId() },
@@ -99,6 +101,10 @@ public class SourceChange
 
         return result.ToJsonString();
     }    
+    public void SetReactivatorEndNs(long reactivatorEndNs)
+    {
+        this.reactivatorEndNs = reactivatorEndNs;
+    }
 }
 
 public enum ChangeOp
