@@ -80,16 +80,14 @@ impl SourceChange {
             element,
             metadata,
             reactivator_start_ns,
-            // get the current timestamp in nanoseconds
-            reactivator_end_ns: {
-                let now = std::time::SystemTime::now();
-                now.duration_since(std::time::UNIX_EPOCH)
-                    .expect("Time went backwards")
-                    .as_nanos() as u128
-            },
+            reactivator_end_ns: 0,
             source_ns,
             seq,
         }
+    }
+
+    pub fn set_reactivator_end_ns(&mut self, reactivator_end_ns: u128) {
+        self.reactivator_end_ns = reactivator_end_ns;
     }
 }
 
