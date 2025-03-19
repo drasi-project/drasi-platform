@@ -539,7 +539,7 @@ async fn process_changes(
                     "subscriptions": subscriptions,
                     "time": {
                         "seq": change["payload"]["source"]["lsn"],
-                        "ns": change["payload"]["source"]["ts_ns"],
+                        "ms": change["payload"]["source"]["ts_ns"].as_u64().unwrap_or(0) / 1_000_000,  // convert to milliseconds for drasi-core
                     },
                     "before": change["payload"]["before"],
                     "after": change["payload"]["after"],

@@ -162,7 +162,7 @@ pub struct ChangeEvent {
 #[derive(Serialize, Deserialize, Debug)]
 struct ChangeEventTime {
     seq: u64,
-    ns: u64,
+    ms: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -246,7 +246,7 @@ enum ElementType {
 
 impl ChangeEvent {
     pub fn get_timestamp(&self) -> u64 {
-        self.time.ns
+        self.time.ms
     }
 
     pub fn has_query(&self, query_id: &str) -> bool {
@@ -266,7 +266,7 @@ impl ChangeEvent {
             source_id: future_ref.element_ref.source_id.to_string(),
             time: ChangeEventTime {
                 seq: 0,
-                ns: future_ref.original_time,
+                ms: future_ref.original_time,
             },
             queries: vec![query_id.to_string()],
             op: ChangeType::Future,
@@ -293,7 +293,7 @@ impl TryInto<SourceChange> for ChangeEvent {
                         &self.source_id,
                         self.element_type
                             .ok_or(ApiError::BadRequest("missing element type".into()))?,
-                        self.time.ns,
+                        self.time.ms,
                     )?,
             },
             ChangeType::Update => SourceChange::Update {
@@ -304,12 +304,12 @@ impl TryInto<SourceChange> for ChangeEvent {
                         &self.source_id,
                         self.element_type
                             .ok_or(ApiError::BadRequest("missing element type".into()))?,
-                        self.time.ns,
+                        self.time.ms,
                     )?,
             },
             ChangeType::Delete => SourceChange::Delete {
                 metadata: ElementMetadata {
-                    effective_from: self.time.ns,
+                    effective_from: self.time.ms,
                     labels: Arc::from(match &self.before {
                         Some(before) => match &before.labels {
                             Some(labels) => labels.iter().map(|l| Arc::from(l.as_str())).collect(),
@@ -326,7 +326,7 @@ impl TryInto<SourceChange> for ChangeEvent {
             ChangeType::Future => SourceChange::Future {
                 future_ref: FutureElementRef {
                     element_ref: ElementReference::new(&self.source_id, &self.id),
-                    original_time: self.time.ns,
+                    original_time: self.time.ms,
                     due_time: self
                         .future_due_time
                         .ok_or(ApiError::BadRequest("Missing future due time".to_string()))?,
