@@ -27,37 +27,40 @@ public abstract class SourceChange {
     protected abstract Op getOp();
 
     private String id;
-    private long tsNS;
+    private long reactivatorStartTsNs;
     private JsonNode properties;
     private Map<String, Object> metadata;
     private List<String> labels;
     private String startId;
     private String endId;
     private long sourceTsNS;
+    private long reactivatorEndTsNs;
     private long lsn;
     private String sourceTable;
 
 
-    protected SourceChange(String id, long tsNS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long lsn) {
+    protected SourceChange(String id, long reactivatorStartTsNs, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long lsn) {
         this.id = id;
-        this.tsNS = tsNS;
+        this.reactivatorStartTsNs = reactivatorStartTsNs;
         this.properties = properties;
         this.metadata = metadata;
         this.labels = labels;
         this.sourceTsNS = sourceTsNS;
+        this.reactivatorEndTsNs = 0; 
         this.lsn = lsn;
         this.sourceTable = "node";
     }
 
-    protected SourceChange(String id, long tsNS, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long lsn, String startId, String endId) {
+    protected SourceChange(String id, long reactivatorStartTsNs, JsonNode properties, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long lsn, String startId, String endId) {
         this.id = id;
-        this.tsNS = tsNS;
+        this.reactivatorStartTsNs = reactivatorStartTsNs;
         this.properties = properties;
         this.metadata = metadata;
         this.labels = labels;
         this.startId = startId;
         this.endId = endId;
         this.sourceTsNS = sourceTsNS;
+        this.reactivatorEndTsNs = 0;
         this.lsn = lsn;
         this.sourceTable = "rel";
     }
@@ -93,9 +96,8 @@ public abstract class SourceChange {
                 result.put("op", "d");
                 break;
         }
-        result.put("reactivatorStart_ns", tsNS);
-        long currentTime = System.nanoTime();
-        result.put("reactivatorEnd_ns", currentTime);
+        result.put("reactivatorStart_ns", reactivatorStartTsNs);
+        result.put("reactivatorEnd_ns", reactivatorStartTsNs);
         result.set("payload", payload);
 
         return result.toString();
@@ -129,6 +131,10 @@ public abstract class SourceChange {
         }
 
         return  result;
+    }
+
+    public void setReactivatorEndTsNs(long reactivatorEndTsNs) {
+        this.reactivatorEndTsNs = reactivatorEndTsNs;
     }
 
     enum Op {

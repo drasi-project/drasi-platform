@@ -39,6 +39,8 @@ class DaprChangePublisher implements ChangePublisher {
 
     @Override
     public void Publish(SourceChange change) throws JsonProcessingException {
+        long currentTime = System.nanoTime();
+        change.setReactivatorEndTsNs(currentTime);
         var data = change.toJson();
         var changeList = "[" + data + "]";
         client.publishEvent(pubsubName, sourceId + "-change", changeList.getBytes()).block();

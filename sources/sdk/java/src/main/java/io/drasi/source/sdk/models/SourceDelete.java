@@ -32,33 +32,33 @@ public class SourceDelete extends SourceChange {
     }
 
     /**
-     * Create a delete operation of a node with the given id, timestamp, metadata and labels.
+     * Creates a delete operation for a node with the given parameters.
      *
-     * @param id         The id of the element.
-     * @param tsNS       The timestamp of the event in milliseconds.
-     * @param metadata   The metadata of the element.
-     * @param labels     The labels of the element.
-     * @param sourceTsNS The timestamp of the event in the source database in milliseconds.
-     * @param sequenceNumber The sequence number of the event in the source database.
+     * @param id                    The ID of the element.
+     * @param reactivatorStartTsNs  The timestamp when the reactivator received the event in nanoseconds.
+     * @param metadata              The metadata of the element.
+     * @param labels                The labels of the element.
+     * @param sourceTsNS            The timestamp of the event in the source database in nanoseconds.
+     * @param sequenceNumber        The sequence number of the event in the source database.
      */
-    public SourceDelete(String id, long tsNS, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long sequenceNumber) {
-        super(id, tsNS, null, metadata, labels, sourceTsNS, sequenceNumber);
+    public SourceDelete(String id, long reactivatorStartTsNs, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long sequenceNumber) {
+        super(id, reactivatorStartTsNs, null, metadata, labels, sourceTsNS, sequenceNumber);
 
     }
 
     /**
-     * Create a delete operation of a relation with the given id, timestamp, metadata, labels, startId and endId.
+     * Creates a delete operation for a relation with the given parameters.
      *
-     * @param id         The id of the element.
-     * @param tsNS       The timestamp of the event in milliseconds.
-     * @param metadata   The metadata of the element.
-     * @param labels     The labels of the element.
-     * @param sourceTsNS The timestamp of the event in the source database in milliseconds.
-     * @param sequenceNumber The sequence number of the event in the source database.
-     * @param startId    The id of the start node.
-     * @param endId      The id of the end node.
+     * @param id                    The ID of the element.
+     * @param reactivatorStartTsNs  The timestamp when the reactivator received the event in nanoseconds.
+     * @param metadata              The metadata of the element.
+     * @param labels                The labels of the element.
+     * @param sourceTsNS            The timestamp of the event in the source database in nanoseconds.
+     * @param sequenceNumber        The sequence number of the event in the source database.
+     * @param startId               The ID of the start node.
+     * @param endId                 The ID of the end node.
      */
-    public SourceDelete(String id, long tsNS, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long sequenceNumber, String startId, String endId) {
-        super(id, tsNS, null, metadata, labels, sourceTsNS, sequenceNumber, startId, endId);
+    public SourceDelete(String id, long reactivatorStartTsNs, Map<String, Object> metadata, List<String> labels, long sourceTsNS, long sequenceNumber, String startId, String endId) {
+        super(id, reactivatorStartTsNs, null, metadata, labels, sourceTsNS, sequenceNumber, startId, endId);
     }
 }
