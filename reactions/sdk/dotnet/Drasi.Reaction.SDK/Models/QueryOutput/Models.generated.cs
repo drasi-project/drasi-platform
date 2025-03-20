@@ -112,6 +112,13 @@ namespace Drasi.Reaction.SDK.Models.QueryOutput
         /// </summary>
         [JsonPropertyName("before")]
         public Dictionary<string, object> Before { get; set; }
+
+        /// <summary>
+        /// The keys used to group or categorize this update, if applicable
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("groupingKeys")]
+        public string[] GroupingKeys { get; set; }
     }
 
     /// <summary>
@@ -231,6 +238,13 @@ namespace Drasi.Reaction.SDK.Models.QueryOutput
         /// </summary>
         [JsonPropertyName("before")]
         public Dictionary<string, object> Before { get; set; }
+
+        /// <summary>
+        /// The keys used to group or categorize this update, if applicable
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("groupingKeys")]
+        public string[] GroupingKeys { get; set; }
     }
 
     public enum BootstrapCompletedSignalKind { BootstrapCompleted };
