@@ -28,3 +28,6 @@ schemars = "0.8.15"
 bytes = "1.7.1"
 uuid = { version = "1.10.0", features = ["v4"] }
 
+
+[profile.release]
+lto = true
