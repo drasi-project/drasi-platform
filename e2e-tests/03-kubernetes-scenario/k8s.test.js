@@ -37,7 +37,7 @@ let dbClient = new pg.Client({
 beforeAll(async () => {
   await waitForChildProcess(
     cp.exec(
-      "kind get kubeconfig -n drasi-test | sed 's/127.0.0.1.*/kubernetes.default.svc/g' | kubectl create secret generic k8s-context --from-file=context=/dev/stdin -n drasi-system",
+      "kind get kubeconfig | sed 's/127.0.0.1.*/kubernetes.default.svc/g' | kubectl create secret generic k8s-context --from-file=context=/dev/stdin -n drasi-system",
       { encoding: "utf-8" },
     ),
   );
