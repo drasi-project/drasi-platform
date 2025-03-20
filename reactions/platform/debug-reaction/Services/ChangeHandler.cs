@@ -1,4 +1,4 @@
-// Copyright 2024 The Drasi Authors.
+// Copyright 2025 The Drasi Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Drasi.Reactions.Debug.Server.Models;
-using Drasi.Reaction.SDK.Models.QueryOutput;
-using Drasi.Reaction.SDK.Models.ViewService;
 using System.Text.Json;
+namespace Drasi.Reactions.Debug.Server.Services;
+using Drasi.Reaction.SDK;
+using Drasi.Reaction.SDK.Models.QueryOutput;
 
-namespace Drasi.Reactions.Debug.Server.Services
+public class ChangeHandler : IChangeEventHandler
 {
-	public interface IQueryDebugService
+	private readonly IQueryDebugService _debugService;
+	private readonly ILogger<ChangeHandler> _logger;
+
+
+	public ChangeHandler(IQueryDebugService debugService, ILogger<ChangeHandler> logger)
 	{
-		IAsyncEnumerable<ViewItem> GetQueryResult(string queryId);
-		Task ProcessChange(ChangeEvent change);
-		Task ProcessControlSignal(ControlEvent change);
-		Task<Dictionary<string, object>> GetDebugInfo(string queryId);
+		_debugService = debugService;
+		_logger = logger;
+	}
+
+	public async Task HandleChange(ChangeEvent evt, object? queryConfig)
+	{
+		await _debugService.ProcessChange(evt);
 	}
 }

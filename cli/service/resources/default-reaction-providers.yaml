@@ -116,7 +116,7 @@ spec:
   services:
     reaction:
       image: reaction-result
-      dapr:
+      dapr: 
         app-port: "8080"
       endpoints:
         gateway:
