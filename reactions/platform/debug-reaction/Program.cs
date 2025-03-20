@@ -15,111 +15,85 @@
 using Dapr;
 using Dapr.Actors.Client;
 using Dapr.Client;
-using DebugReaction.Services;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.Extensions.DependencyInjection;
+using Drasi.Reactions.Debug.Server.Models;
+using Drasi.Reactions.Debug.Server.Services;
+using Drasi.Reaction.SDK;
+using Drasi.Reaction.SDK.Services;
+using Drasi.Reaction.SDK.Models.QueryOutput;
+
 using System.Text.Json;
+using System.Text;
+using System.Net.WebSockets;
 
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
-var configuration = BuildConfiguration();
-
-var pubsubName = configuration.GetValue<string>("PubsubName", "drasi-pubsub");
-var configDirectory = configuration.GetValue<string>("QueryConfigPath", "/etc/queries");
-var queryContainerId = configuration.GetValue<string>("QueryContainer", "default");
-
-
-// Add services to the container.
-builder.Services.AddDaprClient();
-builder.Services.AddActors(x => { });
-builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
-builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
-builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(sp.GetRequiredService<IResultViewClient>(), sp.GetRequiredService<IActorProxyFactory>(), sp.GetRequiredService<DaprClient>(), configDirectory, queryContainerId));
-builder.Services.AddHostedService(sp => sp.GetRequiredService<IQueryDebugService>());
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+public class Program
 {
-    app.UseExceptionHandler("/Error");
+	public static async Task Main(string[] args)
+	{
+		var builder = WebApplication.CreateBuilder();
+		builder.Services.AddSingleton<IChangeBroadcaster, WebSocketService>();
+		builder.Services.AddDaprClient();
+		builder.Services.AddControllers();
+		builder.Services.AddActors(x => { });
+		builder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
+		builder.Services.AddSingleton<IManagementClient, ManagementClient>();
+		builder.Services.AddSingleton<IQueryDebugService>(sp => new QueryDebugService(
+			sp.GetRequiredService<IResultViewClient>(),
+			sp.GetRequiredService<IActorProxyFactory>(),
+			sp.GetRequiredService<DaprClient>(),
+			sp.GetRequiredService<IChangeBroadcaster>(),
+			sp.GetRequiredService<ILogger<QueryDebugService>>(),
+			sp.GetRequiredService<IManagementClient>()));
+		builder.Services.AddCors(options =>
+		{
+			options.AddPolicy("AllowAll", policy =>
+			{
+				policy.AllowAnyOrigin()
+					  .AllowAnyMethod()
+					  .AllowAnyHeader();
+			});
+		});
+
+		var server = builder.Build();
+		if (!server.Environment.IsDevelopment())
+		{
+			server.UseExceptionHandler("/Error");
+		}
+
+		server.UseCors("AllowAll");
+		server.UseStaticFiles();
+		server.UseRouting();
+		server.UseWebSockets();
+		server.UseEndpoints(endpoints =>
+		{
+			endpoints.MapControllers();
+			endpoints.MapFallbackToFile("index.html");
+		});
+
+
+		var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+		server.Urls.Add($"http://0.0.0.0:{port}");
+		server.Logger.LogInformation("Application configured to listen on: {Urls}", string.Join(", ", server.Urls));
+
+		var reaction = new ReactionBuilder()
+			.UseChangeEventHandler<ChangeHandler>()
+			.UseControlEventHandler<ControlSignalHandler>()
+			.ConfigureServices(services =>
+			{
+				// Share services with the reaction system
+				services.AddSingleton(sp => server.Services.GetRequiredService<IChangeBroadcaster>());
+				services.AddSingleton(sp => server.Services.GetRequiredService<IQueryDebugService>());
+			})
+			.Build();
+
+		server.Lifetime.ApplicationStarted.Register(() => StartupTask.SetResult());
+		await Task.WhenAll(reaction.StartAsync(ShutdownToken.Token), server.RunAsync());
+	}
+	public static TaskCompletionSource StartupTask { get; } = new();
+
+	public static CancellationTokenSource ShutdownToken { get; } = new();
 }
 
-app.UseStaticFiles();
-
-app.UseRouting();
-app.UseCloudEvents();
-
-//app.MapBlazorHub();
-//app.MapFallbackToPage("/_Host");
-
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapSubscribeHandler();
-    endpoints.MapBlazorHub();
-    endpoints.MapFallbackToPage("/_Host");
-    var ep = endpoints.MapPost("event", ProcessEvent);
-
-    foreach (var qpath in Directory.GetFiles(configDirectory))
-    {
-        var queryId = Path.GetFileName(qpath);
-        ep.WithTopic(pubsubName, queryId + "-results");
-    }        
-});
-
-// todo: host dapr endpoints on own port, add security
-app.Urls.Add("http://0.0.0.0:80");  //dapr
-app.Urls.Add("http://0.0.0.0:8080"); //app
-app.Run();
-
-
-static IConfiguration BuildConfiguration()
-{
-    return new ConfigurationBuilder()
-        .SetBasePath(Directory.GetCurrentDirectory())
-        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-        .AddEnvironmentVariables()
-        .Build();
-}
-
-async Task ProcessEvent(HttpContext context)
-{
-    try
-    {
-        var debugService = context.RequestServices.GetRequiredService<IQueryDebugService>();
-        var data = await JsonDocument.ParseAsync(context.Request.Body);
-
-        Console.WriteLine("Got event: " + data.RootElement.GetRawText());
-
-        var evt = data.RootElement;
-        var queryId = evt.GetProperty("queryId").GetString();
-        if (!File.Exists(Path.Combine(configDirectory, queryId)))
-        {
-            Console.WriteLine("Skipping " + queryId);
-            context.Response.StatusCode = 200;
-            return;
-        }
-        
-        switch (evt.GetProperty("kind").GetString()) 
-        {
-            case "control":
-                Console.WriteLine("Processing signal " + queryId);
-                debugService.ProcessControlSignal(evt);
-                break;
-            case "change":
-                Console.WriteLine("Processing change " + queryId);
-                debugService.ProcessRawChange(evt);
-                break;
-        }        
-
-        context.Response.StatusCode = 200;
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error processing event: {ex.Message}");
-        throw;
-    }
-}
