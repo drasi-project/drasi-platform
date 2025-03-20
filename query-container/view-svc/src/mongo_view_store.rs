@@ -349,12 +349,12 @@ impl ViewStore for MongoViewStore {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
-            .as_millis() as u64;
+            .as_nanos() as u64;
         let timestamp = timestamp.unwrap_or(now) as i64;
         let effective_at = std::cmp::min(metadata.ts, timestamp);
 
         if let RetentionPolicy::Expire { after_seconds } = policy {
-            if ((now - (after_seconds * 1000)) as i64) > timestamp {
+            if ((now - (after_seconds * 1_000_000_000)) as i64) > timestamp {
                 return Err(ViewError::NotFound);
             }
         }
@@ -518,12 +518,12 @@ async fn collect_garbage(store: Arc<MongoViewStore>) {
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
-        .as_millis() as i64;
+        .as_nanos() as i64;
 
     for (query_id, policy) in policy_snapshot {
         let epoch = match policy {
             RetentionPolicy::Latest => continue,
-            RetentionPolicy::Expire { after_seconds } => now - (after_seconds as i64 * 1000),
+            RetentionPolicy::Expire { after_seconds } => now - (after_seconds as i64 * 1_000_000_000),
             RetentionPolicy::All => continue,
         };
 
