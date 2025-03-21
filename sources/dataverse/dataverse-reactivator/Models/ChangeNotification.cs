@@ -100,9 +100,6 @@ namespace Reactivator.Models
         [JsonPropertyName("ts_ns")]
         public long TimestampNanoseconds { get; set; }
 
-        [JsonPropertyName("ts_sec")]
-        public long TimestampSeconds { get; set; }
-
         [JsonPropertyName("partition")]
         public string? Partition { get; set; }
     }

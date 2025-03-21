@@ -112,7 +112,6 @@ namespace ChangeFeedSample
         {
             var result = new JObject();
             var source = feedEvent["current"];
-            Console.WriteLine("Source: " + source.ToString(Formatting.Indented));
             var debBefore = new JObject();
             var debAfter = new JObject();
             var debState = debAfter;

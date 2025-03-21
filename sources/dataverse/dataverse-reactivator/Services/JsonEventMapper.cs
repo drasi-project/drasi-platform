@@ -86,11 +86,11 @@ namespace Reactivator.Services
                         var dt = delete.RemovedItem.KeyAttributes["deletetime"];
                         if (dt is DateTime time)
                         {
-                            result.TimestampNanoseconds = (long)(time.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalMilliseconds;
+                            result.TimestampNanoseconds = (long)(time.ToUniversalTime().Ticks - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks) * 100;
                         }
                         else if (dt is DateTimeOffset offset)
                         {
-                            result.TimestampNanoseconds = (offset.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) / 10000;
+                            result.TimestampNanoseconds = (offset.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) * 100;
                         }
                     }
                     else
