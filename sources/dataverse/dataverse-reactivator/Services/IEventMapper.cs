@@ -19,6 +19,6 @@ namespace Reactivator.Services
 {
     interface IEventMapper
     {
-        Task<ChangeNotification> MapEventAsync(IChangedItem rawEvent);
+        Task<ChangeNotification> MapEventAsync(IChangedItem rawEvent, long reactivatorStartNs);
     }
 }

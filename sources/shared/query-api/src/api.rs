@@ -29,7 +29,7 @@ pub struct SubscriptionRequest {
 #[derive(Serialize)]
 pub struct ControlEvent {
     pub op: String,
-    pub ts_ms: u64,
+    pub ts_ns: u64,
     pub payload: SubscriptionPayload,
 }
 

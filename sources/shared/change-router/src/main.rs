@@ -284,7 +284,6 @@ async fn process_changes(
             change["payload"]["source"]["db"], change["payload"]["source"]["table"], change_id
         );
         debug!("ChangeEvent: {}", change);
-
         // Subscription and unsubscription events
         if change["payload"]["source"]["db"] == "Drasi"
             && change["payload"]["source"]["table"] == "SourceSubscription"
@@ -540,7 +539,9 @@ async fn process_changes(
                     "subscriptions": subscriptions,
                     "time": {
                         "seq": change["payload"]["source"]["lsn"],
-                        "ms": change["ts_ms"]
+                        "ms": change["payload"]["source"]["ts_ns"]
+                            .as_u64()
+                            .ok_or_else(|| Box::<dyn std::error::Error>::from("Error converting ts_ns to u64"))? / 1_000_000,  // convert to milliseconds for drasi-core
                     },
                     "before": change["payload"]["before"],
                     "after": change["payload"]["after"],
@@ -548,10 +549,12 @@ async fn process_changes(
                         "tracking": {
                             "source": {
                                 "seq": change["payload"]["source"]["lsn"],
-                                "reactivator_ms": change["ts_ms"],
                                 "changeRouterStart_ns": start_time,
                                 "changeRouterEnd_ns": chrono::Utc::now().timestamp_nanos_opt()
                                     .unwrap_or_default(),
+                                "source_ns": change["payload"]["source"]["ts_ns"],
+                                "reactivatorStart_ns": change["reactivatorStart_ns"],
+                                "reactivatorEnd_ns": change["reactivatorEnd_ns"],
                             }
                         }
                     }

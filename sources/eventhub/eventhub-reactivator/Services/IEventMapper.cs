@@ -19,6 +19,6 @@ namespace Reactivator.Services
 {
     interface IEventMapper
     {
-        Task<SourceChange> MapEventAsync(PartitionEvent rawEvent);
+        Task<SourceChange> MapEventAsync(PartitionEvent rawEvent, long reactivatorStartNs);
     }
 }

@@ -26,10 +26,14 @@ namespace Reactivator.Models
         [JsonPropertyName("op")]
         public string Op { get; set; }
 
-        [JsonPropertyName("ts_ms")]
-        public long TimestampMilliseconds { get; set; }
+        [JsonPropertyName("ts_ns")]
+        public long TimestampNanoseconds { get; set; }
 
+        [JsonPropertyName("reactivatorStart_ns")]
+        public long ReactivatorStartNs { get; set; }
 
+        [JsonPropertyName("reactivatorEnd_ns")]
+        public long ReactivatorEndNs { get; set; }
         [JsonPropertyName("payload")]
         public ChangePayload Payload { get; set; }
     }
@@ -93,11 +97,8 @@ namespace Reactivator.Models
         [JsonPropertyName("lsn")]
         public long LSN { get; set; }
 
-        [JsonPropertyName("ts_ms")]
-        public long TimestampMilliseconds { get; set; }
-
-        [JsonPropertyName("ts_sec")]
-        public long TimestampSeconds { get; set; }
+        [JsonPropertyName("ts_ns")]
+        public long TimestampNanoseconds { get; set; }
 
         [JsonPropertyName("partition")]
         public string? Partition { get; set; }

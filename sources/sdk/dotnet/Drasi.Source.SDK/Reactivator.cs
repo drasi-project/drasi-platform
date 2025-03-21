@@ -60,6 +60,8 @@ public class Reactivator : IHost
             await foreach (var change in changeMonitor.Monitor(cts.Token))
             {
                 using var activity = _traceSource.StartActivity("PublishChange");
+                var reactivator_end_time = (DateTimeOffset.UtcNow.Ticks - DateTimeOffset.UnixEpoch.Ticks) * 100;
+                change.SetReactivatorEndNs(reactivator_end_time);
                 await publisher.Publish(change);
             }
         }

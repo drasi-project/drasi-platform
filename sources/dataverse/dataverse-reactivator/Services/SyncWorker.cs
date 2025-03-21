@@ -41,10 +41,11 @@ namespace Reactivator.Services
             while (!stoppingToken.IsCancellationRequested)
             {
                 var delta = await GetChanges(lastToken);
+                long startNs = (DateTimeOffset.UtcNow.Ticks - DateTimeOffset.UnixEpoch.Ticks) * 100;
                 Console.WriteLine($"Got {delta.Item1.Count} changes for entity {_entityName}");
                 foreach (var change in delta.Item1)
                 {
-                    var notification = await _eventMapper.MapEventAsync(change);
+                    var notification = await _eventMapper.MapEventAsync(change, startNs);
                     await _changePublisher.Publish([notification]);
                 }
 
