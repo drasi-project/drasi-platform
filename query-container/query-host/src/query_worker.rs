@@ -342,7 +342,12 @@ impl QueryWorker {
                                     None => continue,
                                     Some(evt) => {
                                         let msg_process_start = Instant::now();
-                                        let enqueue_time = evt.enqueue_time;
+                                        // Time when the event was dequeued
+                                        let dequeue_time = SystemTime::now()
+                                                            .duration_since(UNIX_EPOCH)
+                                                            .unwrap_or_default()
+                                                            .as_nanos() as u64;
+                                        let enqueue_time = evt.enqueue_time;  // Defined by the publish api
                                         if !evt.data.has_query(query_id.as_ref()) {
                                             log::info!("skipping message for another query");
                                             if let Err(err) = change_stream.ack(&evt.id).await {
@@ -357,7 +362,7 @@ impl QueryWorker {
                                         span.set_attribute("query_id", query_id.clone());
 
                                         let evt_id = &evt.id.clone();
-                                        let process_future = process_change(&query_id, &continuous_query, &mut sequence_manager, &publisher, evt, enqueue_time)
+                                        let process_future = process_change(&query_id, &continuous_query, &mut sequence_manager, &publisher, evt, enqueue_time, dequeue_time)
                                             .instrument(span);
 
                                         match process_future.await {
@@ -469,10 +474,9 @@ async fn process_change(
     publisher: &ResultPublisher,
     evt: Message<ChangeEvent>,
     enqueue_time: u64,
+    dequeue_time: u64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     log::info!("Query {} received message: {:?}", query_id, evt);
-    let dequeue_time = SystemTime::now();
-
     let timestamp = evt.data.get_timestamp();
     let mut metadata = evt.data.get_metadata();
     let source_change_id = evt.id.clone();
@@ -500,12 +504,6 @@ async fn process_change(
             .or_insert(Value::Object(Map::new()))
             .as_object_mut()
         {
-            let dequeue_time = Number::from(
-                dequeue_time
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_nanos() as u64,
-            );
             let query_start_time = Number::from(
                 process_start_time
                     .duration_since(UNIX_EPOCH)
@@ -520,7 +518,7 @@ async fn process_change(
             );
 
             let mut qt = Map::new();
-            qt.insert("dequeue_ns".to_string(), Value::Number(dequeue_time));
+            qt.insert("dequeue_ns".to_string(), Value::Number(Number::from(dequeue_time)));
             qt.insert("enqueue_ns".to_string(), Value::Number(Number::from(enqueue_time)));
             qt.insert("queryStart_ns".to_string(), Value::Number(query_start_time));
             qt.insert("queryEnd_ns".to_string(), Value::Number(query_end_time));
