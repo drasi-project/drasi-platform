@@ -156,7 +156,7 @@ impl RedisChangeStream {
 
 #[async_trait]
 impl SequentialChangeStream for RedisChangeStream {
-    async fn recv<T>(&self) -> Result<Option<>, ChangeStreamError>
+    async fn recv<T>(&self) -> Result<Option, ChangeStreamError>
     where
         T: for<'de> Deserialize<'de>,
     {
