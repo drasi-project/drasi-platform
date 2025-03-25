@@ -256,7 +256,7 @@ impl QueryWorker {
             let msg_latency = meter
                 .f64_histogram("drasi.query-host.msg_latency")
                 .with_description("Latency of messge processing")
-                .with_unit(opentelemetry::metrics::Unit::new("ms"))
+                .with_unit(opentelemetry::metrics::Unit::new("ns"))
                 .init();
 
             let metric_attributes = [KeyValue::new("query_id", query_id.to_string())];
@@ -341,6 +341,13 @@ impl QueryWorker {
                                 match msg {
                                     None => continue,
                                     Some(evt) => {
+                                        let msg_process_start = Instant::now();
+                                        // Time when the event was dequeued
+                                        let dequeue_time = SystemTime::now()
+                                                            .duration_since(UNIX_EPOCH)
+                                                            .unwrap_or_default()
+                                                            .as_nanos() as u64;
+                                        let enqueue_time = evt.enqueue_time;  // Defined by the publish api
                                         if !evt.data.has_query(query_id.as_ref()) {
                                             log::info!("skipping message for another query");
                                             if let Err(err) = change_stream.ack(&evt.id).await {
@@ -348,15 +355,14 @@ impl QueryWorker {
                                             }
                                             continue;
                                         }
-
-                                        let msg_process_start = Instant::now();
+                                   
                                         let parent_context = trace_propogator.extract(&evt);
                                         let span = tracing::span!(tracing::Level::INFO, "process_message");
                                         span.set_parent(parent_context);
                                         span.set_attribute("query_id", query_id.clone());
 
                                         let evt_id = &evt.id.clone();
-                                        let process_future = process_change(&query_id, &continuous_query, &mut sequence_manager, &publisher, evt)
+                                        let process_future = process_change(&query_id, &continuous_query, &mut sequence_manager, &publisher, evt, enqueue_time, dequeue_time)
                                             .instrument(span);
 
                                         match process_future.await {
@@ -373,7 +379,7 @@ impl QueryWorker {
                                             tracing::error!("Error acknowledging message: {}", err);
                                         }
 
-                                        msg_latency.record(msg_process_start.elapsed().as_secs_f64() * 1000.0, &metric_attributes);
+                                        msg_latency.record(msg_process_start.elapsed().as_nanos() as f64, &metric_attributes);
                                         change_counter.add(1, &metric_attributes);
                                     }
                                 }
@@ -467,10 +473,10 @@ async fn process_change(
     seq_manager: &mut SequenceManager,
     publisher: &ResultPublisher,
     evt: Message<ChangeEvent>,
+    enqueue_time: u64,
+    dequeue_time: u64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     log::info!("Query {} received message: {:?}", query_id, evt);
-    let dequeue_time = SystemTime::now();
-
     let timestamp = evt.data.get_timestamp();
     let mut metadata = evt.data.get_metadata();
     let source_change_id = evt.id.clone();
@@ -498,29 +504,24 @@ async fn process_change(
             .or_insert(Value::Object(Map::new()))
             .as_object_mut()
         {
-            let dequeue_time = Number::from(
-                dequeue_time
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64,
-            );
             let query_start_time = Number::from(
                 process_start_time
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
-                    .as_millis() as u64,
+                    .as_nanos() as u64,
             );
             let query_end_time = Number::from(
                 process_end_time
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
-                    .as_millis() as u64,
+                    .as_nanos() as u64,
             );
 
             let mut qt = Map::new();
-            qt.insert("dequeue_ms".to_string(), Value::Number(dequeue_time));
-            qt.insert("queryStart_ms".to_string(), Value::Number(query_start_time));
-            qt.insert("queryEnd_ms".to_string(), Value::Number(query_end_time));
+            qt.insert("dequeue_ns".to_string(), Value::Number(Number::from(dequeue_time)));
+            qt.insert("enqueue_ns".to_string(), Value::Number(Number::from(enqueue_time)));
+            qt.insert("queryStart_ns".to_string(), Value::Number(query_start_time));
+            qt.insert("queryEnd_ns".to_string(), Value::Number(query_end_time));
 
             tracking.insert("query".to_string(), Value::Object(qt));
         }

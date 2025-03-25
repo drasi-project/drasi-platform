@@ -308,6 +308,25 @@ where
             },
             None => None,
         },
+        enqueue_time: match message.map.get("enqueue_time") {
+            Some(data) => match data {
+                redis::Value::Data(data) => match String::from_utf8(data.to_vec()) {
+                    Ok(data_str) => match data_str.parse::<u64>() {
+                        Ok(parsed) => parsed,
+                        Err(err) => {
+                            log::error!("Failed to parse enqueue_time to u64: {:?}", err);
+                            0
+                        }
+                    },
+                    Err(err) => {
+                        log::error!("Failed to deserialize enqueue_time to String: {:?}", err);
+                        0
+                    }
+                },
+                _ => 0,
+            },
+            None => 0,
+        },        
     })
 }
 
