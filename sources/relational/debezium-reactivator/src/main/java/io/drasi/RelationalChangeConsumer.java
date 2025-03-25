@@ -28,6 +28,7 @@ import io.drasi.source.sdk.models.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -71,11 +72,8 @@ public class RelationalChangeConsumer implements DebeziumEngine.ChangeConsumer<C
                           DebeziumEngine.RecordCommitter<ChangeEvent<String, String>> committer) 
                           throws InterruptedException {
         for (var record : records) {
-            long startTime = System.nanoTime();
-            if (record.value() == null) {
-                continue;
-            }
-
+            Instant instant = Instant.now();
+            long startTime = instant.getEpochSecond() * 1_000_000_000 + instant.getNano();
             try {
                 var sourceChange = objectMapper.readTree(record.value());
                 var drasiChange = ExtractDrasiChange(sourceChange, startTime);

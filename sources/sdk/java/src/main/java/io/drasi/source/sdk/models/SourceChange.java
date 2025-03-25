@@ -97,7 +97,7 @@ public abstract class SourceChange {
                 break;
         }
         result.put("reactivatorStart_ns", reactivatorStartTsNs);
-        result.put("reactivatorEnd_ns", reactivatorStartTsNs);
+        result.put("reactivatorEnd_ns", reactivatorEndTsNs);
         result.set("payload", payload);
 
         return result.toString();
