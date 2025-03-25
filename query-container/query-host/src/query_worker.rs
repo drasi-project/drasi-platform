@@ -355,7 +355,7 @@ impl QueryWorker {
                                             }
                                             continue;
                                         }
-                                   
+
                                         let parent_context = trace_propogator.extract(&evt);
                                         let span = tracing::span!(tracing::Level::INFO, "process_message");
                                         span.set_parent(parent_context);
@@ -518,12 +518,18 @@ async fn process_change(
             );
 
             let mut qt = Map::new();
-            qt.insert("dequeue_ns".to_string(), Value::Number(Number::from(dequeue_time)));
+            qt.insert(
+                "dequeue_ns".to_string(),
+                Value::Number(Number::from(dequeue_time)),
+            );
 
             if enqueue_time.is_none() {
                 qt.insert("enqueue_ns".to_string(), Value::Null);
             } else {
-                qt.insert("enqueue_ns".to_string(), Value::Number(Number::from(enqueue_time.unwrap())));
+                qt.insert(
+                    "enqueue_ns".to_string(),
+                    Value::Number(Number::from(enqueue_time.unwrap())),
+                );
             }
             qt.insert("queryStart_ns".to_string(), Value::Number(query_start_time));
             qt.insert("queryEnd_ns".to_string(), Value::Number(query_end_time));
