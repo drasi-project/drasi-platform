@@ -23,7 +23,7 @@ pub mod publisher;
 pub struct Message<T> {
     pub id: String,
     pub data: T,
-    pub enqueue_time: u64,
+    pub enqueue_time: Option<u64>,
     pub trace_state: Option<String>,
     pub trace_parent: Option<String>,
 }

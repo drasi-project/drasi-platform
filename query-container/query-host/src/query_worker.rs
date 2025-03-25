@@ -473,7 +473,7 @@ async fn process_change(
     seq_manager: &mut SequenceManager,
     publisher: &ResultPublisher,
     evt: Message<ChangeEvent>,
-    enqueue_time: u64,
+    enqueue_time: Option<u64>,
     dequeue_time: u64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     log::info!("Query {} received message: {:?}", query_id, evt);
@@ -519,7 +519,12 @@ async fn process_change(
 
             let mut qt = Map::new();
             qt.insert("dequeue_ns".to_string(), Value::Number(Number::from(dequeue_time)));
-            qt.insert("enqueue_ns".to_string(), Value::Number(Number::from(enqueue_time)));
+
+            if enqueue_time.is_none() {
+                qt.insert("enqueue_ns".to_string(), Value::Null);
+            } else {
+                qt.insert("enqueue_ns".to_string(), Value::Number(Number::from(enqueue_time.unwrap())));
+            }
             qt.insert("queryStart_ns".to_string(), Value::Number(query_start_time));
             qt.insert("queryEnd_ns".to_string(), Value::Number(query_end_time));
 
