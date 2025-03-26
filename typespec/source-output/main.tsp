@@ -17,7 +17,8 @@ enum Versions {
 @discriminator("op")
 model SourceChange {
     "op": "i" | "u" | "d";
-    ts_ms: int64;
+    reactivatorStart_ns: int64;
+    reactivatorEnd_ns: int64;
     metadata?: Record<unknown>
 }
 
@@ -65,5 +66,5 @@ model ChangeSource {
     db: string;
     lsn: int64;
     table: "node" | "rel";
-    ts_ms: int64;    
+    ts_ns: int64;    
 }

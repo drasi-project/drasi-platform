@@ -249,10 +249,16 @@ where
             select! {
                 data = stream.next() => {
                     match data {
-                        Some(data) => {
+                        Some(mut data) => {
                             let span = tracing::span!(tracing::Level::INFO, "publish_change");
                             span.set_attribute("drasi.source.id", source_id.clone());
-
+                            let reactivator_end_ns = {
+                                let now = std::time::SystemTime::now();
+                                now.duration_since(std::time::UNIX_EPOCH)
+                                    .expect("Time went backwards")
+                                    .as_nanos() as u128
+                            };
+                            data.set_reactivator_end_ns(reactivator_end_ns);
                             if let Err(err) = self.publisher.publish(data).instrument(span).await {
                                 panic!("Error publishing: {}", err)
                             }

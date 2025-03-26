@@ -63,7 +63,7 @@ impl Publisher {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
-            .as_millis()
+            .as_nanos()
             .to_string();
         items.push(("data", data));
         items.push(("enqueue_time", now));

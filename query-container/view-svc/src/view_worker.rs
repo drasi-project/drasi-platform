@@ -101,7 +101,7 @@ impl ViewWorker {
             let msg_latency = meter
                 .f64_histogram("drasi.view-svc.msg_latency")
                 .with_description("Latency of messge processing")
-                .with_unit(opentelemetry::metrics::Unit::new("ms"))
+                .with_unit(opentelemetry::metrics::Unit::new("ns"))
                 .init();
 
             let metric_attributes = [KeyValue::new("query_id", query_id.to_string())];
@@ -180,7 +180,7 @@ impl ViewWorker {
                                             log::error!("Error acknowledging message: {}", err);
                                         }
 
-                                        msg_latency.record(msg_process_start.elapsed().as_secs_f64() * 1000.0, &metric_attributes);
+                                        msg_latency.record(msg_process_start.elapsed().as_nanos() as f64, &metric_attributes);
                                     }
                                 }
                             }

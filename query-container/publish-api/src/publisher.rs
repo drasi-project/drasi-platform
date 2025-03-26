@@ -61,7 +61,7 @@ impl Publisher {
         let mut connection = self.connection.clone();
         let mut items = Vec::with_capacity(4);
         let now = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-            Ok(now) => now.as_millis().to_string(),
+            Ok(now) => now.as_nanos().to_string(),
             Err(e) => {
                 return Err(PublishError::Other(format!(
                     "Error getting current time: {}",
