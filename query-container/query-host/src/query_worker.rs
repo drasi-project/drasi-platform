@@ -523,13 +523,10 @@ async fn process_change(
                 Value::Number(Number::from(dequeue_time)),
             );
 
-            if enqueue_time.is_none() {
-                qt.insert("enqueue_ns".to_string(), Value::Null);
+            if let Some(enqueue_ns) = enqueue_time {
+                qt.insert("enqueue_ns".to_string(), Value::Number(Number::from(enqueue_ns)));
             } else {
-                qt.insert(
-                    "enqueue_ns".to_string(),
-                    Value::Number(Number::from(enqueue_time.unwrap())),
-                );
+                qt.insert("enqueue_ns".to_string(), Value::Null);
             }
             qt.insert("queryStart_ns".to_string(), Value::Number(query_start_time));
             qt.insert("queryEnd_ns".to_string(), Value::Number(query_end_time));
