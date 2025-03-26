@@ -524,7 +524,10 @@ async fn process_change(
             );
 
             if let Some(enqueue_ns) = enqueue_time {
-                qt.insert("enqueue_ns".to_string(), Value::Number(Number::from(enqueue_ns)));
+                qt.insert(
+                    "enqueue_ns".to_string(),
+                    Value::Number(Number::from(enqueue_ns)),
+                );
             } else {
                 qt.insert("enqueue_ns".to_string(), Value::Null);
             }
