@@ -40,7 +40,7 @@ use tokio::{
     task::JoinHandle,
     time::Instant,
 };
-use tracing::{instrument, Instrument};
+use tracing::{instrument, Instrument, info_span, span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
@@ -554,113 +554,119 @@ async fn bootstrap(
     element_index: Arc<dyn ElementIndex>,
     result_index: Arc<dyn ResultIndex>,
 ) -> Result<(), BootstrapError> {
-    match publisher
-        .publish(
-            query_id,
-            ResultEvent::from_control_signal(
+    let process_span = info_span!("process_bootstrap", query_id = query_id);
+
+    async move {
+        match publisher
+            .publish(
                 query_id,
-                seq_manager.increment("control"),
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64,
-                ControlSignal::BootstrapStarted,
-            ),
-        )
-        .await
-    {
-        Ok(_) => log::info!("Published start signal"),
-        Err(err) => {
-            log::error!("Error publishing start signal: {}", err);
-            return Err(BootstrapError::publish_error(err));
-        }
-    };
-
-    _ = element_index.clear().await;
-    _ = result_index.clear().await;
-
-    for source in &config.sources.subscriptions {
-        let mut initial_data = match source_client
-            .subscribe(
-                query_container_id.to_string(),
-                query_id.to_string(),
-                source.clone(),
+                ResultEvent::from_control_signal(
+                    query_id,
+                    seq_manager.increment("control"),
+                    SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
+                    ControlSignal::BootstrapStarted,
+                ),
             )
             .await
         {
-            Ok(r) => r,
-            Err(e) => {
-                log::error!("Error subscribing to source: {} {}", source.id, e);
-                return Err(e);
+            Ok(_) => log::info!("Published start signal"),
+            Err(err) => {
+                log::error!("Error publishing start signal: {}", err);
+                return Err(BootstrapError::publish_error(err));
             }
         };
 
-        let mut initial_data = pin!(initial_data);
+        _ = element_index.clear().await;
+        _ = result_index.clear().await;
 
-        while let Some(change) = initial_data.next().await {
-            match change {
-                Ok(change) => {
-                    let timestamp = change.get_transaction_time();
-                    let element_id = change.get_reference().element_id.to_string();
-                    let change_results = match query.process_source_change(change).await {
-                        Ok(r) => r,
-                        Err(e) => {
-                            log::error!("Error processing source change: {}", e);
-                            return Err(BootstrapError::process_failed(
-                                source.id.to_string(),
-                                element_id,
-                                Box::new(e),
-                            ));
-                        }
-                    };
-
-                    let seq = seq_manager.increment("bootstrap");
-                    let output = ResultEvent::from_query_results(
-                        query_id,
-                        change_results,
-                        seq,
-                        timestamp,
-                        None,
-                    );
-                    match publisher.publish(query_id, output).await {
-                        Ok(_) => log::info!("Published result"),
-                        Err(err) => {
-                            log::error!("Error publishing result: {}", err);
-                            return Err(BootstrapError::publish_error(err));
-                        }
-                    };
+        for source in &config.sources.subscriptions {
+            let mut initial_data = match source_client
+                .subscribe(
+                    query_container_id.to_string(),
+                    query_id.to_string(),
+                    source.clone(),
+                )
+                .await
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    log::error!("Error subscribing to source: {} {}", source.id, e);
+                    return Err(e);
                 }
-                Err(err) => {
-                    log::error!("Error fetching initial data: {}", err);
-                    return Err(err);
+            };
+
+            let mut initial_data = pin!(initial_data);
+
+            while let Some(change) = initial_data.next().await {
+                match change {
+                    Ok(change) => {
+                        let timestamp = change.get_transaction_time();
+                        let element_id = change.get_reference().element_id.to_string();
+                        let change_results = match query.process_source_change(change).await {
+                            Ok(r) => r,
+                            Err(e) => {
+                                log::error!("Error processing source change: {}", e);
+                                return Err(BootstrapError::process_failed(
+                                    source.id.to_string(),
+                                    element_id,
+                                    Box::new(e),
+                                ));
+                            }
+                        };
+
+                        let seq = seq_manager.increment("bootstrap");
+                        let output = ResultEvent::from_query_results(
+                            query_id,
+                            change_results,
+                            seq,
+                            timestamp,
+                            None,
+                        );
+                        match publisher.publish(query_id, output).await {
+                            Ok(_) => log::info!("Published result"),
+                            Err(err) => {
+                                log::error!("Error publishing result: {}", err);
+                                return Err(BootstrapError::publish_error(err));
+                            }
+                        };
+                    }
+                    Err(err) => {
+                        log::error!("Error fetching initial data: {}", err);
+                        return Err(err);
+                    }
                 }
             }
         }
-    }
 
-    match publisher
-        .publish(
-            query_id,
-            ResultEvent::from_control_signal(
+        match publisher
+            .publish(
                 query_id,
-                seq_manager.increment("control"),
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64,
-                ControlSignal::BootstrapCompleted,
-            ),
-        )
-        .await
-    {
-        Ok(_) => log::info!("Published complete signal"),
-        Err(err) => {
-            log::error!("Error publishing complete signal: {}", err);
-            return Err(BootstrapError::publish_error(err));
-        }
-    };
+                ResultEvent::from_control_signal(
+                    query_id,
+                    seq_manager.increment("control"),
+                    SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
+                    ControlSignal::BootstrapCompleted,
+                ),
+            )
+            .await
+        {
+            Ok(_) => log::info!("Published complete signal"),
+            Err(err) => {
+                log::error!("Error publishing complete signal: {}", err);
+                return Err(BootstrapError::publish_error(err));
+            }
+        };
 
-    Ok(())
+        Ok(())
+    }
+    .instrument(process_span)
+    .await
 }
 
 fn fill_default_source_labels(spec: &mut models::QueryConfig, ast: &Query) {
