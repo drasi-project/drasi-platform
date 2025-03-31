@@ -22,9 +22,13 @@ namespace Drasi.Source.SDK.Models;
 public class SourceChange
 {
     private readonly  ChangeOp op;
-    private readonly long tsMS;
+    private readonly long tsNS;
+
+    private readonly long reactivatorStartNs;
     private readonly long lsn;
     private readonly string? partition;
+
+    private long? reactivatorEndNs;
 
     private readonly SourceElement element;
 
@@ -33,15 +37,18 @@ public class SourceChange
     /// </summary>
     /// <param name="op">Type of change (insert/update/delete)</param>
     /// <param name="element">The current state of the node or relation</param>
-    /// <param name="timestampMs">The Unix time in milliseconds of the change</param>
+    /// <param name="timestampNs">The Unix time in nanoseconds of the change</param>
+    /// <param name="reactivatorStartNs">The Unix time in nanoseconds marking the start of the reactivator when it begins processing the change event
     /// <param name="lsn">The sequence number of the change</param>
-    public SourceChange(ChangeOp op, SourceElement element, long timestampMs, long lsn, string? partition = null)
+    public SourceChange(ChangeOp op, SourceElement element, long timestampNs, long reactivatorStartNs, long lsn, string? partition = null, long? reactivatorEndNs = null)
     {
         this.op = op;
-        this.tsMS = timestampMs;
+        this.tsNS = timestampNs;
+        this.reactivatorStartNs = reactivatorStartNs;
         this.element = element;
         this.lsn = lsn;
         this.partition = partition;
+        this.reactivatorEndNs = reactivatorEndNs;
     }
 
     public string ToJson()
@@ -58,7 +65,7 @@ public class SourceChange
             },
             { "lsn", lsn },
             { "partition", partition },            
-            { "ts_ms", tsMS }
+            { "ts_ns", tsNS },
         };
 
         var payload = new JsonObject
@@ -87,12 +94,17 @@ public class SourceChange
                     _ => throw new NotImplementedException()
                 }
             },
-            { "ts_ms", tsMS },
+            { "reactivatorStart_ns", reactivatorStartNs },
+            { "reactivatorEnd_ns", reactivatorEndNs },
             { "payload", payload }
         };
 
         return result.ToJsonString();
     }    
+    public void SetReactivatorEndNs(long reactivatorEndNs)
+    {
+        this.reactivatorEndNs = reactivatorEndNs;
+    }
 }
 
 public enum ChangeOp

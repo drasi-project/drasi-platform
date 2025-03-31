@@ -90,8 +90,9 @@ namespace Reactivator.Services
                     
                     await foreach (var partitionEvent in consumer.ReadEventsFromPartitionAsync(partition, lastOffset, stoppingToken))
                     {
+                        long reactivatorStartNs = (DateTimeOffset.UtcNow.Ticks - DateTimeOffset.UnixEpoch.Ticks) * 100;
                         var sequenceNumber = partitionEvent.Data.SequenceNumber;
-                        var change = await _eventMapper.MapEventAsync(partitionEvent);
+                        var change = await _eventMapper.MapEventAsync(partitionEvent, reactivatorStartNs);
                         await _channel.Writer.WriteAsync(change, stoppingToken);
                         await _checkpointStore.Put($"{_entityName}-{partition}", BitConverter.GetBytes(sequenceNumber));
                         _logger.LogInformation($"Published change for partition {_entityName} - {partition} at sequence number {sequenceNumber}");
