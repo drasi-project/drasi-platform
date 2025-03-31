@@ -328,7 +328,11 @@ where
                     }
                 },
                 _ => {
-                    log::warn!("Invalid enqueue_time type for message ID {}: {:?}", message.id, data);
+                    log::warn!(
+                        "Invalid enqueue_time type for message ID {}: {:?}",
+                        message.id,
+                        data
+                    );
                     None
                 }
             },
