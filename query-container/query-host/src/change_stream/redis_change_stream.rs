@@ -328,10 +328,8 @@ where
                     }
                 },
                 _ => {
-                    return Err(ChangeStreamError::MessageError {
-                        id: message.id.clone(),
-                        error: "Invalid enqueue_time type".to_string(),
-                    });
+                    log::warn!("Invalid enqueue_time type for message ID {}: {:?}", message.id, data);
+                    None
                 }
             },
             None => None,
