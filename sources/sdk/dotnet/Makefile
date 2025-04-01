@@ -1,11 +1,11 @@
 .PHONY: install-dependencies test package
 
 install-dependencies:
-	dotnet restore
+	cd Drasi.Source.SDK && dotnet restore
 	npm install --prefix ../../../typespec
 
 test:
-	dotnet test
+	cd Drasi.Source.SDK && dotnet test
 
-package:
-	dotnet pack Drasi.Source.SDK/Drasi.Source.SDK.csproj -c Release
+package: test
+	cd Drasi.Source.SDK && dotnet pack Drasi.Source.SDK/Drasi.Source.SDK.csproj -c Release
