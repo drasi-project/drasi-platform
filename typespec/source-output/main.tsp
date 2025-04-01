@@ -17,8 +17,8 @@ enum Versions {
 @discriminator("op")
 model SourceChange {
     "op": "i" | "u" | "d";
-    reactivatorStart_ns: uint64;
-    reactivatorEnd_ns: uint64;
+    reactivatorStart_ns: int64;
+    reactivatorEnd_ns: int64;
     metadata?: Record<unknown>
 }
 
