@@ -26,7 +26,7 @@ use drasi_core::{
     interface::{ElementIndex, ResultIndex, ResultSequence},
     middleware::MiddlewareTypeRegistry,
     models,
-    query::{self, ContinuousQuery, QueryBuilder},
+    query::{ContinuousQuery, QueryBuilder},
 };
 use opentelemetry::{propagation::TextMapPropagator, KeyValue};
 use opentelemetry_sdk::propagation::TraceContextPropagator;
@@ -40,7 +40,7 @@ use tokio::{
     task::JoinHandle,
     time::Instant,
 };
-use tracing::{instrument, Instrument, info_span, span, dispatcher, Dispatch};
+use tracing::{instrument, Instrument, info_span, dispatcher, Dispatch};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
@@ -555,7 +555,7 @@ async fn bootstrap(
     result_index: Arc<dyn ResultIndex>,
 ) -> Result<(), BootstrapError> {
     let process_span = info_span!("process_bootstrap", query_id = query_id);
-    
+
     match publisher
         .publish(
             query_id,
