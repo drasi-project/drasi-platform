@@ -389,6 +389,10 @@ jobs:
         run: |
           cd sources/sdk/dotnet
           make test
+
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+        
       - name: Test Rust SDK
         run: |
           cd sources/sdk/rust
