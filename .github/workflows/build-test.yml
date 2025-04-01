@@ -368,6 +368,26 @@ jobs:
           name: cli
           path: cli/bin
 
+  test-source-sdks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Test Java SDK
+        run: |
+          cd sources/sdk/java
+          make test
+      - name: Test .NET SDK
+        run: |
+          cd sources/sdk/dotnet
+          make test
+      - name: Test Rust SDK
+        run: |
+          cd sources/sdk/rust
+          make test
+          
   e2e-tests:
     permissions:
       packages: write
