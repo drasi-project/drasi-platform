@@ -21,6 +21,7 @@ import io.dapr.client.DaprClient;
 import io.dapr.client.DaprClientBuilder;
 import io.drasi.source.sdk.models.SourceChange;
 import io.drasi.source.sdk.models.SourceInsert;
+import java.time.Instant;
 
 class DaprChangePublisher implements ChangePublisher {
     private DaprClient client;
@@ -39,6 +40,9 @@ class DaprChangePublisher implements ChangePublisher {
 
     @Override
     public void Publish(SourceChange change) throws JsonProcessingException {
+        Instant instant = Instant.now();
+        long currentTime = instant.getEpochSecond() * 1_000_000_000 + instant.getNano();
+        change.setReactivatorEndTsNs(currentTime);
         var data = change.toJson();
         var changeList = "[" + data + "]";
         client.publishEvent(pubsubName, sourceId + "-change", changeList.getBytes()).block();

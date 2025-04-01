@@ -176,7 +176,7 @@ async fn dispatch_control_event(
 ) -> Result<(), axum::http::Response<axum::body::Body>> {
     let control_event = ControlEvent {
         op: "i".to_string(),
-        ts_ms: Utc::now().timestamp_millis() as u64,
+        ts_ns: Utc::now().timestamp_millis() as u64,
         payload: SubscriptionPayload {
             source: Source {
                 db: "Drasi".to_string(),
@@ -218,7 +218,7 @@ async fn dispatch_unsubscription_event(
     };
     let control_event = ControlEvent {
         op: "d".to_string(),
-        ts_ms: Utc::now().timestamp_millis() as u64,
+        ts_ns: Utc::now().timestamp_millis() as u64,
         payload: SubscriptionPayload {
             source: Source {
                 db: "Drasi".to_string(),
