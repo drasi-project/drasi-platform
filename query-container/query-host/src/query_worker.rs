@@ -40,7 +40,7 @@ use tokio::{
     task::JoinHandle,
     time::Instant,
 };
-use tracing::{instrument, Instrument, info_span, dispatcher, Dispatch};
+use tracing::{dispatcher, info_span, instrument, Dispatch, Instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
@@ -632,14 +632,22 @@ async fn bootstrap(
                     let seq = seq_manager.increment("bootstrap");
                     let output = dispatcher::with_default(
                         &tracing::Dispatch::none(), // Disable tracing for this scope
-                        || ResultEvent::from_query_results(query_id, change_results, seq, timestamp, None),
+                        || {
+                            ResultEvent::from_query_results(
+                                query_id,
+                                change_results,
+                                seq,
+                                timestamp,
+                                None,
+                            )
+                        },
                     );
 
                     let result = {
                         let _guard = tracing::dispatcher::set_default(&Dispatch::none());
                         publisher.publish(query_id, output).await
                     };
-                    
+
                     match result {
                         Ok(_) => log::info!("Published result"),
                         Err(err) => {
@@ -679,7 +687,6 @@ async fn bootstrap(
     };
 
     Ok(())
-
 }
 
 fn fill_default_source_labels(spec: &mut models::QueryConfig, ast: &Query) {
