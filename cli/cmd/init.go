@@ -124,6 +124,6 @@ Usage examples:
 	initCommand.Flags().String("dapr-runtime-version", "", "Dapr runtime version to install.")
 	initCommand.Flags().String("dapr-sidecar-version", "latest", "Dapr sidecar (daprd) version to install.")
 	initCommand.Flags().String("dapr-registry", "docker.io/daprio", "Container registry to pull Dapr images from.")
-	initCommand.Flags().String("observability-level", "none", "Observability level to install. Options: none, basic, full.")
+	initCommand.Flags().String("observability-level", "none", "Observability level to install. Options: none, metrics, tracing, full.")
 	return initCommand
 }

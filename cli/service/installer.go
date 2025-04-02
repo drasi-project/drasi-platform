@@ -180,8 +180,8 @@ func (t *Installer) installInfrastructure(output output.TaskOutput, observabilit
 		return err
 	}
 
-	if observabilityLevel == "full" {
-		if raw, err = resources.ReadFile("resources/observability/full-observability-infra.yaml"); err != nil {
+	if observabilityLevel == "tracing" || observabilityLevel == "full" {
+		if raw, err = resources.ReadFile("resources/observability/tracing.yaml"); err != nil {
 			return err
 		}
 
@@ -189,13 +189,35 @@ func (t *Installer) installInfrastructure(output output.TaskOutput, observabilit
 			return err
 		}
 
-		output.AddTask("Observability", "Deploying observability infrastructure...")
+		output.AddTask("Tracing", "Deploying tracing infrastructure...")
 		if err = t.applyManifests(observabilityManifests); err != nil {
-			output.FailTask("Observability", "Error deploying observability infrastructure")
 			return err
 		}
 
-		subOutput = output.GetChildren("Observability")
+		subOutput = output.GetChildren("Tracing")
+
+		if err = t.waitForDeployment("app=zipkin", subOutput); err != nil {
+			return err
+		}
+
+		output.SucceedTask("Tracing", "Tracing infrastructure deployed")
+	}
+	if observabilityLevel == "metrics" || observabilityLevel == "full" {
+		if raw, err = resources.ReadFile("resources/observability/metrics.yaml"); err != nil {
+			return err
+		}
+
+		if observabilityManifests, err = readK8sManifests(raw); err != nil {
+			return err
+		}
+
+		output.AddTask("Metrics", "Deploying metrics infrastructure...")
+		if err = t.applyManifests(observabilityManifests); err != nil {
+			output.FailTask("Metrics", "Error deploying metrics infrastructure")
+			return err
+		}
+
+		subOutput = output.GetChildren("Metrics")
 
 		if err = t.waitForDeployment("app=tempo", subOutput); err != nil {
 			return err
@@ -209,7 +231,7 @@ func (t *Installer) installInfrastructure(output output.TaskOutput, observabilit
 			return err
 		}
 
-		output.SucceedTask("Observability", "Observability infrastructure deployed")
+		output.SucceedTask("Metrics", "Metrics infrastructure deployed")
 	}
 
 	output.SucceedTask("Infrastructure", "Infrastructure deployed")
