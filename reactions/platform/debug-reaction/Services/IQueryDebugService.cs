@@ -12,20 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-﻿using DebugReaction.Models;
+using Drasi.Reactions.Debug.Server.Models;
+using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reaction.SDK.Models.ViewService;
 using System.Text.Json;
 
-namespace DebugReaction.Services
+namespace Drasi.Reactions.Debug.Server.Services
 {
-    public interface IQueryDebugService : IHostedService
-    {
-        Task<QueryResult> GetQueryResult(string queryId);
-        void ProcessRawChange(JsonElement change);
-        void ProcessControlSignal(JsonElement change);
-        IEnumerable<string> ActiveQueries { get; }
-        Task<Dictionary<string, object>> GetDebugInfo(string queryId);
-        Task<QueryResult> ReinitializeQuery(string queryId);
-
-        event EventRecievedHandler? OnEventRecieved;
-    }
+	public interface IQueryDebugService
+	{
+		IAsyncEnumerable<ViewItem> GetQueryResult(string queryId);
+		Task ProcessChange(ChangeEvent change);
+		Task ProcessControlSignal(ControlEvent change);
+		Task<Dictionary<string, object>> GetDebugInfo(string queryId);
+	}
 }

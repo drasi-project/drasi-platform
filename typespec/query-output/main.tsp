@@ -53,6 +53,9 @@ model UpdatePayload {
 
     @doc("The snapshot of the result after the change")
     after: Record<unknown>;
+
+    @doc("The keys used to group or categorize this update, if applicable")
+    groupingKeys?: string[];
 }
 
 @extension("title", "ControlEvent")

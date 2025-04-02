@@ -60,7 +60,9 @@ pub struct SourceChange {
     op: ChangeOp,
     element: SourceElement,
     metadata: Option<Map<String, Value>>,
-    ts_ms: u64,
+    reactivator_start_ns: u128,
+    reactivator_end_ns: u128,
+    source_ns: u128,
     seq: u64,
 }
 
@@ -68,7 +70,8 @@ impl SourceChange {
     pub fn new(
         op: ChangeOp,
         element: SourceElement,
-        ts_ms: u64,
+        reactivator_start_ns: u128,
+        source_ns: u128,
         seq: u64,
         metadata: Option<Map<String, Value>>,
     ) -> SourceChange {
@@ -76,9 +79,15 @@ impl SourceChange {
             op,
             element,
             metadata,
-            ts_ms,
+            reactivator_start_ns,
+            reactivator_end_ns: 0,
+            source_ns,
             seq,
         }
+    }
+
+    pub fn set_reactivator_end_ns(&mut self, reactivator_end_ns: u128) {
+        self.reactivator_end_ns = reactivator_end_ns;
     }
 }
 
@@ -109,7 +118,7 @@ impl<'a> Serialize for SourceData<'a> {
                 } => "rel",
             },
         )?;
-        state.serialize_field("ts_ms", &self.0.ts_ms)?;
+        state.serialize_field("ts_ns", &self.0.source_ns)?;
         state.end()
     }
 }
@@ -143,7 +152,8 @@ impl Serialize for SourceChange {
         let mut state = serializer.serialize_struct("SourceChange", 4)?;
         state.serialize_field("op", &self.op)?;
         state.serialize_field("payload", &Payload(self))?;
-        state.serialize_field("ts_ms", &self.ts_ms)?;
+        state.serialize_field("reactivatorStart_ns", &self.reactivator_start_ns)?;
+        state.serialize_field("reactivatorEnd_ns", &self.reactivator_end_ns)?;
         if let Some(metadata) = &self.metadata {
             state.serialize_field("metadata", metadata)?;
         }
