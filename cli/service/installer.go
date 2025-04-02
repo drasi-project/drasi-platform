@@ -100,11 +100,18 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string, daprRegistry string) error {
+func (t *Installer) Install(output output.TaskOutput, installOptions InstallOptions) error {
 	daprInstalled, err := t.checkDaprInstallation(output)
 	if err != nil {
 		return err
 	}
+
+	localMode := installOptions.Local
+	acr := installOptions.Registry
+	version := installOptions.Version
+	daprRegistry := installOptions.DaprRegistry
+	namespace := installOptions.Namespace
+	observabilityLevel := installOptions.ObservabilityLevel
 
 	if !daprInstalled {
 		if err = t.installDapr(output, daprRegistry); err != nil {
@@ -116,7 +123,7 @@ func (t *Installer) Install(localMode bool, acr string, version string, output o
 		return err
 	}
 
-	if err = t.installInfrastructure(output); err != nil {
+	if err = t.installInfrastructure(output, observabilityLevel); err != nil {
 		return err
 	}
 
@@ -139,7 +146,7 @@ func (t *Installer) Install(localMode bool, acr string, version string, output o
 	return nil
 }
 
-func (t *Installer) installInfrastructure(output output.TaskOutput) error {
+func (t *Installer) installInfrastructure(output output.TaskOutput, observabilityLevel string) error {
 	if _, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "dapr-system", metav1.GetOptions{}); err != nil {
 		return errors.New("dapr not installed")
 	}
@@ -147,6 +154,7 @@ func (t *Installer) installInfrastructure(output output.TaskOutput) error {
 	var err error
 	var raw []byte
 	var infraManifests []*unstructured.Unstructured
+	var observabilityManifests []*unstructured.Unstructured
 
 	if raw, err = resources.ReadFile("resources/infra.yaml"); err != nil {
 		return err
@@ -170,6 +178,38 @@ func (t *Installer) installInfrastructure(output output.TaskOutput) error {
 
 	if err = t.waitForStatefulset("app=drasi-mongo", subOutput); err != nil {
 		return err
+	}
+
+	if observabilityLevel == "full" {
+		if raw, err = resources.ReadFile("resources/observability/full-observability-infra.yaml"); err != nil {
+			return err
+		}
+
+		if observabilityManifests, err = readK8sManifests(raw); err != nil {
+			return err
+		}
+
+		output.AddTask("Observability", "Deploying observability infrastructure...")
+		if err = t.applyManifests(observabilityManifests); err != nil {
+			output.FailTask("Observability", "Error deploying observability infrastructure")
+			return err
+		}
+
+		subOutput = output.GetChildren("Observability")
+
+		if err = t.waitForDeployment("app=tempo", subOutput); err != nil {
+			return err
+		}
+
+		if err = t.waitForDeployment("app=prometheus", subOutput); err != nil {
+			return err
+		}
+
+		if err = t.waitForDeployment("app=grafana", subOutput); err != nil {
+			return err
+		}
+
+		output.SucceedTask("Observability", "Observability infrastructure deployed")
 	}
 
 	output.SucceedTask("Infrastructure", "Infrastructure deployed")

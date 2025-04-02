@@ -96,7 +96,20 @@ Usage examples:
 			if err != nil {
 				return err
 			}
-			if err := installer.Install(local, registry, version, output, namespace, daprRegistry); err != nil {
+			observabilityLevel, err := cmd.Flags().GetString("observability-level")
+			if err != nil {
+				return err
+			}
+			installOptions := service.InstallOptions{
+				Local:              local,
+				Registry:           registry,
+				Version:            version,
+				Namespace:          namespace,
+				DaprRegistry:       daprRegistry,
+				ObservabilityLevel: observabilityLevel,
+			}
+
+			if err := installer.Install(output, installOptions); err != nil {
 				return err
 			}
 
@@ -111,5 +124,6 @@ Usage examples:
 	initCommand.Flags().String("dapr-runtime-version", "", "Dapr runtime version to install.")
 	initCommand.Flags().String("dapr-sidecar-version", "latest", "Dapr sidecar (daprd) version to install.")
 	initCommand.Flags().String("dapr-registry", "docker.io/daprio", "Container registry to pull Dapr images from.")
+	initCommand.Flags().String("observability-level", "none", "Observability level to install. Options: none, basic, full.")
 	return initCommand
 }

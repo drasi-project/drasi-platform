@@ -27,6 +27,15 @@ type ClusterConfig struct {
 	DaprSidecarVersion string `json:"daprsidecarversion"`
 }
 
+type InstallOptions struct {
+	Local              bool
+	Registry           string
+	Version            string
+	Namespace          string
+	DaprRegistry       string
+	ObservabilityLevel string
+}
+
 func configPath() string {
 	cfgFile := "drasiconfig.json"
 	usr, _ := user.Current()

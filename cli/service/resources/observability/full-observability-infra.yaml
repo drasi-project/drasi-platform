@@ -1,0 +1,268 @@
+# Copyright 2025 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Tempo
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  labels:
+    app: tempo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+    spec:
+      containers:
+      - name: tempo
+        image: grafana/tempo:2.7.1
+        args:
+        - "-config.file=/conf/tempo.yaml"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "8Gi"
+            cpu: "2"
+        ports:
+        - containerPort: 3200  # Tempo HTTP
+        - containerPort: 4315  # OTLP gRPC
+        volumeMounts:
+        - name: config-volume
+          mountPath: /conf
+        - name: data-volume
+          mountPath: /tmp/tempo
+      volumes:
+      - name: config-volume
+        configMap:
+          name: tempo-config
+      - name: data-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-config
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              max_recv_msg_size_mib: 26214400  # 10 MB
+              endpoint: 0.0.0.0:4315
+    metrics_generator:
+      storage:
+        path: /tmp/tempo/metrics              
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /tmp/tempo/blocks
+        wal:
+          path: /tmp/tempo/wal
+    compactor:
+      compaction:
+        block_retention: 48h
+    overrides:
+      defaults:
+        global:      
+          max_bytes_per_trace: 26214400
+        ingestion:
+          burst_size_bytes: 52428800  # 50 MB
+          rate_limit_bytes: 52428800  # 50 MB
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+spec:
+  ports:
+  - port: 3200
+    targetPort: 3200
+    name: http
+  - port: 4315
+    targetPort: 4315
+    name: otlp-grpc
+  selector:
+    app: tempo
+--- 
+# Prometheus
+# Copyright 2025 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  labels:
+   app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v2.53.3
+        args:
+        - "--config.file=/etc/prometheus/prometheus.yml"
+        - "--storage.tsdb.retention.time=15d"  # Retain data for 15 days
+        - "--storage.tsdb.path=/prometheus"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus
+        - name: data-volume
+          mountPath: /prometheus
+      volumes:
+      - name: config-volume
+        configMap:
+          name: prometheus-config
+      - name: data-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 1s
+    scrape_configs:
+    - job_name: 'otel-collector'
+      static_configs:
+      - targets: ['otel-collector:8889']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+spec:
+  ports:
+  - port: 9090
+    targetPort: 9090
+  selector:
+    app: prometheus
+---
+# Grafana
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:11.5.2
+        env:
+          - name: GF_SECURITY_ADMIN_USER 
+            value: "drasi"        
+          - name: GF_SECURITY_ADMIN_PASSWORD
+            value: "drasi"            
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/grafana/provisioning/datasources
+      volumes:
+      - name: config-volume
+        configMap:
+          name: grafana-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus:9090
+      access: proxy
+      isDefault: true
+      editable: false
+    - name: Tempo
+      type: tempo
+      url: http://tempo:3200
+      access: proxy
+      editable: false      
+      jsonData:
+        tracesToMetrics:
+          datasource: Prometheus
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  ports:
+  - port: 3000
+    targetPort: 3000
+  type: NodePort  # Expose for Kind
+  selector:
+    app: grafana
