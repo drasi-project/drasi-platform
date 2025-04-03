@@ -12,101 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Tempo
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: tempo
-  labels:
-    app: tempo
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: tempo
-  template:
-    metadata:
-      labels:
-        app: tempo
-    spec:
-      containers:
-      - name: tempo
-        image: grafana/tempo:2.7.1
-        args:
-        - "-config.file=/conf/tempo.yaml"
-        resources:
-          requests:
-            memory: "2Gi"
-            cpu: "1"
-          limits:
-            memory: "8Gi"
-            cpu: "2"
-        ports:
-        - containerPort: 3200  # Tempo HTTP
-        - containerPort: 4317  # OTLP gRPC
-        volumeMounts:
-        - name: config-volume
-          mountPath: /conf
-        - name: data-volume
-          mountPath: /tmp/tempo
-      volumes:
-      - name: config-volume
-        configMap:
-          name: tempo-config
-      - name: data-volume
-        emptyDir: {}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tempo-config
-data:
-  tempo.yaml: |
-    server:
-      http_listen_port: 3200
-    distributor:
-      receivers:
-        otlp:
-          protocols:
-            grpc:
-              max_recv_msg_size_mib: 26214400  # 10 MB
-              endpoint: 0.0.0.0:4317
-    metrics_generator:
-      storage:
-        path: /tmp/tempo/metrics              
-    storage:
-      trace:
-        backend: local
-        local:
-          path: /tmp/tempo/blocks
-        wal:
-          path: /tmp/tempo/wal
-    compactor:
-      compaction:
-        block_retention: 48h
-    overrides:
-      defaults:
-        global:      
-          max_bytes_per_trace: 26214400
-        ingestion:
-          burst_size_bytes: 52428800  # 50 MB
-          rate_limit_bytes: 52428800  # 50 MB
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: tempo
-spec:
-  ports:
-  - port: 3200
-    targetPort: 3200
-    name: http
-  - port: 4317
-    targetPort: 4317
-    name: otlp-grpc
-  selector:
-    app: tempo
---- 
 # Prometheus
 apiVersion: apps/v1
 kind: Deployment
@@ -176,13 +81,10 @@ spec:
   selector:
     app: prometheus
 ---
-# Grafana
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  labels:
-    app: grafana
 spec:
   replicas: 1
   selector:
@@ -232,14 +134,6 @@ data:
       access: proxy
       isDefault: true
       editable: false
-    - name: Tempo
-      type: tempo
-      url: http://tempo:3200
-      access: proxy
-      editable: false      
-      jsonData:
-        tracesToMetrics:
-          datasource: Prometheus
 ---
 apiVersion: v1
 kind: Service
