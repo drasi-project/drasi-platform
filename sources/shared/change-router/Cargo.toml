@@ -13,7 +13,7 @@ dapr = "0.15.1"
 dapr-macros = {version = "=0.15.1", package = "dapr-macros"}
 drasi-comms-abstractions = { path = "../../../infrastructure/comms-abstractions" }
 drasi-comms-dapr = { path = "../../../infrastructure/comms-dapr" }
-env_logger = { version = "0.11.2" } 
+env_logger = { version = "0.11" } 
 futures = "0.3.30"
 log = "0.4.20"
 proc-macro2 = "1.0.81"
@@ -25,3 +25,6 @@ tracing-subscriber = {version = "0.3.17", features = ["env-filter"]}
 uuid = {version = "1.7.0", features = ["v4"]}
 serde = "1.0.202"
 
+
+[profile.release]
+lto = true

@@ -308,6 +308,36 @@ where
             },
             None => None,
         },
+        enqueue_time: match message.map.get("enqueue_time") {
+            Some(data) => match data {
+                redis::Value::Data(data) => match String::from_utf8(data.to_vec()) {
+                    Ok(data_str) => match data_str.parse::<u64>() {
+                        Ok(parsed) => Some(parsed),
+                        Err(err) => {
+                            return Err(ChangeStreamError::MessageError {
+                                id: message.id.clone(),
+                                error: "Failed to parse enqueue_time".to_string(),
+                            });
+                        }
+                    },
+                    Err(err) => {
+                        return Err(ChangeStreamError::MessageError {
+                            id: message.id.clone(),
+                            error: format!("Failed to deserialize enqueue_time: {:?}", err),
+                        });
+                    }
+                },
+                _ => {
+                    log::warn!(
+                        "Invalid enqueue_time type for message ID {}: {:?}",
+                        message.id,
+                        data
+                    );
+                    None
+                }
+            },
+            None => None,
+        },
     })
 }
 

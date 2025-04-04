@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 FROM rust:1.84-bullseye as builder
 RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
+
 
 WORKDIR /usr/src
 COPY ./infrastructure ./infrastructure

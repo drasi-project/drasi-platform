@@ -1,0 +1,239 @@
+﻿/* *
+ * Copyright 2024 The Drasi Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/* General page container */
+/* Import Open Iconic */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css');
+
+/* Apply custom font globally */
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    margin: 0; /* Optional: Remove default margin for better layout control */
+    padding: 0; /* Optional: Remove default padding for better layout control */
+}
+
+* {
+    box-sizing: border-box; /* Optional: Ensures all elements include padding/border in their width/height calculations */
+}
+
+.app-container {
+    display: flex;
+    min-height: 100vh;  /* Full viewport height */
+    flex-direction: row; /* Sidebar on left, content on right */
+}
+
+/* Sidebar Styles */
+.sidebar {
+    background-color: #3a0647; /* Sidebar background */
+    width: 250px; /* Sidebar width */
+    height: 100vh; /* Full screen height */
+    position: sticky; /* Keeps the sidebar fixed while scrolling */
+    top: 0;
+    padding: 20px;
+    color: white;
+    overflow-y: auto; /* Allow scrolling inside the sidebar if necessary */
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar li {
+    margin-bottom: 10px;
+}
+
+.sidebar a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.sidebar a:hover {
+    text-decoration: underline;
+}
+
+/* Content Area */
+.content {
+    flex: 1; /* Content will take remaining space */
+    padding: 20px;
+    overflow-y: auto; /* Allows scrolling for content */
+}
+
+/* Add a basic structure to your links */
+.content a {
+    color: #3a0647;
+    font-weight: bold;
+}
+
+.content a:hover {
+    color: #7f2a64;
+}
+
+/* Styling the routes section */
+.content h1 {
+    margin-top: 0;
+    font-size: 2rem;
+}
+
+/* Tables in content */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.table th, .table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.table thead {
+    background: #3a0647;
+    color: white;
+    font-weight: bold;
+}
+
+.table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+/* Responsive Design: Stack sidebar and content for smaller screens */
+@media (max-width: 768px) {
+    .app-container {
+        flex-direction: column; /* Stack sidebar and content */
+    }
+
+    .sidebar {
+        width: 100%; /* Full width on small screens */
+        position: relative; /* Remove sticky position */
+    }
+
+    .content {
+        padding: 10px;
+    }
+}
+
+.btn {
+    margin: 10px 0; /* Add space around the button */
+    padding: 10px 20px; /* Adjust button padding */
+    border-radius: 5px; /* Add rounded corners */
+    font-size: 16px; /* Increase font size for better readability */
+}
+
+.btn-secondary {
+    background-color: #6c757d; /* Custom background color */
+    color: white;
+    border: none; /* Remove the default border */
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268; /* Darker shade on hover */
+    cursor: pointer; /* Show pointer cursor on hover */
+}
+
+
+@media (max-width: 768px) {
+    .table th, .table td {
+        padding: 10px;
+        font-size: 14px;
+    }
+} 
+
+/* #root {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+}
+
+th, td {
+    padding-left: 1rem;
+    padding-right: 1rem;
+} */
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar ul li {
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    background-color: #f4f4f4;
+    transition: background-color 0.3s ease;
+}
+
+.sidebar ul li a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    display: block;
+}
+
+.sidebar ul li:hover {
+    background-color: #ddd;
+}
+
+/* Styling for Event Stream Section */
+.event-stream-container {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    max-width: 95%;
+    width: 1200px;
+    margin: 20px auto;
+}
+
+.event-stream-container h2 {
+    font-size: 22px;
+    color: #333;
+    text-align: center;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #007bff;
+}
+
+.event-entry {
+    padding: 12px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    font-family: monospace;
+    white-space: pre-wrap; 
+    overflow-x: auto;
+}
+
+.event-entry:nth-child(odd) {
+    background-color: #f1f3f5;
+}
+
+.event-entry:hover {
+    background-color: #e9ecef;
+    transition: 0.2s ease-in-out;
+}
+
