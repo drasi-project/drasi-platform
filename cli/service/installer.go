@@ -123,7 +123,11 @@ func (t *Installer) Install(output output.TaskOutput, installOptions InstallOpti
 		return err
 	}
 
-	if err = t.installInfrastructure(output, observabilityLevel); err != nil {
+	if err = t.installInfrastructure(output); err != nil {
+		return err
+	}
+
+	if err = t.installObservabilityTools(output, observabilityLevel); err != nil {
 		return err
 	}
 
@@ -146,7 +150,7 @@ func (t *Installer) Install(output output.TaskOutput, installOptions InstallOpti
 	return nil
 }
 
-func (t *Installer) installInfrastructure(output output.TaskOutput, observabilityLevel string) error {
+func (t *Installer) installInfrastructure(output output.TaskOutput) error {
 	if _, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "dapr-system", metav1.GetOptions{}); err != nil {
 		return errors.New("dapr not installed")
 	}
@@ -154,7 +158,6 @@ func (t *Installer) installInfrastructure(output output.TaskOutput, observabilit
 	var err error
 	var raw []byte
 	var infraManifests []*unstructured.Unstructured
-	var observabilityManifests []*unstructured.Unstructured
 
 	if raw, err = resources.ReadFile("resources/infra.yaml"); err != nil {
 		return err
@@ -179,51 +182,72 @@ func (t *Installer) installInfrastructure(output output.TaskOutput, observabilit
 	if err = t.waitForStatefulset("app=drasi-mongo", subOutput); err != nil {
 		return err
 	}
-
-	// Grafana is installed if the observability level is not none
-	if observabilityLevel != "none" {
-		var fileName string
-		if observabilityLevel == "tracing" {
-			fileName = "tracing.yaml"
-		} else if observabilityLevel == "metrics" {
-			fileName = "metrics.yaml"
-		} else if observabilityLevel == "full" {
-			fileName = "full-observability.yaml"
-		}
-
-		if raw, err = resources.ReadFile("resources/observability/" + fileName); err != nil {
-			return err
-		}
-
-		if observabilityManifests, err = readK8sManifests(raw); err != nil {
-			return err
-		}
-		output.AddTask("Observability", "Deploying observability infrastructure...")
-
-		if err = t.applyManifests(observabilityManifests); err != nil {
-			output.FailTask("Observability", "Error deploying observability infrastructure")
-			return err
-		}
-
-		subOutput = output.GetChildren("Observability")
-		if observabilityLevel == "tracing" || observabilityLevel == "full" {
-			if err = t.waitForDeployment("app=tempo", subOutput); err != nil {
-				return err
-			}
-		}
-		if observabilityLevel == "metrics" || observabilityLevel == "full" {
-			if err = t.waitForDeployment("app=prometheus", subOutput); err != nil {
-				return err
-			}
-		}
-
-		if err = t.waitForDeployment("app=grafana", subOutput); err != nil {
-			return err
-		}
-		output.SucceedTask("Observability", "Observability infrastructure deployed")
-
-	}
 	output.SucceedTask("Infrastructure", "Infrastructure deployed")
+
+	return nil
+}
+
+func (t *Installer) installObservabilityTools(output output.TaskOutput, observabilityLevel string) error {
+	var err error
+	var raw []byte
+	var observabilityManifests []*unstructured.Unstructured
+
+	if observabilityLevel == "none" {
+		return nil
+	}
+	fileName := map[string]string{
+		"tracing": "tracing.yaml",
+		"metrics": "metrics.yaml",
+		"full":    "full-observability.yaml",
+	}[observabilityLevel]
+
+	if raw, err = resources.ReadFile("resources/observability/" + fileName); err != nil {
+		return err
+	}
+
+	if observabilityManifests, err = readK8sManifests(raw); err != nil {
+		return err
+	}
+	output.AddTask("Observability", "Deploying observability infrastructure...")
+
+	if err = t.applyManifests(observabilityManifests); err != nil {
+		output.FailTask("Observability", "Error deploying observability infrastructure")
+		return err
+	}
+
+	subOutput := output.GetChildren("Observability")
+	if observabilityLevel == "tracing" || observabilityLevel == "full" {
+		if err = t.waitForDeployment("app=tempo", subOutput); err != nil {
+			return err
+		}
+	}
+	if observabilityLevel == "metrics" || observabilityLevel == "full" {
+		if err = t.waitForDeployment("app=prometheus", subOutput); err != nil {
+			return err
+		}
+	}
+
+	if err = t.waitForDeployment("app=grafana", subOutput); err != nil {
+		return err
+	}
+
+	// Otel-collector
+	if raw, err = resources.ReadFile("resources/observability/otel-collector.yaml"); err != nil {
+		return err
+	}
+	if observabilityManifests, err = readK8sManifests(raw); err != nil {
+		return err
+	}
+
+	if err = t.applyManifests(observabilityManifests); err != nil {
+		output.FailTask("Observability", "Error deploying Otel collector")
+		return err
+	}
+	if err = t.waitForDeployment("app=otel-collector", subOutput); err != nil {
+		return err
+	}
+
+	output.SucceedTask("Observability", "Observability infrastructure deployed")
 
 	return nil
 }

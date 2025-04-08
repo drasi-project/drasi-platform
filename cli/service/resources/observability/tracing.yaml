@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # Tempo
 apiVersion: apps/v1
 kind: Deployment
@@ -71,7 +70,7 @@ data:
           protocols:
             grpc:
               max_recv_msg_size_mib: 26214400  # 10 MB
-              endpoint: 0.0.0.0:4317
+              endpoint: 0.0.0.0:4317  # Updated to default gRPC port
     metrics_generator:
       storage:
         path: /tmp/tempo/metrics              
@@ -102,7 +101,7 @@ spec:
   - port: 3200
     targetPort: 3200
     name: http
-  - port: 4317
+  - port: 4317 
     targetPort: 4317
     name: otlp-grpc
   selector:
@@ -112,6 +111,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
+  labels:
+    app: grafana
 spec:
   replicas: 1
   selector:
@@ -172,6 +173,6 @@ spec:
   ports:
   - port: 3000
     targetPort: 3000
-  type: NodePort  # Expose for Kind
+  type: NodePort 
   selector:
     app: grafana
