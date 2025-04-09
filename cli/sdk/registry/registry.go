@@ -114,7 +114,9 @@ func LoadCurrentRegistrationWithNamespace(namespace string) (Registration, error
 		return nil, err
 	}
 	if k8sConfig, ok := result.(*KubernetesConfig); ok {
-		k8sConfig.Namespace = namespace
+		if namespace != "" {
+			k8sConfig.Namespace = namespace
+		}
 	}
 
 	return result, nil

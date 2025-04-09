@@ -15,12 +15,14 @@
 package cmd
 
 import (
-	"drasi.io/cli/sdk"
 	"fmt"
 
+	"drasi.io/cli/installers"
+	"drasi.io/cli/output"
+	"drasi.io/cli/sdk"
+	"drasi.io/cli/sdk/registry"
+
 	"drasi.io/cli/config"
-	"drasi.io/cli/service"
-	"drasi.io/cli/service/output"
 	"github.com/spf13/cobra"
 )
 
@@ -40,10 +42,10 @@ Usage examples:
 `,
 		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var installer *service.Installer
+			var installer installers.Installer
 			local := false
 			container := false
-			var registry string
+			var containerRegistry string
 			var version string
 
 			var err error
@@ -58,14 +60,23 @@ Usage examples:
 					return err
 				}
 
-				return dd.Build("dev")
+				reg, err := dd.Build("dev")
+				if err != nil {
+					return err
+				}
+				if err := registry.SaveRegistration("dev", reg); err != nil {
+					return err
+				}
+				if err := registry.SetCurrentRegistration("dev"); err != nil {
+					return err
+				}
 			}
 
 			if local, err = cmd.Flags().GetBool("local"); err != nil {
 				return err
 			}
 
-			if registry, err = cmd.Flags().GetString("registry"); err != nil {
+			if containerRegistry, err = cmd.Flags().GetString("registry"); err != nil {
 				return err
 			}
 
@@ -74,34 +85,36 @@ Usage examples:
 			}
 
 			var namespace string
-			var clusterConfig ClusterConfig
 			if namespace, err = cmd.Flags().GetString("namespace"); err != nil {
 				return err
 			}
 
-			var runtimeVersion string
-			var sidecarVersion string
-			if runtimeVersion, err = cmd.Flags().GetString("dapr-runtime-version"); err != nil {
+			var daprRuntimeVersion string
+			var daprSidecarVersion string
+			if daprRuntimeVersion, err = cmd.Flags().GetString("dapr-runtime-version"); err != nil {
 				return err
 			}
 
-			if sidecarVersion, err = cmd.Flags().GetString("dapr-sidecar-version"); err != nil {
+			if daprSidecarVersion, err = cmd.Flags().GetString("dapr-sidecar-version"); err != nil {
 				return err
 			}
 
-			clusterConfig.DrasiNamespace = namespace
-			clusterConfig.DaprRuntimeVersion = runtimeVersion
-			clusterConfig.DaprSidecarVersion = sidecarVersion
-			saveConfig(clusterConfig)
-
-			if installer, err = service.MakeInstaller(namespace); err != nil {
+			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+			if err != nil {
 				return err
 			}
+
+			if installer, err = installers.MakeInstaller(reg); err != nil {
+				return err
+			}
+
+			installer.SetDaprRuntimeVersion(daprRuntimeVersion)
+			installer.SetDaprSidecarVersion(daprSidecarVersion)
 
 			if local {
 				fmt.Printf("Installing Drasi version %s with local images\n", version)
 			} else {
-				fmt.Printf("Installing Drasi with version %s from registry %s\n", version, registry)
+				fmt.Printf("Installing Drasi with version %s from registry %s\n", version, containerRegistry)
 			}
 
 			output := output.NewTaskOutput()
@@ -111,7 +124,7 @@ Usage examples:
 			if err != nil {
 				return err
 			}
-			if err := installer.Install(local, registry, version, output, namespace, daprRegistry); err != nil {
+			if err := installer.Install(local, containerRegistry, version, output, daprRegistry); err != nil {
 				return err
 			}
 

@@ -16,6 +16,7 @@ package sdk
 
 import (
 	"bytes"
+	"drasi.io/cli/output"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,8 +25,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"drasi.io/cli/service/output"
 
 	"drasi.io/cli/api"
 )

@@ -96,6 +96,18 @@ func (t *KubernetesPlatformClient) CreateDrasiClient() (*ApiClient, error) {
 	return &result, nil
 }
 
+func (t *KubernetesPlatformClient) GetNamespace() string {
+	return t.kubeNamespace
+}
+
+func (t *KubernetesPlatformClient) GetKubeConfig() *rest.Config {
+	return t.kubeConfig
+}
+
+func (t *KubernetesPlatformClient) GetKubeClient() *kubernetes.Clientset {
+	return t.kubeClient
+}
+
 func (t *KubernetesPlatformClient) createTunnel(apiClient *ApiClient) error {
 	podName, err := t.getApiPodName()
 	if err != nil {
