@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"drasi.io/cli/config"
 	"drasi.io/cli/service"
@@ -100,6 +101,19 @@ Usage examples:
 			if err != nil {
 				return err
 			}
+			// Validate observability-level
+			validLevels := []string{"none", "metrics", "tracing", "full"}
+			isValid := false
+			for _, level := range validLevels {
+				if strings.ToLower(observabilityLevel) == level {
+					isValid = true
+					break
+				}
+			}
+			if !isValid {
+				return fmt.Errorf("invalid observability-level '%s'; must be one of: none, metrics, tracing, full", observabilityLevel)
+			}
+
 			installOptions := service.InstallOptions{
 				Local:              local,
 				Registry:           registry,
