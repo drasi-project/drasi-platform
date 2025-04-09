@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"drasi.io/cli/sdk"
 	"fmt"
 
 	"drasi.io/cli/config"
@@ -41,10 +42,24 @@ Usage examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var installer *service.Installer
 			local := false
+			container := false
 			var registry string
 			var version string
 
 			var err error
+
+			if container, err = cmd.Flags().GetBool("container"); err != nil {
+				return err
+			}
+
+			if container {
+				var dd *sdk.DockerizedDeployer
+				if dd, err = sdk.MakeDockerizedDeployer(); err != nil {
+					return err
+				}
+
+				return dd.Build("dev")
+			}
 
 			if local, err = cmd.Flags().GetBool("local"); err != nil {
 				return err
@@ -105,6 +120,7 @@ Usage examples:
 	}
 
 	initCommand.Flags().Bool("local", false, "Do not use a container registry, only locally available images.")
+	initCommand.Flags().Bool("container", false, "")
 	initCommand.Flags().String("registry", config.Registry, "Container registry to pull images from.")
 	initCommand.Flags().String("version", config.Version, "Container image version tag.")
 	initCommand.Flags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into.")
