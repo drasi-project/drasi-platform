@@ -63,6 +63,9 @@ Usage examples:
 			}
 
 			platformClient, err := sdk.NewPlatformClient(reg)
+			if err != nil {
+				return err
+			}
 
 			client, err := platformClient.CreateDrasiClient()
 			if err != nil {

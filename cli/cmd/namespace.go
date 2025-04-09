@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 
+	"drasi.io/cli/sdk"
 	"drasi.io/cli/sdk/registry"
 	"github.com/spf13/cobra"
 )
@@ -131,15 +132,27 @@ func listNamespaceCommand() *cobra.Command {
 		Short: "List all Drasi environments",
 		Long:  `List all namespaces on the default Kubernetes cluster that have Drasi installed in them.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Logic to list all namespaces
-			namespaces, err := listNamespaces()
+
+			reg, err := registry.LoadCurrentRegistration()
 			if err != nil {
 				return err
 			}
 
-			fmt.Println("Namespaces:")
-			for _, ns := range namespaces {
-				fmt.Println(ns)
+			platformClient, err := sdk.NewPlatformClient(reg)
+			if err != nil {
+				return err
+			}
+
+			if k8sClient, ok := platformClient.(*sdk.KubernetesPlatformClient); ok {
+				namespaces, err := k8sClient.ListNamespaces()
+				if err != nil {
+					return err
+				}
+
+				fmt.Println("Namespaces:")
+				for _, ns := range namespaces {
+					fmt.Println(ns)
+				}
 			}
 
 			return nil

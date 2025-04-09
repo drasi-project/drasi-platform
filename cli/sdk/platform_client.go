@@ -12,15 +12,15 @@ import (
 	"syscall"
 	"time"
 
+	"drasi.io/cli/sdk/registry"
 	"github.com/phayes/freeport"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
-
-	"drasi.io/cli/sdk/registry"
 )
 
 type PlatformClient interface {
@@ -43,6 +43,7 @@ func NewPlatformClient(registration registry.Registration) (PlatformClient, erro
 type KubernetesPlatformClient struct {
 	kubeClient    *kubernetes.Clientset
 	kubeConfig    *rest.Config
+	clientConfig  clientcmd.ClientConfig
 	kubeNamespace string
 }
 
@@ -68,6 +69,7 @@ func MakeKubernetesPlatformClient(configuration *registry.KubernetesConfig) (*Ku
 		kubeClient:    kubeClient,
 		kubeConfig:    restConfig,
 		kubeNamespace: configuration.Namespace,
+		clientConfig:  config,
 	}, nil
 
 }
@@ -104,8 +106,30 @@ func (t *KubernetesPlatformClient) GetKubeConfig() *rest.Config {
 	return t.kubeConfig
 }
 
+func (t *KubernetesPlatformClient) GetClientConfig() clientcmd.ClientConfig {
+	return t.clientConfig
+}
+
 func (t *KubernetesPlatformClient) GetKubeClient() *kubernetes.Clientset {
 	return t.kubeClient
+}
+
+// Retrieve the name of all namespaces that have the label
+// "drasi.io/namespace": "true"
+func (t *KubernetesPlatformClient) ListNamespaces() ([]string, error) {
+	namespaces, err := t.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "drasi.io/namespace=true",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var nsList []string
+	for _, ns := range namespaces.Items {
+		nsList = append(nsList, ns.Name)
+	}
+
+	return nsList, nil
 }
 
 func (t *KubernetesPlatformClient) createTunnel(apiClient *ApiClient) error {

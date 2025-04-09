@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"drasi.io/cli/sdk/registry"
 	"github.com/docker/docker/api/types/container"
@@ -56,6 +57,8 @@ func (t *DockerizedDeployer) Build(name string) (registry.Registration, error) {
 		pullImage(ctx, t.dockerClient, containerImage)
 	}
 
+	fmt.Println("Creating container...")
+
 	resp, err := t.dockerClient.ContainerCreate(ctx, &container.Config{
 		Image: containerImage,
 		Cmd:   []string{"server"},
@@ -90,17 +93,38 @@ func (t *DockerizedDeployer) Build(name string) (registry.Registration, error) {
 	}
 
 	// Wait for the container to be healthy
-	//_, err = t.dockerClient.ContainerWait(ctx, resp.ID, container.WaitConditionHealthy)
+	if err := t.waitForReady(resp.ID); err != nil {
+		return nil, err
+	}
+
 	kubeConfigFile := filepath.Join(mountPath, "k3s.yaml")
 	kubeConfig, err := os.ReadFile(kubeConfigFile)
 	if err != nil {
 		log.Fatalf("Error reading kubeconfig file: %v", err)
 	}
 
-	return &registry.KubernetesConfig{
+	result := registry.KubernetesConfig{
 		Namespace:  "drasi-system",
 		KubeConfig: kubeConfig,
-	}, nil
+	}
+	result.Kind = registry.Kubernetes
+
+	return &result, nil
+}
+
+func (t *DockerizedDeployer) waitForReady(containerId string) error {
+	ctx := context.Background()
+	var state string = "created"
+	for state == "created" {
+		time.Sleep(1 * time.Second)
+		container, err := t.dockerClient.ContainerInspect(ctx, containerId)
+		if err != nil {
+			return err
+		}
+		state = container.State.Status
+		fmt.Println("Container state:", state)
+	}
+	return nil
 }
 
 // imageExists checks if the specified image is cached locally

@@ -15,8 +15,9 @@
 package cmd
 
 import (
-	"drasi.io/cli/output"
 	"errors"
+
+	"drasi.io/cli/output"
 
 	"drasi.io/cli/api"
 	"drasi.io/cli/sdk"
@@ -69,6 +70,9 @@ Usage examples:
 			}
 
 			platformClient, err := sdk.NewPlatformClient(reg)
+			if err != nil {
+				return err
+			}
 
 			client, err := platformClient.CreateDrasiClient()
 			if err != nil {

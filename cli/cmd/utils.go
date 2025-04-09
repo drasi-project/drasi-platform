@@ -16,16 +16,12 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"io"
 	"net/http"
 	"os"
 
 	"drasi.io/cli/api"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
@@ -58,6 +54,9 @@ func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
 			}
 			var fileManifests *[]api.Manifest
 			fileManifests, err = api.ReadManifests(file)
+			if err != nil {
+				return nil, err
+			}
 			manifests = append(manifests, *fileManifests...)
 		}
 	} else {
@@ -81,6 +80,9 @@ func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
 				pipeData, _ := io.ReadAll(reader)
 				var fileManifests *[]api.Manifest
 				fileManifests, err = api.ReadManifests(pipeData)
+				if err != nil {
+					return nil, err
+				}
 				if fileManifests != nil {
 					manifests = append(manifests, *fileManifests...)
 				}
@@ -95,38 +97,4 @@ func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
 func isURL(path string) bool {
 	_, err := http.Get(path)
 	return err == nil
-}
-
-// Retrieve the name of all namespaces that have the label
-// "drasi.io/namespace": "true"
-func listNamespaces() ([]string, error) {
-	configLoadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
-
-	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoadingRules, configOverrides)
-
-	restConfig, err := config.ClientConfig()
-
-	if err != nil {
-		return nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	namespaces, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "drasi.io/namespace=true",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var nsList []string
-	for _, ns := range namespaces.Items {
-		nsList = append(nsList, ns.Name)
-	}
-
-	return nsList, nil
 }

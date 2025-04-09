@@ -50,6 +50,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
@@ -214,7 +215,7 @@ func (t *KubernetesInstaller) installControlPlane(localMode bool, acr string, ve
 		rawStr = strings.Replace(rawStr, "%IMAGE_PULL_POLICY%", "Always", -1)
 	}
 
-	daprVersionString := "daprio/daprd:" + DAPR_SIDECAR_VERSION
+	daprVersionString := "daprio/daprd:" + t.daprSidecarVersion
 	rawStr = strings.Replace(rawStr, "%DAPRD_VERSION%", daprVersionString, -1)
 	raw = []byte(rawStr)
 
@@ -531,17 +532,50 @@ func (t *KubernetesInstaller) waitForDeployment(selector string, output output.T
 	return nil
 }
 
-func (t *KubernetesInstaller) installDapr(output output.TaskOutput, daprRegistry string) error {
-	output.AddTask("Dapr-Install", "Installing Dapr...")
-
-	ns := "dapr-system"
-	flags := genericclioptions.ConfigFlags{
-		Namespace: &ns,
+func (t *KubernetesInstaller) saveKubeConfigToTemp() (string, error) {
+	rawConfig, err := t.platformClient.GetClientConfig().RawConfig()
+	if err != nil {
+		return "", err
+	}
+	configBytes, err := clientcmd.Write(rawConfig)
+	if err != nil {
+		return "", err
 	}
 
+	tmpFile, err := os.CreateTemp("", ".drasi-*")
+	if err != nil {
+		panic(err)
+	}
+	defer tmpFile.Close()
+
+	// Set file permissions to 0600 (read/write for user only)
+	if err := os.Chmod(tmpFile.Name(), 0600); err != nil {
+		panic(err)
+	}
+	tmpFile.Write(configBytes)
+
+	return tmpFile.Name(), nil
+}
+
+func (t *KubernetesInstaller) installDapr(output output.TaskOutput, daprRegistry string) error {
+	output.AddTask("Dapr-Install", "Installing Dapr...")
+	ns := "dapr-system"
+
+	kubeContextFile, err := t.saveKubeConfigToTemp()
+	if err != nil {
+		return err
+	}
+
+	defer os.Remove(kubeContextFile)
+
+	flags := genericclioptions.ConfigFlags{
+		Namespace:  &ns,
+		KubeConfig: &kubeContextFile,
+	}
 	helmConfig := helm.Configuration{}
 
-	err := helmConfig.Init(&flags, "dapr-system", "secret", func(format string, v ...any) {})
+	err = helmConfig.Init(&flags, "dapr-system", "secret", func(format string, v ...any) {})
+
 	if err != nil {
 		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
 		return err

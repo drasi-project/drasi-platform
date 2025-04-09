@@ -15,8 +15,9 @@
 package cmd
 
 import (
-	query_results2 "drasi.io/cli/output/query_results"
 	"fmt"
+
+	query_results2 "drasi.io/cli/output/query_results"
 
 	"drasi.io/cli/sdk"
 	"drasi.io/cli/sdk/registry"
@@ -43,6 +44,9 @@ func NewWatchCommand() *cobra.Command {
 			}
 
 			platformClient, err := sdk.NewPlatformClient(reg)
+			if err != nil {
+				return err
+			}
 
 			client, err := platformClient.CreateDrasiClient()
 			if err != nil {

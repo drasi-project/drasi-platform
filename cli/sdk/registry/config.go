@@ -28,7 +28,8 @@ func (cfg *KubernetesConfig) GetKind() Kind {
 }
 
 func (cfg *KubernetesConfig) MarshalJSON() ([]byte, error) {
-	return json.Marshal(cfg)
+	type Alias KubernetesConfig
+	return json.Marshal((*Alias)(cfg))
 }
 
 func UnmarshalJSON(data []byte) (Registration, error) {
