@@ -44,30 +44,31 @@ Usage examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var installer installers.Installer
 			local := false
-			container := false
+			var dockerName string
 			var containerRegistry string
 			var version string
 
 			var err error
 
-			if container, err = cmd.Flags().GetBool("container"); err != nil {
+			if dockerName, err = cmd.Flags().GetString("docker"); err != nil {
 				return err
 			}
 
-			if container {
+			if dockerName != "" {
+				fmt.Println("Docker name: ", dockerName)
 				var dd *sdk.DockerizedDeployer
 				if dd, err = sdk.MakeDockerizedDeployer(); err != nil {
 					return err
 				}
 
-				reg, err := dd.Build("dev")
+				reg, err := dd.Build(dockerName)
 				if err != nil {
 					return err
 				}
-				if err := registry.SaveRegistration("dev", reg); err != nil {
+				if err := registry.SaveRegistration(dockerName, reg); err != nil {
 					return err
 				}
-				if err := registry.SetCurrentRegistration("dev"); err != nil {
+				if err := registry.SetCurrentRegistration(dockerName); err != nil {
 					return err
 				}
 			}
@@ -133,7 +134,7 @@ Usage examples:
 	}
 
 	initCommand.Flags().Bool("local", false, "Do not use a container registry, only locally available images.")
-	initCommand.Flags().Bool("container", false, "")
+	initCommand.Flags().String("docker", "", "")
 	initCommand.Flags().String("registry", config.Registry, "Container registry to pull images from.")
 	initCommand.Flags().String("version", config.Version, "Container image version tag.")
 	initCommand.Flags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into.")

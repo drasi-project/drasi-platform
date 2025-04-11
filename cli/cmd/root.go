@@ -32,6 +32,8 @@ func MakeRootCommand() *cobra.Command {
 		NewUninstallCommand(),
 		NewVersionCommand(),
 		NewWatchCommand(),
+		NewTunnelCommand(),
+		NewConfigCommand(),
 	)
 
 	// Declare the 'help' persistent flag so we can hide the default flag from the help output text.

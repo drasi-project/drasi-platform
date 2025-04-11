@@ -1,20 +1,24 @@
 package sdk
 
 import (
+	"archive/tar"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"drasi.io/cli/sdk/registry"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
+	"github.com/phayes/freeport"
 )
 
 var (
@@ -41,13 +45,21 @@ func MakeDockerizedDeployer() (*DockerizedDeployer, error) {
 func (t *DockerizedDeployer) Build(name string) (registry.Registration, error) {
 	ctx := context.Background()
 
+	port, err := freeport.GetFreePort()
+	if err != nil {
+		return nil, err
+	}
+
+	portStr := strconv.Itoa(port)
+	portBinding := nat.Port(portStr + "/tcp")
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Println("Error getting home directory:", err)
 		return nil, err
 	}
 
-	mountPath := filepath.Join(homeDir, ".drasi", "servers", name, "k3s")
+	mountPath := filepath.Join(homeDir, ".drasi", "servers", name)
 	err = os.MkdirAll(mountPath, 0755)
 	if err != nil {
 		return nil, err
@@ -61,26 +73,19 @@ func (t *DockerizedDeployer) Build(name string) (registry.Registration, error) {
 
 	resp, err := t.dockerClient.ContainerCreate(ctx, &container.Config{
 		Image: containerImage,
-		Cmd:   []string{"server"},
+		Cmd:   []string{"server", "--https-listen-port", portStr},
 		ExposedPorts: nat.PortSet{
-			"6443/tcp": struct{}{},
+			portBinding: struct{}{},
 		},
 	}, &container.HostConfig{
 		Privileged: true,
 
 		PortBindings: nat.PortMap{
-			"6443/tcp": []nat.PortBinding{
+			portBinding: []nat.PortBinding{
 				{
 					HostIP:   "0.0.0.0",
-					HostPort: "6443",
+					HostPort: portStr,
 				},
-			},
-		},
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: mountPath,
-				Target: "/etc/rancher/k3s",
 			},
 		},
 	}, nil, nil, "drasi-"+name)
@@ -97,17 +102,31 @@ func (t *DockerizedDeployer) Build(name string) (registry.Registration, error) {
 		return nil, err
 	}
 
-	kubeConfigFile := filepath.Join(mountPath, "k3s.yaml")
-	kubeConfig, err := os.ReadFile(kubeConfigFile)
+	err = t.waitForApiServer(portStr)
 	if err != nil {
-		log.Fatalf("Error reading kubeconfig file: %v", err)
+		return nil, err
 	}
 
-	result := registry.KubernetesConfig{
-		Namespace:  "drasi-system",
-		KubeConfig: kubeConfig,
+	kubeConfig, err := t.readKubeconfig(resp.ID)
+	if err != nil {
+		log.Fatalf("Error reading kubeconfig: %v", err)
 	}
-	result.Kind = registry.Kubernetes
+
+	result := registry.DockerConfig{
+		ContainerId: &resp.ID,
+		InternalConfig: &registry.KubernetesConfig{
+			Namespace:  "drasi-system",
+			KubeConfig: kubeConfig,
+			Config: registry.Config{
+				Id:   name,
+				Kind: registry.Kubernetes,
+			},
+		},
+		Config: registry.Config{
+			Id:   name,
+			Kind: registry.Docker,
+		},
+	}
 
 	return &result, nil
 }
@@ -116,15 +135,76 @@ func (t *DockerizedDeployer) waitForReady(containerId string) error {
 	ctx := context.Background()
 	var state string = "created"
 	for state == "created" {
-		time.Sleep(1 * time.Second)
 		container, err := t.dockerClient.ContainerInspect(ctx, containerId)
 		if err != nil {
 			return err
 		}
 		state = container.State.Status
 		fmt.Println("Container state:", state)
+		time.Sleep(1 * time.Second)
 	}
+
 	return nil
+}
+
+func (t *DockerizedDeployer) Delete(config *registry.DockerConfig) error {
+	ctx := context.Background()
+	if config.ContainerId != nil {
+		return t.dockerClient.ContainerRemove(ctx, *config.ContainerId, container.RemoveOptions{Force: true})
+	}
+
+	return nil
+}
+
+func (t *DockerizedDeployer) waitForApiServer(port string) error {
+	timeout := time.After(30 * time.Second)
+	tick := time.Tick(1 * time.Second)
+
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for HTTP connection on port %s", port)
+		case <-tick:
+			conn, err := net.DialTimeout("tcp", "localhost:"+port, 1*time.Second)
+			if err == nil {
+				conn.Close()
+				fmt.Println("HTTP connection established on port", port)
+				return nil
+			}
+			fmt.Println("Waiting for HTTP connection on port", port)
+		}
+	}
+}
+
+func (t *DockerizedDeployer) readKubeconfig(containerId string) ([]byte, error) {
+	ctx := context.Background()
+	cfgReader, _, err := t.dockerClient.CopyFromContainer(ctx, containerId, "/etc/rancher/k3s/k3s.yaml")
+	if err != nil {
+		log.Printf("Error reading kubeconfig file: %v", err)
+		return nil, err
+	}
+	defer cfgReader.Close()
+	tarReader := tar.NewReader(cfgReader)
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if header.Typeflag == tar.TypeReg {
+			var buf bytes.Buffer
+			if _, err := io.Copy(&buf, tarReader); err != nil {
+				log.Fatal(err)
+			}
+			return buf.Bytes(), nil
+		}
+	}
+
+	return nil, fmt.Errorf("kubeconfig not found in container")
 }
 
 // imageExists checks if the specified image is cached locally
@@ -142,8 +222,7 @@ func pullImage(ctx context.Context, cli *client.Client, imageName string) error 
 		return err
 	}
 	defer out.Close()
+	io.Copy(os.Stdout, out)
 
-	// Drain the output to ensure the pull completes
-	_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, out)
 	return err
 }

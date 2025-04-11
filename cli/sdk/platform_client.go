@@ -25,6 +25,7 @@ import (
 
 type PlatformClient interface {
 	CreateDrasiClient() (*ApiClient, error)
+	CreateTunnel(resourceName string, endpoint string, localPort uint16, remotePort uint16) error
 }
 
 func NewPlatformClient(registration registry.Registration) (PlatformClient, error) {
@@ -35,6 +36,12 @@ func NewPlatformClient(registration registry.Registration) (PlatformClient, erro
 			return nil, errors.New("invalid Kubernetes config")
 		}
 		return MakeKubernetesPlatformClient(k8sConfig)
+	case registry.Docker:
+		dockerConfig, ok := registration.(*registry.DockerConfig)
+		if !ok {
+			return nil, errors.New("invalid Docker config")
+		}
+		return NewPlatformClient(dockerConfig.InternalConfig)
 	default:
 		return nil, fmt.Errorf("unsupported platform kind: %s", registration.GetKind())
 	}
@@ -84,7 +91,7 @@ func (t *KubernetesPlatformClient) CreateDrasiClient() (*ApiClient, error) {
 		stopCh: make(chan struct{}, 1),
 	}
 
-	err = t.createTunnel(&result)
+	err = t.createManagementApiTunnel(&result)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +139,52 @@ func (t *KubernetesPlatformClient) ListNamespaces() ([]string, error) {
 	return nsList, nil
 }
 
-func (t *KubernetesPlatformClient) createTunnel(apiClient *ApiClient) error {
+func (t *KubernetesPlatformClient) CreateTunnel(resourceName string, endpoint string, localPort uint16, remotePort uint16) error {
+	podName, err := t.getServicePodName(resourceName + "-" + endpoint)
+	if err != nil {
+		return err
+	}
+
+	namespace := t.kubeNamespace
+	proxyURL := &url.URL{
+		Scheme: "https",
+		Path:   fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, podName),
+		Host:   strings.TrimPrefix(t.kubeConfig.Host, "https://"),
+	}
+
+	transport, upgrader, err := spdy.RoundTripperFor(t.kubeConfig)
+	if err != nil {
+		return err
+	}
+
+	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, proxyURL)
+
+	readyCh := make(chan struct{})
+
+	stopCh := make(chan struct{}, 1)
+	pf, err := portforward.New(dialer, []string{fmt.Sprintf("%d:%d", localPort, remotePort)}, stopCh, readyCh, os.Stdout, os.Stderr)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		err = pf.ForwardPorts()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	<-readyCh
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	close(stopCh)
+
+	return nil
+}
+
+func (t *KubernetesPlatformClient) createManagementApiTunnel(apiClient *ApiClient) error {
 	podName, err := t.getApiPodName()
 	if err != nil {
 		return err
@@ -193,4 +245,21 @@ func (t *KubernetesPlatformClient) getApiPodName() (string, error) {
 		}
 	}
 	return "", errors.New("drasi API not available")
+}
+
+func (t *KubernetesPlatformClient) getServicePodName(serviceName string) (string, error) {
+	namespace := t.kubeNamespace
+	ep, err := t.kubeClient.CoreV1().Endpoints(namespace).Get(context.TODO(), serviceName, v1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	for _, subset := range ep.Subsets {
+		for _, addr := range subset.Addresses {
+			if addr.TargetRef.Kind == "Pod" {
+				return addr.TargetRef.Name, nil
+			}
+		}
+	}
+	return "", errors.New(serviceName + " not available")
 }
