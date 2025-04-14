@@ -75,7 +75,8 @@ data:
     processors:
       batch:
         timeout: 1s
-        send_batch_size: 4000
+        send_batch_size: 1000 
+        send_batch_max_size: 2000
       memory_limiter:
         check_interval: 1s
         limit_mib: 1500
@@ -85,6 +86,7 @@ data:
         endpoint: "tempo:4317"
         tls:
           insecure: true
+        compression: gzip
       prometheus:
         endpoint: "0.0.0.0:8889"
         send_timestamps: true
