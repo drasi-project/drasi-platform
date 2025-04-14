@@ -25,7 +25,7 @@ import (
 
 func NewTunnelCommand() *cobra.Command {
 	var tunnelCommand = &cobra.Command{
-		Use:   "tunnel",
+		Use:   "tunnel [service] [endpoint] [localPort] [remotePort]",
 		Short: "Create a tunnel to a Drasi resource",
 		Long:  ``,
 

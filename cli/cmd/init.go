@@ -50,18 +50,20 @@ Usage examples:
 
 			var err error
 
+			output := output.NewTaskOutput()
+			defer output.Close()
+
 			if dockerName, err = cmd.Flags().GetString("docker"); err != nil {
 				return err
 			}
 
 			if dockerName != "" {
-				fmt.Println("Docker name: ", dockerName)
 				var dd *sdk.DockerizedDeployer
 				if dd, err = sdk.MakeDockerizedDeployer(); err != nil {
 					return err
 				}
 
-				reg, err := dd.Build(dockerName)
+				reg, err := dd.Build(dockerName, output)
 				if err != nil {
 					return err
 				}
@@ -117,9 +119,6 @@ Usage examples:
 			} else {
 				fmt.Printf("Installing Drasi with version %s from registry %s\n", version, containerRegistry)
 			}
-
-			output := output.NewTaskOutput()
-			defer output.Close()
 
 			daprRegistry, err := cmd.Flags().GetString("dapr-registry")
 			if err != nil {

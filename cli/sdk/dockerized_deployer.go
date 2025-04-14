@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"drasi.io/cli/output"
 	"drasi.io/cli/sdk/registry"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -42,7 +43,7 @@ func MakeDockerizedDeployer() (*DockerizedDeployer, error) {
 	return &result, nil
 }
 
-func (t *DockerizedDeployer) Build(name string) (registry.Registration, error) {
+func (t *DockerizedDeployer) Build(name string, output output.TaskOutput) (registry.Registration, error) {
 	ctx := context.Background()
 
 	port, err := freeport.GetFreePort()
@@ -55,7 +56,6 @@ func (t *DockerizedDeployer) Build(name string) (registry.Registration, error) {
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println("Error getting home directory:", err)
 		return nil, err
 	}
 
@@ -66,10 +66,10 @@ func (t *DockerizedDeployer) Build(name string) (registry.Registration, error) {
 	}
 
 	if !imageExists(ctx, t.dockerClient, containerImage) {
-		pullImage(ctx, t.dockerClient, containerImage)
+		pullImage(ctx, t.dockerClient, containerImage, output)
 	}
 
-	fmt.Println("Creating container...")
+	output.AddTask("Create-Docker", "Creating container")
 
 	resp, err := t.dockerClient.ContainerCreate(ctx, &container.Config{
 		Image: containerImage,
@@ -90,22 +90,31 @@ func (t *DockerizedDeployer) Build(name string) (registry.Registration, error) {
 		},
 	}, nil, nil, "drasi-"+name)
 	if err != nil {
-		log.Fatalf("Error creating container: %v", err)
+		output.FailTask("Create-Docker", fmt.Sprintf("Error creating container: %v", err))
+		return nil, err
 	}
 
 	if err := t.dockerClient.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-		log.Fatalf("Error starting container: %v", err)
+		output.FailTask("Create-Docker", fmt.Sprintf("Error starting container %s: %v", resp.ID, err))
+		return nil, err
 	}
+
+	output.SucceedTask("Create-Docker", fmt.Sprintf("Container %s created", resp.ID))
+	output.AddTask("Wait-Container", "Waiting for container to be start")
 
 	// Wait for the container to be healthy
 	if err := t.waitForReady(resp.ID); err != nil {
+		output.FailTask("Wait-Container", fmt.Sprintf("Error waiting for container %s: %v", resp.ID, err))
 		return nil, err
 	}
 
 	err = t.waitForApiServer(portStr)
 	if err != nil {
+		output.FailTask("Wait-Container", fmt.Sprintf("Error waiting for API server on port %s: %v", portStr, err))
 		return nil, err
 	}
+
+	output.SucceedTask("Wait-Container", fmt.Sprintf("Container %s started", resp.ID))
 
 	kubeConfig, err := t.readKubeconfig(resp.ID)
 	if err != nil {
@@ -140,7 +149,6 @@ func (t *DockerizedDeployer) waitForReady(containerId string) error {
 			return err
 		}
 		state = container.State.Status
-		fmt.Println("Container state:", state)
 		time.Sleep(1 * time.Second)
 	}
 
@@ -168,10 +176,8 @@ func (t *DockerizedDeployer) waitForApiServer(port string) error {
 			conn, err := net.DialTimeout("tcp", "localhost:"+port, 1*time.Second)
 			if err == nil {
 				conn.Close()
-				fmt.Println("HTTP connection established on port", port)
 				return nil
 			}
-			fmt.Println("Waiting for HTTP connection on port", port)
 		}
 	}
 }
@@ -180,7 +186,6 @@ func (t *DockerizedDeployer) readKubeconfig(containerId string) ([]byte, error) 
 	ctx := context.Background()
 	cfgReader, _, err := t.dockerClient.CopyFromContainer(ctx, containerId, "/etc/rancher/k3s/k3s.yaml")
 	if err != nil {
-		log.Printf("Error reading kubeconfig file: %v", err)
 		return nil, err
 	}
 	defer cfgReader.Close()
@@ -214,15 +219,18 @@ func imageExists(ctx context.Context, cli *client.Client, imageName string) bool
 }
 
 // pullImage pulls the image from the registry if it's not cached
-func pullImage(ctx context.Context, cli *client.Client, imageName string) error {
-	println("pulling image")
+func pullImage(ctx context.Context, cli *client.Client, imageName string, output output.TaskOutput) error {
+	output.AddTask("Pull-Image", fmt.Sprintf("Pulling image %s", imageName))
+
 	out, err := cli.ImagePull(ctx, imageName, image.PullOptions{})
 	if err != nil {
-		println("pull failed")
+		output.FailTask("Pull-Image", fmt.Sprintf("Error pulling image %s: %v", imageName, err))
 		return err
 	}
 	defer out.Close()
 	io.Copy(os.Stdout, out)
 
-	return err
+	output.SucceedTask("Pull-Image", fmt.Sprintf("Image %s pulled", imageName))
+
+	return nil
 }
