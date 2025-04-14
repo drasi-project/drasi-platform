@@ -12,8 +12,11 @@ import (
 	"syscall"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"drasi.io/cli/sdk/registry"
 	"github.com/phayes/freeport"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -26,6 +29,8 @@ import (
 type PlatformClient interface {
 	CreateDrasiClient() (*ApiClient, error)
 	CreateTunnel(resourceName string, endpoint string, localPort uint16, remotePort uint16) error
+	SetSecret(name string, key string, value []byte) error
+	DeleteSecret(name string, key string) error
 }
 
 func NewPlatformClient(registration registry.Registration) (PlatformClient, error) {
@@ -180,6 +185,63 @@ func (t *KubernetesPlatformClient) CreateTunnel(resourceName string, endpoint st
 	signal.Notify(c, os.Interrupt)
 	<-c
 	close(stopCh)
+
+	return nil
+}
+
+func (t *KubernetesPlatformClient) SetSecret(name string, key string, value []byte) error {
+	secret, err := t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Get(context.TODO(), name, v1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			secret = &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      name,
+					Namespace: t.kubeNamespace,
+				},
+				Data: map[string][]byte{
+					key: value,
+				},
+			}
+			_, err = t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Create(context.TODO(), secret, v1.CreateOptions{})
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return err
+	}
+
+	// Secret exists, update it
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
+
+	secret.Data[key] = value
+
+	_, err = t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Update(context.TODO(), secret, v1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *KubernetesPlatformClient) DeleteSecret(name string, key string) error {
+	secret, err := t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Get(context.TODO(), name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if secret.Data == nil {
+		return nil
+	}
+
+	delete(secret.Data, key)
+
+	_, err = t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Update(context.TODO(), secret, v1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

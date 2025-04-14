@@ -43,7 +43,7 @@ func NewConfigCommand() *cobra.Command {
 
 func newListConfigCommand() *cobra.Command {
 	var listCommand = &cobra.Command{
-		Use:   "list",
+		Use:   "all",
 		Short: "List all Drasi configurations.",
 		Long:  ``,
 		Args:  cobra.MinimumNArgs(0),
