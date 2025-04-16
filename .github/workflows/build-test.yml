@@ -295,7 +295,7 @@ jobs:
           { 
             label: 'StorageQueue',
             path: './reactions/azure/storagequeue-reaction', 
-            name: 'reaction-storagequeue'
+            name: 'reaction-storage-queue'
           },
           { 
             label: 'StoredProc',

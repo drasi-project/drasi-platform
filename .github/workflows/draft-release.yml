@@ -67,7 +67,7 @@ env:
     {"label": "EventBridge", "path": "reactions/aws/eventbridge-reaction", "name": "reaction-eventbridge", "platforms": "linux/amd64,linux/arm64"},
     {"label": "Gremlin", "path": "reactions/gremlin/gremlin-reaction", "name": "reaction-gremlin", "platforms": "linux/amd64,linux/arm64"},
     {"label": "Result", "path": "reactions/platform/result-reaction", "name": "reaction-result", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "StorageQueue", "path": "reactions/azure/storagequeue-reaction", "name": "reaction-storagequeue", "platforms": "linux/amd64,linux/arm64"},
+    {"label": "StorageQueue", "path": "reactions/azure/storagequeue-reaction", "name": "reaction-storage-queue", "platforms": "linux/amd64,linux/arm64"},
     {"label": "StoredProc", "path": "reactions/sql/storedproc-reaction", "name": "reaction-storedproc", "platforms": "linux/amd64,linux/arm64"}]'
 
 jobs:
