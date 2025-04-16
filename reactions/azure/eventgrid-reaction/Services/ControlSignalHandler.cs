@@ -17,6 +17,7 @@ using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 using Azure.Messaging.EventGrid;
 using Azure.Messaging;
+// using Azure.Messaging.CloudEvents;
 
 using System.Text.Json;
 using System;
@@ -48,7 +49,15 @@ public class ControlSignalHandler: IControlEventHandler
             case OutputFormat.Packed:
                 if (_eventGridSchema == EventGridSchema.CloudEvents)
                 {
-                    CloudEvent egEvent = new CloudEvent(evt.QueryId, "Drasi.ControlEvent", evt);
+                    var serializedDataJson = JsonSerializer.Serialize(
+                        evt,
+                        Drasi.Reactions.EventGrid.Models.Unpacked.Converter.Settings
+                    );
+
+                    using var doc = JsonDocument.Parse(serializedDataJson);
+                    JsonElement serializedEvent = doc.RootElement.Clone();
+
+                    CloudEvent egEvent = new CloudEvent(evt.QueryId, "Drasi.ControlSignal", serializedEvent);
                     var resp = await _publisherClient.SendEventAsync(egEvent);
                     if (resp.IsError)
                     {
@@ -58,7 +67,7 @@ public class ControlSignalHandler: IControlEventHandler
                     break;
                 } else if (_eventGridSchema == EventGridSchema.EventGrid)
                 {
-                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ControlEvent", "1", evt);
+                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ControlSignal", "1", evt);
                     var resp = await _publisherClient.SendEventAsync(egEvent);
                     if (resp.IsError)
                     {
@@ -86,7 +95,12 @@ public class ControlSignalHandler: IControlEventHandler
 
                 if (_eventGridSchema == EventGridSchema.EventGrid)
                 {
-                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ControlSignal", "1", notification);
+                    EventGridEvent egEvent = new EventGridEvent(
+                        subject: $"Drasi.ControlSignal/{evt.QueryId}",
+                        eventType: "Drasi.ControlSignal",
+                        dataVersion: "1",
+                        data: notification
+                    );
                     var resp = await _publisherClient.SendEventAsync(egEvent);
                     if (resp.IsError)
                     {
@@ -96,7 +110,14 @@ public class ControlSignalHandler: IControlEventHandler
                     break;
                 } else if (_eventGridSchema == EventGridSchema.CloudEvents)
                 {
-                    CloudEvent unpackedEvent = new CloudEvent(evt.QueryId, "Drasi.ControlSignal", notification);
+                    var serializedDataJson = JsonSerializer.Serialize(
+                        notification,
+                        Drasi.Reactions.EventGrid.Models.Unpacked.Converter.Settings
+                    );
+                    using var doc = JsonDocument.Parse(serializedDataJson);
+                    JsonElement serializedEvent = doc.RootElement.Clone();
+
+                    CloudEvent unpackedEvent = new CloudEvent(evt.QueryId, "Drasi.ControlSignal", serializedEvent);
                     var dzresp = await _publisherClient.SendEventAsync(unpackedEvent);
                     if (dzresp.IsError)
                     {
