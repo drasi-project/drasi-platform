@@ -67,7 +67,15 @@ public class ControlSignalHandler: IControlEventHandler
                     break;
                 } else if (_eventGridSchema == EventGridSchema.EventGrid)
                 {
-                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ControlSignal", "1", evt);
+                    var serializedDataJson = JsonSerializer.Serialize(
+                        evt,
+                        Drasi.Reactions.EventGrid.Models.Unpacked.Converter.Settings
+                    );
+
+                    using var doc = JsonDocument.Parse(serializedDataJson);
+                    JsonElement serializedEvent = doc.RootElement.Clone();
+
+                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ControlSignal", "1", serializedEvent);
                     var resp = await _publisherClient.SendEventAsync(egEvent);
                     if (resp.IsError)
                     {
@@ -95,11 +103,18 @@ public class ControlSignalHandler: IControlEventHandler
 
                 if (_eventGridSchema == EventGridSchema.EventGrid)
                 {
+                    var serializedDataJson = JsonSerializer.Serialize(
+                        notification,
+                        Drasi.Reactions.EventGrid.Models.Unpacked.Converter.Settings
+                    );
+                    using var doc = JsonDocument.Parse(serializedDataJson);
+                    JsonElement serializedEvent = doc.RootElement.Clone();
+
                     EventGridEvent egEvent = new EventGridEvent(
-                        subject: $"Drasi.ControlSignal/{evt.QueryId}",
+                        subject: evt.QueryId,
                         eventType: "Drasi.ControlSignal",
                         dataVersion: "1",
-                        data: notification
+                        data: serializedEvent
                     );
                     var resp = await _publisherClient.SendEventAsync(egEvent);
                     if (resp.IsError)

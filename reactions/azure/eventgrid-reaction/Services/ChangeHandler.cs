@@ -52,32 +52,21 @@ public class ChangeHandler : IChangeEventHandler
             return;
         }
         _logger.LogInformation("Processing " + evt.QueryId);
-        _logger.LogInformation("Event: " + System.Text.Json.JsonSerializer.Serialize(evt));
         switch(_format)
         {
             case OutputFormat.Packed:
                 if (_eventGridSchema == EventGridSchema.CloudEvents) {
-                     var formattedEvent = _formatter.Format(evt);
-                    
-                    CloudEvent cloudEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", formattedEvent){
-                        DataContentType = "application/json"
-                    };
-                    var serializedDataJson = JsonSerializer.Serialize(
-                        formattedEvent,
-                        Drasi.Reactions.EventGrid.Models.Unpacked.Converter.Settings
-                    );
-                    using var doc = JsonDocument.Parse(serializedDataJson);
-                    JsonElement serializedEvent = doc.RootElement.Clone();
-
-                    CloudEvent currEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", serializedEvent);
-                    var resp = await _publisherClient.SendEventAsync(cloudEvent);
+                    var formattedEvent = _formatter.Format(evt);
+                    CloudEvent currEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", formattedEvent);
+                    var resp = await _publisherClient.SendEventAsync(currEvent);
                     if (resp.IsError) 
                     {
                         _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
                         throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
                     }
                 } else if (_eventGridSchema == EventGridSchema.EventGrid) {
-                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", _formatter.Format(evt));
+                    var formattedEvent = _formatter.Format(evt);
+                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", formattedEvent);
                     var resp = await _publisherClient.SendEventAsync(egEvent);
                     if (resp.IsError) 
                     {
@@ -93,7 +82,7 @@ public class ChangeHandler : IChangeEventHandler
                     List<EventGridEvent> events = new List<EventGridEvent>();
                     foreach (var notification in formattedResults)
                     {
-                        EventGridEvent currEvent = new EventGridEvent($"Drasi.ChangeEvent/{evt.QueryId}", "Drasi.ChangeEvent", "1", notification);
+                        EventGridEvent currEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", notification);
                         events.Add(currEvent);
                     }
                     var currResp = await _publisherClient.SendEventsAsync(events);
@@ -107,15 +96,7 @@ public class ChangeHandler : IChangeEventHandler
                     List<CloudEvent> events = new List<CloudEvent>();
                     foreach (var notification in formattedResults)
                     {
-                        var serializedDataJson = JsonSerializer.Serialize(
-                            notification,
-                            Drasi.Reactions.EventGrid.Models.Unpacked.Converter.Settings
-                        );
-
-                        using var doc = JsonDocument.Parse(serializedDataJson);
-                        serializedEvent = doc.RootElement.Clone();
-
-                        CloudEvent currEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", serializedEvent);
+                        CloudEvent currEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", notification);
                         events.Add(currEvent);
                     }
                     var currResp = await _publisherClient.SendEventsAsync(events);
