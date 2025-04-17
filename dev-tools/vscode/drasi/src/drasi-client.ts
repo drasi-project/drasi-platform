@@ -222,7 +222,7 @@ export class DrasiClient {
                 method: 'get',
                 url: `http://${addr}/v1/continuousQueries/${queryId}/watch`,
                 responseType: 'stream',
-                timeout: this.timeout,
+                timeout: 0,
                 signal: abortController.signal,
             });
         
@@ -260,7 +260,8 @@ export class DrasiClient {
             endpoint.close();
         }
         return {
-            stop: () => {                
+            stop: () => {
+                console.log("Stopping watch query");                
                 abortController.abort();
                 endpoint.close();
             }
@@ -282,6 +283,7 @@ export class DrasiClient {
         socket.onclose = function close(event: CloseEvent) {
           console.log("close debug session: " + event.reason);
           console.log('disconnected');
+          endpoint.close();
         };
 
         socket.onmessage = function message(event: MessageEvent) {      
