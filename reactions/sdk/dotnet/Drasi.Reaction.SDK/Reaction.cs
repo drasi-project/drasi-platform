@@ -64,6 +64,11 @@ public class Reaction<TQueryConfig> : IHost
             case "change":
                 var changeEvt = evt.Deserialize<ChangeEvent>(ModelOptions.JsonOptions);
                 var queryCfg = _queriesConfig.GetValueOrDefault(changeEvt.QueryId, null);
+                if (changeEvt.AddedResults.Length == 0 && changeEvt.DeletedResults.Length == 0 && changeEvt.UpdatedResults.Length == 0)
+                {
+                    context.Response.StatusCode = 200;
+                    break;
+                }
                 await changeHandler.HandleChange(changeEvt, queryCfg);
                 break;
             case "control":
