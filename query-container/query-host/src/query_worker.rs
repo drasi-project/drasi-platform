@@ -40,7 +40,7 @@ use tokio::{
     task::JoinHandle,
     time::Instant,
 };
-use tracing::{instrument, Instrument};
+use tracing::{dispatcher, info_span, instrument, Dispatch, Instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
@@ -566,6 +566,8 @@ async fn bootstrap(
     element_index: Arc<dyn ElementIndex>,
     result_index: Arc<dyn ResultIndex>,
 ) -> Result<(), BootstrapError> {
+    let process_span = info_span!("process_bootstrap", query_id = query_id);
+
     match publisher
         .publish(
             query_id,
@@ -609,6 +611,7 @@ async fn bootstrap(
 
         let mut initial_data = pin!(initial_data);
 
+        let publish_span = info_span!("publish_bootstrap_data", query_id = query_id);
         while let Some(change) = initial_data.next().await {
             match change {
                 Ok(change) => {
@@ -627,14 +630,25 @@ async fn bootstrap(
                     };
 
                     let seq = seq_manager.increment("bootstrap");
-                    let output = ResultEvent::from_query_results(
-                        query_id,
-                        change_results,
-                        seq,
-                        timestamp,
-                        None,
+                    let output = dispatcher::with_default(
+                        &tracing::Dispatch::none(), // Disable tracing for this scope
+                        || {
+                            ResultEvent::from_query_results(
+                                query_id,
+                                change_results,
+                                seq,
+                                timestamp,
+                                None,
+                            )
+                        },
                     );
-                    match publisher.publish(query_id, output).await {
+
+                    let result = {
+                        let _guard = tracing::dispatcher::set_default(&Dispatch::none());
+                        publisher.publish(query_id, output).await
+                    };
+
+                    match result {
                         Ok(_) => log::info!("Published result"),
                         Err(err) => {
                             log::error!("Error publishing result: {}", err);
