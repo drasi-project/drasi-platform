@@ -1,140 +1,229 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import axios from "axios";
-import { PortForward } from "./port-forward";
+import axios, { AxiosResponse } from "axios";
 import { Resource, ResourceDTO } from "./models/resource";
 import { ContinuousQuerySpec, ContinuousQueryStatus } from "./models/continuous-query";
 import { SourceSpec, SourceStatus } from "./models/source";
 import { ReactionSpec, ReactionStatus } from "./models/reaction";
 import { CloseEvent, ErrorEvent, MessageEvent, WebSocket } from 'ws';
 import { Stoppable } from "./models/stoppable";
+import { createPlatformClient, ManagementEndpoint, PlatformClient } from "./sdk/platform-client";
+import { ConfigurationRegistry } from "./sdk/config";
 
 
 export class DrasiClient {
 
-    readonly servicePort = 8080;
-    readonly serviceName = "drasi-api";
+    private configRegistry: ConfigurationRegistry;
+    private configHash: number = 0;
 
-    constructor() {
+    private platformClient: PlatformClient | undefined = undefined;
+    private managementEndpoint: ManagementEndpoint | undefined = undefined;
+    private readonly timeout = 10000;
+
+    constructor(configRegistry: ConfigurationRegistry) {
+        this.configRegistry = configRegistry;
+    }
+
+    private async getSharedManagementEndpoint() {
+        let registration = await this.configRegistry.loadCurrentRegistration();
+        if (!registration) {
+            throw new Error("No registration found");
+        }
+        console.log(`Using registration: ${registration.kind}:${registration.id}`);
+        let hash = hashObject(registration);
+        if (this.configHash !== hash) {
+            console.log("Config hash changed, creating new platform client");
+            this.configHash = hash;
+            this.platformClient = undefined;
+            this.managementEndpoint = undefined;
+        }
+
+        if (!this.platformClient) {
+            console.log("Creating platform client");
+            this.platformClient = createPlatformClient(registration);
+        }
+        if (!this.managementEndpoint) {
+            console.log("Creating management endpoint");
+            this.managementEndpoint = await this.platformClient.getManagementEndpoint();
+        }
+
+        return this.managementEndpoint;
+    }
+
+    private async getIsolatedManagementEndpoint() {
+        let registration = await this.configRegistry.loadCurrentRegistration();
+        if (!registration) {
+            throw new Error("No registration found");
+        }
+        console.log(`Using registration: ${registration.kind}:${registration.id}`);
+        let hash = hashObject(registration);
+        if (this.configHash !== hash) {
+            console.log("Config hash changed, creating new platform client");
+            this.configHash = hash;
+            this.platformClient = undefined;
+            this.managementEndpoint = undefined;
+        }
+
+        if (!this.platformClient) {
+            console.log("Creating platform client");
+            this.platformClient = createPlatformClient(registration);
+        }
         
+        return await this.platformClient.getManagementEndpoint();
+    }
+
+    private async get<T = any>(path: string): Promise<AxiosResponse<T>> {
+        let endpoint = await this.getSharedManagementEndpoint();
+        let addr = await endpoint.getManagementAddr();
+        
+        try {
+            let res = await axios.get<T>(`http://${addr}/v1/${path}`, {
+                validateStatus: () => true,
+                timeout: this.timeout,           
+            });
+
+            return res;
+        } catch (err) {
+            console.error(`Error getting ${path}: ${err}`);
+            await endpoint.close();
+            throw err;
+        }
+    }
+
+    private async delete(path: string): Promise<AxiosResponse> {
+        let endpoint = await this.getSharedManagementEndpoint();
+        let addr = await endpoint.getManagementAddr();
+        
+        try {
+            let res = await axios.delete(`http://${addr}/v1/${path}`, {
+                validateStatus: () => true,
+                timeout: this.timeout,           
+            });
+
+            return res;
+        } catch (err) {
+            console.error(`Error deleting ${path}: ${err}`);
+            await endpoint.close();
+            throw err;
+        }
+    }
+
+    private async put(path: string, data: any): Promise<AxiosResponse> {
+        let endpoint = await this.getSharedManagementEndpoint();
+        let addr = await endpoint.getManagementAddr();
+        try {
+            let res = await axios.put(`http://${addr}/v1/${path}`, data, {
+                validateStatus: () => true,
+                timeout: this.timeout,           
+            });
+            return res;
+        } catch (err) {
+            console.error(`Error putting ${path}: ${err}`);
+            await endpoint.close();
+            throw err;
+        }
+    }
+
+    private async wait(path: string): Promise<boolean> {
+        let endpoint = await this.getSharedManagementEndpoint();
+        let addr = await endpoint.getManagementAddr();
+        
+        try {
+            let res = await axios.get(`http://${addr}/v1/${path}/ready-wait`, {
+                validateStatus: () => true,
+                timeout: 30000,
+            });
+
+            return res.status >= 200 && res.status < 300;
+        } catch (err) {
+            console.error(`Error waiting for ready ${path}: ${err}`);
+            return false;
+        }
+    }
+
+    async close() {
+        if (this.managementEndpoint) {            
+            await this.managementEndpoint.close();
+            this.managementEndpoint = undefined;
+        }
+    }
+
+    async getCurrentRegistrationId() {
+        return await this.configRegistry.getCurrentRegistrationId();
     }
 
     async getContinuousQuery(name : string) {
-        let portFwd = new PortForward(this.serviceName, this.servicePort);
-        let port = await portFwd.start();
-        try {
-            let res = await axios.get<ResourceDTO<ContinuousQuerySpec, ContinuousQueryStatus>>(`http://127.0.0.1:${port}/v1/continuousQueries/${name}`, {
-                validateStatus: () => true
-            });
+        let res = await this.get<ResourceDTO<ContinuousQuerySpec, ContinuousQueryStatus>>(`continuousQueries/${name}`);
 
-            if (res.status !== 200) {
-                throw new Error(`Failed to get continuous queries: ${res.statusText}`);
-            }
-
-            return res.data;
+        if (res.status !== 200) {
+            throw new Error(`Failed to get continuous queries: ${res.statusText}`);
         }
-        finally {
-            portFwd.stop();
-        }        
+
+        return res.data;     
     }
 
-    async getContinuousQueries() {
-        let portFwd = new PortForward(this.serviceName, this.servicePort);
-        let port = await portFwd.start();
-        try {
-            let res = await axios.get<ResourceDTO<ContinuousQuerySpec, ContinuousQueryStatus>[]>(`http://127.0.0.1:${port}/v1/continuousQueries`, {
-                validateStatus: () => true
-            });
+    async getContinuousQueries() {        
+        let res = await this.get<ResourceDTO<ContinuousQuerySpec, ContinuousQueryStatus>[]>(`continuousQueries`);
 
-            if (res.status !== 200) {
-                throw new Error(`Failed to get continuous queries: ${res.statusText}`);
-            }
-
-            return res.data;
+        if (res.status !== 200) {
+            throw new Error(`Failed to get continuous queries: ${res.statusText}`);
         }
-        finally {
-            portFwd.stop();
-        }        
+
+        return res.data;    
     }
 
     async getSources() {
-        let portFwd = new PortForward(this.serviceName, this.servicePort);
-        let port = await portFwd.start();
-        try {
-            let res = await axios.get<ResourceDTO<SourceSpec, SourceStatus>[]>(`http://127.0.0.1:${port}/v1/sources`, {
-                validateStatus: () => true
-            });
+        let res = await this.get<ResourceDTO<SourceSpec, SourceStatus>[]>(`sources`);
 
-            if (res.status !== 200) {
-                throw new Error(`Failed to get sources: ${res.statusText}`);
-            }
-
-            return res.data;
+        if (res.status !== 200) {
+            throw new Error(`Failed to get sources: ${res.statusText}`);
         }
-        finally {
-            portFwd.stop();
-        }        
+
+        return res.data;     
     }
 
     async getReactions() {
-        let portFwd = new PortForward(this.serviceName, this.servicePort);
-        let port = await portFwd.start();
-        try {
-            let res = await axios.get<ResourceDTO<ReactionSpec, ReactionStatus>[]>(`http://127.0.0.1:${port}/v1/reactions`, {
-                validateStatus: () => true
-            });
+        let res = await this.get<ResourceDTO<ReactionSpec, ReactionStatus>[]>(`reactions`);
 
-            if (res.status !== 200) {
-                throw new Error(`Failed to get reactions: ${res.statusText}`);
-            }
-
-            return res.data;
+        if (res.status !== 200) {
+            throw new Error(`Failed to get reactions: ${res.statusText}`);
         }
-        finally {
-            portFwd.stop();
-        }        
+
+        return res.data;    
     }
 
     async deleteResource(kind: string, name: string) {
-        let portFwd = new PortForward(this.serviceName, this.servicePort);
-        let port = await portFwd.start();
-        try {
-            let res = await axios.delete(`http://127.0.0.1:${port}/v1/${kindRoutes[kind]}/${name}`, {
-                validateStatus: () => true
-            });
-            if (res.status > 299 || res.status < 200) {
-                throw new Error(`Failed to delete ${kind}: ${res.statusText}\n${res.data?.toString()}`);
-            }
-        }
-        finally {
-            portFwd.stop();
+        let res = await this.delete(`${kindRoutes[kind]}/${name}`);
+        if (res.status > 299 || res.status < 200) {
+            throw new Error(`Failed to delete ${kind}: ${res.statusText}\n${res.data?.toString()}`);
         }
     }
 
-    async applyResource(resource: Resource<any>) {
-        let portFwd = new PortForward(this.serviceName, this.servicePort);
-        let port = await portFwd.start();
-        try {
-            let res = await axios.put(`http://127.0.0.1:${port}/${resource.apiVersion}/${kindRoutes[resource.kind]}/${resource.name}`, resource.spec, {
-                validateStatus: () => true
-            });
-            if (res.status > 299 || res.status < 200) {
-                console.log(res);
-                throw new Error(`Failed to apply ${resource.kind}: ${res.statusText}\n${res.data?.toString()}`);
-            }
+    async applyResource(resource: Resource<any>, onReady?: () => void) {
+        let res = await this.put(`${kindRoutes[resource.kind]}/${resource.name}`, resource.spec);
+        if (res.status > 299 || res.status < 200) {
+            console.log(res);
+            throw new Error(`Failed to apply ${resource.kind}: ${res.statusText}\n${res.data?.toString()}`);
         }
-        finally {
-            portFwd.stop();
+
+        if (onReady) {
+            this.wait(`${kindRoutes[resource.kind]}/${resource.name}`).then((res) => {
+                console.log(`Resource ${resource.kind} ${resource.name} ready wait response: ${res}`);
+                onReady();
+            });
         }
     }
 
     async watchQuery(queryId: string, onData: (data: any) => void): Promise<Stoppable> {
-        let portFwd = new PortForward(this.serviceName, this.servicePort);
-        let port = await portFwd.start();
+        let endpoint = await this.getIsolatedManagementEndpoint();
+        let addr = await endpoint.getManagementAddr();
+        let abortController = new AbortController();
         try {
             const response = await axios({
                 method: 'get',
-                url: `http://127.0.0.1:${port}/v1/continuousQueries/${queryId}/watch`,
-                responseType: 'stream'
+                url: `http://${addr}/v1/continuousQueries/${queryId}/watch`,
+                responseType: 'stream',
+                timeout: this.timeout,
+                signal: abortController.signal,
             });
         
             response.data.on('data', (chunk: any) => {
@@ -144,7 +233,7 @@ export class DrasiClient {
                 }
                 
                 if (chunkStr === "]" || chunkStr === "]\n") {
-                    portFwd.stop();
+                    endpoint.close();
                     return;
                 }
 
@@ -157,27 +246,32 @@ export class DrasiClient {
         
             response.data.on('end', () => {
                 console.log('Finished streaming');
-                portFwd.stop();
+                endpoint.close();
             });
         
             response.data.on('error', (err: any) => {
                 console.error('Error streaming:', err);
-                portFwd.stop();
+                endpoint.close();
             });
             
         }
         catch (err) {
             console.error(err);
-            portFwd.stop();
+            endpoint.close();
         }
-        return portFwd;
+        return {
+            stop: () => {                
+                abortController.abort();
+                endpoint.close();
+            }
+        };
     }
 
     async debugQuery(spec: any, onData: (data: any) => void, onError: (error: string) => void): Promise<Stoppable> {
-        let portFwd = new PortForward(this.serviceName, this.servicePort);
-        let port = await portFwd.start();
+        let endpoint = await this.getIsolatedManagementEndpoint();
+        let addr = await endpoint.getManagementAddr();
 
-        let socket = new WebSocket(`ws://127.0.0.1:${port}/v1/debug`);
+        let socket = new WebSocket(`ws://${addr}/v1/debug`);
         
         socket.onopen = function open() {
           console.log('connected to debug session');
@@ -188,7 +282,6 @@ export class DrasiClient {
         socket.onclose = function close(event: CloseEvent) {
           console.log("close debug session: " + event.reason);
           console.log('disconnected');
-          portFwd.stop();
         };
 
         socket.onmessage = function message(event: MessageEvent) {      
@@ -197,17 +290,19 @@ export class DrasiClient {
               onData(jsonData);
             } catch (error) {
                 onError('Error parsing JSON: ' + error);
+                endpoint.close();
             }
           };
 
         socket.onerror = function(event: ErrorEvent) {      
             onError(event.message);
+            endpoint.close();
         };
 
         return {
             stop: () => {
                 socket.close();
-                portFwd.stop();
+                endpoint.close();
             }
         };
     }
@@ -226,3 +321,18 @@ const kindRoutes: Record<string, string> = {
     "ReactionProvider": "reactionProviders",
     "reactionProvider": "reactionProviders"
 };
+
+
+function hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash;
+}
+
+function hashObject(obj: any): number {
+    return hashString(JSON.stringify(obj));
+}

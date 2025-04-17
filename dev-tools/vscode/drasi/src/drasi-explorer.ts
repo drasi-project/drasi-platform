@@ -10,25 +10,29 @@ import { randomUUID } from 'crypto';
 import { SourceSpec, SourceStatus } from './models/source';
 import { ReactionSpec, ReactionStatus } from './models/reaction';
 import { QueryWatcher } from './query-watcher';
-import { getCurrentKubeContext } from './utilities/getKubeContext';
+import { ConfigurationRegistry, Registration } from './sdk/config';
 
 export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
 
   private _onDidChangeTreeData: vscode.EventEmitter<ExplorerNode | undefined | void> = new vscode.EventEmitter<ExplorerNode | undefined | void>();
   readonly onDidChangeTreeData: vscode.Event<ExplorerNode | undefined | void> = this._onDidChangeTreeData.event;
   readonly drasiClient: DrasiClient;
+  readonly configRegistry: ConfigurationRegistry;
 
   private extensionUri: vscode.Uri;
 
-  constructor(extensionUri: vscode.Uri, drasiClient: DrasiClient) {
+  constructor(extensionUri: vscode.Uri, drasiClient: DrasiClient, configRegistry: ConfigurationRegistry) {
     this.extensionUri = extensionUri;
     this.drasiClient = drasiClient;
+    this.configRegistry = configRegistry;
     vscode.commands.registerCommand('drasi.refresh', this.refresh.bind(this));
     vscode.commands.registerCommand('drasi.query.watch', this.watchQuery.bind(this));
     vscode.commands.registerCommand('drasi.resource.delete', this.deleteResource.bind(this));
+    vscode.commands.registerCommand('drasi.config.use', this.useConfig.bind(this));
   }
 
   refresh(): void {
+    console.log("Refreshing explorer");
     this._onDidChangeTreeData.fire();
   }
 
@@ -37,16 +41,24 @@ export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
   }
 
   async getChildren(element?: ExplorerNode | undefined): Promise<ExplorerNode[]> {
-    if (!vscode.workspace.workspaceFolders) {
-      return [];
-    }
+    console.log("Getting children", element);
 
     if (!element) {
-      let clusterName = getCurrentKubeContext();
-      return [new TitleNode(`Drasi - (${clusterName})`)];
+      let currentRegId = await this.drasiClient.getCurrentRegistrationId();
+      let registrations = await this.configRegistry.getAllRegistrations();
+
+      return registrations.map(x => {
+        if (x.id === currentRegId) {
+          return new RegistrationNode(x, true);
+        }
+        return new RegistrationNode(x, false);
+      });
     }
 
-    if (element instanceof TitleNode) {
+    if (element instanceof RegistrationNode) {
+      if (!element.isCurrent) {
+        return [];
+      }
       return [
         new CategoryNode(Category.sources),
         new CategoryNode(Category.queries),
@@ -54,25 +66,30 @@ export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
       ];
     }
 
-    if (element instanceof CategoryNode) {
-      switch ((element as CategoryNode).category) {
-        case Category.queries:
-          let queries = await this.drasiClient.getContinuousQueries();
-          return queries.map(x => new QueryNode(x));
-        case Category.sources:
-          let sources = await this.drasiClient.getSources();
-          return sources.map(x => new SourceNode(x));
-        case Category.reactions:
-          let reactions = await this.drasiClient.getReactions();
-          return reactions.map(x => new ReactionNode(x));
+    try {
+      if (element instanceof CategoryNode) {
+        switch ((element as CategoryNode).category) {
+          case Category.queries:
+            let queries = await this.drasiClient.getContinuousQueries();
+            return queries.map(x => new QueryNode(x));
+          case Category.sources:
+            let sources = await this.drasiClient.getSources();
+            return sources.map(x => new SourceNode(x));
+          case Category.reactions:
+            let reactions = await this.drasiClient.getReactions();
+            return reactions.map(x => new ReactionNode(x));
+        }
       }
+    } catch (err) {
+      console.error("Error getting resources", err);
+      vscode.window.showErrorMessage(`Error getting resources: ${err}`);
     }
 
     return [];
   }
 
   async watchQuery(queryNode: QueryNode) {
-    let watcher = new QueryWatcher(queryNode.queryId, this.extensionUri);
+    let watcher = new QueryWatcher(queryNode.queryId, this.extensionUri, this.drasiClient);
     await watcher.start();
   }
 
@@ -106,18 +123,53 @@ export class DrasiExplorer implements vscode.TreeDataProvider<ExplorerNode> {
     });
     vscode.commands.executeCommand('drasi.refresh');
   }
+
+  async useConfig(registrationNode: RegistrationNode) {
+    if (!registrationNode) {
+      return;
+    }    
+
+    await this.drasiClient.close();
+    await this.configRegistry.setCurrentRegistration(registrationNode.registration.id);
+    
+    vscode.commands.executeCommand('drasi.refresh');
+  }
 }
 
 class ExplorerNode extends vscode.TreeItem {
 
 }
 
-class TitleNode extends ExplorerNode {
-  constructor(label: string) {
-    super(label, vscode.TreeItemCollapsibleState.Expanded);
+class RegistrationNode extends ExplorerNode {
+  contextValue = 'drasi.registrationNode';
+  private current: boolean = false;
+  readonly registration: Registration;
+  
+  constructor(registration: Registration, current: boolean) {
+    super(registration.id, current ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None);
+    this.current = current;
+    this.registration = registration;
+    if (current) {
+      this.contextValue = 'drasi.currentRegistrationNode';
+    }
+
+    let logo = 'drasi-sm.svg';
+    switch (registration.kind) {
+      case "kubernetes":
+        logo = 'kubernetes-icon.png';
+        break;
+      case "docker":
+        logo = 'docker-icon.png';
+        break;
+    }
+
     this.iconPath = vscode.Uri.file(
-      path.join(__filename, '..', '..', 'resources', 'drasi-sm.svg')
+      path.join(__filename, '..', '..', 'resources', logo)
     );
+  }
+
+  public get isCurrent() {
+    return this.current;
   }
 }
 

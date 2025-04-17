@@ -17,7 +17,8 @@
     "Other"
   ],
   "activationEvents": [
-    "workspaceContains:**/*.yaml"
+    "workspaceContains:**/*.yaml",
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -71,6 +72,11 @@
         "command": "drasi.query.watch",
         "title": "Attach",
         "icon": "$(eye)"
+      },
+      {
+        "command": "drasi.config.use",
+        "title": "Set as current configuration",
+        "icon": "$(check)"
       },
       {
         "command": "drasi.resource.delete",
@@ -141,6 +147,10 @@
           "command": "drasi.resource.delete",
           "when": "view == drasi && (viewItem == drasi.queryNode || viewItem == drasi.sourceNode || viewItem == drasi.reactionNode)",
           "group": "inline"
+        },
+        {
+          "command": "drasi.config.use",
+          "when": "view == drasi && viewItem == drasi.registrationNode"
         }
       ]
     }
@@ -156,6 +166,7 @@
     "deploy": "vsce publish"
   },
   "devDependencies": {
+    "@types/dockerode": "^3.3.38",
     "@types/glob": "^8.0.1",
     "@types/js-yaml": "^4.0.5",
     "@types/mocha": "10.0.1",
@@ -178,8 +189,9 @@
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "ajv": "^8.12.0",
     "async-mutex": "^0.5.0",
-    "axios": "^1.7.2",
+    "axios": "^1.8.2",
     "braces": "^3.0.3",
+    "dockerode": "^4.0.5",
     "js-yaml": "^4.1.0",
     "portfinder": "^1.0.32",
     "strip-ansi": "^7.0.1",

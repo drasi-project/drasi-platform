@@ -6,14 +6,15 @@ import { ContinuousQueryStatus } from './models/continuous-query';
 
 export class QueryWatcher {
     private log: vscode.OutputChannel;
-    private client: DrasiClient = new DrasiClient();
+    readonly client: DrasiClient;
     private queryId: string;
     
     private resultsPanel: vscode.WebviewPanel | undefined;
     private watcher: Stoppable | undefined;
     private extensionUri: vscode.Uri;
   
-    constructor(queryId: string, extensionUri: vscode.Uri) {
+    constructor(queryId: string, extensionUri: vscode.Uri, client: DrasiClient) {
+      this.client = client;
       this.log = vscode.window.createOutputChannel("Query: " + queryId, { log: true });
       this.log.show();
       this.extensionUri = extensionUri;

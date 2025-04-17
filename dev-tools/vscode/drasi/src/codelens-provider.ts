@@ -85,7 +85,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
             progress.report({ message: "Applying..." });
 
             try {
-                await this.drasiClient.applyResource(resource);
+                await this.drasiClient.applyResource(resource, () => vscode.commands.executeCommand('drasi.refresh'));
                 vscode.window.showInformationMessage(`Resource ${resource.name} applied successfully`);
             }
             catch (err) {
