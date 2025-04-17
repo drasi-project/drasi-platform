@@ -47,10 +47,6 @@ public class ChangeHandler : IChangeEventHandler
 
     public async Task HandleChange(ChangeEvent evt, object? queryConfig)
     {
-        if (evt.AddedResults.Length == 0 && evt.DeletedResults.Length == 0 && evt.UpdatedResults.Length == 0)
-        {
-            return;
-        }
         _logger.LogInformation("Processing " + evt.QueryId);
         switch(_format)
         {
