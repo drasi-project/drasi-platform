@@ -6,7 +6,7 @@ import { SourceSpec, SourceStatus } from "./models/source";
 import { ReactionSpec, ReactionStatus } from "./models/reaction";
 import { CloseEvent, ErrorEvent, MessageEvent, WebSocket } from 'ws';
 import { Stoppable } from "./models/stoppable";
-import { createPlatformClient, ManagementEndpoint, PlatformClient } from "./sdk/platform-client";
+import { createPlatformClient, ManagementEndpoint, PlatformClient, TunnelConnection } from "./sdk/platform-client";
 import { ConfigurationRegistry } from "./sdk/config";
 
 
@@ -23,7 +23,7 @@ export class DrasiClient {
         this.configRegistry = configRegistry;
     }
 
-    private async getSharedManagementEndpoint() {
+    private async initPlatformClient() {
         let registration = await this.configRegistry.loadCurrentRegistration();
         if (!registration) {
             throw new Error("No registration found");
@@ -41,6 +41,15 @@ export class DrasiClient {
             console.log("Creating platform client");
             this.platformClient = createPlatformClient(registration);
         }
+    }
+
+    private async getSharedManagementEndpoint() {        
+        await this.initPlatformClient();
+
+        if (!this.platformClient) {
+            throw new Error("Platform client not initialized");
+        }
+        
         if (!this.managementEndpoint) {
             console.log("Creating management endpoint");
             this.managementEndpoint = await this.platformClient.getManagementEndpoint();
@@ -50,24 +59,11 @@ export class DrasiClient {
     }
 
     private async getIsolatedManagementEndpoint() {
-        let registration = await this.configRegistry.loadCurrentRegistration();
-        if (!registration) {
-            throw new Error("No registration found");
-        }
-        console.log(`Using registration: ${registration.kind}:${registration.id}`);
-        let hash = hashObject(registration);
-        if (this.configHash !== hash) {
-            console.log("Config hash changed, creating new platform client");
-            this.configHash = hash;
-            this.platformClient = undefined;
-            this.managementEndpoint = undefined;
+        await this.initPlatformClient();
+        if (!this.platformClient) {
+            throw new Error("Platform client not initialized");
         }
 
-        if (!this.platformClient) {
-            console.log("Creating platform client");
-            this.platformClient = createPlatformClient(registration);
-        }
-        
         return await this.platformClient.getManagementEndpoint();
     }
 
@@ -307,6 +303,15 @@ export class DrasiClient {
                 endpoint.close();
             }
         };
+    }
+
+    async createTunnel(port: number, resourceName: string, resourceType: string): Promise<TunnelConnection> {
+        await this.initPlatformClient();
+        if (!this.platformClient) {
+            throw new Error("Platform client not initialized");
+        }
+
+        return await this.platformClient.createTunnel(port, resourceName, resourceType);
     }
 }
 

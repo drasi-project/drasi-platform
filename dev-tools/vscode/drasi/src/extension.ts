@@ -25,6 +25,7 @@ let drasiClient: DrasiClient | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
 	let configRegistry = new ConfigurationRegistry();
+	configRegistry.onCurrentRegistrationChanged(() => vscode.commands.executeCommand('drasi.refresh'));
 	drasiClient = new DrasiClient(configRegistry);
 	const workspaceExplorer = new WorkspaceExplorer(context.extensionUri, drasiClient);
 	vscode.window.registerTreeDataProvider('workspace', workspaceExplorer);

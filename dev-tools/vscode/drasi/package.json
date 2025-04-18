@@ -84,6 +84,16 @@
         "icon": "$(trash)"
       },
       {
+        "command": "drasi.resource.tunnel",
+        "title": "Open Tunnel",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "drasi.tunnel.close",
+        "title": "Close",
+        "icon": "$(close)"
+      },
+      {
         "command": "workspace.query.run",
         "title": "Debug",
         "icon": "$(debug-alt)"
@@ -146,6 +156,15 @@
         {
           "command": "drasi.resource.delete",
           "when": "view == drasi && (viewItem == drasi.queryNode || viewItem == drasi.sourceNode || viewItem == drasi.reactionNode)",
+          "group": "inline"
+        },
+        {
+          "command": "drasi.resource.tunnel",
+          "when": "view == drasi && (viewItem == drasi.reactionNode)"
+        },
+        {
+          "command": "drasi.tunnel.close",
+          "when": "view == drasi && (viewItem == drasi.tunnelNode)",
           "group": "inline"
         },
         {

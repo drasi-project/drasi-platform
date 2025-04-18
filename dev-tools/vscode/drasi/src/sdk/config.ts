@@ -2,6 +2,8 @@ import os from "os";
 import fs from "fs";
 import yaml from 'js-yaml';
 import { KubeConfig } from "@kubernetes/client-node";
+import EventEmitter from "events";
+import { Disposable, FileSystemWatcher, workspace } from "vscode";
 
 const serversPath: string = "servers";
 const currentFile: string = "current";
@@ -37,11 +39,28 @@ function hydrateRegistration(data: any): Registration {
     }    
 }
 
-export class ConfigurationRegistry {
+export class ConfigurationRegistry implements Disposable {
     private basePath: string;
+    private eventEmitter: EventEmitter;
+    private watcher: fs.FSWatcher | undefined;
 
     constructor() {
         this.basePath = os.homedir() + "/.drasi";
+        this.eventEmitter = new EventEmitter();
+        this.watcher = fs.watch(this.basePath + "/" + currentFile, (eventType, filename) => {
+            if (eventType === "change" && filename === currentFile) {
+                this.eventEmitter.emit("currentRegistrationChanged");
+            }
+        });
+    }
+    
+    dispose() {
+        this.watcher?.close();        
+        this.watcher = undefined;        
+    }
+
+    onCurrentRegistrationChanged(callback: () => void) {
+        this.eventEmitter.on("currentRegistrationChanged", callback);
     }
 
     async saveRegistration(registration: Registration) {

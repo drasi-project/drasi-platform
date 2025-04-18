@@ -12,7 +12,8 @@ export interface ManagementEndpoint {
 
 
 export interface PlatformClient {
-    getManagementEndpoint(): Promise<ManagementEndpoint>;    
+    getManagementEndpoint(): Promise<ManagementEndpoint>;
+    createTunnel(port: number, resourceType: string, resourceName: string): Promise<TunnelConnection>;
 }
 
 export function createPlatformClient(registration: Registration): PlatformClient {
@@ -42,6 +43,27 @@ class KubernetesPlatformClient implements PlatformClient {
     async getManagementEndpoint(): Promise<ManagementEndpoint> {
         let ep = new KubernetesManagementEndpoint(this.kubeConfig, this.namespace);
         return ep;
+    }
+
+    async createTunnel(port: number, resourceType: string, resourceName: string): Promise<TunnelConnection> {
+        let target = await getResourcePod(this.kubeConfig, this.namespace, resourceType, resourceName);
+        if (!target) {
+            throw new Error(`Failed to get pod for ${resourceType} ${resourceName} in namespace ${this.namespace}`);
+        }
+        let portForward = new PortForward(this.kubeConfig);
+
+        let server = net.createServer((socket) => {
+            portForward.portForward(this.namespace, target.pod, [target.port], socket, null, socket);
+        });
+
+        server = server.listen(port, '127.0.0.1');
+
+        await new Promise<void>((resolve, reject) => {
+            server.once('listening', resolve);
+            server.once('error', reject);
+        });
+
+        return new TunnelConnection(server, resourceName, resourceType);
     }
 }
 
@@ -76,18 +98,6 @@ class KubernetesManagementEndpoint implements ManagementEndpoint {
 
         const server = net.createServer((socket) => {
             this.portForward.portForward(this.namespace, pod, [this.apiPort], socket, null, socket);
-        });
-        server.on('error', (err) => {
-            console.error("Error in server", err);
-        });
-        server.on('close', () => {
-            console.log("Server closed");
-        });
-        server.on('listening', () => {
-            console.log("Server listening");
-        });
-        server.on('connection', () => {
-            console.log("Server connection");
         });
 
         this.server = server.listen(0, '127.0.0.1');
@@ -124,11 +134,54 @@ class KubernetesManagementEndpoint implements ManagementEndpoint {
    
 }
 
+export class TunnelConnection {
+    private _server: net.Server | undefined = undefined;
+    private _resourceName: string;
+    private _resourceType: string;
+
+    constructor(server: net.Server, resourceName: string, resourceType: string) {
+        this._server = server;
+        this._resourceName = resourceName;
+        this._resourceType = resourceType;
+    }
+
+    async close(): Promise<void> {
+        console.log(`Closing tunnel for ${this.resourceType} ${this.resourceName}`);
+        if (this._server) {
+            this._server.close();
+            this._server = undefined;
+        }
+    }
+
+    public get port(): number | undefined {
+        if (!this._server) {
+            return undefined;
+        }
+        const address = this._server.address();
+        if (address === null) {
+            return undefined;
+        }
+        if (typeof address === 'string') {
+            return undefined;
+        }
+        let addr: AddressInfo = address;
+        return addr.port;
+    }
+
+    public get resourceName(): string {
+        return this._resourceName;
+    }
+
+    public get resourceType(): string {
+        return this._resourceType;
+    }
+}
+
 async function getDrasiApiPod(kubeConfig: KubeConfig, namespace: string): Promise<string | undefined> {
     const client = kubeConfig.makeApiClient(CoreV1Api);
     const ep = await client.readNamespacedEndpoints({
         namespace: namespace,
-        name: "drasi-api"
+        name: "drasi-api",        
     });
     
     for (let ss of ep.subsets ?? []) {
@@ -136,6 +189,37 @@ async function getDrasiApiPod(kubeConfig: KubeConfig, namespace: string): Promis
             if (addr.targetRef?.kind === "Pod") {
                 console.log(`Found pod ${addr.targetRef.name} for drasi-api`);
                 return addr.targetRef.name;                    
+            }
+        }
+    }
+    return undefined;
+}
+
+async function getResourcePod(kubeConfig: KubeConfig, namespace: string, resourceType: string, resourceName: string) {
+    if (!["source", "reaction"].includes(resourceType)) {
+        throw new Error(`Invalid resource type: ${resourceType}`);
+    }
+    
+    const client = kubeConfig.makeApiClient(CoreV1Api);
+    const endpoints = await client.listNamespacedEndpoints({
+        namespace: namespace,
+        labelSelector: `drasi/type=${resourceType},drasi/resource=${resourceName}`,
+    });
+
+    for (let ep of endpoints.items) {    
+        for (let ss of ep.subsets ?? []) {
+            for (let addr of ss.addresses ?? []) {
+                if (addr.targetRef?.kind === "Pod") {
+                    console.log(`Found pod ${addr.targetRef.name} for ${resourceType} ${resourceName}`);
+                    if (ss.ports?.length === 1) {
+                        console.log(`Found port ${ss.ports[0].port} for ${resourceType} ${resourceName}`);
+
+                        return {
+                            pod: addr.targetRef.name ?? "",
+                            port: ss.ports[0].port,
+                        };
+                    }
+                }
             }
         }
     }
