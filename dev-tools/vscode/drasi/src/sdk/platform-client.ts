@@ -1,6 +1,5 @@
 import { KubeConfig ,PortForward, KubernetesObjectApi, CoreV1Api } from "@kubernetes/client-node";
 import net, { AddressInfo } from 'node:net';
-import { Stoppable } from "../models/stoppable";
 import { DockerConfig, KubernetesConfig, Registration } from "./config";
 import yaml from 'js-yaml';
 
@@ -48,7 +47,7 @@ class KubernetesPlatformClient implements PlatformClient {
     async createTunnel(port: number, resourceType: string, resourceName: string): Promise<TunnelConnection> {
         let target = await getResourcePod(this.kubeConfig, this.namespace, resourceType, resourceName);
         if (!target) {
-            throw new Error(`Failed to get pod for ${resourceType} ${resourceName} in namespace ${this.namespace}`);
+            throw new Error(`Failed to get endpoint for ${resourceType} ${resourceName} in namespace ${this.namespace}`);
         }
         let portForward = new PortForward(this.kubeConfig);
 
@@ -66,7 +65,6 @@ class KubernetesPlatformClient implements PlatformClient {
         return new TunnelConnection(server, resourceName, resourceType);
     }
 }
-
 
 class KubernetesManagementEndpoint implements ManagementEndpoint {
 

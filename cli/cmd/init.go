@@ -19,7 +19,6 @@ import (
 
 	"drasi.io/cli/installers"
 	"drasi.io/cli/output"
-	"drasi.io/cli/sdk"
 	"drasi.io/cli/sdk/registry"
 
 	"drasi.io/cli/config"
@@ -58,8 +57,8 @@ Usage examples:
 			}
 
 			if dockerName != "" {
-				var dd *sdk.DockerizedDeployer
-				if dd, err = sdk.MakeDockerizedDeployer(); err != nil {
+				var dd *installers.DockerizedDeployer
+				if dd, err = installers.MakeDockerizedDeployer(); err != nil {
 					return err
 				}
 

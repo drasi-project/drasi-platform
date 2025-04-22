@@ -19,33 +19,33 @@ import (
 	"os"
 	"strings"
 
-	"drasi.io/cli/sdk"
+	"drasi.io/cli/installers"
 	"drasi.io/cli/sdk/registry"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
-func NewConfigCommand() *cobra.Command {
+func NewEnvCommand() *cobra.Command {
 	var cfgCommand = &cobra.Command{
-		Use:   "config [command]",
-		Short: "Manage Drasi configurations",
+		Use:   "env command",
+		Short: "Manage Drasi environment configurations.",
 		Long:  ``,
 	}
 
-	cfgCommand.AddCommand(newListConfigCommand())
-	cfgCommand.AddCommand(newUseConfigCommand())
-	cfgCommand.AddCommand(newCurrentConfigCommand())
-	cfgCommand.AddCommand(newDeleteConfigCommand())
-	cfgCommand.AddCommand(newAddKubernetesConfigCommand())
+	cfgCommand.AddCommand(newListEnvCommand())
+	cfgCommand.AddCommand(newUseEnvCommand())
+	cfgCommand.AddCommand(newCurrentEnvCommand())
+	cfgCommand.AddCommand(newDeleteEnvCommand())
+	cfgCommand.AddCommand(newAddKubernetesEnvCommand())
 
 	return cfgCommand
 }
 
-func newListConfigCommand() *cobra.Command {
+func newListEnvCommand() *cobra.Command {
 	var listCommand = &cobra.Command{
 		Use:   "all",
-		Short: "List all Drasi configurations.",
-		Long:  ``,
+		Short: "List all Drasi environments.",
+		Long:  `List all known Drasi environments that are configured.`,
 		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 
@@ -79,10 +79,10 @@ func newListConfigCommand() *cobra.Command {
 	return listCommand
 }
 
-func newCurrentConfigCommand() *cobra.Command {
+func newCurrentEnvCommand() *cobra.Command {
 	var currentCommand = &cobra.Command{
 		Use:   "current",
-		Short: "Print the current Drasi configuration.",
+		Short: "Print the current Drasi environment.",
 		Long:  ``,
 		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -93,7 +93,7 @@ func newCurrentConfigCommand() *cobra.Command {
 			}
 
 			if current == "" {
-				fmt.Println("No current configuration set")
+				fmt.Println("No current environment set")
 				return nil
 			}
 
@@ -101,7 +101,7 @@ func newCurrentConfigCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println("Current configuration:")
+			fmt.Println("Current environment:")
 			fmt.Println("  Name: ", reg.GetId())
 			fmt.Println("  Platform: ", string(reg.GetKind()))
 
@@ -112,10 +112,10 @@ func newCurrentConfigCommand() *cobra.Command {
 	return currentCommand
 }
 
-func newUseConfigCommand() *cobra.Command {
+func newUseEnvCommand() *cobra.Command {
 	var useCommand = &cobra.Command{
-		Use:   "use [name]",
-		Short: "Select a Drasi configuration to use.",
+		Use:   "use name",
+		Short: "Select a Drasi environment to use.",
 		Long:  ``,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -127,14 +127,14 @@ func newUseConfigCommand() *cobra.Command {
 				return err
 			}
 			if !exists {
-				return fmt.Errorf("configuration %s does not exist", configName)
+				return fmt.Errorf("environment %s does not exist", configName)
 			}
 			err = registry.SetCurrentRegistration(configName)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("Configuration %s is now set as the current configuration\n", configName)
+			fmt.Printf("%s is now set as the current environment\n", configName)
 
 			return nil
 		},
@@ -143,10 +143,10 @@ func newUseConfigCommand() *cobra.Command {
 	return useCommand
 }
 
-func newDeleteConfigCommand() *cobra.Command {
+func newDeleteEnvCommand() *cobra.Command {
 	var deleteCommand = &cobra.Command{
-		Use:   "delete [name]",
-		Short: "Delete a Drasi configuration.",
+		Use:   "delete name",
+		Short: "Delete a Drasi environment.",
 		Long:  ``,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -158,7 +158,7 @@ func newDeleteConfigCommand() *cobra.Command {
 				return err
 			}
 			if !exists {
-				return fmt.Errorf("configuration %s does not exist", configName)
+				return fmt.Errorf("environment %s does not exist", configName)
 			}
 
 			reg, err := registry.LoadRegistration(configName)
@@ -177,10 +177,10 @@ func newDeleteConfigCommand() *cobra.Command {
 
 				dockerReg, ok := reg.(*registry.DockerConfig)
 				if !ok {
-					return fmt.Errorf("configuration %s is not a Docker configuration", configName)
+					return fmt.Errorf("%s is not a Docker environment", configName)
 				}
 				fmt.Printf("Deleting Docker container %s...\n", dockerReg.GetId())
-				dd, err := sdk.MakeDockerizedDeployer()
+				dd, err := installers.MakeDockerizedDeployer()
 				if err != nil {
 					return err
 				}
@@ -195,7 +195,7 @@ func newDeleteConfigCommand() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("Configuration %s deleted\n", configName)
+			fmt.Printf("Environment %s deleted\n", configName)
 
 			return nil
 		},
@@ -204,10 +204,10 @@ func newDeleteConfigCommand() *cobra.Command {
 	return deleteCommand
 }
 
-func newAddKubernetesConfigCommand() *cobra.Command {
+func newAddKubernetesEnvCommand() *cobra.Command {
 	var kubeCommand = &cobra.Command{
 		Use:   "kube",
-		Short: "Add the current Kubernetes context as a Drasi configuration and set it as the current config.",
+		Short: "Add the current Kubernetes context as a Drasi configuration and set it as the current environment.",
 		Long:  ``,
 		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -216,8 +216,8 @@ func newAddKubernetesConfigCommand() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("Configuration %s added\n", reg.GetId())
-			fmt.Printf("Configuration %s set as current\n", reg.GetId())
+			fmt.Printf("Environment %s added\n", reg.GetId())
+			fmt.Printf("Environment %s set as current\n", reg.GetId())
 
 			return nil
 		},

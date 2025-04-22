@@ -75,7 +75,7 @@
       },
       {
         "command": "drasi.config.use",
-        "title": "Set as current configuration",
+        "title": "Set as current environment",
         "icon": "$(check)"
       },
       {
@@ -185,12 +185,11 @@
     "deploy": "vsce publish"
   },
   "devDependencies": {
-    "@types/dockerode": "^3.3.38",
     "@types/glob": "^8.0.1",
     "@types/js-yaml": "^4.0.5",
     "@types/mocha": "10.0.1",
     "@types/node": "16.x",
-    "@types/vscode": "^1.75.0",
+    "@types/vscode": "^1.99.1",
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
@@ -210,7 +209,6 @@
     "async-mutex": "^0.5.0",
     "axios": "^1.8.2",
     "braces": "^3.0.3",
-    "dockerode": "^4.0.5",
     "js-yaml": "^4.1.0",
     "portfinder": "^1.0.32",
     "strip-ansi": "^7.0.1",

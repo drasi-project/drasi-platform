@@ -25,11 +25,23 @@ import (
 
 func NewTunnelCommand() *cobra.Command {
 	var tunnelCommand = &cobra.Command{
-		Use:   "tunnel [service] [endpoint] [localPort] [remotePort]",
+		Use:   "tunnel kind name port",
 		Short: "Create a tunnel to a Drasi resource",
-		Long:  ``,
+		Long: `Create a secure tunnel to a specific Drasi resource.
+		
+Arguments:
+  kind  The kind of resource to create a tunnel for. Available kinds are (case-insensitive):
+        - Source      
+        - Reaction         
 
-		Args: cobra.MinimumNArgs(4),
+  name  The name of the resource to create a tunnel for.
+  port  The local port to use for the tunnel.
+
+Usage examples:
+  drasi tunnel reaction my-reaction 8080
+`,
+
+		Args: cobra.MinimumNArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 
@@ -51,12 +63,8 @@ func NewTunnelCommand() *cobra.Command {
 			if err != nil {
 				return errors.New("invalid port: must be a number between 0 and 65535")
 			}
-			remotePort, err := strconv.ParseUint(args[3], 10, 16)
-			if err != nil {
-				return errors.New("invalid port: must be a number between 0 and 65535")
-			}
 
-			return platformClient.CreateTunnel(args[0], args[1], uint16(localPort), uint16(remotePort))
+			return platformClient.CreateTunnel(args[0], args[1], uint16(localPort))
 		},
 	}
 

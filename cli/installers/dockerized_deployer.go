@@ -1,4 +1,4 @@
-package sdk
+package installers
 
 import (
 	"archive/tar"
@@ -20,6 +20,8 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/phayes/freeport"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 var (
@@ -121,6 +123,11 @@ func (t *DockerizedDeployer) Build(name string, output output.TaskOutput) (regis
 		log.Fatalf("Error reading kubeconfig: %v", err)
 	}
 
+	err = t.mergeDockerKubeConfig(name, kubeConfig)
+	if err != nil {
+		output.Error(fmt.Sprintf("Error merging kubeconfig: %v", err))
+	}
+
 	result := registry.DockerConfig{
 		ContainerId: &resp.ID,
 		InternalConfig: &registry.KubernetesConfig{
@@ -158,7 +165,7 @@ func (t *DockerizedDeployer) waitForReady(containerId string) error {
 func (t *DockerizedDeployer) Delete(config *registry.DockerConfig) error {
 	ctx := context.Background()
 	if config.ContainerId != nil {
-		return t.dockerClient.ContainerRemove(ctx, *config.ContainerId, container.RemoveOptions{Force: true})
+		return t.dockerClient.ContainerRemove(ctx, *config.ContainerId, container.RemoveOptions{Force: true, RemoveVolumes: true})
 	}
 
 	return nil
@@ -210,6 +217,88 @@ func (t *DockerizedDeployer) readKubeconfig(containerId string) ([]byte, error) 
 	}
 
 	return nil, fmt.Errorf("kubeconfig not found in container")
+}
+
+func (t *DockerizedDeployer) mergeDockerKubeConfig(name string, kubeconfig []byte) error {
+	// Parse the provided kubeconfig
+	dockerConfig, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		return fmt.Errorf("error loading provided kubeconfig: %w", err)
+	}
+
+	// Get the kubeconfig file path
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("could not get home directory: %w", err)
+	}
+	kubeconfigPath := filepath.Join(homeDir, ".kube", "config")
+
+	// If kubeconfigPath doesn't exist, simply return without doing anything
+	if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
+		return nil
+	}
+
+	// Modify server URL to use localhost
+	// for k, cluster := range dockerConfig.Clusters {
+	// 	serverURL, err := url.Parse(cluster.Server)
+	// 	if err != nil {
+	// 		return fmt.Errorf("error parsing server URL: %w", err)
+	// 	}
+
+	// 	// Extract port and update to use localhost
+	// 	hostParts := strings.Split(serverURL.Host, ":")
+	// 	if len(hostParts) == 2 {
+	// 		port := hostParts[1]
+	// 		serverURL.Host = "localhost:" + port
+	// 		cluster.Server = serverURL.String()
+	// 		dockerConfig.Clusters[k] = cluster
+	// 	}
+	// }
+
+	// Create unique name for the context, cluster, and user
+	contextName := fmt.Sprintf("drasi-%s", name)
+	clusterName := fmt.Sprintf("drasi-%s", name)
+	userName := fmt.Sprintf("drasi-%s", name)
+
+	// Load existing kubeconfig
+	existingConfig, err := clientcmd.LoadFromFile(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("error loading kubeconfig file: %w", err)
+	}
+
+	// Find first cluster and user in docker config
+	var firstClusterName, firstUserName string
+	for k := range dockerConfig.Clusters {
+		firstClusterName = k
+		break
+	}
+	for k := range dockerConfig.AuthInfos {
+		firstUserName = k
+		break
+	}
+
+	if firstClusterName == "" || firstUserName == "" {
+		return fmt.Errorf("could not find cluster or user in provided kubeconfig")
+	}
+
+	// Copy cluster and user with new names
+	existingConfig.Clusters[clusterName] = dockerConfig.Clusters[firstClusterName]
+	existingConfig.AuthInfos[userName] = dockerConfig.AuthInfos[firstUserName]
+
+	// Create new context
+	existingConfig.Contexts[contextName] = &api.Context{
+		Cluster:   clusterName,
+		AuthInfo:  userName,
+		Namespace: "default",
+	}
+
+	// Save the merged config
+	err = clientcmd.WriteToFile(*existingConfig, kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("error writing merged kubeconfig: %w", err)
+	}
+
+	return nil
 }
 
 // imageExists checks if the specified image is cached locally

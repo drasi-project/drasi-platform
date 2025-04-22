@@ -5,9 +5,9 @@ import { ContinuousQuerySpec, ContinuousQueryStatus } from "./models/continuous-
 import { SourceSpec, SourceStatus } from "./models/source";
 import { ReactionSpec, ReactionStatus } from "./models/reaction";
 import { CloseEvent, ErrorEvent, MessageEvent, WebSocket } from 'ws';
-import { Stoppable } from "./models/stoppable";
 import { createPlatformClient, ManagementEndpoint, PlatformClient, TunnelConnection } from "./sdk/platform-client";
 import { ConfigurationRegistry } from "./sdk/config";
+import { Disposable } from "vscode";
 
 
 export class DrasiClient {
@@ -209,7 +209,7 @@ export class DrasiClient {
         }
     }
 
-    async watchQuery(queryId: string, onData: (data: any) => void): Promise<Stoppable> {
+    async watchQuery(queryId: string, onData: (data: any) => void): Promise<Disposable> {
         let endpoint = await this.getIsolatedManagementEndpoint();
         let addr = await endpoint.getManagementAddr();
         let abortController = new AbortController();
@@ -256,7 +256,7 @@ export class DrasiClient {
             endpoint.close();
         }
         return {
-            stop: () => {
+            dispose: () => {
                 console.log("Stopping watch query");                
                 abortController.abort();
                 endpoint.close();
@@ -264,7 +264,7 @@ export class DrasiClient {
         };
     }
 
-    async debugQuery(spec: any, onData: (data: any) => void, onError: (error: string) => void): Promise<Stoppable> {
+    async debugQuery(spec: any, onData: (data: any) => void, onError: (error: string) => void): Promise<Disposable> {
         let endpoint = await this.getIsolatedManagementEndpoint();
         let addr = await endpoint.getManagementAddr();
 
@@ -298,7 +298,7 @@ export class DrasiClient {
         };
 
         return {
-            stop: () => {
+            dispose: () => {
                 socket.close();
                 endpoint.close();
             }

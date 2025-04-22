@@ -26,7 +26,7 @@ import (
 
 func NewDescribeCommand() *cobra.Command {
 	var describeCommand = &cobra.Command{
-		Use:   "describe [kind name]",
+		Use:   "describe kind name",
 		Short: "Show the definition and status of a resource",
 		Long: `Show the definition and current status of a specified resource.
 		

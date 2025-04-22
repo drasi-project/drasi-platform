@@ -33,7 +33,7 @@ func MakeRootCommand() *cobra.Command {
 		NewVersionCommand(),
 		NewWatchCommand(),
 		NewTunnelCommand(),
-		NewConfigCommand(),
+		NewEnvCommand(),
 		NewSecretCommand(),
 	)
 

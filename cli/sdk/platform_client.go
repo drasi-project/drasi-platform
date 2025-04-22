@@ -28,7 +28,7 @@ import (
 
 type PlatformClient interface {
 	CreateDrasiClient() (*ApiClient, error)
-	CreateTunnel(resourceName string, endpoint string, localPort uint16, remotePort uint16) error
+	CreateTunnel(resourceType string, resourceName string, localPort uint16) error
 	SetSecret(name string, key string, value []byte) error
 	DeleteSecret(name string, key string) error
 }
@@ -144,8 +144,8 @@ func (t *KubernetesPlatformClient) ListNamespaces() ([]string, error) {
 	return nsList, nil
 }
 
-func (t *KubernetesPlatformClient) CreateTunnel(resourceName string, endpoint string, localPort uint16, remotePort uint16) error {
-	podName, err := t.getServicePodName(resourceName + "-" + endpoint)
+func (t *KubernetesPlatformClient) CreateTunnel(resourceType string, resourceName string, localPort uint16) error {
+	pod, err := t.getResourcePod(resourceType, resourceName)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (t *KubernetesPlatformClient) CreateTunnel(resourceName string, endpoint st
 	namespace := t.kubeNamespace
 	proxyURL := &url.URL{
 		Scheme: "https",
-		Path:   fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, podName),
+		Path:   fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, pod.Pod),
 		Host:   strings.TrimPrefix(t.kubeConfig.Host, "https://"),
 	}
 
@@ -167,7 +167,7 @@ func (t *KubernetesPlatformClient) CreateTunnel(resourceName string, endpoint st
 	readyCh := make(chan struct{})
 
 	stopCh := make(chan struct{}, 1)
-	pf, err := portforward.New(dialer, []string{fmt.Sprintf("%d:%d", localPort, remotePort)}, stopCh, readyCh, os.Stdout, os.Stderr)
+	pf, err := portforward.New(dialer, []string{fmt.Sprintf("%d:%d", localPort, pod.Port)}, stopCh, readyCh, os.Stdout, os.Stderr)
 	if err != nil {
 		return err
 	}
@@ -309,19 +309,34 @@ func (t *KubernetesPlatformClient) getApiPodName() (string, error) {
 	return "", errors.New("drasi API not available")
 }
 
-func (t *KubernetesPlatformClient) getServicePodName(serviceName string) (string, error) {
+type ResourcePodPort struct {
+	Pod  string
+	Port int32
+}
+
+func (t *KubernetesPlatformClient) getResourcePod(resourceType string, resourceName string) (*ResourcePodPort, error) {
 	namespace := t.kubeNamespace
-	ep, err := t.kubeClient.CoreV1().Endpoints(namespace).Get(context.TODO(), serviceName, v1.GetOptions{})
+	endpoints, err := t.kubeClient.CoreV1().Endpoints(namespace).List(context.TODO(), v1.ListOptions{
+		LabelSelector: fmt.Sprintf("drasi/type=%s,drasi/resource=%s", resourceType, resourceName),
+	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	for _, subset := range ep.Subsets {
-		for _, addr := range subset.Addresses {
-			if addr.TargetRef.Kind == "Pod" {
-				return addr.TargetRef.Name, nil
+	for _, ep := range endpoints.Items {
+		for _, subset := range ep.Subsets {
+			for _, addr := range subset.Addresses {
+				if addr.TargetRef.Kind == "Pod" {
+					if len(subset.Ports) == 1 {
+						return &ResourcePodPort{
+							Pod:  addr.TargetRef.Name,
+							Port: subset.Ports[0].Port,
+						}, nil
+					}
+				}
 			}
 		}
 	}
-	return "", errors.New(serviceName + " not available")
+
+	return nil, errors.New(resourceName + " not available")
 }
