@@ -21,14 +21,14 @@ import { ContinuousQuery } from '../../models/continuous-query';
 import { DrasiClient } from '../../drasi-client';
 import { Disposable } from 'vscode';
 
-suite('QueryDebugger Test Suite', () => {
+suite('QueryDebugger Test Suite', async () => {
 	let mockExtensionUri: vscode.Uri;
 	let mockQuery: ContinuousQuery;
 	let mockDrasiClient: DrasiClient;
 	let mockStoppable: Disposable;
 	let debuggerInst: QueryDebugger;
 
-	setup(() => {
+	setup(async () => {
 		// Mock the extension URI
 		mockExtensionUri = vscode.Uri.file('/mock/extension/path');
 
