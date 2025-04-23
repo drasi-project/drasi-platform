@@ -42,10 +42,11 @@ function hydrateRegistration(data: any): Registration {
 export class ConfigurationRegistry implements Disposable {
     private basePath: string;
     private eventEmitter: EventEmitter;
+    private getHomeDir: () => string = () => os.homedir();
     private watcher: fs.FSWatcher | undefined;
 
     constructor() {
-        this.basePath = os.homedir() + "/.drasi";
+        this.basePath = this.getHomeDir() + "/.drasi";
         this.eventEmitter = new EventEmitter();
         this.watcher = fs.watch(this.basePath + "/" + currentFile, (eventType, filename) => {
             if (eventType === "change" && filename === currentFile) {
