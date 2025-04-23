@@ -36,6 +36,8 @@ func NewInitCommand() *cobra.Command {
 Usage examples:
   drasi init
   drasi init --local
+  drasi init --docker
+  drasi init --docker my-container
   drasi init --registry myregistry.io/drasi --version 0.1.0
   drasi init -n my-namespace
 `,
@@ -43,7 +45,7 @@ Usage examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var installer installers.Installer
 			local := false
-			var dockerName string
+			useDocker := false
 			var containerRegistry string
 			var version string
 
@@ -52,17 +54,30 @@ Usage examples:
 			output := output.NewTaskOutput()
 			defer output.Close()
 
-			if dockerName, err = cmd.Flags().GetString("docker"); err != nil {
+			if local, err = cmd.Flags().GetBool("local"); err != nil {
 				return err
 			}
 
-			if dockerName != "" {
+			if version, err = cmd.Flags().GetString("version"); err != nil {
+				return err
+			}
+
+			if useDocker, err = cmd.Flags().GetBool("docker"); err != nil {
+				return err
+			}
+
+			if useDocker {
+				dockerName := "docker"
+				if len(args) > 0 {
+					dockerName = args[0]
+				}
+
 				var dd *installers.DockerizedDeployer
 				if dd, err = installers.MakeDockerizedDeployer(); err != nil {
 					return err
 				}
 
-				reg, err := dd.Build(dockerName, output)
+				reg, err := dd.Build(dockerName, local, version, output)
 				if err != nil {
 					return err
 				}
@@ -74,15 +89,7 @@ Usage examples:
 				}
 			}
 
-			if local, err = cmd.Flags().GetBool("local"); err != nil {
-				return err
-			}
-
 			if containerRegistry, err = cmd.Flags().GetString("registry"); err != nil {
-				return err
-			}
-
-			if version, err = cmd.Flags().GetString("version"); err != nil {
 				return err
 			}
 
@@ -132,12 +139,13 @@ Usage examples:
 	}
 
 	initCommand.Flags().Bool("local", false, "Do not use a container registry, only locally available images.")
-	initCommand.Flags().String("docker", "", "")
+	initCommand.Flags().Bool("docker", false, "Build a docker container and install Drasi into it.")
 	initCommand.Flags().String("registry", config.Registry, "Container registry to pull images from.")
 	initCommand.Flags().String("version", config.Version, "Container image version tag.")
 	initCommand.Flags().StringP("namespace", "n", "drasi-system", "Kubernetes namespace to install Drasi into.")
 	initCommand.Flags().String("dapr-runtime-version", "", "Dapr runtime version to install.")
 	initCommand.Flags().String("dapr-sidecar-version", "latest", "Dapr sidecar (daprd) version to install.")
 	initCommand.Flags().String("dapr-registry", "docker.io/daprio", "Container registry to pull Dapr images from.")
+
 	return initCommand
 }

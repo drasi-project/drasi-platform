@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"drasi.io/cli/output"
@@ -45,7 +46,7 @@ func MakeDockerizedDeployer() (*DockerizedDeployer, error) {
 	return &result, nil
 }
 
-func (t *DockerizedDeployer) Build(name string, output output.TaskOutput) (registry.Registration, error) {
+func (t *DockerizedDeployer) Build(name string, loadImages bool, versionTag string, output output.TaskOutput) (registry.Registration, error) {
 	ctx := context.Background()
 
 	port, err := freeport.GetFreePort()
@@ -128,6 +129,13 @@ func (t *DockerizedDeployer) Build(name string, output output.TaskOutput) (regis
 		output.Error(fmt.Sprintf("Error merging kubeconfig: %v", err))
 	}
 
+	if loadImages {
+		err = t.loadDrasiImages(ctx, output, resp, versionTag)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	result := registry.DockerConfig{
 		ContainerId: &resp.ID,
 		InternalConfig: &registry.KubernetesConfig{
@@ -145,6 +153,181 @@ func (t *DockerizedDeployer) Build(name string, output output.TaskOutput) (regis
 	}
 
 	return &result, nil
+}
+
+func (t *DockerizedDeployer) loadDrasiImages(ctx context.Context, output output.TaskOutput, resp container.CreateResponse, versionTag string) error {
+	output.AddTask("Load-Images", "Loading images into container")
+	// Get all images with the prefix "drasi-project/"
+	images, err := t.dockerClient.ImageList(ctx, image.ListOptions{})
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error listing images: %v", err))
+		return err
+	}
+
+	// Filter images with the prefix "drasi-project/"
+	var drasiImages []string
+	for _, img := range images {
+		for _, tag := range img.RepoTags {
+			tagComponents := strings.Split(tag, ":")
+			if strings.HasPrefix(tagComponents[0], "drasi-project/") {
+				if len(tagComponents) > 1 {
+					if tagComponents[1] != versionTag {
+						break
+					}
+				}
+				drasiImages = append(drasiImages, tag)
+				break
+			}
+		}
+	}
+
+	if len(drasiImages) == 0 {
+		output.SucceedTask("Load-Images", "No drasi-project images found to load")
+		return nil
+	}
+
+	output.InfoMessage(fmt.Sprintf("Found %d drasi-project images to load", len(drasiImages)))
+
+	// Create a temporary directory for the image tars
+	tempDir, err := os.MkdirTemp("", "drasi-images")
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error creating temp directory: %v", err))
+		return err
+	}
+	defer os.RemoveAll(tempDir)
+
+	tarFile := filepath.Join(tempDir, "images.tar")
+	saveReader, err := t.dockerClient.ImageSave(ctx, drasiImages)
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error saving images: %v", err))
+		return err
+	}
+
+	tarWriter, err := os.Create(tarFile)
+	if err != nil {
+		saveReader.Close()
+		output.FailTask("Load-Images", fmt.Sprintf("Error creating tar file: %v", err))
+		return err
+	}
+
+	_, err = io.Copy(tarWriter, saveReader)
+	saveReader.Close()
+	tarWriter.Close()
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error writing tar file: %v", err))
+		return err
+	}
+
+	// Create a new tar file that contains just the original images.tar
+	nestedTarPath := filepath.Join(tempDir, "nested_images.tar")
+	nestedTarFile, err := os.Create(nestedTarPath)
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error creating nested tar file: %v", err))
+		return err
+	}
+	defer nestedTarFile.Close()
+
+	nestedTarWriter := tar.NewWriter(nestedTarFile)
+	defer nestedTarWriter.Close()
+
+	// Get info about the original tar file
+	tarFileInfo, err := os.Stat(tarFile)
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error getting tar file info: %v", err))
+		return err
+	}
+
+	tarFileReader, err := os.Open(tarFile)
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error opening tar file for nesting: %v", err))
+		return err
+	}
+	defer tarFileReader.Close()
+
+	// Add the tar file to the nested tar
+	header := &tar.Header{
+		Name:     "images.tar",
+		Mode:     0644,
+		Size:     tarFileInfo.Size(),
+		ModTime:  time.Now(),
+		Typeflag: tar.TypeReg,
+	}
+
+	if err := nestedTarWriter.WriteHeader(header); err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error writing header to nested tar: %v", err))
+		return err
+	}
+
+	if _, err := io.Copy(nestedTarWriter, tarFileReader); err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error copying tar to nested tar: %v", err))
+		return err
+	}
+
+	tarFile = nestedTarPath
+	containerPath := "/tmp/images.tar"
+
+	tarReader, err := os.Open(tarFile)
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error opening tar file: %v", err))
+		return err
+	}
+	defer tarReader.Close()
+
+	err = t.dockerClient.CopyToContainer(ctx, resp.ID, "/tmp", tarReader, container.CopyToContainerOptions{
+		AllowOverwriteDirWithFile: true,
+	})
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error copying images to container: %v", err))
+		return err
+	}
+
+	// Now import the image into k3s
+	execConfig := container.ExecOptions{
+		Cmd:          []string{"ctr", "image", "import", containerPath},
+		AttachStdout: true,
+		AttachStderr: true,
+	}
+
+	execCreateResp, err := t.dockerClient.ContainerExecCreate(ctx, resp.ID, execConfig)
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error creating exec for image import: %v", err))
+		return err
+	}
+
+	execAttachResp, err := t.dockerClient.ContainerExecAttach(ctx, execCreateResp.ID, container.ExecAttachOptions{})
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error attaching to exec: %v", err))
+		return err
+	}
+
+	var outBuf bytes.Buffer
+	io.Copy(&outBuf, execAttachResp.Reader)
+	execAttachResp.Close()
+
+	// Check if import was successful
+	execInspect, err := t.dockerClient.ContainerExecInspect(ctx, execCreateResp.ID)
+	if err != nil {
+		output.FailTask("Load-Images", fmt.Sprintf("Error inspecting exec: %v", err))
+		return err
+	}
+
+	if execInspect.ExitCode != 0 {
+		output.FailTask("Load-Images", fmt.Sprintf("Error importing images: %s", outBuf.String()))
+		return fmt.Errorf("error importing image: %s", outBuf.String())
+	}
+
+	// Clean up the tar file in the container
+	cleanupConfig := container.ExecOptions{
+		Cmd: []string{"rm", containerPath},
+	}
+	cleanupExec, err := t.dockerClient.ContainerExecCreate(ctx, resp.ID, cleanupConfig)
+	if err == nil {
+		t.dockerClient.ContainerExecStart(ctx, cleanupExec.ID, container.ExecStartOptions{})
+	}
+
+	output.SucceedTask("Load-Images", fmt.Sprintf("Successfully loaded %d images into k3s", len(drasiImages)))
+
+	return nil
 }
 
 func (t *DockerizedDeployer) waitForReady(containerId string) error {
