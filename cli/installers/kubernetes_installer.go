@@ -577,7 +577,7 @@ func (t *KubernetesInstaller) installDapr(output output.TaskOutput, daprRegistry
 	err = helmConfig.Init(&flags, "dapr-system", "secret", func(format string, v ...any) {})
 
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 
@@ -592,7 +592,7 @@ func (t *KubernetesInstaller) installDapr(output output.TaskOutput, daprRegistry
 
 	dir, err := os.MkdirTemp("", "drasi")
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 	defer os.RemoveAll(dir)
@@ -601,18 +601,18 @@ func (t *KubernetesInstaller) installDapr(output output.TaskOutput, daprRegistry
 
 	_, err = pull.Run("dapr")
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 	file, err := os.ReadDir(dir)
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 	dirPath := filepath.Join(dir, file[0].Name())
 	helmChart, err := loader.Load(dirPath)
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 
@@ -631,7 +631,7 @@ func (t *KubernetesInstaller) installDapr(output output.TaskOutput, daprRegistry
 	}
 	_, err = installClient.Run(helmChart, helmChart.Values)
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 	output.SucceedTask("Dapr-Install", "Dapr installed successfully")
