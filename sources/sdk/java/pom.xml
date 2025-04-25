@@ -22,7 +22,7 @@
         <dependency>
             <groupId>io.dapr</groupId>
             <artifactId>dapr-sdk</artifactId>
-            <version>1.8.0</version>
+            <version>1.13.2</version>
         </dependency>
 
         <dependency>
@@ -60,7 +60,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>2.14.2</version>
+            <version>2.15.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
