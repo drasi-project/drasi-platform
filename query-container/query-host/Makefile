@@ -16,6 +16,10 @@ docker-build-debug:
 kind-load:
 	kind load docker-image $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
 
+k3d-load: CLUSTER_NAME=k3s-default
+k3d-load:
+	k3d image import $(IMAGE_PREFIX)/query-container-query-host:$(DOCKER_TAG_VERSION) -c $(CLUSTER_NAME)
+
 test:
 	cargo test
 
