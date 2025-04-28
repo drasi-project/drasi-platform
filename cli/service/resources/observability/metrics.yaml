@@ -12,6 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# PVC for Prometheus
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi  
+  storageClassName: standard
+---
 # Prometheus
 apiVersion: apps/v1
 kind: Deployment
@@ -55,7 +68,8 @@ spec:
         configMap:
           name: prometheus-config
       - name: data-volume
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: prometheus-data-pvc
 ---
 apiVersion: v1
 kind: ConfigMap

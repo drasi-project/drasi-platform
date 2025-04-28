@@ -12,7 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Tempo
+---
+# PVC for Tempo
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tempo-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi 
+  storageClassName: standard  
+---
+# PVC for Prometheus
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi  
+  storageClassName: standard
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -54,7 +80,8 @@ spec:
         configMap:
           name: tempo-config
       - name: data-volume
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: tempo-data-pvc
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -107,7 +134,6 @@ spec:
   selector:
     app: tempo
 ---
-# Prometheus
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -150,7 +176,8 @@ spec:
         configMap:
           name: prometheus-config
       - name: data-volume
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: prometheus-data-pvc
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -178,7 +205,6 @@ spec:
   selector:
     app: prometheus
 ---
-# Grafana
 apiVersion: apps/v1
 kind: Deployment
 metadata:
