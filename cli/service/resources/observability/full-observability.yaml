@@ -23,7 +23,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 3Gi 
+      storage: 1Gi 
   storageClassName: standard  
 ---
 # PVC for Prometheus
@@ -36,7 +36,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 3Gi  
+      storage: 1Gi  
   storageClassName: standard
 ---
 apiVersion: apps/v1

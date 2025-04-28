@@ -22,7 +22,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 3Gi  
+      storage: 1Gi  
   storageClassName: standard
 ---
 # Prometheus
