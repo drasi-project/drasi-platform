@@ -6,7 +6,7 @@
 
     <groupId>io.drasi</groupId>
     <artifactId>source.sdk</artifactId>
-    <version>0.1.8</version>
+    <version>0.1.10</version>
     <packaging>jar</packaging>
     <name>Drasi Source SDK</name>
     <description>SDK for building Drasi sources</description>
@@ -22,7 +22,7 @@
         <dependency>
             <groupId>io.dapr</groupId>
             <artifactId>dapr-sdk</artifactId>
-            <version>1.13.2</version>
+            <version>1.14.0</version>
         </dependency>
 
         <dependency>
