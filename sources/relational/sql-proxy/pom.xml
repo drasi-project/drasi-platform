@@ -36,7 +36,7 @@
     <dependency>
       <groupId>io.drasi</groupId>
       <artifactId>source.sdk</artifactId>
-      <version>0.1.0</version>
+      <version>0.1.10</version>
     </dependency>
 
     <dependency>
