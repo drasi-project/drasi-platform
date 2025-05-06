@@ -45,6 +45,7 @@ export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> 
         this.refresh();
       }
     });
+
   }
 
   refresh(): void {
@@ -177,7 +178,7 @@ export class WorkspaceExplorer implements vscode.TreeDataProvider<ExplorerNode> 
       progress.report({ message: "Applying..." });
 
       try {
-        await this.drasiClient.applyResource(resourceNode.resource);
+        await this.drasiClient.applyResource(resourceNode.resource, () => vscode.commands.executeCommand('drasi.refresh'));
         vscode.window.showInformationMessage(`Resource ${resourceNode.resource.name} applied successfully`);
       }
       catch (err) {
