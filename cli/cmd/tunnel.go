@@ -15,21 +15,33 @@
 package cmd
 
 import (
-	"fmt"
-
-	query_results2 "drasi.io/cli/output/query_results"
+	"errors"
+	"strconv"
 
 	"drasi.io/cli/sdk"
 	"drasi.io/cli/sdk/registry"
 	"github.com/spf13/cobra"
 )
 
-func NewWatchCommand() *cobra.Command {
-	var watchCommand = &cobra.Command{
-		Use:   "watch [query name]",
-		Short: "Watch the result set of a query",
-		Long:  `Watch the result set of a query`,
-		Args:  cobra.MinimumNArgs(1),
+func NewTunnelCommand() *cobra.Command {
+	var tunnelCommand = &cobra.Command{
+		Use:   "tunnel kind name port",
+		Short: "Create a tunnel to a Drasi resource",
+		Long: `Create a secure tunnel to a specific Drasi resource.
+		
+Arguments:
+  kind  The kind of resource to create a tunnel for. Available kinds are (case-insensitive):
+        - Source      
+        - Reaction         
+
+  name  The name of the resource to create a tunnel for.
+  port  The local port to use for the tunnel.
+
+Usage examples:
+  drasi tunnel reaction my-reaction 8080
+`,
+
+		Args: cobra.MinimumNArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 
@@ -47,41 +59,14 @@ func NewWatchCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			client, err := platformClient.CreateDrasiClient()
+			localPort, err := strconv.ParseUint(args[2], 10, 16)
 			if err != nil {
-				fmt.Println("Error: " + err.Error())
-				return nil
-			}
-			defer client.Close()
-
-			var out = make(chan map[string]interface{}, 10)
-			var initError = make(chan error)
-
-			go client.Watch("query", args[0], out, initError)
-
-			err = <-initError
-			if err != nil {
-				return err
+				return errors.New("invalid port: must be a number between 0 and 65535")
 			}
 
-			ui := query_results2.NewQueryResults(func() {
-				close(out)
-			})
-
-			for item := range out {
-				data, err := query_results2.CreateChangeMsg(item)
-				if err != nil {
-					return err
-				}
-				ui.Change(*data)
-			}
-
-			ui.Close()
-
-			return nil
+			return platformClient.CreateTunnel(args[0], args[1], uint16(localPort))
 		},
 	}
 
-	return watchCommand
+	return tunnelCommand
 }
