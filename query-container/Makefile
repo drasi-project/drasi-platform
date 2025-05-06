@@ -21,6 +21,12 @@ kind-load:
 	$(MAKE) -C query-host $(MAKECMDGOALS)
 	$(MAKE) -C view-svc $(MAKECMDGOALS)
 
+k3d-load: CLUSTER_NAME=k3s-default
+k3d-load:
+	$(MAKE) -C publish-api $(MAKECMDGOALS)
+	$(MAKE) -C query-host $(MAKECMDGOALS)
+	$(MAKE) -C view-svc $(MAKECMDGOALS)
+
 test:
 	$(MAKE) -C publish-api $(MAKECMDGOALS)
 	$(MAKE) -C query-host $(MAKECMDGOALS)
