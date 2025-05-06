@@ -1,18 +1,19 @@
 module drasi.io/cli
 
 go 1.22.4
-
-toolchain go1.22.5
+toolchain go1.24.1
 
 require (
 	github.com/charmbracelet/bubbles v0.19.0
 	github.com/charmbracelet/bubbletea v1.1.0
 	github.com/charmbracelet/lipgloss v0.13.0
+	github.com/docker/docker v28.0.4+incompatible
+	github.com/docker/go-connections v0.5.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
 	github.com/spf13/cobra v1.8.1
 	golang.org/x/net v0.28.0
-	golang.org/x/term v0.27.0
+	golang.org/x/term v0.29.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.15.4
 	k8s.io/api v0.31.0
@@ -50,9 +51,7 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v27.1.2+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v28.0.4+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
-	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
@@ -111,6 +110,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
@@ -142,11 +142,11 @@ require (
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	go.starlark.net v0.0.0-20240725214946-42030a7cedce // indirect
-	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240822170219-fc7c04adadcd // indirect
 	google.golang.org/grpc v1.65.0 // indirect
