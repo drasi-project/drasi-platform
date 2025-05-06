@@ -12,36 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package service
+package installers
 
 import (
 	"context"
 	"fmt"
 	"time"
 
+	"drasi.io/cli/sdk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
 )
 
-func UninstallDrasi(namespace string) error {
-	configLoadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
+type KubernetesUninstaller struct {
+	kubeClient    *kubernetes.Clientset
+	kubeConfig    *rest.Config
+	kubeNamespace string
+}
 
-	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoadingRules, configOverrides)
+func MakeKubernetesUninstaller(platformClient *sdk.KubernetesPlatformClient) (Uninstaller, error) {
+	kubeConfig := platformClient.GetKubeConfig()
+	kubeNamespace := platformClient.GetNamespace()
 
-	restConfig, err := config.ClientConfig()
+	return &KubernetesUninstaller{
+		kubeClient:    platformClient.GetKubeClient(),
+		kubeConfig:    kubeConfig,
+		kubeNamespace: kubeNamespace,
+	}, nil
+}
 
-	if err != nil {
-		return err
-	}
+func (t *KubernetesUninstaller) Uninstall(uninstallDapr bool) error {
 
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-
-	err = clientset.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
+	err := t.kubeClient.CoreV1().Namespaces().Delete(context.TODO(), t.kubeNamespace, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -50,13 +53,13 @@ func UninstallDrasi(namespace string) error {
 	// Need to verify that all resources have been deleted; if not, wait for them to be deleted
 	nsDeleted := false
 	for !nsDeleted {
-		list, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+		list, err := t.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return err
 		}
 		for _, ns := range list.Items {
 			// check if the namespace is still there
-			if ns.Name == namespace {
+			if ns.Name == t.kubeNamespace {
 				fmt.Println("Namespace is still present. Waiting for it to be deleted")
 				// wait for 10 seconds
 				time.Sleep(10 * time.Second)
@@ -66,34 +69,25 @@ func UninstallDrasi(namespace string) error {
 		}
 	}
 
+	if uninstallDapr {
+		err = t.uninstallDapr()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func UninstallDapr(namespace string) error {
-	configLoadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
-
-	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoadingRules, configOverrides)
-
-	restConfig, err := config.ClientConfig()
-
-	if err != nil {
-		return err
-	}
-
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-
-	err = clientset.CoreV1().Namespaces().Delete(context.TODO(), "dapr-system", metav1.DeleteOptions{})
+func (t *KubernetesUninstaller) uninstallDapr() error {
+	err := t.kubeClient.CoreV1().Namespaces().Delete(context.TODO(), "dapr-system", metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
 
 	nsDeleted := false
 	for !nsDeleted {
-		list, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+		list, err := t.kubeClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return err
 		}
