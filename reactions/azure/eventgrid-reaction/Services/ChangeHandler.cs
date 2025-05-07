@@ -22,9 +22,8 @@ using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-
-// using CloudNative.CloudEvents;
-
+using System.Text.Json;
+using Drasi.Reactions.EventGrid.Models.Unpacked;
 
 
 
@@ -53,15 +52,17 @@ public class ChangeHandler : IChangeEventHandler
         {
             case OutputFormat.Packed:
                 if (_eventGridSchema == EventGridSchema.CloudEvents) {
-                    CloudEvent cloudEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", _formatter.Format(evt));
-                    var resp = await _publisherClient.SendEventAsync(cloudEvent);
+                    var formattedEvent = _formatter.Format(evt);
+                    CloudEvent currEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", formattedEvent);
+                    var resp = await _publisherClient.SendEventAsync(currEvent);
                     if (resp.IsError) 
                     {
                         _logger.LogError($"Error sending message to Event Grid: {resp.Content.ToString()}");
                         throw new Exception($"Error sending message to Event Grid: {resp.Content.ToString()}");
                     }
                 } else if (_eventGridSchema == EventGridSchema.EventGrid) {
-                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", _formatter.Format(evt));
+                    var formattedEvent = _formatter.Format(evt);
+                    EventGridEvent egEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", formattedEvent);
                     var resp = await _publisherClient.SendEventAsync(egEvent);
                     if (resp.IsError) 
                     {
@@ -87,6 +88,7 @@ public class ChangeHandler : IChangeEventHandler
                         throw new Exception($"Error sending message to Event Grid: {currResp.Content.ToString()}");
                     }
                 } else if (_eventGridSchema == EventGridSchema.CloudEvents) {
+                    JsonElement serializedEvent;
                     List<CloudEvent> events = new List<CloudEvent>();
                     foreach (var notification in formattedResults)
                     {
