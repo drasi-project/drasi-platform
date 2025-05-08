@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ReactionProvider
+name: SyncDaprStateStore
+spec:
+  services:
+    reaction:
+      image: reaction-sync-dapr-statestore
+  config_schema:
+    type: object
+    properties:
+      stateStoreName:
+        type: string
+        description: "(Required) The name of the Dapr state store component to sync with."
+    required:
+      - stateStoreName
