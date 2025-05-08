@@ -1,0 +1,12 @@
+kind: Reaction
+apiVersion: v1
+name: sync-dapr-statestore
+spec:
+  kind: SyncDaprStateStore
+  properties:
+    stateStoreName: "some-state-store-name"
+  queries:
+    query-one: '{"keyPrefix": "none", "keyField": "productId"}'
+    query-two: '{"keyPrefix": "appId", "keyField": "productId", "appId": "some-app-id"}'
+    query-three: '{"keyPrefix": "namespace", "keyField": "productId", "namespace": "some-namespace", "appId": "some-app-id"}'
+    query-four: '{"keyPrefix": "name", "keyField": "productId"}'
