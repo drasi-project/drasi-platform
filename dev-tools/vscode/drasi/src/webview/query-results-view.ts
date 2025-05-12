@@ -33,7 +33,8 @@ export function queryResultsView(webview: vscode.Webview, extensionUri: vscode.U
           const resultsTable = document.getElementById('resultsTable');
           const statusText = document.getElementById('statusText');
           const errors = document.getElementById('errors');
-          let results = new Map();
+          let resultHashes = new Map();
+          let resultValues = [];
 
           window.addEventListener('message', event => {
             const message = event.data;
@@ -55,27 +56,43 @@ export function queryResultsView(webview: vscode.Webview, extensionUri: vscode.U
           function updateResults(changeEvent) {
             const { addedResults, updatedResults, deletedResults } = changeEvent;
 
-            for (const result of addedResults) {
-              results.set(JSON.stringify(result), result);
+            for (const result of addedResults) {              
+              let index = resultValues.push(result) - 1;
+              resultHashes.set(JSON.stringify(result), index);
             }
 
             for (const update of updatedResults) {
               const oldKey = JSON.stringify(update.before);
               const newKey = JSON.stringify(update.after);
-              results.delete(oldKey);
-              results.set(newKey, update.after);
+              
+              let index = resultHashes.get(oldKey);
+              if (index === undefined) {
+                index = resultValues.push(update.after) - 1;
+              } else {
+                resultValues[index] = update.after;
+              }
+              resultHashes.delete(oldKey);
+              resultHashes.set(newKey, index);              
             }
 
             for (const result of deletedResults) {
-              results.delete(JSON.stringify(result));
+              let key = JSON.stringify(result);
+              let index = resultHashes.get(key);
+              resultHashes.delete(key);
+              if (index !== undefined) {
+                resultValues.splice(index, 1);
+                for (let i = index; i < resultValues.length; i++) {
+                  const key = JSON.stringify(resultValues[i]);
+                  resultHashes.set(key, i);
+                }
+              }
             }
 
             renderTable();
           }
 
           function renderTable() {
-            let data = Array.from(results.values());            
-            resultsTable.rowsData = data;
+            resultsTable.rowsData = Array.from(resultValues);
           }
         </script>
       </body>

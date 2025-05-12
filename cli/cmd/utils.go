@@ -16,27 +16,13 @@ package cmd
 
 import (
 	"bufio"
-	"context"
-	"encoding/json"
 	"io"
-	"os/user"
-	"path"
-
 	"net/http"
 	"os"
 
 	"drasi.io/cli/api"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
-
-type ClusterConfig struct {
-	DrasiNamespace     string `json:"drasinamespace"`
-	DaprRuntimeVersion string `json:"daprruntimeversion"`
-	DaprSidecarVersion string `json:"daprsidecarversion"`
-}
 
 func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
 	var err error
@@ -68,6 +54,9 @@ func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
 			}
 			var fileManifests *[]api.Manifest
 			fileManifests, err = api.ReadManifests(file)
+			if err != nil {
+				return nil, err
+			}
 			manifests = append(manifests, *fileManifests...)
 		}
 	} else {
@@ -91,6 +80,9 @@ func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
 				pipeData, _ := io.ReadAll(reader)
 				var fileManifests *[]api.Manifest
 				fileManifests, err = api.ReadManifests(pipeData)
+				if err != nil {
+					return nil, err
+				}
 				if fileManifests != nil {
 					manifests = append(manifests, *fileManifests...)
 				}
@@ -105,59 +97,4 @@ func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
 func isURL(path string) bool {
 	_, err := http.Get(path)
 	return err == nil
-}
-
-func configPath() string {
-	cfgFile := "drasiconfig.json"
-	usr, _ := user.Current()
-	return path.Join(usr.HomeDir, cfgFile)
-}
-
-func saveConfig(drasiConfig ClusterConfig) {
-	jsonC, _ := json.Marshal(drasiConfig)
-	if _, err := os.Stat(configPath()); os.IsNotExist(err) {
-		os.Create(configPath())
-	}
-	os.WriteFile(configPath(), jsonC, os.ModeAppend)
-}
-
-func readConfig() ClusterConfig {
-	data, _ := os.ReadFile(configPath())
-	var cfg ClusterConfig
-	json.Unmarshal(data, &cfg)
-	return cfg
-}
-
-// Retrieve the name of all namespaces that have the label
-// "drasi.io/namespace": "true"
-func listNamespaces() ([]string, error) {
-	configLoadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
-
-	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoadingRules, configOverrides)
-
-	restConfig, err := config.ClientConfig()
-
-	if err != nil {
-		return nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	namespaces, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "drasi.io/namespace=true",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var nsList []string
-	for _, ns := range namespaces.Items {
-		nsList = append(nsList, ns.Name)
-	}
-
-	return nsList, nil
 }

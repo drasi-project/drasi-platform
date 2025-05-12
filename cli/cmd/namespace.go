@@ -17,6 +17,8 @@ package cmd
 import (
 	"fmt"
 
+	"drasi.io/cli/sdk"
+	"drasi.io/cli/sdk/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +60,6 @@ Usage examples:
 			}
 			var err error
 			var namespace string
-			var clusterConfig ClusterConfig
 
 			if len(args) == 1 {
 				namespace = args[0]
@@ -71,14 +72,31 @@ Usage examples:
 			}
 
 			if namespace != "" {
-				clusterConfig.DrasiNamespace = namespace
-				saveConfig(clusterConfig)
+				current, err := registry.GetCurrentRegistration()
+				if err != nil {
+					return err
+				}
+				if current == "" {
+					return fmt.Errorf("no current registration found")
+				}
+				reg, err := registry.LoadRegistration(current)
+				if err != nil {
+					return err
+				}
+
+				if k8sConfig, ok := reg.(*registry.KubernetesConfig); ok {
+					k8sConfig.Namespace = namespace
+					if err := registry.SaveRegistration(current, k8sConfig); err != nil {
+						return err
+					}
+					fmt.Println("Namespace set to " + namespace)
+				} else {
+					return fmt.Errorf("current registration is not for Kubernetes")
+				}
+
 			} else {
 				return fmt.Errorf("namespace cannot be empty")
 			}
-
-			cfg := readConfig()
-			fmt.Println("Namespace set to " + cfg.DrasiNamespace)
 
 			return nil
 		},
@@ -92,8 +110,17 @@ func getNamespaceCommand() *cobra.Command {
 		Short: "Show the current default Drasi environment",
 		Long:  `Get the current default namespace used for all Drasi CLI commands.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := readConfig()
-			fmt.Println("Current namespace: " + cfg.DrasiNamespace)
+			reg, err := registry.LoadCurrentRegistration()
+			if err != nil {
+				return err
+			}
+
+			if k8sConfig, ok := reg.(*registry.KubernetesConfig); ok {
+				fmt.Println("Current namespace: " + k8sConfig.Namespace)
+			} else {
+				return fmt.Errorf("current registration is not for Kubernetes")
+			}
+
 			return nil
 		},
 	}
@@ -105,15 +132,27 @@ func listNamespaceCommand() *cobra.Command {
 		Short: "List all Drasi environments",
 		Long:  `List all namespaces on the default Kubernetes cluster that have Drasi installed in them.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Logic to list all namespaces
-			namespaces, err := listNamespaces()
+
+			reg, err := registry.LoadCurrentRegistration()
 			if err != nil {
 				return err
 			}
 
-			fmt.Println("Namespaces:")
-			for _, ns := range namespaces {
-				fmt.Println(ns)
+			platformClient, err := sdk.NewPlatformClient(reg)
+			if err != nil {
+				return err
+			}
+
+			if k8sClient, ok := platformClient.(*sdk.KubernetesPlatformClient); ok {
+				namespaces, err := k8sClient.ListNamespaces()
+				if err != nil {
+					return err
+				}
+
+				fmt.Println("Namespaces:")
+				for _, ns := range namespaces {
+					fmt.Println(ns)
+				}
 			}
 
 			return nil

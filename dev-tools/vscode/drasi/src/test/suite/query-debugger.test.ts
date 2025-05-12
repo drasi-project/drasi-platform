@@ -19,16 +19,16 @@ import * as vscode from 'vscode';
 import { QueryDebugger } from '../../query-debugger';
 import { ContinuousQuery } from '../../models/continuous-query';
 import { DrasiClient } from '../../drasi-client';
-import { Stoppable } from '../../models/stoppable';
+import { Disposable } from 'vscode';
 
-suite('QueryDebugger Test Suite', () => {
+suite('QueryDebugger Test Suite', async () => {
 	let mockExtensionUri: vscode.Uri;
 	let mockQuery: ContinuousQuery;
 	let mockDrasiClient: DrasiClient;
-	let mockStoppable: Stoppable;
+	let mockStoppable: Disposable;
 	let debuggerInst: QueryDebugger;
 
-	setup(() => {
+	setup(async () => {
 		// Mock the extension URI
 		mockExtensionUri = vscode.Uri.file('/mock/extension/path');
 
@@ -40,7 +40,7 @@ suite('QueryDebugger Test Suite', () => {
 
 		// Mock the stoppable session
 		mockStoppable = {
-			stop: () => {}
+			dispose: () => {}
 		};
 
 		// Mock the Drasi client
@@ -115,7 +115,7 @@ suite('QueryDebugger Test Suite', () => {
 		await debuggerInst.start();
 		
 		let stopCalled = false;
-		mockStoppable.stop = () => {
+		mockStoppable.dispose = () => {
 			stopCalled = true;
 		};
 
@@ -134,7 +134,7 @@ suite('QueryDebugger Test Suite', () => {
 		await debuggerInst.start();
 		
 		let stopCalled = false;
-		mockStoppable.stop = () => {
+		mockStoppable.dispose = () => {
 			stopCalled = true;
 		};
 
