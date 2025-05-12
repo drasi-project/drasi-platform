@@ -50,13 +50,13 @@ beforeAll(async () => {
   } catch (e) {
     await waitForChildProcess(
       cp.exec(
-        "kubectl describe pods --selector=dapr.io/app-id=k8s-reactivator -n drasi-system",
+        "kubectl describe pods --selector=dapr.io/app-id=k8s-proxy -n drasi-system",
         { encoding: "utf-8" },
       ),
     );
     await waitForChildProcess(
       cp.exec(
-        "kubectl logs -l dapr.io/app-id=k8s-reactivator --all-containers=true --since=0 -n drasi-system",
+        "kubectl logs -l dapr.io/app-id=k8s-proxy --all-containers=true --since=0 -n drasi-system",
         { encoding: "utf-8" },
       ),
     );
