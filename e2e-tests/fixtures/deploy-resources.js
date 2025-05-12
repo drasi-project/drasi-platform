@@ -102,12 +102,22 @@ async function deployResources(resources) {
         stdio: "pipe",
       }),
     );
-    await waitForChildProcess(
-      cp.exec(`drasi wait ${source.kind} ${source.name} -t 180`, {
-        encoding: "utf-8",
-      }),
-      source.name,
-    );
+    try {
+      await waitForChildProcess(
+        cp.exec(`drasi wait ${source.kind} ${source.name} -t 60`, {
+          encoding: "utf-8",
+        }),
+        source.name,
+      );
+    }
+    catch {
+      await waitForChildProcess(
+        cp.exec(`drasi wait ${source.kind} ${source.name} -t 60`, {
+          encoding: "utf-8",
+        }),
+        source.name,
+      );
+    }
   }
 
   for (let container of containers) {
