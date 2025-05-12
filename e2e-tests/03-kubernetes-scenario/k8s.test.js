@@ -62,7 +62,7 @@ beforeAll(async () => {
     );
     await waitForChildProcess(
       cp.exec(
-        "kubectl logs -l dapr.io/app-id=drasi-resource-provider --all-containers=true --since=0 -n drasi-system",
+        "kubectl logs -l drasi/infra=resource-provider --all-containers=true --since=0 -n drasi-system",
         { encoding: "utf-8" },
       ),
     );
