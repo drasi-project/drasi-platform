@@ -48,18 +48,24 @@ beforeAll(async () => {
   try {
     await deployResources(resources);
   } catch (e) {
-    await waitForChildProcess(
+     await waitForChildProcess(
       cp.exec(
         "drasi describe source k8s",
         { encoding: "utf-8" },
       ),
     );
-    // await waitForChildProcess(
-    //   cp.exec(
-    //     "kubectl logs -l dapr.io/app-id=k8s-proxy --all-containers=true --since=0 -n drasi-system",
-    //     { encoding: "utf-8" },
-    //   ),
-    // );
+    await waitForChildProcess(
+      cp.exec(
+        "kubectl describe pods --selector=dapr.io/app-id=k8s-change-router -n drasi-system",
+        { encoding: "utf-8" },
+      ),
+    );
+    await waitForChildProcess(
+      cp.exec(
+        "kubectl logs -l dapr.io/app-id=k8s-change-router --all-containers=true --since=0 -n drasi-system",
+        { encoding: "utf-8" },
+      ),
+    );
     throw e;
   }
   await signalrFixture.start();
