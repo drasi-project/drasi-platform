@@ -19,7 +19,9 @@ import (
 	"log"
 	"strings"
 
-	"drasi.io/cli/service"
+	"drasi.io/cli/installers"
+	"drasi.io/cli/sdk/registry"
+
 	"github.com/spf13/cobra"
 )
 
@@ -35,14 +37,10 @@ Usage examples:
 `,
 		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := readConfig()
 			var err error
 			var currentNamespace string
 			if currentNamespace, err = cmd.Flags().GetString("namespace"); err != nil {
 				return err
-			}
-			if !cmd.Flags().Changed("namespace") {
-				currentNamespace = cfg.DrasiNamespace
 			}
 
 			fmt.Println("Uninstalling Drasi")
@@ -57,21 +55,24 @@ Usage examples:
 				}
 			}
 
-			err = service.UninstallDrasi(currentNamespace)
+			uninstallDapr, _ := cmd.Flags().GetBool("uninstall-dapr")
+
+			reg, err := registry.LoadCurrentRegistrationWithNamespace(currentNamespace)
+			if err != nil {
+				return err
+			}
+
+			uninstaller, err := installers.MakeUninstaller(reg)
+			if err != nil {
+				return err
+			}
+
+			err = uninstaller.Uninstall(uninstallDapr)
 			if err != nil {
 				return err
 			}
 
 			fmt.Println("Drasi uninstalled successfully")
-
-			if uninstallDapr, _ := cmd.Flags().GetBool("uninstall-dapr"); uninstallDapr {
-				fmt.Println("Uninstalling Dapr")
-				err = service.UninstallDapr(currentNamespace)
-				if err != nil {
-					return err
-				}
-				fmt.Println("Dapr uninstalled successfully")
-			}
 
 			return nil
 		},
