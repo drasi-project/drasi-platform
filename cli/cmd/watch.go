@@ -15,10 +15,12 @@
 package cmd
 
 import (
-	"drasi.io/cli/service/output/query_results"
 	"fmt"
 
-	"drasi.io/cli/service"
+	query_results2 "drasi.io/cli/output/query_results"
+
+	"drasi.io/cli/sdk"
+	"drasi.io/cli/sdk/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -36,12 +38,17 @@ func NewWatchCommand() *cobra.Command {
 				return err
 			}
 
-			if cmd.Flags().Changed("namespace") == false {
-				cfg := readConfig()
-				namespace = cfg.DrasiNamespace
+			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+			if err != nil {
+				return err
 			}
 
-			client, err := service.MakeApiClient(namespace)
+			platformClient, err := sdk.NewPlatformClient(reg)
+			if err != nil {
+				return err
+			}
+
+			client, err := platformClient.CreateDrasiClient()
 			if err != nil {
 				fmt.Println("Error: " + err.Error())
 				return nil
@@ -58,12 +65,12 @@ func NewWatchCommand() *cobra.Command {
 				return err
 			}
 
-			ui := query_results.NewQueryResults(func() {
+			ui := query_results2.NewQueryResults(func() {
 				close(out)
 			})
 
 			for item := range out {
-				data, err := query_results.CreateChangeMsg(item)
+				data, err := query_results2.CreateChangeMsg(item)
 				if err != nil {
 					return err
 				}

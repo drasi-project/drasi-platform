@@ -13,7 +13,7 @@ env_logger = "0.10"
 log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1.6", features = ["full"] }
+tokio = { version = "1.43", features = ["full"] }
 kube = { version = "0.87.1", features = ["default", "runtime", "derive"] }
 k8s-openapi = { version = "0.20.0", features = ["v1_26", "schemars"] }
 hashers = "1.0.1"
@@ -28,3 +28,6 @@ schemars = "0.8.15"
 bytes = "1.7.1"
 uuid = { version = "1.10.0", features = ["v4"] }
 
+
+[profile.release]
+lto = true

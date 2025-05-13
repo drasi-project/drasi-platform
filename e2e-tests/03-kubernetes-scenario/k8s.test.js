@@ -37,7 +37,7 @@ let dbClient = new pg.Client({
 beforeAll(async () => {
   await waitForChildProcess(
     cp.exec(
-      "kind get kubeconfig -n drasi-test | sed 's/127.0.0.1.*/kubernetes.default.svc/g' | kubectl create secret generic k8s-context --from-file=context=/dev/stdin -n drasi-system",
+      "kind get kubeconfig --name drasi-test | sed 's/127.0.0.1.*/kubernetes.default.svc/g' | kubectl create secret generic k8s-context --from-file=context=/dev/stdin -n drasi-system",
       { encoding: "utf-8" },
     ),
   );
@@ -48,15 +48,21 @@ beforeAll(async () => {
   try {
     await deployResources(resources);
   } catch (e) {
-    await waitForChildProcess(
+     await waitForChildProcess(
       cp.exec(
-        "kubectl describe pods --selector=dapr.io/app-id=k8s-reactivator -n drasi-system",
+        "drasi describe source k8s",
         { encoding: "utf-8" },
       ),
     );
     await waitForChildProcess(
       cp.exec(
-        "kubectl logs -l dapr.io/app-id=k8s-reactivator --all-containers=true --since=0 -n drasi-system",
+        "kubectl describe pods --selector=drasi/resource=k8s -n drasi-system",
+        { encoding: "utf-8" },
+      ),
+    );
+    await waitForChildProcess(
+      cp.exec(
+        "kubectl logs -l drasi/infra=resource-provider --all-containers=true --since=0 -n drasi-system",
         { encoding: "utf-8" },
       ),
     );
@@ -66,7 +72,7 @@ beforeAll(async () => {
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
   await new Promise((r) => setTimeout(r, 5000));
-}, 180000);
+}, 240000);
 
 afterAll(async () => {
   await signalrFixture.stop();

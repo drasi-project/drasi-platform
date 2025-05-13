@@ -8,7 +8,20 @@ docker-build:
 	$(MAKE) -C sources $(MAKECMDGOALS)
 	$(MAKE) -C reactions $(MAKECMDGOALS)
 
+docker-build-debug:
+	$(MAKE) -C control-planes $(MAKECMDGOALS)
+	$(MAKE) -C query-container $(MAKECMDGOALS)
+	$(MAKE) -C sources $(MAKECMDGOALS)
+	$(MAKE) -C reactions $(MAKECMDGOALS)
+
 kind-load:
+	$(MAKE) -C control-planes $(MAKECMDGOALS)
+	$(MAKE) -C query-container $(MAKECMDGOALS)
+	$(MAKE) -C sources $(MAKECMDGOALS)
+	$(MAKE) -C reactions $(MAKECMDGOALS)
+
+k3d-load: CLUSTER_NAME=k3s-default
+k3d-load:
 	$(MAKE) -C control-planes $(MAKECMDGOALS)
 	$(MAKE) -C query-container $(MAKECMDGOALS)
 	$(MAKE) -C sources $(MAKECMDGOALS)
