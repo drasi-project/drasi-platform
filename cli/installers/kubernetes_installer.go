@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package service
+package installers
 
 import (
 	"bytes"
@@ -25,7 +25,8 @@ import (
 	"strings"
 	"time"
 
-	"drasi.io/cli/service/output"
+	"drasi.io/cli/output"
+	"drasi.io/cli/sdk"
 
 	drasiapi "drasi.io/cli/api"
 	"golang.org/x/net/context"
@@ -54,42 +55,36 @@ import (
 
 var (
 	//go:embed resources
-	resources            embed.FS
-	DAPR_RUNTIME_VERSION = "1.10.0"
-	DAPR_SIDECAR_VERSION = "1.9.0"
-	Namespace            string
+	resources embed.FS
+	Namespace string
 )
 
-type Installer struct {
-	kubeClient    *kubernetes.Clientset
-	kubeConfig    *rest.Config
-	kubeNamespace string
-	stopCh        chan struct{}
+type KubernetesInstaller struct {
+	kubeClient         *kubernetes.Clientset
+	kubeConfig         *rest.Config
+	kubeNamespace      string
+	stopCh             chan struct{}
+	platformClient     sdk.KubernetesPlatformClient
+	daprRuntimeVersion string
+	daprSidecarVersion string
 }
 
-func MakeInstaller(namespace string) (*Installer, error) {
-	result := Installer{
-		stopCh: make(chan struct{}, 1),
+func MakeKubernetesInstaller(platformClient *sdk.KubernetesPlatformClient) (*KubernetesInstaller, error) {
+	result := KubernetesInstaller{
+		platformClient:     *platformClient,
+		daprRuntimeVersion: DAPR_RUNTIME_VERSION,
+		daprSidecarVersion: DAPR_SIDECAR_VERSION,
+		stopCh:             make(chan struct{}, 1),
 	}
 
-	configLoadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
+	restConfig := platformClient.GetKubeConfig()
 
-	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoadingRules, configOverrides)
-
-	restConfig, err := config.ClientConfig()
-
-	if err != nil {
+	if err := CreateNamespace(restConfig, platformClient.GetNamespace()); err != nil {
 		return nil, err
 	}
+	result.kubeNamespace = platformClient.GetNamespace()
 
-	if err = CreateNamespace(restConfig, namespace); err != nil {
-		return nil, err
-	}
-	Namespace = namespace
-	result.kubeNamespace = namespace
-
-	// create the clientset
+	var err error
 	result.kubeClient, err = kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -100,7 +95,15 @@ func MakeInstaller(namespace string) (*Installer, error) {
 	return &result, nil
 }
 
-func (t *Installer) Install(localMode bool, acr string, version string, output output.TaskOutput, namespace string, daprRegistry string) error {
+func (t *KubernetesInstaller) SetDaprRuntimeVersion(version string) {
+	t.daprRuntimeVersion = version
+}
+
+func (t *KubernetesInstaller) SetDaprSidecarVersion(version string) {
+	t.daprSidecarVersion = version
+}
+
+func (t *KubernetesInstaller) Install(localMode bool, acr string, version string, output output.TaskOutput, daprRegistry string) error {
 	daprInstalled, err := t.checkDaprInstallation(output)
 	if err != nil {
 		return err
@@ -124,22 +127,22 @@ func (t *Installer) Install(localMode bool, acr string, version string, output o
 		return err
 	}
 
-	if err = t.installQueryContainer(output, namespace); err != nil {
+	if err = t.installQueryContainer(output); err != nil {
 		return err
 	}
 
-	if err = t.applyDefaultSourceProvider(output, namespace); err != nil {
+	if err = t.applyDefaultSourceProvider(output); err != nil {
 		return err
 	}
 
-	if err = t.applyDefaultReactionProvider(output, namespace); err != nil {
+	if err = t.applyDefaultReactionProvider(output); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (t *Installer) installInfrastructure(output output.TaskOutput) error {
+func (t *KubernetesInstaller) installInfrastructure(output output.TaskOutput) error {
 	if _, err := t.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "dapr-system", metav1.GetOptions{}); err != nil {
 		return errors.New("dapr not installed")
 	}
@@ -177,7 +180,7 @@ func (t *Installer) installInfrastructure(output output.TaskOutput) error {
 	return nil
 }
 
-func (t *Installer) installControlPlane(localMode bool, acr string, version string, output output.TaskOutput) error {
+func (t *KubernetesInstaller) installControlPlane(localMode bool, acr string, version string, output output.TaskOutput) error {
 	var err error
 	var raw []byte
 	var svcAcctManifests []*unstructured.Unstructured
@@ -212,7 +215,7 @@ func (t *Installer) installControlPlane(localMode bool, acr string, version stri
 		rawStr = strings.Replace(rawStr, "%IMAGE_PULL_POLICY%", "Always", -1)
 	}
 
-	daprVersionString := "daprio/daprd:" + DAPR_SIDECAR_VERSION
+	daprVersionString := "daprio/daprd:" + t.daprSidecarVersion
 	rawStr = strings.Replace(rawStr, "%DAPRD_VERSION%", daprVersionString, -1)
 	raw = []byte(rawStr)
 
@@ -240,12 +243,10 @@ func (t *Installer) installControlPlane(localMode bool, acr string, version stri
 	return nil
 }
 
-func (t *Installer) createConfig(localMode bool, acr string, version string) error {
+func (t *KubernetesInstaller) createConfig(localMode bool, acr string, version string) error {
 
 	cfg := map[string]string{}
 
-	clusterConfig := readConfig()
-	DAPR_SIDECAR_VERSION = clusterConfig.DaprSidecarVersion
 	if localMode {
 		cfg["IMAGE_PULL_POLICY"] = "IfNotPresent"
 	} else {
@@ -254,7 +255,7 @@ func (t *Installer) createConfig(localMode bool, acr string, version string) err
 		cfg["IMAGE_PULL_POLICY"] = "IfNotPresent"
 	}
 
-	cfg["DAPR_SIDECAR"] = "daprio/daprd:" + DAPR_SIDECAR_VERSION
+	cfg["DAPR_SIDECAR"] = "daprio/daprd:" + t.daprSidecarVersion
 	configMap := corev1apply.ConfigMap("drasi-config", t.kubeNamespace).WithData(cfg)
 
 	if _, err := t.kubeClient.CoreV1().ConfigMaps(t.kubeNamespace).Apply(context.TODO(), configMap, metav1.ApplyOptions{
@@ -266,7 +267,7 @@ func (t *Installer) createConfig(localMode bool, acr string, version string) err
 	return nil
 }
 
-func (t *Installer) applyManifests(infraManifests []*unstructured.Unstructured) error {
+func (t *KubernetesInstaller) applyManifests(infraManifests []*unstructured.Unstructured) error {
 	var dynClient *dynamic.DynamicClient
 	var err error
 
@@ -298,7 +299,7 @@ func (t *Installer) applyManifests(infraManifests []*unstructured.Unstructured) 
 	return nil
 }
 
-func (t *Installer) installQueryContainer(output output.TaskOutput, namespace string) error {
+func (t *KubernetesInstaller) installQueryContainer(output output.TaskOutput) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -316,11 +317,7 @@ func (t *Installer) installQueryContainer(output output.TaskOutput, namespace st
 	output.AddTask("Query-Container", "Creating query container...")
 	subOutput := output.GetChildren("Query-Container")
 
-	var clusterConfig ClusterConfig
-	clusterConfig.DrasiNamespace = namespace
-
-	saveConfig(clusterConfig)
-	drasiClient, err := MakeApiClient(namespace)
+	drasiClient, err := t.platformClient.CreateDrasiClient()
 	if err != nil {
 		return err
 	}
@@ -338,7 +335,7 @@ func (t *Installer) installQueryContainer(output output.TaskOutput, namespace st
 	return nil
 }
 
-func (t *Installer) applyDefaultSourceProvider(output output.TaskOutput, namespace string) error {
+func (t *KubernetesInstaller) applyDefaultSourceProvider(output output.TaskOutput) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -356,11 +353,7 @@ func (t *Installer) applyDefaultSourceProvider(output output.TaskOutput, namespa
 	output.AddTask("Default-Source-Providers", "Creating default source providers...")
 	subOutput := output.GetChildren("Default-Source-Providers")
 
-	var clusterConfig ClusterConfig
-	clusterConfig.DrasiNamespace = namespace
-
-	saveConfig(clusterConfig)
-	drasiClient, err := MakeApiClient(namespace)
+	drasiClient, err := t.platformClient.CreateDrasiClient()
 	if err != nil {
 		output.FailTask("Default-Source-Providers", fmt.Sprintf("Error creating default source providers: %v", err.Error()))
 		return err
@@ -376,7 +369,7 @@ func (t *Installer) applyDefaultSourceProvider(output output.TaskOutput, namespa
 	return nil
 }
 
-func (t *Installer) applyDefaultReactionProvider(output output.TaskOutput, namespace string) error {
+func (t *KubernetesInstaller) applyDefaultReactionProvider(output output.TaskOutput) error {
 	var err error
 	var manifests *[]drasiapi.Manifest
 
@@ -394,11 +387,7 @@ func (t *Installer) applyDefaultReactionProvider(output output.TaskOutput, names
 	output.AddTask("Default-Reaction-Providers", "Creating default reaction providers...")
 	subOutput := output.GetChildren("Default-Reaction-Providers")
 
-	var clusterConfig ClusterConfig
-	clusterConfig.DrasiNamespace = namespace
-
-	saveConfig(clusterConfig)
-	drasiClient, err := MakeApiClient(namespace)
+	drasiClient, err := t.platformClient.CreateDrasiClient()
 	if err != nil {
 		output.FailTask("Default-Reaction-Providers", fmt.Sprintf("Error creating default reaction providers: %v", err.Error()))
 		return err
@@ -477,7 +466,7 @@ func findGVR(gvk *schema.GroupVersionKind, cfg *rest.Config) (*meta.RESTMapping,
 	return mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 }
 
-func (t *Installer) waitForStatefulset(selector string, output output.TaskOutput) error {
+func (t *KubernetesInstaller) waitForStatefulset(selector string, output output.TaskOutput) error {
 	var timeout int64 = 120
 	var resourceWatch watch.Interface
 	var err error
@@ -510,7 +499,7 @@ func (t *Installer) waitForStatefulset(selector string, output output.TaskOutput
 	return nil
 }
 
-func (t *Installer) waitForDeployment(selector string, output output.TaskOutput) error {
+func (t *KubernetesInstaller) waitForDeployment(selector string, output output.TaskOutput) error {
 	var timeout int64 = 90
 	var resourceWatch watch.Interface
 	var err error
@@ -543,37 +532,67 @@ func (t *Installer) waitForDeployment(selector string, output output.TaskOutput)
 	return nil
 }
 
-func (t *Installer) installDapr(output output.TaskOutput, daprRegistry string) error {
-	output.AddTask("Dapr-Install", "Installing Dapr...")
-
-	ns := "dapr-system"
-	flags := genericclioptions.ConfigFlags{
-		Namespace: &ns,
+func (t *KubernetesInstaller) saveKubeConfigToTemp() (string, error) {
+	rawConfig, err := t.platformClient.GetClientConfig().RawConfig()
+	if err != nil {
+		return "", err
+	}
+	configBytes, err := clientcmd.Write(rawConfig)
+	if err != nil {
+		return "", err
 	}
 
-	helmConfig := helm.Configuration{}
-
-	err := helmConfig.Init(&flags, "dapr-system", "secret", func(format string, v ...any) {})
+	tmpFile, err := os.CreateTemp("", ".drasi-*")
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		panic(err)
+	}
+	defer tmpFile.Close()
+
+	// Set file permissions to 0600 (read/write for user only)
+	if err := os.Chmod(tmpFile.Name(), 0600); err != nil {
+		panic(err)
+	}
+	tmpFile.Write(configBytes)
+
+	return tmpFile.Name(), nil
+}
+
+func (t *KubernetesInstaller) installDapr(output output.TaskOutput, daprRegistry string) error {
+	output.AddTask("Dapr-Install", "Installing Dapr...")
+	ns := "dapr-system"
+
+	kubeContextFile, err := t.saveKubeConfigToTemp()
+	if err != nil {
 		return err
 	}
 
-	cfg := readConfig()
-	DAPR_RUNTIME_VERSION = cfg.DaprRuntimeVersion
+	defer os.Remove(kubeContextFile)
+
+	flags := genericclioptions.ConfigFlags{
+		Namespace:  &ns,
+		KubeConfig: &kubeContextFile,
+	}
+	helmConfig := helm.Configuration{}
+
+	err = helmConfig.Init(&flags, "dapr-system", "secret", func(format string, v ...any) {})
+
+	if err != nil {
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
+		return err
+	}
 
 	//Loading helm chart
 	pull := helm.NewPull()
 	pull.RepoURL = "https://dapr.github.io/helm-charts/"
 	pull.Settings = &cli.EnvSettings{}
-	pull.Version = DAPR_RUNTIME_VERSION
+	pull.Version = t.daprRuntimeVersion
 	pull.Devel = true
 	pullopt := helm.WithConfig(&helmConfig)
 	pullopt(pull)
 
 	dir, err := os.MkdirTemp("", "drasi")
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 	defer os.RemoveAll(dir)
@@ -582,18 +601,18 @@ func (t *Installer) installDapr(output output.TaskOutput, daprRegistry string) e
 
 	_, err = pull.Run("dapr")
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 	file, err := os.ReadDir(dir)
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 	dirPath := filepath.Join(dir, file[0].Name())
 	helmChart, err := loader.Load(dirPath)
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 
@@ -612,7 +631,7 @@ func (t *Installer) installDapr(output output.TaskOutput, daprRegistry string) e
 	}
 	_, err = installClient.Run(helmChart, helmChart.Values)
 	if err != nil {
-		output.FailTask("Dapr-Install", fmt.Sprintf("Error intalling Dapr: %v", err.Error()))
+		output.FailTask("Dapr-Install", fmt.Sprintf("Error installing Dapr: %v", err.Error()))
 		return err
 	}
 	output.SucceedTask("Dapr-Install", "Dapr installed successfully")
@@ -620,7 +639,7 @@ func (t *Installer) installDapr(output output.TaskOutput, daprRegistry string) e
 	return nil
 }
 
-func (t *Installer) checkDaprInstallation(output output.TaskOutput) (bool, error) {
+func (t *KubernetesInstaller) checkDaprInstallation(output output.TaskOutput) (bool, error) {
 	output.AddTask("Dapr-Check", "Checking for Dapr...")
 
 	podsClient := t.kubeClient.CoreV1().Pods("dapr-system")

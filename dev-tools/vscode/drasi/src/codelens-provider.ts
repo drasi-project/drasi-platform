@@ -12,8 +12,15 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
     constructor(extensionUri: vscode.Uri, drasiClient: DrasiClient) {
         this.extensionUri = extensionUri;
         this.drasiClient = drasiClient;
-        vscode.commands.registerCommand('editor.query.run', this.runQuery.bind(this));
-        vscode.commands.registerCommand('editor.resource.apply', this.applyResource.bind(this));
+        
+        vscode.commands.getCommands(true).then((commands) => {
+            if (!commands.includes('editor.query.run')) {
+                vscode.commands.registerCommand('editor.query.run', this.runQuery.bind(this));
+            }
+            if (!commands.includes('editor.resource.apply')) {
+                vscode.commands.registerCommand('editor.resource.apply', this.applyResource.bind(this));
+            }
+        });
     }
 
     provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.CodeLens[] {
@@ -85,7 +92,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
             progress.report({ message: "Applying..." });
 
             try {
-                await this.drasiClient.applyResource(resource);
+                await this.drasiClient.applyResource(resource, () => vscode.commands.executeCommand('drasi.refresh'));
                 vscode.window.showInformationMessage(`Resource ${resource.name} applied successfully`);
             }
             catch (err) {
