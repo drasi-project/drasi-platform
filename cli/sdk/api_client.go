@@ -12,163 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package service
+package sdk
 
 import (
 	"bytes"
-	"context"
-	"drasi.io/cli/service/output"
+	"drasi.io/cli/output"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/phayes/freeport"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"drasi.io/cli/api"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/portforward"
-	"k8s.io/client-go/transport/spdy"
 )
 
-func MakeApiClient(namespace string) (*apiClient, error) {
-	port, err := freeport.GetFreePort()
-	result := apiClient{
-		port:   int32(port),
-		stopCh: make(chan struct{}, 1),
-	}
-	if err := result.init(namespace); err != nil {
-		return nil, err
-	}
-
-	err = result.createTunnel()
-	if err != nil {
-		return nil, err
-	}
-
-	result.prefix = fmt.Sprintf("http://localhost:%d", result.port)
-	result.client = &http.Client{
-		Timeout: 30 * time.Second,
-	}
-	result.streamClient = &http.Client{}
-
-	return &result, nil
+type ApiClient struct {
+	stopCh       chan struct{}
+	port         int32
+	client       *http.Client
+	streamClient *http.Client
+	prefix       string
 }
 
-type apiClient struct {
-	kubeClient    *kubernetes.Clientset
-	kubeConfig    *rest.Config
-	kubeNamespace string
-	stopCh        chan struct{}
-	port          int32
-	client        *http.Client
-	streamClient  *http.Client
-	prefix        string
-}
-
-func (t *apiClient) init(namespace string) error {
-	configLoadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
-
-	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(configLoadingRules, configOverrides)
-
-	restConfig, err := config.ClientConfig()
-
-	if err != nil {
-		return err
-	}
-	if namespace != "" {
-		t.kubeNamespace = namespace
-	} else {
-		cfg := readConfig()
-		t.kubeNamespace = cfg.DrasiNamespace
-	}
-
-	// create the clientset
-	t.kubeClient, err = kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-
-	t.kubeConfig = restConfig
-
-	return nil
-}
-
-func (t *apiClient) createTunnel() error {
-	podName, err := t.getApiPodName()
-	if err != nil {
-		return err
-	}
-
-	namespace := t.kubeNamespace
-	proxyURL := &url.URL{
-		Scheme: "https",
-		Path:   fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, podName),
-		Host:   strings.TrimPrefix(t.kubeConfig.Host, "https://"),
-	}
-
-	transport, upgrader, err := spdy.RoundTripperFor(t.kubeConfig)
-	if err != nil {
-		return err
-	}
-
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, proxyURL)
-
-	readyCh := make(chan struct{})
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		close(t.stopCh)
-	}()
-
-	pf, err := portforward.New(dialer, []string{fmt.Sprintf("%d:%d", t.port, 8080)}, t.stopCh, readyCh, nil, os.Stderr)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		err = pf.ForwardPorts()
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	<-readyCh
-
-	return nil
-}
-
-func (t *apiClient) getApiPodName() (string, error) {
-	namespace := t.kubeNamespace
-	ep, err := t.kubeClient.CoreV1().Endpoints(namespace).Get(context.TODO(), "drasi-api", v1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	for _, subset := range ep.Subsets {
-		for _, addr := range subset.Addresses {
-			if addr.TargetRef.Kind == "Pod" {
-				return addr.TargetRef.Name, nil
-			}
-		}
-	}
-	return "", errors.New("drasi API not available")
-}
-
-func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) error {
+func (t *ApiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) error {
 	for _, mf := range *manifests {
 		subject := "Apply: " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
@@ -220,7 +89,7 @@ func (t *apiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) e
 	return nil
 }
 
-func (t *apiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) error {
+func (t *ApiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) error {
 	for _, mf := range *manifests {
 		subject := "Delete: " + mf.Kind + "/" + mf.Name
 		output.AddTask(subject, subject)
@@ -253,7 +122,7 @@ func (t *apiClient) Delete(manifests *[]api.Manifest, output output.TaskOutput) 
 	return nil
 }
 
-func (t *apiClient) GetResource(kind string, name string) (*api.Resource, error) {
+func (t *ApiClient) GetResource(kind string, name string) (*api.Resource, error) {
 	var result api.Resource
 
 	url := fmt.Sprintf("%v/%v/%v/%v", t.prefix, "v1", kindRoutes[strings.ToLower(kind)], name)
@@ -280,7 +149,7 @@ func (t *apiClient) GetResource(kind string, name string) (*api.Resource, error)
 	return &result, err
 }
 
-func (t *apiClient) ListResources(kind string) ([]api.Resource, error) {
+func (t *ApiClient) ListResources(kind string) ([]api.Resource, error) {
 	var result []api.Resource
 
 	url := fmt.Sprintf("%v/%v/%v", t.prefix, "v1", kindRoutes[strings.ToLower(kind)])
@@ -307,7 +176,7 @@ func (t *apiClient) ListResources(kind string) ([]api.Resource, error) {
 	return result, err
 }
 
-func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output output.TaskOutput) error {
+func (t *ApiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output output.TaskOutput) error {
 	oldTimeout := t.client.Timeout
 	t.client.Timeout = time.Second * time.Duration(timeout+1)
 	defer func() { t.client.Timeout = oldTimeout }()
@@ -341,7 +210,7 @@ func (t *apiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output o
 	return nil
 }
 
-func (t *apiClient) Watch(kind string, name string, output chan map[string]interface{}, initErr chan error) {
+func (t *ApiClient) Watch(kind string, name string, output chan map[string]interface{}, initErr chan error) {
 	defer close(output)
 	url := fmt.Sprintf("%v/%v/%v/%v/watch", t.prefix, "v1", kindRoutes[kind], name)
 	resp, err := t.streamClient.Get(url)
@@ -382,7 +251,7 @@ func (t *apiClient) Watch(kind string, name string, output chan map[string]inter
 	}
 }
 
-func (t *apiClient) Close() {
+func (t *ApiClient) Close() {
 	close(t.stopCh)
 }
 
