@@ -48,15 +48,21 @@ beforeAll(async () => {
   try {
     await deployResources(resources);
   } catch (e) {
-    await waitForChildProcess(
+     await waitForChildProcess(
       cp.exec(
-        "kubectl describe pods --selector=dapr.io/app-id=k8s-reactivator -n drasi-system",
+        "drasi describe source k8s",
         { encoding: "utf-8" },
       ),
     );
     await waitForChildProcess(
       cp.exec(
-        "kubectl logs -l dapr.io/app-id=k8s-reactivator --all-containers=true --since=0 -n drasi-system",
+        "kubectl describe pods --selector=drasi/resource=k8s -n drasi-system",
+        { encoding: "utf-8" },
+      ),
+    );
+    await waitForChildProcess(
+      cp.exec(
+        "kubectl logs -l drasi/infra=resource-provider --all-containers=true --since=0 -n drasi-system",
         { encoding: "utf-8" },
       ),
     );
@@ -66,7 +72,7 @@ beforeAll(async () => {
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
   await new Promise((r) => setTimeout(r, 5000));
-}, 180000);
+}, 240000);
 
 afterAll(async () => {
   await signalrFixture.stop();
