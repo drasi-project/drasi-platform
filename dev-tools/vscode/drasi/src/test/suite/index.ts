@@ -22,7 +22,8 @@ export function run(): Promise<void> {
 	// Create the mocha test
 	const mocha = new Mocha({
 		ui: 'tdd',
-		color: true
+		color: true,
+		parallel: false  // Disable parallel test execution
 	});
 
 	const testsRoot = path.resolve(__dirname, '..');
