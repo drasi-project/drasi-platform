@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import { ContinuousQuery } from './models/continuous-query';
 import { queryResultsView } from './webview/query-results-view';
 import { DrasiClient } from './drasi-client';
-import { Stoppable } from './models/stoppable';
+import { Disposable } from 'vscode';
 
 export class QueryDebugger {
   private log: vscode.OutputChannel;
-  private session: Stoppable | undefined;
+  private session: Disposable | undefined;
   private query: ContinuousQuery;
   private resultsPanel: vscode.WebviewPanel | undefined;
   private extensionUri: vscode.Uri;
@@ -65,7 +65,7 @@ export class QueryDebugger {
   }
 
   stop() {
-    this.session?.stop();
+    this.session?.dispose();
     this.log.dispose();
   }
 }

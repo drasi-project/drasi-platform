@@ -19,13 +19,18 @@ import { WorkspaceExplorer } from './workspace-explorer';
 import { DrasiExplorer } from './drasi-explorer';
 import { DrasiClient } from './drasi-client';
 import { CodeLensProvider } from './codelens-provider';
+import { ConfigurationRegistry } from './sdk/config';
+
+let drasiClient: DrasiClient | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-	const drasiClient = new DrasiClient();
+	let configRegistry = new ConfigurationRegistry();
+	configRegistry.onCurrentRegistrationChanged(() => vscode.commands.executeCommand('drasi.refresh'));
+	drasiClient = new DrasiClient(configRegistry);
 	const workspaceExplorer = new WorkspaceExplorer(context.extensionUri, drasiClient);
 	vscode.window.registerTreeDataProvider('workspace', workspaceExplorer);
 	
-	const drasiExplorer = new DrasiExplorer(context.extensionUri, drasiClient);
+	const drasiExplorer = new DrasiExplorer(context.extensionUri, drasiClient, configRegistry);
 	vscode.window.registerTreeDataProvider('drasi', drasiExplorer);
 	
 	context.subscriptions.push(
@@ -34,4 +39,9 @@ export function activate(context: vscode.ExtensionContext) {
 	
 }
 
-export function deactivate() {}
+export function deactivate() {
+	if (drasiClient) {
+		drasiClient.close();
+		drasiClient = undefined;
+	}
+}
