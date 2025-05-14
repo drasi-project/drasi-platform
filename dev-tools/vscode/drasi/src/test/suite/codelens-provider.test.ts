@@ -20,11 +20,11 @@ import { CodeLensProvider } from '../../codelens-provider';
 import { DrasiClient } from '../../drasi-client';
 import { mock } from 'ts-mockito';
 
-suite('CodeLens Provider Test Suite', () => {
+suite('CodeLens Provider Test Suite', async () => {
 	let provider: CodeLensProvider;
 	let mockDrasiClient: DrasiClient;
-	
-	suiteSetup(() => {
+
+	setup(async () => {
 		mockDrasiClient = mock<DrasiClient>();
 		provider = new CodeLensProvider(vscode.Uri.parse('file:///test'), mockDrasiClient);
 	});

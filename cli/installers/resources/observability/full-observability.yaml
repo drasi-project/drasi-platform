@@ -12,6 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+---
+# PVC for Tempo
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tempo-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi 
+---
 # PVC for Prometheus
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -23,9 +36,104 @@ spec:
   resources:
     requests:
       storage: 1Gi  
-  storageClassName: standard
 ---
-# Prometheus
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  labels:
+    app: tempo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+    spec:
+      securityContext:
+        fsGroup: 10001
+      containers:
+      - name: tempo
+        image: grafana/tempo:2.7.1
+        args:
+        - "-config.file=/conf/tempo.yaml"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "8Gi"
+            cpu: "2"
+        ports:
+        - containerPort: 3200  # Tempo HTTP
+        - containerPort: 4317  # OTLP gRPC 
+        volumeMounts:
+        - name: config-volume
+          mountPath: /conf
+        - name: data-volume
+          mountPath: /tmp/tempo
+      volumes:
+      - name: config-volume
+        configMap:
+          name: tempo-config
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: tempo-data-pvc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-config
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              max_recv_msg_size_mib: 26214400  # 10 MB
+              endpoint: 0.0.0.0:4317  # Updated to match OTel Collector
+    metrics_generator:
+      storage:
+        path: /tmp/tempo/metrics
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /tmp/tempo/blocks
+        wal:
+          path: /tmp/tempo/wal
+    compactor:
+      compaction:
+        block_retention: 48h
+    overrides:
+      defaults:
+        global:
+          max_bytes_per_trace: 26214400
+        ingestion:
+          burst_size_bytes: 52428800  # 50 MB
+          rate_limit_bytes: 52428800  # 50 MB
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+spec:
+  ports:
+  - port: 3200
+    targetPort: 3200
+    name: http
+  - port: 4317  # Updated to match OTel Collector
+    targetPort: 4317
+    name: otlp-grpc
+  selector:
+    app: tempo
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -42,12 +150,14 @@ spec:
       labels:
         app: prometheus
     spec:
+      securityContext:
+        fsGroup: 65534
       containers:
       - name: prometheus
         image: prom/prometheus:v2.53.3
         args:
         - "--config.file=/etc/prometheus/prometheus.yml"
-        - "--storage.tsdb.retention.time=15d"  
+        - "--storage.tsdb.retention.time=15d"  # Retain data for 15 days
         - "--storage.tsdb.path=/prometheus"
         resources:
           requests:
@@ -78,7 +188,7 @@ metadata:
 data:
   prometheus.yml: |
     global:
-      scrape_interval: 15s
+      scrape_interval: 15s  
       evaluation_interval: 15s
     scrape_configs:
     - job_name: 'otel-collector'
@@ -101,6 +211,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
+  labels:
+    app: grafana
 spec:
   replicas: 1
   selector:
@@ -146,10 +258,17 @@ data:
     datasources:
     - name: Prometheus
       type: prometheus
-      url: http://prometheus:9090  # Simplified to service:port
+      url: http://prometheus:9090
       access: proxy
       isDefault: true
       editable: false
+    - name: Tempo
+      type: tempo
+      url: http://tempo:3200
+      access: proxy
+      jsonData:
+        tracesToMetrics:
+          datasource: Prometheus
 ---
 apiVersion: v1
 kind: Service
@@ -160,6 +279,6 @@ spec:
   - port: 3000
     targetPort: 3000
     name: http
-  type: NodePort
+  type: NodePort  
   selector:
     app: grafana

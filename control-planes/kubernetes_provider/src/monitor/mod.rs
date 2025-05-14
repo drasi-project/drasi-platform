@@ -48,7 +48,7 @@ fn spawn_handler_task(
         let mut debounce_set: HashSet<(String, String)> = HashSet::new();
         let mut last_debounce = std::time::Instant::now();
         loop {
-            if last_debounce.elapsed() > Duration::from_millis(500) {
+            if last_debounce.elapsed() > Duration::from_millis(1500) {
                 for (actor_type, resource_id) in debounce_set.drain() {
                     let _: () = match dapr_client
                         .invoke_actor(

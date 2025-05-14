@@ -20,6 +20,6 @@ namespace Drasi.Reactions.EventGrid.Services
 {
     public interface IChangeFormatter
     {
-        IEnumerable<ChangeNotification> Format(ChangeEvent evt);
+        IEnumerable<JsonElement> Format(ChangeEvent evt);
     }
 }

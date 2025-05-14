@@ -23,7 +23,6 @@ spec:
   resources:
     requests:
       storage: 1Gi 
-  storageClassName: standard  
 ---
 # Tempo
 apiVersion: apps/v1
@@ -42,6 +41,8 @@ spec:
       labels:
         app: tempo
     spec:
+      securityContext:
+        fsGroup: 10001
       containers:
       - name: tempo
         image: grafana/tempo:2.7.1

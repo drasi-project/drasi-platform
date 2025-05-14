@@ -18,14 +18,15 @@ import (
 	"fmt"
 
 	"drasi.io/cli/api"
-	"drasi.io/cli/service"
+	"drasi.io/cli/sdk"
+	"drasi.io/cli/sdk/registry"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
 func NewDescribeCommand() *cobra.Command {
 	var describeCommand = &cobra.Command{
-		Use:   "describe [kind name]",
+		Use:   "describe kind name",
 		Short: "Show the definition and status of a resource",
 		Long: `Show the definition and current status of a specified resource.
 		
@@ -54,12 +55,17 @@ Usage examples:
 				return err
 			}
 
-			if !cmd.Flags().Changed("namespace") {
-				cfg := readConfig()
-				namespace = cfg.DrasiNamespace
+			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+			if err != nil {
+				return err
 			}
 
-			client, err := service.MakeApiClient(namespace)
+			platformClient, err := sdk.NewPlatformClient(reg)
+			if err != nil {
+				return err
+			}
+
+			client, err := platformClient.CreateDrasiClient()
 			if err != nil {
 				fmt.Println("Error: " + err.Error())
 				return nil
