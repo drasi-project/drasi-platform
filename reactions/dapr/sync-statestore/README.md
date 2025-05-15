@@ -15,8 +15,8 @@ The first time it sees a query, it will bulk load the configured state store wit
 ### Pre-Requisite
 
 1. Your Dapr State Store needs to be deployed and configured to be used already.
-1. Your data store should be accessible from the `drasi-system` namespace in your kubernetes cluster.
-1. Deploy another Dapr State Store component in the `drasi-system` namespace. This should be identical to the config you are using for the component used by your app, except that this will be deployed in the `drasi-system` namespace.
+2. Your data store should be accessible from the `drasi-system` namespace in your kubernetes cluster.
+3. Deploy another Dapr State Store component in the `drasi-system` namespace. This should be identical to the config you are using for the component used by your app, except that this will be deployed in the `drasi-system` namespace.
 
 ### Requirements
 
