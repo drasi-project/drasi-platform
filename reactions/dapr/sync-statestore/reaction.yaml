@@ -1,0 +1,8 @@
+kind: Reaction
+apiVersion: v1
+name: sync-dapr-statestore
+spec:
+  kind: SyncDaprStateStore
+  queries:
+    query-one: '{"stateStoreName": "state-store-one", "keyField": "id"}'
+    query-two: '{"stateStoreName": "state-store-two", "keyField": "key"}'
