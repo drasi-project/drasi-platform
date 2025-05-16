@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ReactionProvider
+name: SyncDaprStateStore
+spec:
+  services:
+    reaction:
+      image: reaction-sync-dapr-statestore
