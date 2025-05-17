@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: freezer-db-init
+  labels:
+    app: freezer-db
+data:
+  init.sql: |
+    CREATE ROLE replication_group;
+    CREATE ROLE replication_user REPLICATION LOGIN;
+    GRANT replication_group TO postgres;
+    GRANT replication_group TO replication_user;
+
+    CREATE TABLE IF NOT EXISTS freezer (
+      id INTEGER PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      temperature INTEGER NOT NULL
+    );
+    
+    ALTER TABLE freezer OWNER TO replication_group;
+
+    -- Insert initial entries
+    INSERT INTO freezer (id, name, temperature) VALUES
+      (1, 'Ice Cream Section', -18),
+      (2, 'Frozen Vegetables', -20),
+      (3, 'Meats', -15),
+      (4, 'Ready Meals', -22)
+    ON CONFLICT (id) DO NOTHING;
+    
+    -- Create a publication for the freezer table
+    CREATE PUBLICATION freezer_publication FOR TABLE freezer;
+    
+    -- Create a replication slot
+    SELECT pg_create_logical_replication_slot('freezer_slot', 'pgoutput');
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: freezer-db-credentials
+  labels:
+    app: freezer-db
+type: Opaque
+stringData:
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: freezer-db
+  labels:
+    app: freezer-db
+spec:
+  serviceName: freezer-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: freezer-db
+  template:
+    metadata:
+      labels:
+        app: freezer-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: freezer-db-credentials
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: freezer-db-credentials
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: freezerdb
+        args:
+        - -c
+        - wal_level=logical
+        - -c
+        - max_replication_slots=5
+        - -c
+        - max_wal_senders=10
+        volumeMounts:
+        - name: freezer-db-data
+          mountPath: /var/lib/postgresql/data
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "0.5"
+            memory: "512Mi"
+      volumes:
+      - name: freezer-db-data
+        emptyDir: {}
+      - name: init-script
+        configMap:
+          name: freezer-db-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: freezer-db
+  labels:
+    app: freezer-db
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: freezer-db
+  type: ClusterIP

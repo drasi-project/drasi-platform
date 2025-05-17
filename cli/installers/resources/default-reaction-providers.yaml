@@ -240,3 +240,11 @@ spec:
       - endpoint
       - clientId
       - secret
+---
+apiVersion: v1
+kind: ReactionProvider
+name: PostDaprPubSub
+spec:
+  services:
+    reaction:
+      image: reaction-post-dapr-pubsub

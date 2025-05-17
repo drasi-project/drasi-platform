@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subscriber-beta
+  labels:
+    app: subscriber-beta
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: subscriber-beta
+  template:
+    metadata:
+      labels:
+        app: subscriber-beta
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "subscriber-beta"
+        dapr.io/app-port: "8002"
+    spec:
+      containers:
+      - name: subscriber-beta
+        image: post-dapr-pubsub-validation-subscriber-beta:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8002
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "512Mi"
+          requests:
+            cpu: "0.1"
+            memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: subscriber-beta-svc
+  labels:
+    app: subscriber-beta
+spec:
+  selector:
+    app: subscriber-beta
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8002
+  type: ClusterIP
