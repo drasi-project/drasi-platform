@@ -1,0 +1,13 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: messagebus
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis-master.default.svc.cluster.local:6379
+  # - name: redisPassword # Uncomment and provide if your Redis has a password
+  # - name: consumerID # Optional: Unique ID for the Dapr consumer group
+  # - name: enableTLS # Optional: "true" or "false"
