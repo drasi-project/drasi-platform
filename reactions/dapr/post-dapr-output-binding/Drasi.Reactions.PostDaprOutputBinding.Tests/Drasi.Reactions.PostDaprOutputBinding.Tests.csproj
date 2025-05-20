@@ -24,7 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\post-dapr-output-binding\Drasi.Reactions.PostDaprOutputBinding\Drasi.Reactions.PostDaprOutputBinding.csproj" />
+        <ProjectReference Include="..\Drasi.Reactions.PostDaprOutputBinding\Drasi.Reactions.PostDaprOutputBinding.csproj" />
     </ItemGroup>
     
 </Project>
