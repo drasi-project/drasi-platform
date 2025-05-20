@@ -16,7 +16,7 @@ using Dapr;
 using Dapr.Client;
 using Microsoft.Extensions.Logging;
 
-namespace Drasi.Reactions.PostDaprPubSub;
+namespace Drasi.Reactions.PostDaprPubSub.Services;
 
 public interface IDaprInitializationService
 {

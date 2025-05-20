@@ -17,6 +17,7 @@ using Moq;
 using Dapr.Client;
 using Microsoft.Extensions.Logging;
 using Dapr;
+using Drasi.Reactions.PostDaprPubSub.Services;
 
 namespace Drasi.Reactions.PostDaprPubSub.Tests;
 
