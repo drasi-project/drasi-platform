@@ -1,4 +1,7 @@
 # Drasi
+
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10588/badge)](https://www.bestpractices.dev/projects/10588)
+
 Drasi is a data processing platform that simplifies detecting changes in data and taking immediate action. It is a comprehensive solution that provides built-in capabilities to track system logs and change feeds for specific events, evaluate them for relevance, and automatically initiate appropriate reactions. Visit our documentation site at [https://drasi.io](https://drasi.io) for detailed information.
 Drasi is a [CNCF Sandbox project](https://www.cncf.io/sandbox-projects/)
 
