@@ -34,6 +34,10 @@ var reaction = new ReactionBuilder()
             var logger = sp.GetRequiredService<ILogger<ReactionBuilder>>();
             var queueName = config.GetValue<string>("queueName");
             QueueServiceClient queueServiceClient;
+            var options = new QueueClientOptions
+            {
+                MessageEncoding = QueueMessageEncoding.Base64
+            };
 
             switch (config.GetIdentityType())
             {
@@ -44,11 +48,11 @@ var reaction = new ReactionBuilder()
                     {
                         Reaction<object>.TerminateWithError("Endpoint not provided");
                     }
-                    queueServiceClient = new QueueServiceClient(new Uri(widEndpoint), new DefaultAzureCredential());
+                    queueServiceClient = new QueueServiceClient(new Uri(widEndpoint), new DefaultAzureCredential(), options);
                     break;
                 case IdentityType.ConnectionString:
                     logger.LogInformation("Using connection string");
-                    queueServiceClient = new QueueServiceClient(config.GetConnectionString());
+                    queueServiceClient = new QueueServiceClient(config.GetConnectionString(), options);
                     break;
                 default:
                     Reaction<object>.TerminateWithError("Service identity not provided");
