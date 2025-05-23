@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Source
+name: freezer-source
+spec:
+  kind: PostgreSQL
+  properties:
+    host: freezer-db.default.svc.cluster.local
+    port: 5432
+    user: postgres
+    password: postgres
+    database: freezerdb
+    ssl: false
+    tables:
+      - public.freezer
