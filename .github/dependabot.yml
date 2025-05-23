@@ -1,0 +1,207 @@
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This configuration manages Dependabot updates for the repository.
+#
+# 1. Reduce the number of individual Dependabot PRs.
+# 2. Group updates by type (patch, minor) for commonly used technologies.
+# 3. Major version updates will create separate PRs to ensure visibility.
+# 4. Schedule updates across different days to distribute review load.
+# 5. Provide a catch-all for less frequently used or future technologies.
+
+version: 2
+updates:
+  # Rust (cargo) - Updates on Monday
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      rust-patch:
+        patterns:
+          - "*" # All Rust dependencies for patch updates
+        update-types:
+          - "patch"
+      rust-minor:
+        patterns:
+          - "*" # All Rust dependencies for minor updates
+        update-types:
+          - "minor"
+    open-pull-requests-limit: 5
+
+  # .NET (nuget) - Updates on Tuesday
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    groups:
+      dotnet-patch:
+        patterns:
+          - "*" # All .NET dependencies for patch updates
+        update-types:
+          - "patch"
+      dotnet-minor:
+        patterns:
+          - "*" # All .NET dependencies for minor updates
+        update-types:
+          - "minor"
+    open-pull-requests-limit: 5
+
+  # Go (gomod) - Updates on Wednesday
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    groups:
+      go-patch:
+        patterns:
+          - "*" # All Go dependencies for patch updates
+        update-types:
+          - "patch"
+      go-minor:
+        patterns:
+          - "*" # All Go dependencies for minor updates
+        update-types:
+          - "minor"
+    open-pull-requests-limit: 5
+
+  # Java (maven) - Updates on Wednesday
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    groups:
+      java-patch:
+        patterns:
+          - "*" # All Maven dependencies for patch updates
+        update-types:
+          - "patch"
+      java-minor:
+        patterns:
+          - "*" # All Maven dependencies for minor updates
+        update-types:
+          - "minor"
+    open-pull-requests-limit: 5
+
+  # Python (pip) - Updates on Wednesday
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    groups:
+      python-patch:
+        patterns:
+          - "*" # All Python dependencies for patch updates
+        update-types:
+          - "patch"
+      python-minor:
+        patterns:
+          - "*" # All Python dependencies for minor updates
+        update-types:
+          - "minor"
+    open-pull-requests-limit: 5
+  
+  # Docker - Updates on Thursday
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+    groups:
+      docker-patch:
+        patterns:
+          - "*" # All Docker image dependencies for patch updates
+        update-types:
+          - "patch"
+      docker-minor:
+        patterns:
+          - "*" # All Docker image dependencies for minor updates
+        update-types:
+          - "minor"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions - Updates on Thursday
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+    groups:
+      actions-patch:
+        patterns:
+          - "*" 
+        update-types:
+          - "patch"
+      actions-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+    open-pull-requests-limit: 5
+
+  # Node.js (npm) - Updates on Friday
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+    groups:
+      nodejs-patch:
+        patterns:
+          - "*" # All npm dependencies for patch updates
+        update-types:
+          - "patch"
+      nodejs-minor:
+        patterns:
+          - "*" # All npm dependencies for minor updates
+        update-types:
+          - "minor"
+    open-pull-requests-limit: 5
+
+  # Bundler (Ruby) - Updates on Sunday
+  - package-ecosystem: "bundler"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+    groups:
+      bundler-all-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 2
+
+  # Gradle (Java/Kotlin) - Updates on Sunday
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+    groups:
+      gradle-all-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 2
