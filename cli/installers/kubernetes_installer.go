@@ -103,7 +103,7 @@ func (t *KubernetesInstaller) SetDaprSidecarVersion(version string) {
 	t.daprSidecarVersion = version
 }
 
-func (t *KubernetesInstaller) Install(localMode bool, acr string, version string, output output.TaskOutput, daprRegistry string) error {
+func (t *KubernetesInstaller) Install(localMode bool, acr string, version string, output output.TaskOutput, daprRegistry string, observabilityLevel string) error {
 	daprInstalled, err := t.checkDaprInstallation(output)
 	if err != nil {
 		return err
@@ -120,6 +120,10 @@ func (t *KubernetesInstaller) Install(localMode bool, acr string, version string
 	}
 
 	if err = t.installInfrastructure(output); err != nil {
+		return err
+	}
+
+	if err = t.installObservabilityTools(output, observabilityLevel); err != nil {
 		return err
 	}
 
@@ -174,8 +178,72 @@ func (t *KubernetesInstaller) installInfrastructure(output output.TaskOutput) er
 	if err = t.waitForStatefulset("app=drasi-mongo", subOutput); err != nil {
 		return err
 	}
-
 	output.SucceedTask("Infrastructure", "Infrastructure deployed")
+
+	return nil
+}
+
+func (t *KubernetesInstaller) installObservabilityTools(output output.TaskOutput, observabilityLevel string) error {
+	var err error
+	var raw []byte
+	var observabilityManifests []*unstructured.Unstructured
+
+	if observabilityLevel == "none" {
+		return nil
+	}
+	fileName := map[string]string{
+		"tracing": "tracing.yaml",
+		"metrics": "metrics.yaml",
+		"full":    "full-observability.yaml",
+	}[observabilityLevel]
+
+	if raw, err = resources.ReadFile("resources/observability/" + fileName); err != nil {
+		return err
+	}
+
+	if observabilityManifests, err = readK8sManifests(raw); err != nil {
+		return err
+	}
+	output.AddTask("Observability", "Deploying observability infrastructure...")
+
+	if err = t.applyManifests(observabilityManifests); err != nil {
+		output.FailTask("Observability", "Error deploying observability infrastructure")
+		return err
+	}
+
+	subOutput := output.GetChildren("Observability")
+	if observabilityLevel == "tracing" || observabilityLevel == "full" {
+		if err = t.waitForDeployment("app=tempo", subOutput); err != nil {
+			return err
+		}
+	}
+	if observabilityLevel == "metrics" || observabilityLevel == "full" {
+		if err = t.waitForDeployment("app=prometheus", subOutput); err != nil {
+			return err
+		}
+	}
+
+	if err = t.waitForDeployment("app=grafana", subOutput); err != nil {
+		return err
+	}
+
+	// Otel-collector
+	if raw, err = resources.ReadFile("resources/observability/otel-collector.yaml"); err != nil {
+		return err
+	}
+	if observabilityManifests, err = readK8sManifests(raw); err != nil {
+		return err
+	}
+
+	if err = t.applyManifests(observabilityManifests); err != nil {
+		output.FailTask("Observability", "Error deploying Otel collector")
+		return err
+	}
+	if err = t.waitForDeployment("app=otel-collector", subOutput); err != nil {
+		return err
+	}
+
+	output.SucceedTask("Observability", "Observability infrastructure deployed")
 
 	return nil
 }
