@@ -16,7 +16,7 @@
       "description": "Group stable patch updates for potential automerge",
       "matchUpdateTypes": ["patch"],
       "minimumReleaseAge": "7 days",
-      "automerge": true,
+      "automerge": false,
       "platformAutomerge": false,
       "addLabels": ["automerge-patch-candidate"],
       "groupName": "Safe Patch Updates"
@@ -25,7 +25,7 @@
       "description": "Group stable minor updates for potential automerge",
       "matchUpdateTypes": ["minor"],
       "minimumReleaseAge": "14 days",
-      "automerge": true,
+      "automerge": false,
       "platformAutomerge": false,
       "addLabels": ["automerge-minor-candidate"],
       "groupName": "Safe Minor Updates"
