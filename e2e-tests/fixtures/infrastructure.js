@@ -39,6 +39,7 @@ const images = [
   "drasi-project/reaction-signalr",
   "drasi-project/reaction-storedproc",
   "drasi-project/reaction-gremlin",
+  "drasi-project/reaction-sync-dapr-statestore",
 ];
 
 async function loadDrasiImages(clusterName) {
@@ -106,7 +107,7 @@ async function tryLoadInfraImages(clusterName) {
 
 async function installDrasi() {
   await waitForChildProcess(
-    cp.exec("drasi init --local", {
+    cp.exec("drasi init --local --version latest", {
       encoding: "utf-8",
     }),
     "install",
