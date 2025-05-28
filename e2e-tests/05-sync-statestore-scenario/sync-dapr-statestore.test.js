@@ -301,9 +301,7 @@ describe("Sync Dapr Statestore Reaction Test Suite", () => {
 
     // Since we only added a product, the inventory should remain unchanged
     const inventoryKeys = await inventoryRedisClient.keys('*');
-    expect(inventoryKeys.length)
-      .withContext("Inventory keys count after adding new product should remain unchanged")
-      .toBe(5);
+    expect(inventoryKeys.length).toBe(5);
 
     // 2. Add inventory for the new product
     const newInventoryId = 5;
