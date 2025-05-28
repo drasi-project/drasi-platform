@@ -16,13 +16,14 @@ using Drasi.Reactions.EventGrid.Models.Unpacked;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 using System.Text.Json;
 
+
 namespace Drasi.Reactions.EventGrid.Services
 {
     public class ChangeFormatter : IChangeFormatter
     {
-        public IEnumerable<ChangeNotification> Format(ChangeEvent evt)
+        public IEnumerable<JsonElement> Format(ChangeEvent evt)
         {
-            var result = new List<ChangeNotification>();
+            var notificationList = new List<ChangeNotification>();
             foreach (var inputItem in evt.AddedResults)
             {
                 var outputItem = new ChangeNotification
@@ -39,7 +40,7 @@ namespace Drasi.Reactions.EventGrid.Services
                         After = inputItem
                     }
                 };
-                result.Add(outputItem);
+                notificationList.Add(outputItem);
             }
 
             foreach (var inputItem in evt.UpdatedResults)
@@ -59,7 +60,7 @@ namespace Drasi.Reactions.EventGrid.Services
                         After = inputItem.After
                     }
                 };
-                result.Add(outputItem);
+                notificationList.Add(outputItem);
             }
 
             foreach (var inputItem in evt.DeletedResults)
@@ -78,9 +79,21 @@ namespace Drasi.Reactions.EventGrid.Services
                         Before = inputItem
                     }
                 };
-                result.Add(outputItem);
+                notificationList.Add(outputItem);
             }
 
+            var result = new List<JsonElement>();
+            foreach (var item in notificationList)
+            {
+                var serializedDataJson = JsonSerializer.Serialize(
+                    item,
+                    Drasi.Reactions.EventGrid.Models.Unpacked.Converter.Settings
+                );
+
+                using var doc = JsonDocument.Parse(serializedDataJson);
+                JsonElement serializedEvent = doc.RootElement.Clone();
+                result.Add(serializedEvent);
+            }
             return result;
         }        
     }

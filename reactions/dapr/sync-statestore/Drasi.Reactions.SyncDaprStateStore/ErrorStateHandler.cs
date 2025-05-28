@@ -1,4 +1,4 @@
-// Copyright 2024 The Drasi Authors.
+// Copyright 2025 The Drasi Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Drasi.Reactions.EventGrid.Models.Unpacked;
-using Drasi.Reaction.SDK.Models.QueryOutput;
-using System.Text.Json;
-
-namespace Drasi.Reactions.EventGrid.Services
+namespace Drasi.Reactions.SyncDaprStateStore;
+public interface IErrorStateHandler
 {
-    public interface IChangeFormatter
+    void Terminate(string message);
+}
+
+public class ErrorStateHandler : IErrorStateHandler
+{
+    public void Terminate(string message)
     {
-        IEnumerable<JsonElement> Format(ChangeEvent evt);
+        Reaction.SDK.Reaction<QueryConfig>.TerminateWithError(message);
     }
 }

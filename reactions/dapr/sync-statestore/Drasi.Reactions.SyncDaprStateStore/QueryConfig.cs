@@ -1,4 +1,4 @@
-// Copyright 2024 The Drasi Authors.
+// Copyright 2025 The Drasi Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Drasi.Reactions.EventGrid.Models.Unpacked;
-using Drasi.Reaction.SDK.Models.QueryOutput;
-using System.Text.Json;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
-namespace Drasi.Reactions.EventGrid.Services
+namespace Drasi.Reactions.SyncDaprStateStore;
+
+public class QueryConfig
 {
-    public interface IChangeFormatter
-    {
-        IEnumerable<JsonElement> Format(ChangeEvent evt);
-    }
+    [Required(ErrorMessage = "missing required property in the query configuration")]
+    [JsonPropertyName("keyField")]
+    public string? KeyField { get; set; }
+
+    [Required(ErrorMessage = "missing required property in the query configuration")]
+    [JsonPropertyName("stateStoreName")]
+    public string? StateStoreName { get; set; }
 }
