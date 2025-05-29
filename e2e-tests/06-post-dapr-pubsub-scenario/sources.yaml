@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Source
+name: pubsub-pg-source
+spec:
+  kind: PostgreSQL
+  properties:
+    host: pubsub-test-db.default.svc.cluster.local
+    port: 5432
+    user: testuser
+    password: testpassword
+    database: testdb
+    ssl: false
+    tables:
+      - public.product
