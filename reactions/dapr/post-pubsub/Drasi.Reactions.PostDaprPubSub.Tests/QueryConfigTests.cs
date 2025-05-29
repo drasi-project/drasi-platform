@@ -28,8 +28,7 @@ public class QueryConfigTests
         // Assert
         Assert.Equal("drasi-pubsub", config.PubsubName);
         Assert.Equal(string.Empty, config.TopicName);
-        Assert.False(config.Packed); // Default is unpacked
-        Assert.Equal(5, config.MaxFailureCount);
+        Assert.Equal(OutputFormat.Unpacked, config.Format); // Default is unpacked
         Assert.False(config.SkipControlSignals);
     }
 
@@ -40,8 +39,7 @@ public class QueryConfigTests
         var config = new QueryConfig
         {
             PubsubName = "test-pubsub",
-            TopicName = "test-topic",
-            MaxFailureCount = 10
+            TopicName = "test-topic"
         };
 
         var validationContext = new ValidationContext(config);
@@ -100,25 +98,25 @@ public class QueryConfigTests
     }
 
     [Fact]
-    public void ValidateConfig_NegativeMaxFailureCount_ShouldHaveError()
+    public void QueryConfig_FormatMode_DefaultIsUnpacked()
     {
-        // Arrange
-        var config = new QueryConfig
-        {
-            PubsubName = "test-pubsub",
-            TopicName = "test-topic",
-            MaxFailureCount = -1
-        };
-
-        var validationContext = new ValidationContext(config);
-        var validationResults = new List<ValidationResult>();
-
-        // Act
-        var isValid = Validator.TryValidateObject(config, validationContext, validationResults, true);
+        // Arrange, Act
+        var config = new QueryConfig();
 
         // Assert
-        Assert.False(isValid);
-        Assert.Single(validationResults);
-        Assert.Contains(validationResults, r => r.MemberNames.Contains("MaxFailureCount"));
+        Assert.Equal(OutputFormat.Unpacked, config.Format);
+    }
+
+    [Fact]
+    public void QueryConfig_FormatMode_CanBeSetToPacked()
+    {
+        // Arrange, Act
+        var config = new QueryConfig
+        {
+            Format = OutputFormat.Packed
+        };
+
+        // Assert
+        Assert.Equal(OutputFormat.Packed, config.Format);
     }
 }

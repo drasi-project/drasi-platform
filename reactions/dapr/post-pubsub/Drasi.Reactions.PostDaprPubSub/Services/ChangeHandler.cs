@@ -25,18 +25,15 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
     private readonly DaprClient _daprClient;
     private readonly IChangeFormatterFactory _formatterFactory;
     private readonly ILogger<ChangeHandler> _logger;
-    private readonly IQueryFailureTracker _failureTracker;
 
     public ChangeHandler(
         DaprClient daprClient, 
         IChangeFormatterFactory formatterFactory, 
-        ILogger<ChangeHandler> logger,
-        IQueryFailureTracker failureTracker)
+        ILogger<ChangeHandler> logger)
     {
         _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
         _formatterFactory = formatterFactory ?? throw new ArgumentNullException(nameof(formatterFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _failureTracker = failureTracker ?? throw new ArgumentNullException(nameof(failureTracker));
     }
 
     public async Task HandleChange(ChangeEvent evt, QueryConfig? config)
@@ -44,51 +41,19 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
         var queryId = evt.QueryId;
         var queryConfig = config
             ?? throw new ArgumentNullException(nameof(config), $"Query configuration is null for query {queryId}");
-            
-        // Check if the query is already in a failed state
-        if (_failureTracker.IsQueryFailed(queryId))
-        {
-            var reason = _failureTracker.GetFailureReason(queryId);
-            _logger.LogError("Rejecting change event for failed query {QueryId}. Reason: {Reason}", queryId, reason);
-            throw new InvalidOperationException($"Query {queryId} is in a failed state: {reason}");
-        }
 
         _logger.LogDebug("Processing change event for query {QueryId} with pubsub {PubsubName} and topic {TopicName}",
             queryId, queryConfig.PubsubName, queryConfig.TopicName);
 
-        try
+        if (queryConfig.Format == OutputFormat.Packed)
         {
-            if (queryConfig.Packed)
-            {
-                // Send the complete change event as a single message
-                await PublishPackedEvent(evt, queryConfig);
-            }
-            else
-            {
-                // Format and send individual events for each change
-                await PublishUnpackedEvents(evt, queryConfig);
-            }
-            
-            // Reset failure count on success
-            _failureTracker.ResetFailures(queryId);
+            // Send the complete change event as a single message
+            await PublishPackedEvent(evt, queryConfig);
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogError(ex, "Error publishing event for query {QueryId}", queryId);
-            
-            // Track failure and check if query should be marked as failed
-            bool isFailed = _failureTracker.RecordFailure(
-                queryId, 
-                queryConfig.MaxFailureCount, 
-                $"Error publishing to Dapr pubsub: {ex.Message}");
-            
-            if (isFailed)
-            {
-                _logger.LogError("Query {QueryId} has been marked as failed after {MaxFailureCount} consecutive failures", 
-                    queryId, queryConfig.MaxFailureCount);
-            }
-            
-            throw; // Rethrow to let Drasi SDK handle the failure
+            // Format and send individual events for each change
+            await PublishUnpackedEvents(evt, queryConfig);
         }
     }
     
