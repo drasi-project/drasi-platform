@@ -1,0 +1,8 @@
+kind: Reaction
+apiVersion: v1
+name: sync-dapr-statestore
+spec:
+  kind: SyncDaprStateStore
+  queries:
+    product-query: '{"keyField": "product_id", "stateStoreName": "product-statestore"}'
+    inventory-query: '{"keyField": "inventory_id", "stateStoreName": "inventory-statestore"}'

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Source
+name: product-inventory-source
+spec:
+  kind: PostgreSQL
+  properties:
+    host: product-inventory-db.default.svc.cluster.local
+    port: 5432
+    user: postgres
+    password: postgres
+    database: productdb
+    ssl: false
+    tables:
+      - public.product
+      - public.inventory
