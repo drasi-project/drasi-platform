@@ -21,6 +21,7 @@ const fs = require("fs");
 const pg = require("pg");
 const redis = require("redis");
 const PortForward = require("../fixtures/port-forward");
+const { waitFor } = require('../fixtures/infrastructure'); // Corrected import path
 
 // Define paths to your resource files
 const resourcesFilePath = __dirname + '/resources.yaml';
@@ -36,11 +37,6 @@ let dbClient;
 
 let productRedisPortForward, inventoryRedisPortForward;
 let productRedisClient, inventoryRedisClient;
-
-async function waitForPropagation(duration = 10000) { // Default 10 seconds
-  console.log(`Waiting ${duration / 1000}s for propagation...`);
-  return new Promise(resolve => setTimeout(resolve, duration));
-}
 
 // Function to get state from Redis Hash
 // Attempts to parse the value as JSON, but returns raw value if parsing fails
@@ -132,7 +128,7 @@ beforeAll(async () => {
   await inventoryRedisClient.connect();
   console.log("Connected to Inventory Redis, with port forwarded at", inventoryRedisPort);
 
-  await waitForPropagation();
+  await waitFor({ timeout: 15000, description: "initial propagation after setup" })
  
   console.log("Setup complete.");
 }, 480000);
@@ -288,15 +284,22 @@ describe("Sync Dapr Statestore Reaction Test Suite", () => {
       "INSERT INTO product (product_id, name, description) VALUES ($1, $2, $3)",
       [newProductId, newProductName, newProductDesc]
     );
-    console.log(`Added product ${newProductId} - ${newProductName}. Waiting for propagation...`);
-    await waitForPropagation();
+    console.log(`Added product ${newProductId} - ${newProductName}. Waiting for sync to product-statestore...`);
+    const productState = await waitFor({
+        actionFn: () => getStateFromRedis(productRedisClient, String(newProductId)),
+        predicateFn: (state) => state !== null,
+        description: `product key "${newProductId}" to appear in product-statestore`,
+        timeoutMs: 10000,
+        pollIntervalMs: 1000
+    });
 
     // Verify product in product-statestore
-    let productState = await getStateFromRedis(productRedisClient, String(newProductId));
     expect(productState).not.toBeNull();
-    expect(productState.product_id).toEqual(newProductId);
-    expect(productState.product_name).toEqual(newProductName);
-    expect(productState.product_description).toEqual(newProductDesc);
+    if (productState) {
+        expect(productState.product_id).toEqual(newProductId);
+        expect(productState.product_name).toEqual(newProductName);
+        expect(productState.product_description).toEqual(newProductDesc);
+    }
     console.log(`Product ${newProductId} verified in product-statestore.`);
 
     // Since we only added a product, the inventory should remain unchanged
@@ -311,18 +314,26 @@ describe("Sync Dapr Statestore Reaction Test Suite", () => {
       "INSERT INTO inventory (inventory_id, product_id, quantity, location) VALUES ($1, $2, $3, $4)",
       [newInventoryId, newProductId, newInventoryQuantity, newInventoryLocation]
     );
-    console.log(`Added inventory ${newInventoryId} for product ${newProductId}. Waiting for propagation...`);
-    await waitForPropagation();
+    console.log(`Added inventory ${newInventoryId} for product ${newProductId}. Waiting for sync to inventory-statestore...`);
+
+    const inventoryState = await waitFor({
+        actionFn: () => getStateFromRedis(inventoryRedisClient, String(newInventoryId)),
+        predicateFn: (state) => state !== null,
+        description: `inventory key "${newInventoryId}" to appear in inventory-statestore`,
+        timeoutMs: 10000,
+        pollIntervalMs: 1000
+    });
 
     // Verify inventory in inventory-statestore
-    let inventoryState = await getStateFromRedis(inventoryRedisClient, String(newInventoryId));
     expect(inventoryState).not.toBeNull();
-    expect(inventoryState.inventory_id).toEqual(newInventoryId);
-    expect(inventoryState.product_id).toEqual(newProductId);
-    expect(inventoryState.product_quantity).toEqual(newInventoryQuantity);
-    expect(inventoryState.product_location).toEqual(newInventoryLocation);
-    expect(inventoryState.product_name).toEqual(newProductName); // From join
-    expect(inventoryState.product_description).toEqual(newProductDesc); // From join
+    if (inventoryState) {
+        expect(inventoryState.inventory_id).toEqual(newInventoryId);
+        expect(inventoryState.product_id).toEqual(newProductId);
+        expect(inventoryState.product_quantity).toEqual(newInventoryQuantity);
+        expect(inventoryState.product_location).toEqual(newInventoryLocation);
+        expect(inventoryState.product_name).toEqual(newProductName); // From join
+        expect(inventoryState.product_description).toEqual(newProductDesc); // From join
+    }
     console.log(`Inventory ${newInventoryId} for product ${newProductId} verified in inventory-statestore.`);
   }, 30000);
 
@@ -337,25 +348,41 @@ describe("Sync Dapr Statestore Reaction Test Suite", () => {
       [updatedProductDesc, productIdToUpdate]
     );
     console.log(`Updated product ${productIdToUpdate} description. Waiting for propagation...`);
-    await waitForPropagation();
+
+    const productState = await waitFor({
+        actionFn: () => getStateFromRedis(productRedisClient, String(productIdToUpdate)),
+        predicateFn: (state) => state !== null && state.product_description === updatedProductDesc,
+        description: `product "${productIdToUpdate}" description to update in product-statestore`,
+        timeoutMs: 10000,
+        pollIntervalMs: 1000
+    });
 
     // Verify updated product in product-statestore
-    let productState = await getStateFromRedis(productRedisClient, String(productIdToUpdate));
     expect(productState).not.toBeNull();
-    expect(productState.product_id).toEqual(productIdToUpdate);
-    expect(productState.product_name).toEqual(originalProductName); // Name shouldn't change
-    expect(productState.product_description).toEqual(updatedProductDesc);
+    if (productState) {
+        expect(productState.product_id).toEqual(productIdToUpdate);
+        expect(productState.product_name).toEqual(originalProductName); // Name shouldn't change
+        expect(productState.product_description).toEqual(updatedProductDesc);
+    }
     console.log(`Product ${productIdToUpdate} update verified in product-statestore.`);
 
     // Verify update in related inventory items in inventory-statestore
     // Inventory items for product_id = 1 are inventory_id = 1 and 4
     const relatedInventoryIds = ["1", "4"];
     for (const invId of relatedInventoryIds) {
-      let inventoryState = await getStateFromRedis(inventoryRedisClient, invId);
+      const inventoryState = await waitFor({
+          actionFn: () => getStateFromRedis(inventoryRedisClient, invId),
+          predicateFn: (state) => state !== null && state.product_description === updatedProductDesc,
+          description: `inventory "${invId}" description to update in inventory-statestore for product ${productIdToUpdate}`,
+          timeoutMs: 10000,
+          pollIntervalMs: 1000
+      });
       expect(inventoryState).not.toBeNull();
-      expect(inventoryState.product_id).toEqual(productIdToUpdate);
-      expect(inventoryState.product_name).toEqual(originalProductName);
-      expect(inventoryState.product_description).toEqual(updatedProductDesc); // Description from joined product
+      if (inventoryState) {
+          expect(inventoryState.product_id).toEqual(productIdToUpdate);
+          expect(inventoryState.product_name).toEqual(originalProductName);
+          expect(inventoryState.product_description).toEqual(updatedProductDesc); // Description from joined product
+      }
       console.log(`Inventory ${invId} update (due to product update) verified in inventory-statestore.`);
     }
   }, 30000);
@@ -372,42 +399,61 @@ describe("Sync Dapr Statestore Reaction Test Suite", () => {
       [parseInt(inventoryIdToDeleteDirectly)]
     );
     console.log(`Deleted inventory ${inventoryIdToDeleteDirectly}. Waiting for propagation...`);
-    await waitForPropagation();
-
+    
     // Verify inventory_id=4 is gone from inventory-statestore
-    let deletedInventoryState = await getStateFromRedis(inventoryRedisClient, inventoryIdToDeleteDirectly);
-    expect(deletedInventoryState).toBeNull();
+    const deletedInventoryState = await waitFor({
+        actionFn: () => getStateFromRedis(inventoryRedisClient, inventoryIdToDeleteDirectly),
+        predicateFn: (state) => state === null, // Wait for the key to be gone
+        description: `inventory key "${inventoryIdToDeleteDirectly}" to be deleted from inventory-statestore`,
+        timeoutMs: 10000,
+        pollIntervalMs: 1000
+    });
+    expect(deletedInventoryState).toBeNull(); // Verify it's actually null
     console.log(`Inventory ${inventoryIdToDeleteDirectly} verified as deleted from inventory-statestore.`);
 
     // Verify other inventory for product 1 (inventory_id=1) still exists
     let remainingInventoryState = await getStateFromRedis(inventoryRedisClient, otherInventoryForProduct1);
     expect(remainingInventoryState).not.toBeNull();
-    expect(remainingInventoryState.inventory_id).toEqual(parseInt(otherInventoryForProduct1));
-    expect(remainingInventoryState.product_id).toEqual(productToDeleteCascaded);
+    if (remainingInventoryState) {
+        expect(remainingInventoryState.inventory_id).toEqual(parseInt(otherInventoryForProduct1));
+        expect(remainingInventoryState.product_id).toEqual(productToDeleteCascaded);
+    }
     console.log(`Inventory ${otherInventoryForProduct1} verified as still present in inventory-statestore.`);
 
     // Verify product_id=1 is NOT impacted in product-statestore yet
     let productStateAfterInvDelete = await getStateFromRedis(productRedisClient, String(productToDeleteCascaded));
     expect(productStateAfterInvDelete).not.toBeNull(); // Should still exist
-    expect(productStateAfterInvDelete.product_id).toEqual(productToDeleteCascaded);
+    if (productStateAfterInvDelete) {
+        expect(productStateAfterInvDelete.product_id).toEqual(productToDeleteCascaded);
+    }
     console.log(`Product ${productToDeleteCascaded} verified as still present in product-statestore after partial inventory delete.`);
 
     // 2. Delete product_id=1 itself
-    // This should also cascade delete inventory_id=1 due to ON DELETE CASCADE in DB
     await dbClient.query(
       "DELETE FROM product WHERE product_id = $1",
       [productToDeleteCascaded]
     );
     console.log(`Deleted product ${productToDeleteCascaded}. Waiting for propagation...`);
-    await waitForPropagation();
-
     // Verify product_id=1 is gone from product-statestore
-    let deletedProductState = await getStateFromRedis(productRedisClient, String(productToDeleteCascaded));
+
+    const deletedProductState = await waitFor({
+        actionFn: () => getStateFromRedis(productRedisClient, String(productToDeleteCascaded)),
+        predicateFn: (state) => state === null,
+        description: `product key "${productToDeleteCascaded}" to be deleted from product-statestore`,
+        timeoutMs: 10000,
+        pollIntervalMs: 1000
+    });
     expect(deletedProductState).toBeNull();
     console.log(`Product ${productToDeleteCascaded} verified as deleted from product-statestore.`);
 
-    // Verify remaining inventory for product 1 (inventory_id=1) is also gone from inventory-statestore
-    let cascadedDeletedInventoryState = await getStateFromRedis(inventoryRedisClient, otherInventoryForProduct1);
+    // Verify remaining inventory for product 1 (inventory_id=1) is also gone (inventory_id=1) is also gone from inventory-statestore
+    const cascadedDeletedInventoryState = await waitFor({
+        actionFn: () => getStateFromRedis(inventoryRedisClient, otherInventoryForProduct1),
+        predicateFn: (state) => state === null,
+        description: `inventory key "${otherInventoryForProduct1}" (cascaded) to be deleted from inventory-statestore`,
+        timeoutMs: 10000,
+        pollIntervalMs: 1000
+    });
     expect(cascadedDeletedInventoryState).toBeNull();
     console.log(`Inventory ${otherInventoryForProduct1} (related to product ${productToDeleteCascaded}) verified as deleted from inventory-statestore due to product deletion.`);
   }, 30000);

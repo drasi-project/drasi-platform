@@ -138,7 +138,66 @@ function waitForChildProcess(childProcess, logPrefix = "") {
   });
 }
 
+/**
+ * A general-purpose wait function.
+ * If actionFn and predicateFn are provided, it polls actionFn until predicateFn returns true or timeout.
+ * If actionFn is not provided, it waits for the specified timeout duration.
+ *
+ * @param {Object} options - The options for waiting.
+ * @param {Function} [options.actionFn] - Optional async function to execute on each poll.
+ * @param {Function} [options.predicateFn] - Optional function that takes result of actionFn and returns boolean.
+ *                                      Required if actionFn is provided.
+ * @param {number} [options.timeoutMs=10000] - Maximum time to wait in milliseconds. Defaults to 10 seconds.
+ * @param {number} [options.pollIntervalMs=2000] - Interval between polls in milliseconds (if actionFn is used).
+ * @param {string} [options.description] - Optional description for logging.
+ * @returns {Promise<any>} - The result of actionFn when condition is met, or the last result on timeout.
+ *                           Returns undefined for simple timed waits.
+ */
+async function waitFor({
+  actionFn,
+  predicateFn,
+  timeoutMs = 10000,
+  pollIntervalMs = 500,
+  description
+}) {
+  const startTime = Date.now();
+  const desc = description || (actionFn ? "a condition to be met" : `a fixed duration of ${timeoutMs / 1000}s`);
+
+  console.log(`Waiting up to ${timeoutMs / 1000}s for ${desc}` +
+              (actionFn ? ` (polling every ${pollIntervalMs}ms)...` : '...'));
+
+  if (!actionFn) {
+    // Simple timed wait
+    await new Promise(resolve => setTimeout(resolve, timeoutMs));
+    console.log(`Finished waiting for ${desc}.`);
+    return undefined;
+  }
+
+  if (actionFn && !predicateFn) {
+    throw new Error("`predicateFn` is required if `actionFn` is provided to `waitFor`.");
+  }
+
+  let lastResult;
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      lastResult = await actionFn();
+      if (predicateFn(lastResult)) {
+        console.log(`${desc} met after ${(Date.now() - startTime) / 1000}s.`);
+        return lastResult;
+      }
+    } catch (error) {
+      console.error(`Error during actionFn execution for "${desc}":`, error.message);
+      lastResult = undefined;
+    }
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+
+  console.warn(`Timeout: ${desc} was not met within ${timeoutMs / 1000}s. Last attempted result:`, lastResult !== undefined ? JSON.stringify(lastResult) : 'undefined');
+  return lastResult; // Return the last (unsuccessful) result from actionFn
+}
+
 exports.loadDrasiImages = loadDrasiImages;
 exports.installDrasi = installDrasi;
 exports.tryLoadInfraImages = tryLoadInfraImages;
 exports.waitForChildProcess = waitForChildProcess;
+exports.waitFor = waitFor;
