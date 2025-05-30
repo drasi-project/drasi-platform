@@ -7,6 +7,7 @@ const path = require('path');
 const PortForward = require('../fixtures/port-forward');
 const deployResources = require('../fixtures/deploy-resources');
 const deleteResources = require('../fixtures/delete-resources');
+const { waitFor } = require('../fixtures/infrastructure'); // Added import
 
 const SCENARIO_DIR = __dirname;
 const K8S_RESOURCES_FILE = path.join(SCENARIO_DIR, 'resources.yaml');
@@ -34,11 +35,6 @@ function loadYaml(filePath) {
     return yaml.loadAll(content);
 }
 
-function waitForPropagation(ms = 10000) { // Default to 10s
-    console.log(`Waiting ${ms / 1000}s for propagation...`);
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 async function clearRedisStream(redisClient, streamKey) {
     try {
         // XTRIM with MAXLEN 0 deletes all entries.
@@ -53,7 +49,6 @@ async function clearRedisStream(redisClient, streamKey) {
         }
     }
 }
-
 
 async function getMessagesFromRedisStream(redisClient, streamKey, lastId = '0-0') {
     try {
@@ -115,7 +110,7 @@ describe('PostDaprPubSub Reaction with Redis Stream Verification', () => {
 
             // 2. then wait for 15 seconds
             console.log("Waiting for K8s resources to stabilize...");
-            await waitForPropagation(15000);
+            await waitFor({ timeoutMs: 10000, description: "K8s resources to stabilize" });
 
             // 3. then deploy sources.yaml
             console.log("Deploying Drasi Source resources...");
@@ -153,7 +148,7 @@ describe('PostDaprPubSub Reaction with Redis Stream Verification', () => {
             console.log("Connected to Dapr Pub/Sub Redis via port forward.");
 
             console.log("Waiting for 15 more seconds after all setup...");
-            await waitForPropagation(15000);
+            await waitFor({ timeoutMs: 15000, description: "all of the setup to stabilize" });
 
         } catch (error) {
             console.error("Error during beforeAll setup:", error);
@@ -188,12 +183,19 @@ describe('PostDaprPubSub Reaction with Redis Stream Verification', () => {
             "INSERT INTO product (name, description, price) VALUES ($1, 'Packed Test Desc', $2)",
             [newProductName, newProductPrice]
         );
-        await waitForPropagation();
 
-        const messages = await getMessagesFromRedisStream(redisClient, PACKED_TOPIC);
-        expect(messages.length).toEqual(1);
+        const receivedMessages = await waitFor({
+            actionFn: () => getMessagesFromRedisStream(redisClient, PACKED_TOPIC),
+            predicateFn: (messages) => messages && messages.length >= 1,
+            timeoutMs: 10000,
+            pollIntervalMs: 1000,
+            description: `packed message for product "${newProductName}" to appear in Redis stream ${PACKED_TOPIC}`
+        });
 
-        const cloudEvent = messages[0].data; 
+        expect(receivedMessages).toBeDefined();
+        expect(receivedMessages.length).toEqual(1);
+
+        const cloudEvent = receivedMessages[0].data; 
         expect(cloudEvent).toBeDefined();
         expect(cloudEvent.topic).toBe(PACKED_TOPIC);
         
@@ -215,12 +217,19 @@ describe('PostDaprPubSub Reaction with Redis Stream Verification', () => {
             "INSERT INTO product (name, description, price) VALUES ($1, 'Unpacked Test Desc', $2)",
             [newProductName, newProductPrice]
         );
-        await waitForPropagation();
 
-        const messages = await getMessagesFromRedisStream(redisClient, UNPACKED_TOPIC);
-        expect(messages.length).toEqual(1);
+        const receivedMessages = await waitFor({
+            actionFn: () => getMessagesFromRedisStream(redisClient, UNPACKED_TOPIC),
+            predicateFn: (messages) => messages && messages.length >= 1,
+            timeoutMs: 10000,
+            pollIntervalMs: 1000,
+            description: `unpacked message for product "${newProductName}" to appear in Redis stream ${UNPACKED_TOPIC}`
+        });
+        
+        expect(receivedMessages).toBeDefined();
+        expect(receivedMessages.length).toEqual(1);
 
-        const cloudEvent = messages[0].data;
+        const cloudEvent = receivedMessages[0].data;
         expect(cloudEvent).toBeDefined();
         expect(cloudEvent.topic).toBe(UNPACKED_TOPIC);
 
@@ -245,7 +254,14 @@ describe('PostDaprPubSub Reaction with Redis Stream Verification', () => {
             "INSERT INTO product (name, description, price) VALUES ($1, $2, $3)",
             [productNameToUpdate, initialDescription, initialPrice]
         );
-        await waitForPropagation(5000); // Wait for insert to propagate
+
+        await waitFor({
+            actionFn: () => getMessagesFromRedisStream(redisClient, UNPACKED_TOPIC),
+            predicateFn: (messages) => messages && messages.length >= 1,
+            timeoutMs: 10000,
+            pollIntervalMs: 1000,
+            description: `propagation of initial insert event for "${productNameToUpdate}" to appear in Redis stream ${UNPACKED_TOPIC}`
+        });
 
         await clearRedisStream(redisClient, UNPACKED_TOPIC); // Clear before update
 
@@ -254,12 +270,27 @@ describe('PostDaprPubSub Reaction with Redis Stream Verification', () => {
             "UPDATE product SET description = $1 WHERE name = $2",
             [updatedDescription, productNameToUpdate]
         );
-        await waitForPropagation();
 
-        const messages = await getMessagesFromRedisStream(redisClient, UNPACKED_TOPIC);
-        expect(messages.length).toEqual(1);
+        const receivedMessages = await waitFor({
+            actionFn: async () => {
+                const allMessages = await getMessagesFromRedisStream(redisClient, UNPACKED_TOPIC);
+                // Filter for an 'update' (op: 'u') event
+                return allMessages.filter(msg =>
+                    msg.data &&
+                    msg.data.data && // Drasi event level
+                    msg.data.data.op === 'u'
+                );
+            },
+            predicateFn: (filteredUpdateMessages) => filteredUpdateMessages && filteredUpdateMessages.length === 1,
+            timeoutMs: 10000,
+            pollIntervalMs: 1000,
+            description: `unpacked update message for product "${productNameToUpdate}" in Redis stream ${UNPACKED_TOPIC}`
+        });
+
+        expect(receivedMessages).toBeDefined();
+        expect(receivedMessages.length).toEqual(1);
         
-        const cloudEvent = messages[0].data;
+        const cloudEvent = receivedMessages[0].data;
         expect(cloudEvent).toBeDefined();
         expect(cloudEvent.topic).toBe(UNPACKED_TOPIC);
 
