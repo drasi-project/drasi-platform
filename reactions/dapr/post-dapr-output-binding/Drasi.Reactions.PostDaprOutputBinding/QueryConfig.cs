@@ -28,7 +28,7 @@ public class QueryConfig : IValidatableObject
     /// Whether to pack the events into a single message (true) or send as individual messages (false).
     /// </summary>
     [JsonPropertyName("packed")]
-    public bool Packed { get; set; } = false;
+    public OutputFormat Packed { get; set; } = OutputFormat.Unpacked;
     
     /// <summary>
     /// Maximum consecutive failures before marking query as failed.
@@ -49,4 +49,10 @@ public class QueryConfig : IValidatableObject
             yield return new ValidationResult("MaxFailureCount must be greater than 0", [nameof(MaxFailureCount)]);
         }
     }
+}
+
+public enum OutputFormat
+{
+    Packed,
+    Unpacked
 }

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Diagnostics.CodeAnalysis;
 using Drasi.Reaction.SDK;
 using Drasi.Reactions.PostDaprOutputBinding;
 using Drasi.Reactions.PostDaprOutputBinding.Services;
@@ -57,6 +56,7 @@ try
 }
 catch (Exception ex)
 {
-    Console.Error.WriteLine($"Fatal error starting reaction: {ex.Message}");
-    Environment.Exit(1);
+    var errorStateHandler = new ErrorStateHandler();
+    errorStateHandler.Terminate($"Fatal error starting PostDaprOutputBinding reaction: {ex.Message}");
+    throw;
 }

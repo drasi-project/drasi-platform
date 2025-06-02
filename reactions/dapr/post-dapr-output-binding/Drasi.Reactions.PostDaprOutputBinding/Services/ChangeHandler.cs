@@ -58,7 +58,7 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
 
         try
         {
-            if (queryConfig.Packed)
+            if (queryConfig.Packed == OutputFormat.Packed)
             {
                 // Send the complete change event as a single message
                 await PublishPackedEvent(evt, queryConfig);

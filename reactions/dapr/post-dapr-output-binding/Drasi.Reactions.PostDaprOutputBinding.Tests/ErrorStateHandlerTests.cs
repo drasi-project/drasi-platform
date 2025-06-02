@@ -27,7 +27,9 @@ public class ErrorStateHandlerTests
         
         // Arrange
         var handler = new ErrorStateHandler();
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
         var errorMessage = "Test error message";
+#pragma warning restore CS0219 // Variable is assigned but its value is never used
         
         // We're not actually testing anything here since we can't easily verify the static method call
         // without introducing additional complexity or using a mocking framework like Typemock Isolator.

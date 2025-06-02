@@ -88,7 +88,7 @@ public class ChangeHandlerTests
             BindingName = "test-binding",
             BindingType = "binding-type",
             BindingOperation = "exec",
-            Packed = true
+            Packed = OutputFormat.Packed
         };
         
         _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
@@ -127,7 +127,7 @@ public class ChangeHandlerTests
             BindingName = "test-binding",
             BindingType = "binding-type",
             BindingOperation = "exec",
-            Packed = false // Unpacked is default
+            Packed = OutputFormat.Unpacked // Unpacked is default
         };
         
         var mockFormatter = new Mock<IChangeFormatter>();
@@ -173,7 +173,7 @@ public class ChangeHandlerTests
             BindingName = "test-binding",
             BindingType = "binding-type",
             BindingOperation = "exec",
-            Packed = true,
+            Packed = OutputFormat.Packed,
             MaxFailureCount = 3
         };
         
@@ -214,7 +214,7 @@ public class ChangeHandlerTests
             BindingName = "test-binding",
             BindingType = "binding-type",
             BindingOperation = "exec",
-            Packed = true,
+            Packed = OutputFormat.Packed,
             MaxFailureCount = 3
         };
         
@@ -260,7 +260,7 @@ public class ChangeHandlerTests
             BindingName = "test-binding",
             BindingType = "binding-type",
             BindingOperation = "exec",
-            Packed = false // Unpacked
+            Packed = OutputFormat.Unpacked // Unpacked
         };
         
         var mockFormatter = new Mock<IChangeFormatter>();

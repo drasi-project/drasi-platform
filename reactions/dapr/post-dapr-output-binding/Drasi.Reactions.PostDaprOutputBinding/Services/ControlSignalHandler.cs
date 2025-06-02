@@ -63,7 +63,7 @@ public class ControlSignalHandler : IControlEventHandler<QueryConfig>
 
         try
         {
-            if (queryConfig.Packed)
+            if (queryConfig.Packed == OutputFormat.Packed)
             {
                 // Send the complete control event as a single message
                 var serializedEvent = JsonSerializer.Serialize(evt, ModelOptions.JsonOptions);

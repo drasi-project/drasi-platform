@@ -123,7 +123,7 @@ public class ControlSignalHandlerTests
             BindingName = "test-binding",
             BindingType = "binding-type",
             BindingOperation = "exec",
-            Packed = true,
+            Packed = OutputFormat.Packed,
             SkipControlSignals = false
         };
         
@@ -163,7 +163,7 @@ public class ControlSignalHandlerTests
             BindingName = "test-binding",
             BindingType = "binding-type",
             BindingOperation = "exec",
-            Packed = false,
+            Packed = OutputFormat.Unpacked,
             SkipControlSignals = false
         };
         
@@ -203,7 +203,7 @@ public class ControlSignalHandlerTests
             BindingName = "test-binding",
             BindingType = "binding-type",
             BindingOperation = "exec",
-            Packed = true,
+            Packed = OutputFormat.Packed,
             SkipControlSignals = false,
             MaxFailureCount = 3
         };
@@ -248,7 +248,7 @@ public class ControlSignalHandlerTests
             BindingName = "test-binding",
             BindingType = "binding-type",
             BindingOperation = "exec",
-            Packed = true,
+            Packed = OutputFormat.Packed,
             SkipControlSignals = false,
             MaxFailureCount = 3
         };
@@ -296,7 +296,7 @@ public class ControlSignalHandlerTests
                 BindingName = "test-binding",
                 BindingType = "binding-type",
                 BindingOperation = "exec",
-                Packed = false, // Test unpacked format
+                Packed = OutputFormat.Unpacked, // Test unpacked format
                 SkipControlSignals = false
             };
             
