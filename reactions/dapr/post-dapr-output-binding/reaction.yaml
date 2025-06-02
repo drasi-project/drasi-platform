@@ -10,7 +10,7 @@ spec:
       {
         "bindingName": "drasi-output-binding",
         "bindingType": "http",
-        "bindingOperation": "put"
+        "bindingOperation": "put",
         "packed": false,
         "maxFailureCount": 5,
         "skipControlSignals": false
@@ -19,7 +19,7 @@ spec:
       {
         "bindingName": "drasi-output-binding",
         "bindingType": "http",
-        "bindingOperation": "get"
+        "bindingOperation": "get",
         "packed": false,
         "maxFailureCount": 5,
         "skipControlSignals": false
@@ -28,7 +28,7 @@ spec:
       {
         "bindingName": "drasi-output-binding",
         "bindingType": "http",
-        "bindingOperation": "get"
+        "bindingOperation": "get",
         "packed": false,
         "maxFailureCount": 5,
         "skipControlSignals": true
