@@ -28,7 +28,7 @@ var (
 )
 
 type Installer interface {
-	Install(localMode bool, acr string, version string, output output.TaskOutput, daprRegistry string) error
+	Install(localMode bool, acr string, version string, output output.TaskOutput, daprRegistry string, observabilityLevel string) error
 	SetDaprRuntimeVersion(version string)
 	SetDaprSidecarVersion(version string)
 }

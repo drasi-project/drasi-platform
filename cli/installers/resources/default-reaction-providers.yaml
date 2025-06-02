@@ -243,8 +243,8 @@ spec:
 ---
 apiVersion: v1
 kind: ReactionProvider
-name: PostDaprPubSub
+name: SyncDaprStateStore
 spec:
   services:
     reaction:
-      image: reaction-post-dapr-pubsub
+      image: reaction-sync-dapr-statestore
