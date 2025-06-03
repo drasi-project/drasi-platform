@@ -1,3 +1,0 @@
-fastapi>=0.100.0
-uvicorn>=0.20.0
-cloudevents>=1.3.0
