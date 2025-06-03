@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ContinuousQuery
+name: product-query
+spec:
+  mode: query
+  sources:    
+    subscriptions:
+      - id: product-inventory-source
+  query: > 
+    MATCH
+      (p:product)
+    RETURN
+      p.product_id AS product_id,
+      p.name AS product_name,
+      p.description AS product_description
+---
+apiVersion: v1
+kind: ContinuousQuery
+name: inventory-query
+spec:
+  mode: query
+  sources:    
+    subscriptions:
+      - id: product-inventory-source
+        nodes:
+          - sourceLabel: inventory
+          - sourceLabel: product
+    joins:
+      - id: INVENTORY_FOR_PRODUCT
+        keys:
+          - label: inventory
+            property: product_id
+          - label: product
+            property: product_id
+  query: > 
+    MATCH
+      (i:inventory)-[:INVENTORY_FOR_PRODUCT]->(p:product)
+    RETURN
+      i.inventory_id AS inventory_id,
+      i.product_id AS product_id,
+      i.quantity AS product_quantity,
+      i.location AS product_location,
+      p.name AS product_name,
+      p.description AS product_description

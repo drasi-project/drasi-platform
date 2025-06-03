@@ -1,0 +1,35 @@
+kind: Reaction
+apiVersion: v1
+name: post-dapr-output-binding
+spec:
+  kind: PostDaprOutputBinding
+  properties:
+    # No global properties needed for this reaction
+  queries:
+    example-query: |
+      {
+        "bindingName": "drasi-output-binding",
+        "bindingType": "http",
+        "bindingOperation": "put",
+        "packed": false,
+        "maxFailureCount": 5,
+        "skipControlSignals": false
+      }
+    another-query: |
+      {
+        "bindingName": "drasi-output-binding",
+        "bindingType": "http",
+        "bindingOperation": "get",
+        "packed": false,
+        "maxFailureCount": 5,
+        "skipControlSignals": false
+      }
+    control-signals-skipped: |
+      {
+        "bindingName": "drasi-output-binding",
+        "bindingType": "http",
+        "bindingOperation": "get",
+        "packed": false,
+        "maxFailureCount": 5,
+        "skipControlSignals": true
+      }

@@ -1,0 +1,304 @@
+# PostgreSQL ConfigMap for Initialization
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: product-inventory-db-init
+  labels:
+    app: product-inventory-db
+data:
+  init.sql: |
+    CREATE ROLE replication_group;
+    CREATE ROLE replication_user REPLICATION LOGIN;
+    GRANT replication_group TO postgres;
+    GRANT replication_group TO replication_user;
+
+    CREATE TABLE IF NOT EXISTS product (
+        product_id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory (
+        inventory_id SERIAL PRIMARY KEY,
+        product_id INTEGER NOT NULL REFERENCES product(product_id) ON DELETE CASCADE,
+        quantity INTEGER NOT NULL,
+        location VARCHAR(100)
+    );
+
+    -- Set table ownership to the replication_group
+    ALTER TABLE product OWNER TO replication_group;
+    ALTER TABLE inventory OWNER TO replication_group;
+
+    -- Insert initial data
+    INSERT INTO product (name, description) VALUES
+      ('SuperWidget', 'An amazing widget with all the features.'),
+      ('MegaGadget', 'The biggest gadget you have ever seen.'),
+      ('TinyThing', 'A small but powerful thing.')
+    ON CONFLICT (product_id) DO NOTHING;
+
+    INSERT INTO inventory (product_id, quantity, location) VALUES
+      ((SELECT product_id from product WHERE name = 'SuperWidget'), 100, 'Warehouse A'),
+      ((SELECT product_id from product WHERE name = 'MegaGadget'), 50, 'Warehouse B'),
+      ((SELECT product_id from product WHERE name = 'TinyThing'), 200, 'Warehouse A'),
+      ((SELECT product_id from product WHERE name = 'SuperWidget'), 75, 'Warehouse C')
+    ON CONFLICT (inventory_id) DO NOTHING;
+
+    -- Create a publication for the tables
+    CREATE PUBLICATION product_inventory_publication FOR TABLE product, inventory;
+
+    -- Create a replication slot
+    SELECT pg_create_logical_replication_slot('product_inventory_slot', 'pgoutput');
+---
+# PostgreSQL Secret for Credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: product-inventory-db-credentials
+  labels:
+    app: product-inventory-db
+type: Opaque
+stringData:
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+---
+# PostgreSQL StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: product-inventory-db
+  labels:
+    app: product-inventory-db
+spec:
+  serviceName: product-inventory-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-inventory-db
+  template:
+    metadata:
+      labels:
+        app: product-inventory-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: product-inventory-db-credentials
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: product-inventory-db-credentials
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: productdb
+        args:
+        - -c
+        - wal_level=logical
+        - -c
+        - max_replication_slots=10
+        - -c
+        - max_wal_senders=10
+        volumeMounts:
+        - name: product-inventory-db-data
+          mountPath: /var/lib/postgresql/data
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "0.5"
+            memory: "512Mi"
+      volumes:
+      - name: product-inventory-db-data
+        emptyDir: {}
+      - name: init-script
+        configMap:
+          name: product-inventory-db-init
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-inventory-db
+  labels:
+    app: product-inventory-db
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: product-inventory-db
+  type: ClusterIP
+---
+# Redis Deployment for Product State
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-product
+  labels:
+    app: redis-product
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-product
+  template:
+    metadata:
+      labels:
+        app: redis-product
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "redis-product"
+        dapr.io/app-port: "6379"
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6379
+          name: redis
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "256Mi"
+          requests:
+            cpu: "0.1"
+            memory: "128Mi"
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-product
+  labels:
+    app: redis-product
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: redis-product
+  type: ClusterIP
+---
+# Dapr Output Binding Component for Redis Output Binding (default namespace)
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: product-outputbinding
+spec:
+  type: bindings.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis-product.default.svc.cluster.local:6379
+  - name: redisPassword
+    value: ""
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: product-outputbinding
+  namespace: drasi-system
+spec:
+  type: bindings.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis-product.default.svc.cluster.local:6379
+  - name: redisPassword
+    value: ""
+---
+# Redis Deployment for redis-inventory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-inventory
+  labels:
+    app: redis-inventory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-inventory
+  template:
+    metadata:
+      labels:
+        app: redis-inventory
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "redis-inventory"
+        dapr.io/app-port: "6379"
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6379
+          name: redis
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "256Mi"
+          requests:
+            cpu: "0.1"
+            memory: "128Mi"
+---
+# Redis Service for Inventory State
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-inventory
+  labels:
+    app: redis-inventory
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: redis-inventory
+  type: ClusterIP
+---
+# Dapr Output Binding Component for Http Inventory in Drasi Namespace
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: inventory-outputbinding
+spec:
+  type: bindings.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis-product.default.svc.cluster.local:6379
+  - name: redisPassword
+    value: ""
+---
+# Dapr Output Binding Component for Http Inventory in Drasi Namespace
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: inventory-outputbinding
+  namespace: drasi-system
+spec:
+  type: bindings.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis-product.default.svc.cluster.local:6379
+  - name: redisPassword
+    value: ""

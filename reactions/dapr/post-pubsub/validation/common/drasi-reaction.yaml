@@ -1,0 +1,24 @@
+kind: Reaction
+apiVersion: v1
+name: post-dapr-pubsub
+spec:
+  kind: PostDaprPubSub
+  queries:
+    freezer-query-alpha: |
+      {
+        "pubsubName": "messagebus",
+        "topicName": "topic-alpha",
+        "packed": false,
+        "format": "Drasi",
+        "maxFailureCount": 5,
+        "skipControlSignals": false
+      }
+    freezer-query-beta: |
+      {
+        "pubsubName": "messagebus",
+        "topicName": "topic-beta",
+        "packed": false,
+        "format": "Otel",
+        "maxFailureCount": 2,
+        "skipControlSignals": false
+      }
