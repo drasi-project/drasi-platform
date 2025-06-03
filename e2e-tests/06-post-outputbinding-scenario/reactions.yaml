@@ -1,0 +1,24 @@
+kind: Reaction
+apiVersion: v1
+name: sync-dapr-statestore
+spec:
+  kind: PostDaprOutputBinding
+  queries:
+    product-query: >
+    {
+        "bindingName": "drasi-output-binding",
+        "bindingType": "redis",
+        "bindingOperation": "create",
+        "packed": false,
+        "maxFailureCount": 5,
+        "skipControlSignals": false
+    }
+    inventory-query: >
+    {
+        "bindingName": "drasi-output-binding",
+        "bindingType": "redis",
+        "bindingOperation": "create",
+        "packed": false,
+        "maxFailureCount": 5,
+        "skipControlSignals": false
+    }

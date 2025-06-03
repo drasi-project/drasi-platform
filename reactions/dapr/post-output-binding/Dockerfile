@@ -26,7 +26,7 @@ COPY --from=build /app/publish .
 ENV Logging__LogLevel__Default="Debug"
 ENV Logging__LogLevel__Microsoft="Warning"
 ENV Logging__LogLevel__Microsoft_Hosting_Lifetime="Information"
-ENV Logging__LogLevel__Drasi_Reactions_PostDaprOutputBinding "Debug"
+ENV Logging__LogLevel__Drasi_Reactions_PostDaprOutputBinding="Debug"
 
 USER app
 ENTRYPOINT ["dotnet", "Drasi.Reactions.PostDaprOutputBinding.dll"]
