@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # Set log levels for reaction in production
-ENV Logging__LogLevel__Default="Debug"
+ENV Logging__LogLevel__Default="Information"
 ENV Logging__LogLevel__Microsoft="Warning"
 ENV Logging__LogLevel__Microsoft_Hosting_Lifetime="Information"
 ENV Logging__LogLevel__Drasi_Reactions_PostDaprPubSub="Debug"
