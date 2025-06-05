@@ -1,0 +1,20 @@
+kind: Reaction
+apiVersion: v1
+name: post-dapr-pubsub
+spec:
+  kind: PostDaprPubSub
+  queries:
+    product-updates-packed: >
+      {
+        "pubsubName": "drasitest-pubsub",
+        "topicName": "e2e-topic-packed",
+        "outputFormat": "Packed",
+        "skipControlSignals": false
+      }
+    product-updates-unpacked: >
+      {
+        "pubsubName": "drasitest-pubsub",
+        "topicName": "e2e-topic-unpacked",
+        "outputFormat": "Unpacked",
+        "skipControlSignals": true
+      }
