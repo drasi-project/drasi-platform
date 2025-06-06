@@ -187,7 +187,7 @@
   "devDependencies": {
     "@types/glob": "^8.0.1",
     "@types/js-yaml": "^4.0.5",
-    "@types/mocha": "10.0.1",
+    "@types/mocha": "10.0.10",
     "@types/node": "16.x",
     "@types/vscode": "^1.99.1",
     "@types/ws": "^8.5.12",
