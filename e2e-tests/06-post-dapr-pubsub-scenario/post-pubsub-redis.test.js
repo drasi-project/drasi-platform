@@ -7,7 +7,7 @@ const path = require('path');
 const PortForward = require('../fixtures/port-forward');
 const deployResources = require('../fixtures/deploy-resources');
 const deleteResources = require('../fixtures/delete-resources');
-const { waitFor } = require('../fixtures/infrastructure'); // Added import
+const { waitFor } = require('../fixtures/infrastructure');
 
 const SCENARIO_DIR = __dirname;
 const K8S_RESOURCES_FILE = path.join(SCENARIO_DIR, 'resources.yaml');
@@ -198,14 +198,32 @@ describe('PostDaprPubSub Reaction with Redis Stream Verification', () => {
         const cloudEvent = receivedMessages[0].data; 
         expect(cloudEvent).toBeDefined();
         expect(cloudEvent.topic).toBe(PACKED_TOPIC);
+        expect(cloudEvent.pubsubname).toBe('drasitest-pubsub');
+
+        const drasiPackedEvent = cloudEvent.data; 
+        expect(drasiPackedEvent).toBeDefined();
+
+        expect(drasiPackedEvent.queryId).toBe('product-updates-packed');
+        expect(drasiPackedEvent.sourceTimeMs).toBeGreaterThan(0); 
+        expect(drasiPackedEvent.sequence).toBeGreaterThanOrEqual(0); 
+
+        expect(drasiPackedEvent.addedResults).toBeInstanceOf(Array);
+        expect(drasiPackedEvent.addedResults.length).toBe(1);
+        expect(drasiPackedEvent.updatedResults).toBeInstanceOf(Array);
+        expect(drasiPackedEvent.updatedResults.length).toBe(0);
+        expect(drasiPackedEvent.deletedResults).toBeInstanceOf(Array);
+        expect(drasiPackedEvent.deletedResults.length).toBe(0);
+
+        const addedItem = drasiPackedEvent.addedResults[0];
+        expect(addedItem).toBeDefined();
         
-        const drasiEvent = cloudEvent.data;
-        expect(drasiEvent).toBeDefined();
-        expect(drasiEvent.payload).toBeDefined();
-        expect(drasiEvent.payload.after).toBeDefined();
-        expect(drasiEvent.payload.after.name).toBe(newProductName);
-        expect(drasiEvent.op).toBe('i');
-        expect(parseFloat(drasiEvent.payload.after.price)).toBe(newProductPrice);
+        expect(addedItem.product_id).toBeDefined(); 
+        expect(addedItem.name).toBe(newProductName); 
+        expect(parseFloat(addedItem.price)).toBe(newProductPrice);
+
+        // Ensure no 'op' or 'payload' fields from the unpacked format are present at this level
+        expect(drasiPackedEvent.op).toBeUndefined();
+        expect(drasiPackedEvent.payload).toBeUndefined();
     }, 20000);
 
     test('UNPACKED: should publish individual unpacked change notifications on INSERT', async () => {
@@ -277,7 +295,7 @@ describe('PostDaprPubSub Reaction with Redis Stream Verification', () => {
                 // Filter for an 'update' (op: 'u') event
                 return allMessages.filter(msg =>
                     msg.data &&
-                    msg.data.data && // Drasi event level
+                    msg.data.data &&
                     msg.data.data.op === 'u'
                 );
             },
