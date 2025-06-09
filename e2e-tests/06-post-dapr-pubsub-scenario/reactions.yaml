@@ -8,13 +8,13 @@ spec:
       {
         "pubsubName": "drasitest-pubsub",
         "topicName": "e2e-topic-packed",
-        "outputFormat": "Packed",
+        "format": "Packed",
         "skipControlSignals": false
       }
     product-updates-unpacked: >
       {
         "pubsubName": "drasitest-pubsub",
         "topicName": "e2e-topic-unpacked",
-        "outputFormat": "Unpacked",
+        "format": "Unpacked",
         "skipControlSignals": true
       }

@@ -57,6 +57,7 @@ public class QueryConfig : IValidatableObject
     /// Specifies how events should be formatted when published.
     /// </summary>
     [JsonPropertyName("format")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public OutputFormat Format { get; set; } = OutputFormat.Unpacked;
     
     /// <summary>
