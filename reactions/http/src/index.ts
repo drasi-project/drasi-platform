@@ -3,9 +3,9 @@ import axios, { AxiosHeaders, Method } from 'axios';
 import Handlebars from 'handlebars';
 
 class QueryConfig {
-    addedResult?: CallSpec;
-    updatedResult?: CallSpec;
-    deletedResult?: CallSpec;
+    added?: CallSpec;
+    updated?: CallSpec;
+    deleted?: CallSpec;
 }
 
 class CallSpec {
@@ -30,26 +30,26 @@ const reactionConfig: ReactionConfig = {
 async function onChangeEvent(event: ChangeEvent, queryConfig?: QueryConfig): Promise<void> {
     console.log(`Received change sequence: ${event.sequence} for query ${event.queryId}`);
 
-    if (queryConfig.addedResult) {
-        let urlTemplate = Handlebars.compile(queryConfig.addedResult.url);
-        let bodyTemplate = Handlebars.compile(queryConfig.addedResult.body || '');
+    if (queryConfig.added) {
+        let urlTemplate = Handlebars.compile(queryConfig.added.url);
+        let bodyTemplate = Handlebars.compile(queryConfig.added.body || '');
 
         let headers = new AxiosHeaders();
         if (reactionConfig.token) {
             headers.setAuthorization(`Bearer ${reactionConfig.token}`);
         }
-        for (let k in queryConfig.addedResult.headers) {            
-            headers.set(k, queryConfig.addedResult.headers[k]);
+        for (let k in queryConfig.added.headers) {
+            headers.set(k, queryConfig.added.headers[k]);
         }
 
         for (let added of event.addedResults) {
-            let url = urlTemplate(added);
-            let body = bodyTemplate(added);
+            let url = urlTemplate({ after: added });
+            let body = bodyTemplate({ after: added });
 
             let resp = await axios.request({
                 baseURL: reactionConfig.baseUrl,
                 url: url,
-                method: queryConfig.addedResult.method,
+                method: queryConfig.added.method,
                 timeout: reactionConfig.timeout,
                 data: body,
                 headers: headers,
@@ -58,26 +58,26 @@ async function onChangeEvent(event: ChangeEvent, queryConfig?: QueryConfig): Pro
         }
     }
 
-    if (queryConfig.deletedResult) {
-        let urlTemplate = Handlebars.compile(queryConfig.deletedResult.url);
-        let bodyTemplate = Handlebars.compile(queryConfig.deletedResult.body || '');
+    if (queryConfig.deleted) {
+        let urlTemplate = Handlebars.compile(queryConfig.deleted.url);
+        let bodyTemplate = Handlebars.compile(queryConfig.deleted.body || '');
 
         let headers = new AxiosHeaders();
         if (reactionConfig.token) {
             headers.setAuthorization(`Bearer ${reactionConfig.token}`);
         }
-        for (let k in queryConfig.deletedResult.headers) {            
-            headers.set(k, queryConfig.deletedResult.headers[k]);
+        for (let k in queryConfig.deleted.headers) {
+            headers.set(k, queryConfig.deleted.headers[k]);
         }
 
         for (let deleted of event.deletedResults) {
-            let url = urlTemplate(deleted);
-            let body = bodyTemplate(deleted);
+            let url = urlTemplate({ before: deleted });
+            let body = bodyTemplate({ before: deleted });
 
             let resp = await axios.request({
                 baseURL: reactionConfig.baseUrl,
                 url: url,
-                method: queryConfig.deletedResult.method,
+                method: queryConfig.deleted.method,
                 timeout: reactionConfig.timeout,
                 data: body,
                 headers: headers,
@@ -85,18 +85,17 @@ async function onChangeEvent(event: ChangeEvent, queryConfig?: QueryConfig): Pro
             console.log(`Response from ${url} - ${resp.status}`);
         }
     }
-    
-    
-    if (queryConfig.updatedResult) {
-        let urlTemplate = Handlebars.compile(queryConfig.updatedResult.url);
-        let bodyTemplate = Handlebars.compile(queryConfig.updatedResult.body || '');
+
+    if (queryConfig.updated) {
+        let urlTemplate = Handlebars.compile(queryConfig.updated.url);
+        let bodyTemplate = Handlebars.compile(queryConfig.updated.body || '');
 
         let headers = new AxiosHeaders();
         if (reactionConfig.token) {
             headers.setAuthorization(`Bearer ${reactionConfig.token}`);
         }
-        for (let k in queryConfig.updatedResult.headers) {            
-            headers.set(k, queryConfig.updatedResult.headers[k]);
+        for (let k in queryConfig.updated.headers) {
+            headers.set(k, queryConfig.updated.headers[k]);
         }
 
         for (let updated of event.updatedResults) {
@@ -106,7 +105,7 @@ async function onChangeEvent(event: ChangeEvent, queryConfig?: QueryConfig): Pro
             let resp = await axios.request({
                 baseURL: reactionConfig.baseUrl,
                 url: url,
-                method: queryConfig.updatedResult.method,
+                method: queryConfig.updated.method,
                 timeout: reactionConfig.timeout,
                 data: body,
                 headers: headers,
