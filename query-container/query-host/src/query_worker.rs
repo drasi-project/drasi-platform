@@ -146,6 +146,15 @@ impl QueryWorker {
                 }
             };
 
+            // Generate timestamp-based starting position to avoid missing entries
+            let start_timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis();
+            
+            let start_id = format!("{}-0", start_timestamp);
+            log::info!("Generated start_id for Redis stream: {}", start_id);
+
             fill_default_source_labels(&mut modified_config, &continuous_query.get_query());
 
             let source_publisher = change_stream::publisher::Publisher::connect(
@@ -229,12 +238,17 @@ impl QueryWorker {
             }
             lifecycle.change_state(QueryState::Running);
 
+            
+            
+            log::info!("Starting change stream from timestamp: {}", start_id);
+
             let change_stream = match RedisChangeStream::new(
                 &stream_config.redis_url,
                 &topic,
                 &query_id,
                 stream_config.buffer_size,
                 stream_config.fetch_batch_size,
+                Some(&start_id),
             )
             .await
             {

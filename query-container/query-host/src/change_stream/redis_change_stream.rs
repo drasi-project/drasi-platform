@@ -40,12 +40,24 @@ impl RedisChangeStream {
         group_id: &str,
         buffer_size: usize,
         fetch_batch_size: usize,
+        start_id: Option<&str>,
     ) -> Result<Self, ChangeStreamError> {
         let client = redis::Client::open(url)?;
         let mut connection = client.get_async_connection().await?;
 
+        let starting_position = match start_id {
+            Some(id) => {
+                log::info!("Using provided start_id: {}", id);
+                id
+            },
+            None => {
+                log::info!("No start_id provided, using '$'");
+                "$"
+            }
+        };
+        
         match connection
-            .xgroup_create_mkstream::<&str, &str, &str, String>(topic, group_id, "$")
+            .xgroup_create_mkstream::<&str, &str, &str, String>(topic, group_id, starting_position)
             .await
         {
             Ok(res) => log::info!("Created consumer group: {:?}", res),
