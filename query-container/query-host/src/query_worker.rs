@@ -146,6 +146,13 @@ impl QueryWorker {
                 }
             };
 
+            let start_timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis();
+            
+            let start_id = format!("{}-0", start_timestamp);
+
             fill_default_source_labels(&mut modified_config, &continuous_query.get_query());
 
             let source_publisher = change_stream::publisher::Publisher::connect(
@@ -235,6 +242,7 @@ impl QueryWorker {
                 &query_id,
                 stream_config.buffer_size,
                 stream_config.fetch_batch_size,
+                Some(&start_id),
             )
             .await
             {
