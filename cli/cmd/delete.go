@@ -17,9 +17,11 @@ package cmd
 import (
 	"errors"
 
+	"drasi.io/cli/output"
+
 	"drasi.io/cli/api"
-	"drasi.io/cli/service"
-	"drasi.io/cli/service/output"
+	"drasi.io/cli/sdk"
+	"drasi.io/cli/sdk/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -62,12 +64,17 @@ Usage examples:
 				return err
 			}
 
-			if !cmd.Flags().Changed("namespace") {
-				cfg := readConfig()
-				namespace = cfg.DrasiNamespace
+			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+			if err != nil {
+				return err
 			}
 
-			client, err := service.MakeApiClient(namespace)
+			platformClient, err := sdk.NewPlatformClient(reg)
+			if err != nil {
+				return err
+			}
+
+			client, err := platformClient.CreateDrasiClient()
 			if err != nil {
 				return err
 			}

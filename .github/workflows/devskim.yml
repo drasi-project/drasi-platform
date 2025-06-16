@@ -27,7 +27,7 @@ permissions:
 jobs:
   lint:
     name: DevSkim
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.repository == 'drasi-project/drasi-platform'
     permissions:
       actions: read

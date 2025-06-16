@@ -1,0 +1,203 @@
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: drasi-infrastructure
+  labels:
+    app: drasi-mongo
+value: 1000
+globalDefault: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drasi-redis
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+  selector:
+    app: drasi-redis
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: drasi-redis
+  labels:
+    app: drasi-redis
+spec:
+  serviceName: drasi-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drasi-redis
+  template:
+    metadata:
+      labels:
+        app: drasi-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command: ["redis-server"]
+          volumeMounts:
+            - name: data
+              mountPath: "/data"
+          resources:
+            limits:
+              cpu: 500m
+            requests:
+              cpu: 250m
+              memory: 512Mi
+          ports:
+            - containerPort: 6379
+              name: redis
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drasi-mongo
+spec:
+  ports:
+  - port: 27017
+    targetPort: 27017
+    name: mongo
+  selector:
+    app: drasi-mongo
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drasi-mongo-init
+data:
+  rs-init.js: >
+    rs.initiate({
+      _id: "rs0",
+      members: [
+        { _id: 0, host: "drasi-mongo-0.drasi-mongo:27017" }
+      ]
+    })
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: drasi-mongo
+  name: drasi-mongo
+spec:
+  serviceName: drasi-mongo
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drasi-mongo
+  template:
+    metadata:
+      labels:
+        app: drasi-mongo
+    spec:
+      priorityClassName: drasi-infrastructure
+      hostAliases:
+      - ip: 127.0.0.1
+        hostnames:          
+          - drasi-mongo-0.drasi-mongo # hack to trick mongo flawed validation, will break if we scale beyond 1 instance of this stateful set. Create a separate stateful set if we want secondary instances.
+      containers:
+      - image: mongo:6
+        name: mongo
+        args: ["--dbpath","/data/db", "--replSet", "rs0", "--bind_ip", "0.0.0.0"]
+        volumeMounts:
+        - name: data
+          mountPath: "/data/db"
+        - name: init
+          mountPath: "/docker-entrypoint-initdb.d"
+        ports:
+        - containerPort: 27017
+          name: mongo
+        resources:
+          limits:
+            cpu: 250m
+          requests:
+            cpu: 250m
+            memory: 512Mi
+      volumes:
+        - name: init
+          configMap:
+            name: drasi-mongo-init
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: dapr-config
+spec:
+  accessControl:
+    defaultAction: allow
+    trustDomain: "public"
+  tracing:
+    samplingRate: "1"
+    zipkin:
+      endpointAddress: "http://otel-collector:9411/api/v2/spans"
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: drasi-state
+spec:
+  type: state.mongodb
+  version: v1
+  metadata:
+    - name: connectionString
+      value: "mongodb://drasi-mongo:27017/?replicaSet=rs0"
+      # The replicaSet parameter is required to enable MongoDB transactions.
+      # Without this, MongoDB treats the connection as a standalone instance,
+      # which does not support transactions (which ultimately means we won't be
+      # able to use it as an actor statestore).
+    - name: actorStateStore
+      value: "true"
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: drasi-pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: "drasi-redis:6379"
+    - name: concurrency
+      value: "1"
+    - name: queueDepth
+      value: "100000"
+    - name: consumerID
+      value: "drasi"
+    - name: redisPassword
+      value: ""

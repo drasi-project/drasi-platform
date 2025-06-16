@@ -44,14 +44,14 @@ public class ChangeHandler : IChangeEventHandler
         {
             case OutputFormat.Packed:
                 var resp = await _queueClient.SendMessageAsync(evt.ToJson());
-                _logger.LogInformation($"Sent message to queue: {resp.Value.MessageId}");
+                _logger.LogInformation("Sent message to queue: {messageId}", resp.Value.MessageId);
                 break;
             case OutputFormat.Unpacked:
                 var notifications = _formatter.Format(evt);
                 foreach (var notification in notifications)
                 {
                     var dzresp = await _queueClient.SendMessageAsync(notification.ToJson());
-                    _logger.LogInformation($"Sent message to queue: {dzresp.Value.MessageId}");
+                    _logger.LogInformation("Sent message to queue: {messageId}", dzresp.Value.MessageId);
                 }
                 break;
             default:
