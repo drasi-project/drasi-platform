@@ -49,16 +49,6 @@ impl RedisChangeStream {
             Some(ts) => format!("{}-0", ts),
             None => "$".to_string(),
         };
-        // let starting_position = match start_id {
-        //     Some(id) => {
-        //         log::info!("Using provided start_id: {}", id);
-        //         id
-        //     },
-        //     None => {
-        //         log::info!("No start_id provided, using '$'");
-        //         "$"
-        //     }
-        // };
         
         match connection
             .xgroup_create_mkstream::<&str, &str, &str, String>(topic, group_id, &starting_position)
