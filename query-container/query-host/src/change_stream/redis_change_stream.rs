@@ -49,7 +49,7 @@ impl RedisChangeStream {
             Some(ts) => format!("{}-0", ts),
             None => "$".to_string(),
         };
-        
+
         match connection
             .xgroup_create_mkstream::<&str, &str, &str, String>(topic, group_id, &starting_position)
             .await
