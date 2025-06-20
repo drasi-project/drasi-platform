@@ -3,5 +3,5 @@
 test:
 	cargo test
 
-publish:
+publish: test
 	cargo publish
