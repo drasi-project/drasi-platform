@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node@sha256:6239c8a63890ed145ae719574112bc2e37e839a56323bef8d292a579102cdfc2
+FROM node@sha256:d1db2ecd11f417ab2ff4fef891b4d27194c367d101f9b9cd546a26e424e93d31
 #node:18-alpine3.16
 
 WORKDIR /usr/src/app
