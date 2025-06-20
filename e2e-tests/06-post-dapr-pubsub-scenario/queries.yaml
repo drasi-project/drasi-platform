@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ContinuousQuery
+name: product-updates-packed
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: pubsub-pg-source
+        nodes:
+          - sourceLabel: product
+  query: >
+    MATCH
+      (p:product)
+    RETURN
+      p.product_id AS product_id,
+      p.name AS name,
+      p.description AS description,
+      p.price AS price
+---
+apiVersion: v1
+kind: ContinuousQuery
+name: product-updates-unpacked
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: pubsub-pg-source
+        nodes:
+          - sourceLabel: product
+  query: >
+    MATCH
+      (p:product)
+    RETURN
+      p.product_id AS product_id,
+      p.name AS name,
+      p.description AS description,
+      p.price AS price

@@ -4,18 +4,18 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy solution and project files
-COPY sync-statestore.sln ./
-COPY Drasi.Reactions.SyncDaprStateStore/Drasi.Reactions.SyncDaprStateStore.csproj ./Drasi.Reactions.SyncDaprStateStore/
+COPY post-dapr-pubsub.sln ./
+COPY Drasi.Reactions.PostDaprPubSub/Drasi.Reactions.PostDaprPubSub.csproj ./Drasi.Reactions.PostDaprPubSub/
 
 # Restore dependencies
-RUN dotnet restore "./Drasi.Reactions.SyncDaprStateStore/Drasi.Reactions.SyncDaprStateStore.csproj"
+RUN dotnet restore "./Drasi.Reactions.PostDaprPubSub/Drasi.Reactions.PostDaprPubSub.csproj"
 
 # Copy only the source code
-COPY Drasi.Reactions.SyncDaprStateStore/ ./Drasi.Reactions.SyncDaprStateStore/
+COPY Drasi.Reactions.PostDaprPubSub/ ./Drasi.Reactions.PostDaprPubSub/
 
 # Build the reaction project
-WORKDIR /src/Drasi.Reactions.SyncDaprStateStore
-RUN dotnet publish "./Drasi.Reactions.SyncDaprStateStore.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+WORKDIR /src/Drasi.Reactions.PostDaprPubSub
+RUN dotnet publish "./Drasi.Reactions.PostDaprPubSub.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Final stage/image
 FROM ubuntu:25.04 AS final
@@ -27,6 +27,6 @@ COPY --from=build /app/publish .
 ENV Logging__LogLevel__Default="Debug"
 ENV Logging__LogLevel__Microsoft="Information"
 ENV Logging__LogLevel__Microsoft_Hosting_Lifetime="Information"
-ENV Logging__LogLevel__Drasi_Reactions_SyncDaprStateStore="Debug"
+ENV Logging__LogLevel__Drasi_Reactions_PostDaprPubSub="Debug"
 
-ENTRYPOINT ["dotnet", "Drasi.Reactions.SyncDaprStateStore.dll"]
+ENTRYPOINT ["dotnet", "Drasi.Reactions.PostDaprPubSub.dll"]

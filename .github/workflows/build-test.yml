@@ -301,6 +301,16 @@ jobs:
             label: 'StoredProc',
             path: './reactions/sql/storedproc-reaction', 
             name: 'reaction-storedproc'
+          },
+          { 
+            label: 'SyncDaprStateStore',
+            path: './reactions/dapr/sync-statestore', 
+            name: 'reaction-sync-dapr-statestore'
+          },
+          { 
+            label: 'PostDaprPubSub',
+            path: './reactions/dapr/post-pubsub', 
+            name: 'reaction-post-dapr-pubsub'
           }
         ]
     steps:

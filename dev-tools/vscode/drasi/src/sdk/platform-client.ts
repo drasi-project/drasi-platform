@@ -34,7 +34,16 @@ class KubernetesPlatformClient implements PlatformClient {
         this.kubeConfig = new KubeConfig();
         
         const decodedYaml = Buffer.from(registration.kubeconfig, 'base64').toString('utf-8');
-        const parsedJson = yaml.load(decodedYaml);
+        const parsedJson: any = yaml.load(decodedYaml);
+
+        if (parsedJson && Array.isArray(parsedJson.clusters)) {
+            for (const cluster of parsedJson.clusters) {
+                if (cluster && cluster.cluster && typeof cluster.cluster.server === 'string') {
+                    cluster.cluster.server = cluster.cluster.server.replace('https://0.0.0.0', 'https://127.0.0.1');
+                }
+            }
+        }
+
         this.kubeConfig.loadFromString(JSON.stringify(parsedJson));
         this.namespace = registration.namespace;
     }
