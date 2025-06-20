@@ -1,0 +1,29 @@
+kind: Reaction
+apiVersion: v1
+name: post-dapr-pubsub
+spec:
+  kind: PostDaprPubSub
+  properties:
+    # No global properties needed for this reaction
+  queries:
+    example-query: |
+      {
+        "pubsubName": "drasi-pubsub",
+        "topicName": "example-topic",
+        "packed": false,
+        "skipControlSignals": false
+      }
+    another-query: |
+      {
+        "pubsubName": "messaging",
+        "topicName": "data-updates",
+        "packed": true,
+        "skipControlSignals": false
+      }
+    control-signals-skipped: |
+      {
+        "pubsubName": "drasi-pubsub",
+        "topicName": "changes-only",
+        "packed": false,
+        "skipControlSignals": true
+      }

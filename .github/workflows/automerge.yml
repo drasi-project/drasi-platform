@@ -92,6 +92,6 @@ jobs:
             }
 
             console.log("Starting automerge workflow...");
-            await processPRs("automerge-patch-candidate", 3, 'squash'); // Patches wait 3 days
-            await processPRs("automerge-minor-candidate", 10, 'squash'); // Minors wait 10 days
+            await processPRs("automerge-patch-candidate", 7, 'squash'); // Patches wait 7 days
+            await processPRs("automerge-minor-candidate", 14, 'squash'); // Minors wait 14 days
             console.log("Automerge workflow finished.");

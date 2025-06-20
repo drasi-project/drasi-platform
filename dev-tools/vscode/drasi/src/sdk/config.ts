@@ -47,12 +47,14 @@ export class ConfigurationRegistry implements Disposable {
 
     constructor() {
         this.basePath = this.getHomeDir() + "/.drasi";
-        this.eventEmitter = new EventEmitter();
-        this.watcher = fs.watch(this.basePath + "/" + currentFile, (eventType, filename) => {
-            if (eventType === "change" && filename === currentFile) {
-                this.eventEmitter.emit("currentRegistrationChanged");
-            }
-        });
+        this.eventEmitter = new EventEmitter();        
+        if (fs.existsSync(this.basePath + "/" + currentFile)) {
+            this.watcher = fs.watch(this.basePath + "/" + currentFile, (eventType, filename) => {
+                if (eventType === "change" && filename === currentFile) {
+                    this.eventEmitter.emit("currentRegistrationChanged");
+                }
+            });
+        }
     }
     
     dispose() {
