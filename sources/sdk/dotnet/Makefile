@@ -7,5 +7,5 @@ install-dependencies:
 test:
 	dotnet test
 
-package:
+package: test
 	dotnet pack Drasi.Source.SDK/Drasi.Source.SDK.csproj -c Release
