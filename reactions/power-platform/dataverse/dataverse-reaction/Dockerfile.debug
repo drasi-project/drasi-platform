@@ -17,7 +17,7 @@ FROM mcr.microsoft.com/dotnet/aspnet@sha256:38178966094e8ac38ac3377fa4195cbf63e9
 WORKDIR /app
 EXPOSE 80
 
-FROM mcr.microsoft.com/dotnet/sdk@sha256:8c6beed050a602970c3d275756ed3c19065e42ce6ca0809f5a6fcbf5d36fd305 AS build
+FROM mcr.microsoft.com/dotnet/sdk@sha256:faa2daf2b72cbe787ee1882d9651fa4ef3e938ee56792b8324516f5a448f3abe AS build
 # mcr.microsoft.com/dotnet/sdk:8.0
 WORKDIR /src
 COPY ["dataverse-reaction.csproj", "."]
