@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG RUNTIME_ENV=production
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet@sha256:38178966094e8ac38ac3377fa4195cbf63e9aef4030f5e62d2810f8a5df769e4 AS base
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet@sha256:1e12c265e1e1b3714c5805ab0cab63380eb687b0a04f3b3ef3392494a6122614 AS base
 # mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 EXPOSE 80
@@ -31,7 +31,7 @@ RUN dotnet build "dataverse-proxy.csproj" -c Release -o /app/build
 FROM build AS publish
 RUN dotnet publish "dataverse-proxy.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet@sha256:38178966094e8ac38ac3377fa4195cbf63e9aef4030f5e62d2810f8a5df769e4 AS production
+FROM mcr.microsoft.com/dotnet/aspnet@sha256:1e12c265e1e1b3714c5805ab0cab63380eb687b0a04f3b3ef3392494a6122614 AS production
 FROM ubuntu:22.04 AS debug
 RUN apt-get update && apt-get install -y bash curl && rm -rf /var/lib/apt/lists/*
 
