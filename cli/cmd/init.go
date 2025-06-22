@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"drasi.io/cli/installers"
 	"drasi.io/cli/output"
@@ -130,7 +131,24 @@ Usage examples:
 			if err != nil {
 				return err
 			}
-			if err := installer.Install(local, containerRegistry, version, output, daprRegistry); err != nil {
+
+			observabilityLevel, err := cmd.Flags().GetString("observability-level")
+			if err != nil {
+				return err
+			}
+			// Validate observability-level
+			validLevels := []string{"none", "metrics", "tracing", "full"}
+			isValid := false
+			for _, level := range validLevels {
+				if strings.ToLower(observabilityLevel) == level {
+					isValid = true
+					break
+				}
+			}
+			if !isValid {
+				return fmt.Errorf("invalid observability-level '%s'; must be one of: none, metrics, tracing, full", observabilityLevel)
+			}
+			if err := installer.Install(local, containerRegistry, version, output, daprRegistry, observabilityLevel); err != nil {
 				return err
 			}
 
@@ -146,6 +164,7 @@ Usage examples:
 	initCommand.Flags().String("dapr-runtime-version", "", "Dapr runtime version to install.")
 	initCommand.Flags().String("dapr-sidecar-version", "latest", "Dapr sidecar (daprd) version to install.")
 	initCommand.Flags().String("dapr-registry", "docker.io/daprio", "Container registry to pull Dapr images from.")
+	initCommand.Flags().String("observability-level", "none", "Observability level to install. Options: none, metrics, tracing, full.")
 
 	return initCommand
 }

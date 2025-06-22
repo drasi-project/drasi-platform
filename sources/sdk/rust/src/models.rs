@@ -179,7 +179,9 @@ mod tests {
             .into_iter()
             .collect(),
         };
-        let change = SourceChange::new(ChangeOp::Create, node, 1234567890, 1, None);
+        let mut change = SourceChange::new(ChangeOp::Create, node, 1234567890000000000, 1234500000123456789 ,1, None);
+        let current_time = 1234567890001234567;
+        change.set_reactivator_end_ns(current_time);
         let serialized = serde_json::to_string(&change).unwrap();
         let expected = json!({
             "op": "i",
@@ -197,11 +199,13 @@ mod tests {
                     "db": "drasi",
                     "lsn": 1,
                     "table": "node",
-                    "ts_ms": 1234567890,
+                    "ts_ns": 1234500000123456789u128,
                 },
             },
-            "ts_ms": 1234567890,
+            "reactivatorStart_ns": 1234567890000000000u128,
+            "reactivatorEnd_ns": current_time,
         });
+        println!("Serialized: {}", serialized);
         assert_eq!(
             serde_json::from_str::<Value>(&serialized).unwrap(),
             expected
@@ -223,7 +227,9 @@ mod tests {
             start_id: "2".to_string(),
             end_id: "3".to_string(),
         };
-        let change = SourceChange::new(ChangeOp::Create, relation, 1234567890, 1, None);
+        let mut change = SourceChange::new(ChangeOp::Create, relation, 1234567890000000000, 1234500000123456789, 1, None);
+        let current_time = 1234567890001234567;
+        change.set_reactivator_end_ns(current_time);
         let serialized = serde_json::to_string(&change).unwrap();
         let expected = json!({
             "op": "i",
@@ -243,10 +249,11 @@ mod tests {
                     "db": "drasi",
                     "lsn": 1,
                     "table": "rel",
-                    "ts_ms": 1234567890,
+                    "ts_ns": 1234500000123456789u128,
                 },
             },
-            "ts_ms": 1234567890,
+            "reactivatorStart_ns": 1234567890000000000u128,
+            "reactivatorEnd_ns": current_time,
         });
         assert_eq!(
             serde_json::from_str::<Value>(&serialized).unwrap(),
@@ -267,7 +274,9 @@ mod tests {
             .into_iter()
             .collect(),
         };
-        let change = SourceChange::new(ChangeOp::Update, node, 1234567890, 1, None);
+        let mut change = SourceChange::new(ChangeOp::Update, node, 1234567890000000000, 1234500000123456789, 1, None);
+        let current_time = 1234567890001234567;
+        change.set_reactivator_end_ns(current_time);
         let serialized = serde_json::to_string(&change).unwrap();
         let expected = json!({
             "op": "u",
@@ -285,10 +294,11 @@ mod tests {
                     "db": "drasi",
                     "lsn": 1,
                     "table": "node",
-                    "ts_ms": 1234567890,
+                    "ts_ns": 1234500000123456789u128,
                 },
             },
-            "ts_ms": 1234567890,
+            "reactivatorEnd_ns": current_time,
+            "reactivatorStart_ns": 1234567890000000000u128,
         });
         assert_eq!(
             serde_json::from_str::<Value>(&serialized).unwrap(),
@@ -309,7 +319,9 @@ mod tests {
             .into_iter()
             .collect(),
         };
-        let change = SourceChange::new(ChangeOp::Delete, node, 1234567890, 1, None);
+        let mut change = SourceChange::new(ChangeOp::Delete, node,1234567890000000000, 1234500000123456789 , 1, None);
+        let current_time = 1234567890001234567;
+        change.set_reactivator_end_ns(current_time);
         let serialized = serde_json::to_string(&change).unwrap();
         let expected = json!({
             "op": "d",
@@ -327,10 +339,11 @@ mod tests {
                     "db": "drasi",
                     "lsn": 1,
                     "table": "node",
-                    "ts_ms": 1234567890,
+                    "ts_ns": 1234500000123456789u128,
                 },
             },
-            "ts_ms": 1234567890,
+            "reactivatorEnd_ns": current_time,
+            "reactivatorStart_ns": 1234567890000000000u128,
         });
         assert_eq!(
             serde_json::from_str::<Value>(&serialized).unwrap(),

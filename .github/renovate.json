@@ -1,0 +1,37 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "prConcurrentLimit": 10,
+  "dependencyDashboard": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "vulnerability"]
+  },
+  "packageRules": [
+    {
+      "description": "Group stable patch updates for potential automerge",
+      "matchUpdateTypes": ["patch"],
+      "minimumReleaseAge": "30 days",
+      "automerge": false,
+      "platformAutomerge": false,
+      "addLabels": ["automerge-patch-candidate"],
+      "groupName": "Safe Patch Updates"
+    },
+    {
+      "description": "Group stable minor updates for potential automerge",
+      "matchUpdateTypes": ["minor"],
+      "minimumReleaseAge": "60 days",
+      "automerge": false,
+      "platformAutomerge": false,
+      "addLabels": ["automerge-minor-candidate"],
+      "groupName": "Safe Minor Updates"
+    },
+    {
+      "description": "Require dashboard approval for major updates, create separate PRs",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}
