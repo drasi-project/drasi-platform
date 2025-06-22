@@ -5,20 +5,26 @@ spec:
   kind: PostDaprOutputBinding
   queries:
     product-query: >
-    {
-        "bindingName": "drasi-output-binding",
+      {
+        "bindingName": "product-outputbinding",
         "bindingType": "redis",
         "bindingOperation": "create",
-        "packed": false,
+        "bindingMetadata": {
+          "key": "product"
+        },
+        "packed": "Unpacked",
         "maxFailureCount": 5,
         "skipControlSignals": false
-    }
+      }
     inventory-query: >
-    {
-        "bindingName": "drasi-output-binding",
+      {
+        "bindingName": "inventory-outputbinding",
         "bindingType": "redis",
         "bindingOperation": "create",
-        "packed": false,
+        "bindingMetadata": {
+          "key": "inventory"
+        },
+        "packed": "Unpacked",
         "maxFailureCount": 5,
         "skipControlSignals": false
-    }
+      }

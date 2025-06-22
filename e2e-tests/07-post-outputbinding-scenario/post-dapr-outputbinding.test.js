@@ -170,11 +170,54 @@ afterAll(async () => {
 });
 
 describe("Dapr OutputBinding Reaction Test Suite", () => {
-  test("INITIAL: should sync the initial state to Dapr statestores", async () => {
+  test("UNPACKED: should sync the initial state to Dapr statestore with create", async () => {
     console.log("Verifying initial state sync for Product data...");
+    const newProductName = `Test Unpacked Packed ${Date.now()}`;
+      const newProductPrice = 99.99;
+      await dbClient.query(
+          "INSERT INTO product (name, description, price) VALUES ($1, 'Unpacked Test Desc', $2)",
+          [newProductName, newProductPrice]
+    );
 
+    const receivedMessage = await waitFor({
+      actionFn: () => productRedisClient.get('product'),
+      predicateFn: (messages) => messages && messages.length >= 1,
+      timeoutMs: 10000,
+      pollIntervalMs: 1000,
+      description: `unpacked message for product "${newProductName}" to appear in Redis`
+    });
     // 1. Verify Product Data (product-statestore)
-    const productKeys = await productRedisClient.keys('*');
-    expect(productKeys.length).toBeGreaterThan(0);
+    expect(receivedMessage).toBeDefined();
+    // JSON Stringify the keys to log them
+    console.log("Received keys from Redis:", JSON.stringify(receivedMessage));
+    expect(receivedMessage).toBeDefined();
+
+    const cloudEvent = receivedMessage;
+    expect(cloudEvent).toBeDefined();
+
+    const drasiPackedEvent = cloudEvent.data; 
+    expect(drasiPackedEvent).toBeDefined();
+
+    expect(drasiPackedEvent.queryId).toBe('product-updates-unpacked');
+    expect(drasiPackedEvent.sourceTimeMs).toBeGreaterThan(0); 
+    expect(drasiPackedEvent.sequence).toBeGreaterThanOrEqual(0); 
+
+    expect(drasiPackedEvent.addedResults).toBeInstanceOf(Array);
+    expect(drasiPackedEvent.addedResults.length).toBe(1);
+    expect(drasiPackedEvent.updatedResults).toBeInstanceOf(Array);
+    expect(drasiPackedEvent.updatedResults.length).toBe(0);
+    expect(drasiPackedEvent.deletedResults).toBeInstanceOf(Array);
+    expect(drasiPackedEvent.deletedResults.length).toBe(0);
+
+    const addedItem = drasiPackedEvent.addedResults[0];
+    expect(addedItem).toBeDefined();
+        
+    expect(addedItem.product_id).toBeDefined(); 
+    expect(addedItem.name).toBe(newProductName); 
+    expect(parseFloat(addedItem.price)).toBe(newProductPrice);
+
+        // Ensure no 'op' or 'payload' fields from the unpacked format are present at this level
+    expect(drasiPackedEvent.op).toBeUndefined();
+    expect(drasiPackedEvent.payload).toBeUndefined();
   });
 });

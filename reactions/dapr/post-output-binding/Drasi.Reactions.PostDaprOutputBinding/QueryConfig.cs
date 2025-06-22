@@ -19,7 +19,10 @@ public class QueryConfig : IValidatableObject
     [Required]
     [JsonPropertyName("bindingOperation")]
     public required string BindingOperation { get; set; }
-    
+
+    [JsonPropertyName("bindingMetadata")]
+    public Dictionary<string, string> BindingMetadata { get; set; } = new();
+
     [Required]
     [JsonPropertyName("bindingType")]
     public required string BindingType { get; set; }
@@ -28,6 +31,7 @@ public class QueryConfig : IValidatableObject
     /// Whether to pack the events into a single message (true) or send as individual messages (false).
     /// </summary>
     [JsonPropertyName("packed")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public OutputFormat Packed { get; set; } = OutputFormat.Unpacked;
     
     /// <summary>
@@ -53,6 +57,6 @@ public class QueryConfig : IValidatableObject
 
 public enum OutputFormat
 {
-    Packed,
-    Unpacked
+    Packed = 1,
+    Unpacked = 0
 }

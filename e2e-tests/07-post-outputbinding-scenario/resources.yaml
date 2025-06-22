@@ -15,7 +15,8 @@ data:
     CREATE TABLE IF NOT EXISTS product (
         product_id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        description TEXT
+        description TEXT,
+        price DECIMAL(10, 2)
     );
 
     CREATE TABLE IF NOT EXISTS inventory (
@@ -30,10 +31,10 @@ data:
     ALTER TABLE inventory OWNER TO replication_group;
 
     -- Insert initial data
-    INSERT INTO product (name, description) VALUES
-      ('SuperWidget', 'An amazing widget with all the features.'),
-      ('MegaGadget', 'The biggest gadget you have ever seen.'),
-      ('TinyThing', 'A small but powerful thing.')
+    INSERT INTO product (name, description, price) VALUES
+      ('SuperWidget', 'An amazing widget with all the features.', 19.99),
+      ('MegaGadget', 'The biggest gadget you have ever seen.', 29.99),
+      ('TinyThing', 'A small but powerful thing.', 9.99)
     ON CONFLICT (product_id) DO NOTHING;
 
     INSERT INTO inventory (product_id, quantity, location) VALUES

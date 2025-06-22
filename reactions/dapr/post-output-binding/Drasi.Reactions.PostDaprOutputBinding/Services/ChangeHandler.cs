@@ -77,11 +77,15 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
             _logger.LogError(ex, "Error publishing event for query {QueryId}", queryId);
             
             // Track failure and check if query should be marked as failed
+            var exceptionMessage = $"{ex.Message} {ex.InnerException?.Message}";
+            // Serialize the exception message for logging
+            //var exJson = JsonSerializer.Serialize(ex, ModelOptions.JsonOptions);
+            //_logger.LogError("Exception details: {ExceptionJson}", exJson);
             bool isFailed = _failureTracker.RecordFailure(
                 queryId, 
                 queryConfig.MaxFailureCount, 
-                $"Error publishing to Dapr output binding: {ex.Message}");
-            
+                $"Error publishing to Dapr output binding: {exceptionMessage}");
+
             if (isFailed)
             {
                 _logger.LogError("Query {QueryId} has been marked as failed after {MaxFailureCount} consecutive failures", 
