@@ -13,7 +13,6 @@
 // limitations under the License.
 
 using Drasi.Reaction.SDK.Models.QueryOutput;
-using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Channels;

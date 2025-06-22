@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Drasi.Reaction.SDK.Models.QueryOutput;
+
 namespace Drasi.Reaction.SDK.Tests;
 
-using Drasi.Reaction.SDK;
-using Drasi.Reaction.SDK.Models.QueryOutput;
-using Microsoft.AspNetCore.TestHost;
 using System.Net.Http.Json;
-using System.Threading.Channels;
 
 public class ReactionTests : IClassFixture<Fixture<object>>
 {
@@ -49,5 +47,16 @@ public class ReactionTests : IClassFixture<Fixture<object>>
         var result = await _fixture.ChangeEventChannel.Reader.ReadAsync();
         Assert.Equal(myEvt.QueryId, result.QueryId);
         Assert.Equal(myEvt.Sequence, result.Sequence);
+    }
+    
+    [Fact]
+    public void ConfigurationValueIsReturned()
+    {
+        // Set Environment Variable for Testing
+        Environment.SetEnvironmentVariable("MyConnectionString", "example-connection-string");
+        var config =  Utils.GetConfigValue("MyConnectionString");
+        
+        Assert.NotNull(config);
+        Assert.Equal("example-connection-string", config);
     }
 }
