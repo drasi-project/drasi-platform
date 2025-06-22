@@ -8,8 +8,13 @@ This reaction forwards Drasi query results to Dapr PubSub topics. It allows mapp
 - Supports both packed and unpacked event formats (unpacked is default, using Drasi native format)
 - Forwards both change events and control signals
 - Configurable per query
+<<<<<<< HEAD
 - Automatic tracking of query failure states
 - Validation of configurations at startup
+=======
+- Validation of configurations at startup
+- Leverages Dapr's built-in retry mechanisms for publishing reliability
+>>>>>>> origin/main
 
 ## Configuration
 
@@ -20,7 +25,10 @@ The reaction is configured using JSON for each query. The configuration includes
 | `pubsubName` | Name of the Dapr PubSub component | `drasi-pubsub` | Yes |
 | `topicName` | Name of the topic to publish to | - | Yes |
 | `packed` | Whether to send events in packed format (`true`) or unpacked (`false`) | `false` | No |
+<<<<<<< HEAD
 | `maxFailureCount` | Max failures before query is marked as failed | `5` | No |
+=======
+>>>>>>> origin/main
 | `skipControlSignals` | Skip publishing control signals | `false` | No |
 
 ### Example Configuration
@@ -39,7 +47,10 @@ spec:
         "pubsubName": "drasi-pubsub",
         "topicName": "example-topic",
         "packed": false,
+<<<<<<< HEAD
         "maxFailureCount": 5,
+=======
+>>>>>>> origin/main
         "skipControlSignals": false
       }
     another-query: |
@@ -47,7 +58,10 @@ spec:
         "pubsubName": "messaging",
         "topicName": "data-updates",
         "packed": true,
+<<<<<<< HEAD
         "maxFailureCount": 10,
+=======
+>>>>>>> origin/main
         "skipControlSignals": false
       }
     control-signals-skipped: |
@@ -55,11 +69,23 @@ spec:
         "pubsubName": "drasi-pubsub",
         "topicName": "changes-only",
         # "packed" defaults to false
+<<<<<<< HEAD
         "maxFailureCount": 5,
+=======
+>>>>>>> origin/main
         "skipControlSignals": true
       }
 ```
 
+<<<<<<< HEAD
+=======
+## Error Handling and Retries
+
+If an error occurs while attempting to publish an event to the configured Dapr Pub/Sub topic (e.g., the Dapr sidecar is temporarily unavailable or the Pub/Sub component returns an error), the reaction will throw an exception.
+
+Drasi's internal infrastructure, which uses a Dapr Pub/Sub component to deliver messages to reactions, will handle this exception. This typically results in the message being redelivered to the `PostDaprPubSub` reaction later, effectively retrying the publish operation. The exact retry behavior (number of retries, backoff strategy) is governed by the Dapr Pub/Sub component's configuration used internally by Drasi for reaction message delivery. This ensures that transient issues during publishing do not lead to lost messages, relying on Dapr's inherent resilience.
+
+>>>>>>> origin/main
 ## Event Formats
 
 ### Packed vs. Unpacked
@@ -73,4 +99,8 @@ The native Drasi format uses these operation types:
 - Insert operations (I): For new data added
 - Update operations (U): For data changes
 - Delete operations (D): For data removed
+<<<<<<< HEAD
 - Control signals (X): For system events
+=======
+- Control signals (X): For system events
+>>>>>>> origin/main

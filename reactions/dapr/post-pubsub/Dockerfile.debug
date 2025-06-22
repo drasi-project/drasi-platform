@@ -29,5 +29,8 @@ ENV Logging__LogLevel__Microsoft="Information"
 ENV Logging__LogLevel__Microsoft_Hosting_Lifetime="Information"
 ENV Logging__LogLevel__Drasi_Reactions_PostDaprPubSub="Debug"
 
+<<<<<<< HEAD
 USER app
+=======
+>>>>>>> origin/main
 ENTRYPOINT ["dotnet", "Drasi.Reactions.PostDaprPubSub.dll"]

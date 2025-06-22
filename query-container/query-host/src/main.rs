@@ -101,6 +101,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut middleware_registry = MiddlewareTypeRegistry::new();
     middleware_registry.register(Arc::new(drasi_middleware::map::MapFactory::new()));
     middleware_registry.register(Arc::new(drasi_middleware::unwind::UnwindFactory::new()));
+    middleware_registry.register(Arc::new(drasi_middleware::decoder::DecoderFactory::new()));
+    middleware_registry.register(Arc::new(
+        drasi_middleware::parse_json::ParseJsonFactory::new(),
+    ));
+    middleware_registry.register(Arc::new(
+        drasi_middleware::promote::PromoteMiddlewareFactory::new(),
+    ));
     let middleware_registry = Arc::new(middleware_registry);
 
     dapr_server

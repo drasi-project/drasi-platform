@@ -18,6 +18,25 @@ using System.Text.Json.Serialization;
 namespace Drasi.Reactions.PostDaprPubSub;
 
 /// <summary>
+<<<<<<< HEAD
+=======
+/// Specifies the format mode for publishing events.
+/// </summary>
+public enum OutputFormat
+{
+    /// <summary>
+    /// Send individual messages for each change (default).
+    /// </summary>
+    Unpacked = 0,
+    
+    /// <summary>
+    /// Send the entire ChangeEvent as a single message.
+    /// </summary>
+    Packed = 1
+}
+
+/// <summary>
+>>>>>>> origin/main
 /// Configuration for the PostDaprPubSub reaction.
 /// Maps Drasi queries to Dapr pubsub topics.
 /// </summary>
@@ -38,6 +57,7 @@ public class QueryConfig : IValidatableObject
     public string TopicName { get; set; } = string.Empty;
 
     /// <summary>
+<<<<<<< HEAD
     /// Whether to pack the events into a single message (true) or send as individual messages (false).
     /// </summary>
     [JsonPropertyName("packed")]
@@ -48,6 +68,13 @@ public class QueryConfig : IValidatableObject
     /// </summary>
     [JsonPropertyName("maxFailureCount")]
     public int MaxFailureCount { get; set; } = 5;
+=======
+    /// Specifies how events should be formatted when published.
+    /// </summary>
+    [JsonPropertyName("format")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public OutputFormat Format { get; set; } = OutputFormat.Unpacked;
+>>>>>>> origin/main
     
     /// <summary>
     /// Whether to skip publishing control signals to the topic.
@@ -57,9 +84,13 @@ public class QueryConfig : IValidatableObject
     
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+<<<<<<< HEAD
         if (MaxFailureCount <= 0)
         {
             yield return new ValidationResult("MaxFailureCount must be greater than 0", [nameof(MaxFailureCount)]);
         }
+=======
+        yield break;
+>>>>>>> origin/main
     }
 }

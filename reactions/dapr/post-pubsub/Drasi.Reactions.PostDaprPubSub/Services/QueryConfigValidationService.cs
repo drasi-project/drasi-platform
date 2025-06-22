@@ -12,12 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+<<<<<<< HEAD
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using Drasi.Reaction.SDK.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Drasi.Reactions.PostDaprPubSub.Services;
+=======
+using Drasi.Reaction.SDK.Services;
+using Microsoft.Extensions.Logging;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+
+namespace Drasi.Reactions.PostDaprPubSub;
+>>>>>>> origin/main
 
 public interface IQueryConfigValidationService
 {

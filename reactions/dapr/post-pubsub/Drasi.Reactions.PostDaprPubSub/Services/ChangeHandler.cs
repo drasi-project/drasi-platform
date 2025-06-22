@@ -25,18 +25,28 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
     private readonly DaprClient _daprClient;
     private readonly IChangeFormatterFactory _formatterFactory;
     private readonly ILogger<ChangeHandler> _logger;
+<<<<<<< HEAD
     private readonly IQueryFailureTracker _failureTracker;
+=======
+>>>>>>> origin/main
 
     public ChangeHandler(
         DaprClient daprClient, 
         IChangeFormatterFactory formatterFactory, 
+<<<<<<< HEAD
         ILogger<ChangeHandler> logger,
         IQueryFailureTracker failureTracker)
+=======
+        ILogger<ChangeHandler> logger)
+>>>>>>> origin/main
     {
         _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
         _formatterFactory = formatterFactory ?? throw new ArgumentNullException(nameof(formatterFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+<<<<<<< HEAD
         _failureTracker = failureTracker ?? throw new ArgumentNullException(nameof(failureTracker));
+=======
+>>>>>>> origin/main
     }
 
     public async Task HandleChange(ChangeEvent evt, QueryConfig? config)
@@ -44,6 +54,7 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
         var queryId = evt.QueryId;
         var queryConfig = config
             ?? throw new ArgumentNullException(nameof(config), $"Query configuration is null for query {queryId}");
+<<<<<<< HEAD
             
         // Check if the query is already in a failed state
         if (_failureTracker.IsQueryFailed(queryId))
@@ -52,10 +63,13 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
             _logger.LogError("Rejecting change event for failed query {QueryId}. Reason: {Reason}", queryId, reason);
             throw new InvalidOperationException($"Query {queryId} is in a failed state: {reason}");
         }
+=======
+>>>>>>> origin/main
 
         _logger.LogDebug("Processing change event for query {QueryId} with pubsub {PubsubName} and topic {TopicName}",
             queryId, queryConfig.PubsubName, queryConfig.TopicName);
 
+<<<<<<< HEAD
         try
         {
             if (queryConfig.Packed)
@@ -89,6 +103,17 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
             }
             
             throw; // Rethrow to let Drasi SDK handle the failure
+=======
+        if (queryConfig.Format == OutputFormat.Packed)
+        {
+            // Send the complete change event as a single message
+            await PublishPackedEvent(evt, queryConfig);
+        }
+        else
+        {
+            // Format and send individual events for each change
+            await PublishUnpackedEvents(evt, queryConfig);
+>>>>>>> origin/main
         }
     }
     

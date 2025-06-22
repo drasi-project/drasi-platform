@@ -25,6 +25,7 @@ public class ControlSignalHandler : IControlEventHandler<QueryConfig>
 {
     private readonly DaprClient _daprClient;
     private readonly ILogger<ControlSignalHandler> _logger;
+<<<<<<< HEAD
     private readonly IQueryFailureTracker _failureTracker;
 
     public ControlSignalHandler(
@@ -35,6 +36,15 @@ public class ControlSignalHandler : IControlEventHandler<QueryConfig>
         _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _failureTracker = failureTracker ?? throw new ArgumentNullException(nameof(failureTracker));
+=======
+
+    public ControlSignalHandler(
+        DaprClient daprClient, 
+        ILogger<ControlSignalHandler> logger)
+    {
+        _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+>>>>>>> origin/main
     }
 
     public async Task HandleControlSignal(ControlEvent evt, QueryConfig? config)
@@ -43,6 +53,7 @@ public class ControlSignalHandler : IControlEventHandler<QueryConfig>
         var queryConfig = config
             ?? throw new ArgumentNullException(nameof(config), $"Query configuration is null for query {queryId}");
 
+<<<<<<< HEAD
         // Check if the query is already in a failed state
         if (_failureTracker.IsQueryFailed(queryId))
         {
@@ -51,6 +62,8 @@ public class ControlSignalHandler : IControlEventHandler<QueryConfig>
             throw new InvalidOperationException($"Query {queryId} is in a failed state: {reason}");
         }
 
+=======
+>>>>>>> origin/main
         if (queryConfig.SkipControlSignals)
         {
             _logger.LogDebug("Skipping control signal {SignalType} for query {QueryId} (skipControlSignals=true)",
@@ -61,6 +74,7 @@ public class ControlSignalHandler : IControlEventHandler<QueryConfig>
         _logger.LogDebug("Processing control signal {SignalType} for query {QueryId} with pubsub {PubsubName} and topic {TopicName}",
             evt.ControlSignal.Kind, queryId, queryConfig.PubsubName, queryConfig.TopicName);
 
+<<<<<<< HEAD
         try
         {
             if (queryConfig.Packed)
@@ -117,6 +131,40 @@ public class ControlSignalHandler : IControlEventHandler<QueryConfig>
             }
             
             throw; // Rethrow to let Drasi SDK handle the failure
+=======
+        if (queryConfig.Format == OutputFormat.Packed)
+        {
+            // Send the complete control event as a single message
+            var serializedEvent = JsonSerializer.Serialize(evt, ModelOptions.JsonOptions);
+            using var doc = JsonDocument.Parse(serializedEvent);
+            await _daprClient.PublishEventAsync(queryConfig.PubsubName, queryConfig.TopicName, doc.RootElement);
+            _logger.LogDebug("Published packed control signal for query {QueryId}", queryId);
+        }
+        else
+        {
+            // Create and send an unpacked control signal
+            var notification = new ControlSignalNotification
+            {
+                Op = ControlSignalNotificationOp.X,
+                TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                Payload = new ControlSignalNotificationPayload()
+                {
+                    Kind = JsonSerializer.Serialize(evt.ControlSignal.Kind, ModelOptions.JsonOptions).Trim('"'),
+                    Source = new SourceClass()
+                    {
+                        QueryId = queryId,
+                        TsMs = evt.SourceTimeMs
+                    }
+                }
+            };
+
+            var serializedData = JsonSerializer.Serialize(notification, Converter.Settings);
+            using var doc = JsonDocument.Parse(serializedData);
+            JsonElement serializedEvent = doc.RootElement.Clone();
+
+            await _daprClient.PublishEventAsync(queryConfig.PubsubName, queryConfig.TopicName, serializedEvent);
+            _logger.LogDebug("Published unpacked control signal for query {QueryId}", queryId);
+>>>>>>> origin/main
         }
     }
 }

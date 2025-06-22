@@ -306,6 +306,11 @@ jobs:
             label: 'SyncDaprStateStore',
             path: './reactions/dapr/sync-statestore', 
             name: 'reaction-sync-dapr-statestore'
+          },
+          { 
+            label: 'PostDaprPubSub',
+            path: './reactions/dapr/post-pubsub', 
+            name: 'reaction-post-dapr-pubsub'
           }
         ]
     steps:
@@ -373,6 +378,36 @@ jobs:
           name: cli
           path: cli/bin
 
+  test-source-sdks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Test Java SDK
+        run: |
+          cd sources/sdk/java
+          make test
+      - name: Test .NET SDK
+        run: |
+          cd sources/sdk/dotnet
+          make test
+
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+        
+      - name: Test Rust SDK
+        run: |
+          cd sources/sdk/rust
+          make test
+          
   e2e-tests:
     permissions:
       packages: write

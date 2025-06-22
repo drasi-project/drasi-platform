@@ -1,10 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
-  "schedule": ["before 8am on monday"],
-  "timezone": "America/Los_Angeles",
   "prConcurrentLimit": 10,
   "dependencyDashboard": true,
   "vulnerabilityAlerts": {
@@ -15,7 +13,7 @@
     {
       "description": "Group stable patch updates for potential automerge",
       "matchUpdateTypes": ["patch"],
-      "minimumReleaseAge": "7 days",
+      "minimumReleaseAge": "30 days",
       "automerge": false,
       "platformAutomerge": false,
       "addLabels": ["automerge-patch-candidate"],
@@ -24,7 +22,7 @@
     {
       "description": "Group stable minor updates for potential automerge",
       "matchUpdateTypes": ["minor"],
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "60 days",
       "automerge": false,
       "platformAutomerge": false,
       "addLabels": ["automerge-minor-candidate"],

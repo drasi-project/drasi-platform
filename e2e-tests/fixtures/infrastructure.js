@@ -40,7 +40,11 @@ const images = [
   "drasi-project/reaction-storedproc",
   "drasi-project/reaction-gremlin",
   "drasi-project/reaction-sync-dapr-statestore",
+<<<<<<< HEAD
   "drasi-project/reaction-post-dapr-output-binding",
+=======
+  "drasi-project/reaction-post-dapr-pubsub",
+>>>>>>> origin/main
 ];
 
 async function loadDrasiImages(clusterName) {

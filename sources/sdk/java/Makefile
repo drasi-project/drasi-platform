@@ -9,5 +9,5 @@ test:
 package:
 	mvn package
 
-deploy:
+deploy: test
 	mvn deploy
