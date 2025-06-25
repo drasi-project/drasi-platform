@@ -49,9 +49,10 @@ async fn serves_messages_sequentially() {
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     let _: redis::Value = connection
         .xadd(&query_container_id, "*", &[("data", "{\"data\": 1}")])
@@ -103,9 +104,10 @@ async fn buffers_messages() {
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     for i in 1..=10 {
         let _: redis::Value = connection
@@ -157,9 +159,10 @@ async fn recovers_unack_messages() {
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     for i in 1..=10 {
         let _: redis::Value = connection
@@ -182,9 +185,10 @@ async fn recovers_unack_messages() {
 
     drop(subject);
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     for i in 6..=10 {
         let msg = subject.recv::<TestMessage>().await.unwrap().unwrap();
@@ -209,9 +213,10 @@ async fn waits_for_new_messages() {
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     task::spawn(async move {
         tokio::time::sleep(Duration::from_millis(1000)).await;
@@ -240,9 +245,10 @@ async fn stops_buffering_on_drop() {
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     for i in 1..=5 {
         let _: redis::Value = connection
