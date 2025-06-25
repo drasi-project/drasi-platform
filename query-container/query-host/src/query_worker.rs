@@ -240,7 +240,7 @@ impl QueryWorker {
                 &query_id,
                 stream_config.buffer_size,
                 stream_config.fetch_batch_size,
-                Some(start_timestamp),
+                start_timestamp,
             )
             .await
             {
