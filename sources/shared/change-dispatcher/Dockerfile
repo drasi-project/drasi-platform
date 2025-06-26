@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-FROM rust:1.84-bullseye as builder
+FROM rust:1.85-bullseye as builder
 RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
 
 
