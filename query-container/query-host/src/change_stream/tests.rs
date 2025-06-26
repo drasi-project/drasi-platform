@@ -39,15 +39,20 @@ async fn serves_messages_sequentially() {
     let url = get_url();
     let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
+    let start_timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
         .get_multiplexed_async_connection()
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     let _: redis::Value = connection
         .xadd(&query_container_id, "*", &[("data", "{\"data\": 1}")])
@@ -89,15 +94,20 @@ async fn buffers_messages() {
     let url = get_url();
     let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
+    let start_timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
         .get_async_connection()
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     for i in 1..=10 {
         let _: redis::Value = connection
@@ -139,15 +149,20 @@ async fn recovers_unack_messages() {
     let url = get_url();
     let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
+    let start_timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
         .get_async_connection()
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     for i in 1..=10 {
         let _: redis::Value = connection
@@ -170,9 +185,10 @@ async fn recovers_unack_messages() {
 
     drop(subject);
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     for i in 6..=10 {
         let msg = subject.recv::<TestMessage>().await.unwrap().unwrap();
@@ -187,15 +203,20 @@ async fn waits_for_new_messages() {
     let url = get_url();
     let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
+    let start_timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
         .get_multiplexed_async_connection()
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     task::spawn(async move {
         tokio::time::sleep(Duration::from_millis(1000)).await;
@@ -214,15 +235,20 @@ async fn stops_buffering_on_drop() {
     let url = get_url();
     let query_container_id = format!("test:{}", Uuid::new_v4());
     let query_id = Uuid::new_v4().to_string();
+    let start_timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
     let mut connection = redis::Client::open(url.as_str())
         .unwrap()
         .get_async_connection()
         .await
         .unwrap();
 
-    let subject = RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3)
-        .await
-        .unwrap();
+    let subject =
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+            .await
+            .unwrap();
 
     for i in 1..=5 {
         let _: redis::Value = connection
