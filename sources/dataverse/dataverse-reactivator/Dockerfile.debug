@@ -18,7 +18,7 @@ WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@sha256:8c6beed050a602970c3d275756ed3c19065e42ce6ca0809f5a6fcbf5d36fd305 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@sha256:faa2daf2b72cbe787ee1882d9651fa4ef3e938ee56792b8324516f5a448f3abe AS build
 # mcr.microsoft.com/dotnet/sdk:8.0
 WORKDIR /src
 COPY ["dataverse-reactivator.csproj", "."]

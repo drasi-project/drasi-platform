@@ -19,7 +19,7 @@ FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet@sha256:3ded9ccf0
 WORKDIR /app
 EXPOSE 80
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@sha256:cab0284cce7bc26d41055d0ac5859a69a8b75d9a201cd226999f4f00cc983f13 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@sha256:faa2daf2b72cbe787ee1882d9651fa4ef3e938ee56792b8324516f5a448f3abe AS build
 # mcr.microsoft.com/dotnet/sdk:8.0
 WORKDIR /src
 COPY ["result-reaction.csproj", "."]
