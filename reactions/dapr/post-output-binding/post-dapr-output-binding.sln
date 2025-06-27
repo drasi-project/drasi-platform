@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Drasi.Reactions.PostDaprOutputBinding", "Drasi.Reactions.PostDaprOutputBinding\Drasi.Reactions.PostDaprOutputBinding.csproj", "{1F2F43DE-37F6-4701-81B6-8C7B81CB3DF7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Drasi.Reactions.PostDaprOutputBinding.Tests", "Drasi.Reactions.PostDaprOutputBinding.Tests\Drasi.Reactions.PostDaprOutputBinding.Tests.csproj", "{36B32281-FF13-4DFB-892F-167DBCDD4363}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F2F43DE-37F6-4701-81B6-8C7B81CB3DF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F2F43DE-37F6-4701-81B6-8C7B81CB3DF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F2F43DE-37F6-4701-81B6-8C7B81CB3DF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F2F43DE-37F6-4701-81B6-8C7B81CB3DF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36B32281-FF13-4DFB-892F-167DBCDD4363}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36B32281-FF13-4DFB-892F-167DBCDD4363}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36B32281-FF13-4DFB-892F-167DBCDD4363}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36B32281-FF13-4DFB-892F-167DBCDD4363}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

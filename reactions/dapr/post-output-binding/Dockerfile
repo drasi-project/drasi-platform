@@ -1,0 +1,32 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+
+# Copy solution and project files
+COPY post-dapr-output-binding.sln ./
+COPY Drasi.Reactions.PostDaprOutputBinding/Drasi.Reactions.PostDaprOutputBinding.csproj ./Drasi.Reactions.PostDaprOutputBinding/
+
+# Restore dependencies
+RUN dotnet restore "./Drasi.Reactions.PostDaprOutputBinding/Drasi.Reactions.PostDaprOutputBinding.csproj"
+
+# Copy only the source code
+COPY Drasi.Reactions.PostDaprOutputBinding/ ./Drasi.Reactions.PostDaprOutputBinding/
+
+# Build the reaction project
+WORKDIR /src/Drasi.Reactions.PostDaprOutputBinding
+RUN dotnet publish "./Drasi.Reactions.PostDaprOutputBinding.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# Final stage/image
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Set log levels for reaction in production
+ENV Logging__LogLevel__Default="Debug"
+ENV Logging__LogLevel__Microsoft="Warning"
+ENV Logging__LogLevel__Microsoft_Hosting_Lifetime="Information"
+ENV Logging__LogLevel__Drasi_Reactions_PostDaprOutputBinding="Debug"
+
+USER app
+ENTRYPOINT ["dotnet", "Drasi.Reactions.PostDaprOutputBinding.dll"]
