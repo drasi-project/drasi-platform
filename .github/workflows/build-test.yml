@@ -311,6 +311,11 @@ jobs:
             label: 'PostDaprPubSub',
             path: './reactions/dapr/post-pubsub', 
             name: 'reaction-post-dapr-pubsub'
+          },
+          { 
+            label: 'Http',
+            path: './reactions/http', 
+            name: 'reaction-http'
           }
         ]
     steps:
