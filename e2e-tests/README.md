@@ -5,7 +5,7 @@
 - [Kind](https://kind.sigs.k8s.io/)
 - Node
 - Build the Drasi CLI and add it to your path
-
+- Having build all images locally by running ```bash make docker-build``` at project root
 ## Running
 
 ```bash

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ReactionProvider
+name: PostDaprOutputBinding
+spec:
+  services:
+    reaction:
+      image: reaction-post-dapr-output-binding
+  config_schema:
+    type: object
+    properties:
+      metadata:
+        type: object

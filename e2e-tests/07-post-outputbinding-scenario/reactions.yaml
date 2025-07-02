@@ -1,0 +1,33 @@
+kind: Reaction
+apiVersion: v1
+name: sync-dapr-statestore
+spec:
+  kind: PostDaprOutputBinding
+  properties:
+    metadata:
+      targetKey: "product-1"
+  queries:
+    product-query: >
+      {
+        "bindingName": "product-outputbinding",
+        "bindingType": "redis",
+        "bindingOperation": "create",
+        "bindingMetadata": {
+          "key": "{{targetKey}}"
+        },
+        "packed": "Unpacked",
+        "maxFailureCount": 5,
+        "skipControlSignals": false
+      }
+    inventory-query: >
+      {
+        "bindingName": "inventory-outputbinding",
+        "bindingType": "redis",
+        "bindingOperation": "create",
+        "bindingMetadata": {
+          "key": "inventory"
+        },
+        "packed": "Unpacked",
+        "maxFailureCount": 5,
+        "skipControlSignals": false
+      }

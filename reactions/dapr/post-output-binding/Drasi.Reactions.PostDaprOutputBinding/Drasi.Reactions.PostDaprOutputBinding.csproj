@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.8-alpha" />
+        <PackageReference Include="Dapr.Client" Version="1.15.4" />
+        <PackageReference Include="System.Text.Json" Version="9.0.6" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
+        <PackageReference Include="Handlebars.Net" Version="2.1.6" />
+    </ItemGroup>
+</Project>
