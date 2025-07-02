@@ -256,4 +256,23 @@ spec:
   services:
     reaction:
       image: reaction-post-dapr-pubsub
+---
+apiVersion: v1
+kind: ReactionProvider
+name: Http
+spec:
+  services:
+    reaction:
+      image: reaction-http
+  config_schema:
+    type: object
+    properties: 
+      baseUrl:
+        type: string
+      token:
+        type: string
+      timeout:
+        type: number      
+    required:
+      - baseUrl
 

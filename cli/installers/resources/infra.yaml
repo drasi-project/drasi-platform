@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:7-alpine
+          image: ghcr.io/drasi-project/redis:7-alpine
           command: ["redis-server"]
           volumeMounts:
             - name: data
@@ -123,7 +123,7 @@ spec:
         hostnames:          
           - drasi-mongo-0.drasi-mongo # hack to trick mongo flawed validation, will break if we scale beyond 1 instance of this stateful set. Create a separate stateful set if we want secondary instances.
       containers:
-      - image: mongo:6
+      - image: ghcr.io/drasi-project/mongo:6
         name: mongo
         args: ["--dbpath","/data/db", "--replSet", "rs0", "--bind_ip", "0.0.0.0"]
         volumeMounts:
