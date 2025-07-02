@@ -32,10 +32,6 @@ try
             
             // Register services
             services.AddSingleton<IErrorStateHandler, ErrorStateHandler>();
-<<<<<<< HEAD
-            services.AddSingleton<IQueryFailureTracker, QueryFailureTracker>();
-=======
->>>>>>> origin/main
             services.AddSingleton<IQueryConfigValidationService, QueryConfigValidationService>();
             services.AddSingleton<IDaprInitializationService, DaprInitializationService>();
             
@@ -60,12 +56,7 @@ try
 }
 catch (Exception ex)
 {
-<<<<<<< HEAD
-    Console.Error.WriteLine($"Fatal error starting reaction: {ex.Message}");
-    Environment.Exit(1);
-=======
     var errorStateHandler = new ErrorStateHandler();
     errorStateHandler.Terminate($"Fatal error starting PostDaprPubSub reaction: {ex.Message}");
     throw;
->>>>>>> origin/main
 }

@@ -3,6 +3,9 @@ apiVersion: v1
 name: sync-dapr-statestore
 spec:
   kind: PostDaprOutputBinding
+  properties:
+    metadata:
+      targetKey: "product-1"
   queries:
     product-query: >
       {
@@ -10,7 +13,7 @@ spec:
         "bindingType": "redis",
         "bindingOperation": "create",
         "bindingMetadata": {
-          "key": "product"
+          "key": "{{targetKey}}"
         },
         "packed": "Unpacked",
         "maxFailureCount": 5,

@@ -17,6 +17,7 @@ using Drasi.Reactions.PostDaprOutputBinding;
 using Drasi.Reactions.PostDaprOutputBinding.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
 try
 {
     var reaction = new ReactionBuilder<QueryConfig>()

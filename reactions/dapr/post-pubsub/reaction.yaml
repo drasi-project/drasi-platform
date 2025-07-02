@@ -11,10 +11,6 @@ spec:
         "pubsubName": "drasi-pubsub",
         "topicName": "example-topic",
         "packed": false,
-<<<<<<< HEAD
-        "maxFailureCount": 5,
-=======
->>>>>>> origin/main
         "skipControlSignals": false
       }
     another-query: |
@@ -22,10 +18,6 @@ spec:
         "pubsubName": "messaging",
         "topicName": "data-updates",
         "packed": true,
-<<<<<<< HEAD
-        "maxFailureCount": 10,
-=======
->>>>>>> origin/main
         "skipControlSignals": false
       }
     control-signals-skipped: |
@@ -33,9 +25,5 @@ spec:
         "pubsubName": "drasi-pubsub",
         "topicName": "changes-only",
         "packed": false,
-<<<<<<< HEAD
-        "maxFailureCount": 5,
-=======
->>>>>>> origin/main
         "skipControlSignals": true
       }

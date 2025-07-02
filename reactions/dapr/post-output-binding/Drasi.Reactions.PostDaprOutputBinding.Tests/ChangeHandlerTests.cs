@@ -17,6 +17,8 @@ using Dapr;
 using Dapr.Client;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 using Drasi.Reactions.PostDaprOutputBinding.Services;
+using HandlebarsDotNet;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -29,6 +31,8 @@ public class ChangeHandlerTests
     private readonly Mock<IChangeFormatterFactory> _mockFormatterFactory;
     private readonly Mock<ILogger<ChangeHandler>> _mockLogger;
     private readonly Mock<IQueryFailureTracker> _mockFailureTracker;
+    private readonly Mock<IConfiguration> _mockConfig;
+    
     private readonly ChangeHandler _handler;
     
     public ChangeHandlerTests()
@@ -37,12 +41,21 @@ public class ChangeHandlerTests
         _mockFormatterFactory = new Mock<IChangeFormatterFactory>();
         _mockLogger = new Mock<ILogger<ChangeHandler>>();
         _mockFailureTracker = new Mock<IQueryFailureTracker>();
+        _mockConfig = new Mock<IConfiguration>();
+        var mockSection = new Mock<IConfigurationSection>();
+        mockSection
+            .Setup(s => s.GetChildren())
+            .Returns(new List<IConfigurationSection>());
+        _mockConfig
+            .Setup(c => c.GetSection("metadata"))
+            .Returns(mockSection.Object);
         
         _handler = new ChangeHandler(
             _mockDaprClient.Object,
             _mockFormatterFactory.Object,
             _mockLogger.Object,
-            _mockFailureTracker.Object
+            _mockFailureTracker.Object,
+            _mockConfig.Object
         );
     }
     
@@ -162,6 +175,141 @@ public class ChangeHandlerTests
         ), Times.Once);
         
         _mockFailureTracker.Verify(ft => ft.ResetFailures("test-query"), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleChange_ValidTemplate()
+    {
+        // Arrange
+        var evt = new ChangeEvent { 
+            QueryId = "test-query",
+            AddedResults = new[] { 
+                new Dictionary<string, object> { { "id", "1" } },
+                new Dictionary<string, object> { { "id", "2" } }
+            }
+        };
+        var config = new QueryConfig { 
+            BindingName = "test-binding",
+            BindingType = "redis",
+            BindingMetadataTemplate = """
+                                      {
+                                        "key": "{{targetKey}}"
+                                      }
+                                      """,
+            BindingOperation = "create",
+            Packed = OutputFormat.Unpacked // Unpacked
+        };
+        
+        var mockFormatter = new Mock<IChangeFormatter>();
+        var formattedElements = new[] { 
+            JsonDocument.Parse("{\"id\":\"1\"}").RootElement,
+            JsonDocument.Parse("{\"id\":\"2\"}").RootElement
+        };
+        var children = new List<IConfigurationSection>
+        {
+            Mock.Of<IConfigurationSection>(s => s.Key == "targetKey" && s.Value == "key1")
+        };
+
+        var mockSection = new Mock<IConfigurationSection>();
+        mockSection
+            .Setup(s => s.GetChildren())
+            .Returns(children);
+        _mockConfig
+            .Setup(c => c.GetSection("metadata"))
+            .Returns(mockSection.Object);
+        
+        var localHandler = new ChangeHandler(
+            _mockDaprClient.Object,
+            _mockFormatterFactory.Object,
+            _mockLogger.Object,
+            _mockFailureTracker.Object,
+            _mockConfig.Object
+        );
+        
+        mockFormatter.Setup(f => f.Format(evt)).Returns(formattedElements);
+        _mockFormatterFactory.Setup(ff => ff.GetFormatter()).Returns(mockFormatter.Object);
+        
+        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
+        
+        var expectedMetadata = new Dictionary<string, string>
+        {
+            { "key", "key1" }
+        };
+        
+        _mockDaprClient.Setup(dc => dc.InvokeBindingAsync(
+                config.BindingName,
+                config.BindingOperation,
+                It.IsAny<JsonElement>(),
+                It.IsAny<Dictionary<string,string>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        
+        // Act
+        await localHandler.HandleChange(evt, config);
+        
+        // Assert
+        _mockDaprClient.Verify(dc => dc.InvokeBindingAsync(
+            config.BindingName,
+            config.BindingOperation,
+            It.IsAny<JsonElement>(),
+            expectedMetadata,
+            It.IsAny<CancellationToken>()
+        ), Times.Exactly(2));
+    }
+    
+    [Fact]
+    public async Task HandleChange_InvalidTemplate_ThrowsJsonException()
+    {
+        // Arrange
+        var evt = new ChangeEvent
+        {
+            QueryId = "test-query",
+            AddedResults = new[] {
+                new Dictionary<string, object> { { "id", "1" } }
+            }
+        };
+        var config = new QueryConfig
+        {
+            BindingName = "test-binding",
+            BindingType = "redis",
+            // Invalid JSON template: curly brace is missing at the end
+            BindingMetadataTemplate = "{ \"key\": \"{{targetKey}\"  ", // malformed template output
+            BindingOperation = "create",
+            Packed = OutputFormat.Unpacked
+        };
+
+        var mockFormatter = new Mock<IChangeFormatter>();
+        var formattedElements = new[] {
+            JsonDocument.Parse("{\"id\":\"1\"}").RootElement
+        };
+        var children = new List<IConfigurationSection>
+        {
+            Mock.Of<IConfigurationSection>(s => s.Key == "targetKey" && s.Value == "key1")
+        };
+        var mockSection = new Mock<IConfigurationSection>();
+        mockSection
+            .Setup(s => s.GetChildren())
+            .Returns(children);
+        _mockConfig
+            .Setup(c => c.GetSection("metadata"))
+            .Returns(mockSection.Object);
+
+        var localHandler = new ChangeHandler(
+            _mockDaprClient.Object,
+            _mockFormatterFactory.Object,
+            _mockLogger.Object,
+            _mockFailureTracker.Object,
+            _mockConfig.Object
+        );
+        mockFormatter.Setup(f => f.Format(evt)).Returns(formattedElements);
+        _mockFormatterFactory.Setup(ff => ff.GetFormatter()).Returns(mockFormatter.Object);
+        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<HandlebarsParserException>(async () =>
+        {
+            await localHandler.HandleChange(evt, config);
+        });
     }
     
     [Fact]

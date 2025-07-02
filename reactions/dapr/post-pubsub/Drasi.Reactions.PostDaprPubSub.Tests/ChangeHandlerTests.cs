@@ -28,10 +28,6 @@ public class ChangeHandlerTests
     private readonly Mock<DaprClient> _mockDaprClient;
     private readonly Mock<IChangeFormatterFactory> _mockFormatterFactory;
     private readonly Mock<ILogger<ChangeHandler>> _mockLogger;
-<<<<<<< HEAD
-    private readonly Mock<IQueryFailureTracker> _mockFailureTracker;
-=======
->>>>>>> origin/main
     private readonly ChangeHandler _handler;
     
     public ChangeHandlerTests()
@@ -39,20 +35,11 @@ public class ChangeHandlerTests
         _mockDaprClient = new Mock<DaprClient>();
         _mockFormatterFactory = new Mock<IChangeFormatterFactory>();
         _mockLogger = new Mock<ILogger<ChangeHandler>>();
-<<<<<<< HEAD
-        _mockFailureTracker = new Mock<IQueryFailureTracker>();
-=======
->>>>>>> origin/main
         
         _handler = new ChangeHandler(
             _mockDaprClient.Object,
             _mockFormatterFactory.Object,
-<<<<<<< HEAD
-            _mockLogger.Object,
-            _mockFailureTracker.Object
-=======
             _mockLogger.Object
->>>>>>> origin/main
         );
     }
     
@@ -67,25 +54,6 @@ public class ChangeHandlerTests
     }
     
     [Fact]
-<<<<<<< HEAD
-    public async Task HandleChange_QueryInFailedState_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var evt = new ChangeEvent { QueryId = "test-query" };
-        var config = new QueryConfig { PubsubName = "test-pubsub", TopicName = "test-topic" };
-        
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(true);
-        _mockFailureTracker.Setup(ft => ft.GetFailureReason("test-query")).Returns("Test failure reason");
-        
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _handler.HandleChange(evt, config));
-        Assert.Contains("test-query", ex.Message);
-        Assert.Contains("Test failure reason", ex.Message);
-    }
-    
-    [Fact]
-=======
->>>>>>> origin/main
     public async Task HandleChange_PackedFormat_PublishesPackedEvent()
     {
         // Arrange
@@ -96,16 +64,9 @@ public class ChangeHandlerTests
         var config = new QueryConfig { 
             PubsubName = "test-pubsub", 
             TopicName = "test-topic",
-<<<<<<< HEAD
-            Packed = true
-        };
-        
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-=======
             Format = OutputFormat.Packed
         };
         
->>>>>>> origin/main
         _mockDaprClient.Setup(dc => dc.PublishEventAsync(
             config.PubsubName, 
             config.TopicName, 
@@ -123,11 +84,6 @@ public class ChangeHandlerTests
             It.IsAny<JsonElement>(),
             It.IsAny<CancellationToken>()
         ), Times.Once);
-<<<<<<< HEAD
-        
-        _mockFailureTracker.Verify(ft => ft.ResetFailures("test-query"), Times.Once);
-=======
->>>>>>> origin/main
     }
     
     [Fact]
@@ -141,11 +97,7 @@ public class ChangeHandlerTests
         var config = new QueryConfig { 
             PubsubName = "test-pubsub", 
             TopicName = "test-topic",
-<<<<<<< HEAD
-            Packed = false // Unpacked is default
-=======
             Format = OutputFormat.Unpacked
->>>>>>> origin/main
         };
         
         var mockFormatter = new Mock<IChangeFormatter>();
@@ -156,10 +108,6 @@ public class ChangeHandlerTests
         mockFormatter.Setup(f => f.Format(evt)).Returns(formattedElements);
         _mockFormatterFactory.Setup(ff => ff.GetFormatter()).Returns(mockFormatter.Object);
         
-<<<<<<< HEAD
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-=======
->>>>>>> origin/main
         _mockDaprClient.Setup(dc => dc.PublishEventAsync(
             config.PubsubName, 
             config.TopicName, 
@@ -179,39 +127,21 @@ public class ChangeHandlerTests
             It.IsAny<JsonElement>(),
             It.IsAny<CancellationToken>()
         ), Times.Once);
-<<<<<<< HEAD
-        
-        _mockFailureTracker.Verify(ft => ft.ResetFailures("test-query"), Times.Once);
-    }
-    
-    [Fact]
-    public async Task HandleChange_PublishFails_RecordsFailureAndRethrows()
-=======
     }
     
     [Fact]
     public async Task HandleChange_PublishFails_ThrowsException()
->>>>>>> origin/main
     {
         // Arrange
         var evt = new ChangeEvent { QueryId = "test-query" };
         var config = new QueryConfig { 
             PubsubName = "test-pubsub", 
             TopicName = "test-topic",
-<<<<<<< HEAD
-            Packed = true,
-            MaxFailureCount = 3
-=======
             Format = OutputFormat.Packed
->>>>>>> origin/main
         };
         
         var exception = new DaprException("Test error");
         
-<<<<<<< HEAD
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-=======
->>>>>>> origin/main
         _mockDaprClient.Setup(dc => dc.PublishEventAsync(
             config.PubsubName, 
             config.TopicName, 
@@ -219,65 +149,9 @@ public class ChangeHandlerTests
             It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
         
-<<<<<<< HEAD
-        _mockFailureTracker.Setup(ft => ft.RecordFailure(
-            "test-query", 
-            config.MaxFailureCount, 
-            It.IsAny<string>()))
-            .Returns(false); // Not yet failed
-        
         // Act & Assert
         var ex = await Assert.ThrowsAsync<DaprException>(() => _handler.HandleChange(evt, config));
         Assert.Same(exception, ex);
-        
-        _mockFailureTracker.Verify(ft => ft.RecordFailure(
-            "test-query",
-            config.MaxFailureCount,
-            It.IsAny<string>()
-        ), Times.Once);
-    }
-    
-    [Fact]
-    public async Task HandleChange_MultipleFailuresExceedingThreshold_MarksQueryAsFailed()
-    {
-        // Arrange
-        var evt = new ChangeEvent { QueryId = "test-query" };
-        var config = new QueryConfig { 
-            PubsubName = "test-pubsub", 
-            TopicName = "test-topic",
-            Packed = true,
-            MaxFailureCount = 3
-        };
-        
-        var exception = new DaprException("Test error");
-        
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-        _mockDaprClient.Setup(dc => dc.PublishEventAsync(
-            config.PubsubName, 
-            config.TopicName, 
-            It.IsAny<JsonElement>(),
-            It.IsAny<CancellationToken>()))
-            .ThrowsAsync(exception);
-        
-        _mockFailureTracker.Setup(ft => ft.RecordFailure(
-            "test-query", 
-            config.MaxFailureCount, 
-            It.IsAny<string>()))
-            .Returns(true); // Query is now failed
-        
-        // Act & Assert
-        await Assert.ThrowsAsync<DaprException>(() => _handler.HandleChange(evt, config));
-        
-        _mockFailureTracker.Verify(ft => ft.RecordFailure(
-            "test-query",
-            config.MaxFailureCount,
-            It.IsAny<string>()
-        ), Times.Once);
-=======
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<DaprException>(() => _handler.HandleChange(evt, config));
-        Assert.Same(exception, ex);
->>>>>>> origin/main
     }
     
     [Fact]
@@ -294,11 +168,7 @@ public class ChangeHandlerTests
         var config = new QueryConfig { 
             PubsubName = "test-pubsub", 
             TopicName = "test-topic",
-<<<<<<< HEAD
-            Packed = false // Unpacked
-=======
             Format = OutputFormat.Unpacked
->>>>>>> origin/main
         };
         
         var mockFormatter = new Mock<IChangeFormatter>();
@@ -310,10 +180,6 @@ public class ChangeHandlerTests
         mockFormatter.Setup(f => f.Format(evt)).Returns(formattedElements);
         _mockFormatterFactory.Setup(ff => ff.GetFormatter()).Returns(mockFormatter.Object);
         
-<<<<<<< HEAD
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-=======
->>>>>>> origin/main
         _mockDaprClient.Setup(dc => dc.PublishEventAsync(
             config.PubsubName, 
             config.TopicName, 

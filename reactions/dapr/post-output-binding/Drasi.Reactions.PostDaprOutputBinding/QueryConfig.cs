@@ -19,13 +19,16 @@ public class QueryConfig : IValidatableObject
     [Required]
     [JsonPropertyName("bindingOperation")]
     public required string BindingOperation { get; set; }
-
-    [JsonPropertyName("bindingMetadata")]
-    public Dictionary<string, string> BindingMetadata { get; set; } = new();
+    
+    [JsonPropertyName("bindingMetadataTemplate")]
+    public string BindingMetadataTemplate { get; set; } = "";
 
     [Required]
     [JsonPropertyName("bindingType")]
     public required string BindingType { get; set; }
+    
+    public string SecretUserName { get; set; } = string.Empty;
+    public string Secret { get; set; } = string.Empty;
 
     /// <summary>
     /// Whether to pack the events into a single message (true) or send as individual messages (false).

@@ -16,6 +16,8 @@ using System.Text.Json;
 using Dapr.Client;
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using HandlebarsDotNet;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Drasi.Reactions.PostDaprOutputBinding.Services;
@@ -26,17 +28,23 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
     private readonly IChangeFormatterFactory _formatterFactory;
     private readonly ILogger<ChangeHandler> _logger;
     private readonly IQueryFailureTracker _failureTracker;
-
+    private readonly Dictionary<string, string> _metadataConfigurations;
+    
     public ChangeHandler(
         DaprClient daprClient, 
         IChangeFormatterFactory formatterFactory, 
         ILogger<ChangeHandler> logger,
-        IQueryFailureTracker failureTracker)
+        IQueryFailureTracker failureTracker,
+        IConfiguration configuration)
     {
         _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
         _formatterFactory = formatterFactory ?? throw new ArgumentNullException(nameof(formatterFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _failureTracker = failureTracker ?? throw new ArgumentNullException(nameof(failureTracker));
+        var metadataSection = configuration.GetSection("metadata");
+        var s1 = metadataSection.GetChildren();
+        _metadataConfigurations = metadataSection.GetChildren()
+            .ToDictionary(s => s.Key, s => s.Value ?? string.Empty);
     }
 
     public async Task HandleChange(ChangeEvent evt, QueryConfig? config)
@@ -95,13 +103,34 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
             throw; // Rethrow to let Drasi SDK handle the failure
         }
     }
+
+    private Dictionary<string, string>? RenderMetadata(string source)
+    {
+        if (_metadataConfigurations.Count == 0) return null;
+        ;
+        var template = Handlebars.Compile(source);
+        var rendered = template(_metadataConfigurations);
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(rendered, ModelOptions.JsonOptions)
+                   ?? null;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize metadata from rendered template: {Rendered}", rendered);
+            throw;
+        }
+    }
+    
     
     private async Task PublishPackedEvent(ChangeEvent evt, QueryConfig queryConfig)
     {
         var serializedEvent = JsonSerializer.Serialize(evt, ModelOptions.JsonOptions);
         using var doc = JsonDocument.Parse(serializedEvent);
+        // Render metadata if provided
+        var metadata = RenderMetadata(queryConfig.BindingMetadataTemplate);
         await _daprClient.InvokeBindingAsync(bindingName: queryConfig.BindingName, operation: queryConfig.BindingOperation, 
-            data: doc.RootElement);
+            data: doc.RootElement, metadata: metadata);
         _logger.LogDebug("Published packed event for query {QueryId}", evt.QueryId);
     }
     
@@ -111,10 +140,11 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
         var events = formatter.Format(evt);
 
         var jsonElements = events as JsonElement[] ?? events.ToArray();
+        var metadata = RenderMetadata(queryConfig.BindingMetadataTemplate);
         foreach (var eventData in jsonElements)
         {
             await _daprClient.InvokeBindingAsync(bindingName: queryConfig.BindingName, operation: queryConfig.BindingOperation, 
-                data: eventData);
+                data: eventData, metadata: metadata);
         }
         
         _logger.LogDebug("Published {Count} unpacked events for query {QueryId}",

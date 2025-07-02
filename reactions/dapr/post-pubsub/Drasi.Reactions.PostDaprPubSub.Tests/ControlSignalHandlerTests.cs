@@ -28,29 +28,16 @@ public class ControlSignalHandlerTests
 {
     private readonly Mock<DaprClient> _mockDaprClient;
     private readonly Mock<ILogger<ControlSignalHandler>> _mockLogger;
-<<<<<<< HEAD
-    private readonly Mock<IQueryFailureTracker> _mockFailureTracker;
-=======
->>>>>>> origin/main
     private readonly ControlSignalHandler _handler;
     
     public ControlSignalHandlerTests()
     {
         _mockDaprClient = new Mock<DaprClient>();
         _mockLogger = new Mock<ILogger<ControlSignalHandler>>();
-<<<<<<< HEAD
-        _mockFailureTracker = new Mock<IQueryFailureTracker>();
-        
-        _handler = new ControlSignalHandler(
-            _mockDaprClient.Object,
-            _mockLogger.Object,
-            _mockFailureTracker.Object
-=======
         
         _handler = new ControlSignalHandler(
             _mockDaprClient.Object,
             _mockLogger.Object
->>>>>>> origin/main
         );
     }
     
@@ -68,28 +55,6 @@ public class ControlSignalHandlerTests
     }
     
     [Fact]
-<<<<<<< HEAD
-    public async Task HandleControlSignal_QueryInFailedState_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var evt = new ControlEvent { 
-            QueryId = "test-query",
-            ControlSignal = new ControlSignalClass { Kind = ControlSignalKind.Running }
-        };
-        var config = new QueryConfig { PubsubName = "test-pubsub", TopicName = "test-topic" };
-        
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(true);
-        _mockFailureTracker.Setup(ft => ft.GetFailureReason("test-query")).Returns("Test failure reason");
-        
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _handler.HandleControlSignal(evt, config));
-        Assert.Contains("test-query", ex.Message);
-        Assert.Contains("Test failure reason", ex.Message);
-    }
-    
-    [Fact]
-=======
->>>>>>> origin/main
     public async Task HandleControlSignal_SkipControlSignals_DoesNotPublish()
     {
         // Arrange
@@ -103,11 +68,6 @@ public class ControlSignalHandlerTests
             SkipControlSignals = true
         };
         
-<<<<<<< HEAD
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-        
-=======
->>>>>>> origin/main
         // Act
         await _handler.HandleControlSignal(evt, config);
         
@@ -131,18 +91,10 @@ public class ControlSignalHandlerTests
         var config = new QueryConfig { 
             PubsubName = "test-pubsub", 
             TopicName = "test-topic",
-<<<<<<< HEAD
-            Packed = true,
-            SkipControlSignals = false
-        };
-        
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-=======
             Format = OutputFormat.Packed,
             SkipControlSignals = false
         };
         
->>>>>>> origin/main
         _mockDaprClient.Setup(dc => dc.PublishEventAsync(
             config.PubsubName, 
             config.TopicName, 
@@ -160,11 +112,6 @@ public class ControlSignalHandlerTests
             It.IsAny<JsonElement>(),
             It.IsAny<CancellationToken>()
         ), Times.Once);
-<<<<<<< HEAD
-        
-        _mockFailureTracker.Verify(ft => ft.ResetFailures("test-query"), Times.Once);
-=======
->>>>>>> origin/main
     }
     
     [Fact]
@@ -178,18 +125,10 @@ public class ControlSignalHandlerTests
         var config = new QueryConfig { 
             PubsubName = "test-pubsub", 
             TopicName = "test-topic",
-<<<<<<< HEAD
-            Packed = false,
-            SkipControlSignals = false
-        };
-        
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-=======
             Format = OutputFormat.Unpacked,
             SkipControlSignals = false
         };
         
->>>>>>> origin/main
         _mockDaprClient.Setup(dc => dc.PublishEventAsync(
             config.PubsubName, 
             config.TopicName, 
@@ -207,19 +146,10 @@ public class ControlSignalHandlerTests
             It.Is<JsonElement>(je => je.GetRawText().Contains("\"kind\":\"running\"")), // Check for unpacked structure
             It.IsAny<CancellationToken>()
         ), Times.Once);
-<<<<<<< HEAD
-        
-        _mockFailureTracker.Verify(ft => ft.ResetFailures("test-query"), Times.Once);
-    }
-    
-    [Fact]
-    public async Task HandleControlSignal_PublishFails_RecordsFailureAndRethrows()
-=======
     }
     
     [Fact]
     public async Task HandleControlSignal_PublishFails_ThrowsException()
->>>>>>> origin/main
     {
         // Arrange
         var evt = new ControlEvent { 
@@ -229,22 +159,12 @@ public class ControlSignalHandlerTests
         var config = new QueryConfig { 
             PubsubName = "test-pubsub", 
             TopicName = "test-topic",
-<<<<<<< HEAD
-            Packed = true,
-            SkipControlSignals = false,
-            MaxFailureCount = 3
-=======
             Format = OutputFormat.Packed,
             SkipControlSignals = false
->>>>>>> origin/main
         };
         
         var exception = new DaprException("Test error");
         
-<<<<<<< HEAD
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-=======
->>>>>>> origin/main
         _mockDaprClient.Setup(dc => dc.PublishEventAsync(
             config.PubsubName, 
             config.TopicName, 
@@ -252,69 +172,9 @@ public class ControlSignalHandlerTests
             It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
         
-<<<<<<< HEAD
-        _mockFailureTracker.Setup(ft => ft.RecordFailure(
-            "test-query", 
-            config.MaxFailureCount, 
-            It.IsAny<string>()))
-            .Returns(false); // Not yet failed
-        
         // Act & Assert
         var ex = await Assert.ThrowsAsync<DaprException>(() => _handler.HandleControlSignal(evt, config));
         Assert.Same(exception, ex);
-        
-        _mockFailureTracker.Verify(ft => ft.RecordFailure(
-            "test-query",
-            config.MaxFailureCount,
-            It.IsAny<string>()
-        ), Times.Once);
-    }
-    
-    [Fact]
-    public async Task HandleControlSignal_MultipleFailuresExceedingThreshold_MarksQueryAsFailed()
-    {
-        // Arrange
-        var evt = new ControlEvent { 
-            QueryId = "test-query",
-            ControlSignal = new ControlSignalClass { Kind = ControlSignalKind.Running }
-        };
-        var config = new QueryConfig { 
-            PubsubName = "test-pubsub", 
-            TopicName = "test-topic",
-            Packed = true,
-            SkipControlSignals = false,
-            MaxFailureCount = 3
-        };
-        
-        var exception = new DaprException("Test error");
-        
-        _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-        _mockDaprClient.Setup(dc => dc.PublishEventAsync(
-            config.PubsubName, 
-            config.TopicName, 
-            It.IsAny<JsonElement>(),
-            It.IsAny<CancellationToken>()))
-            .ThrowsAsync(exception);
-        
-        _mockFailureTracker.Setup(ft => ft.RecordFailure(
-            "test-query", 
-            config.MaxFailureCount, 
-            It.IsAny<string>()))
-            .Returns(true); // Query is now failed
-        
-        // Act & Assert
-        await Assert.ThrowsAsync<DaprException>(() => _handler.HandleControlSignal(evt, config));
-        
-        _mockFailureTracker.Verify(ft => ft.RecordFailure(
-            "test-query",
-            config.MaxFailureCount,
-            It.IsAny<string>()
-        ), Times.Once);
-=======
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<DaprException>(() => _handler.HandleControlSignal(evt, config));
-        Assert.Same(exception, ex);
->>>>>>> origin/main
     }
     
     [Fact]
@@ -332,18 +192,10 @@ public class ControlSignalHandlerTests
             var config = new QueryConfig { 
                 PubsubName = "test-pubsub", 
                 TopicName = "test-topic",
-<<<<<<< HEAD
-                Packed = false, // Test unpacked format
-                SkipControlSignals = false
-            };
-            
-            _mockFailureTracker.Setup(ft => ft.IsQueryFailed("test-query")).Returns(false);
-=======
                 Format = OutputFormat.Unpacked,
                 SkipControlSignals = false
             };
             
->>>>>>> origin/main
             _mockDaprClient.Setup(dc => dc.PublishEventAsync(
                 config.PubsubName, 
                 config.TopicName, 
@@ -353,10 +205,6 @@ public class ControlSignalHandlerTests
                 
             // Reset call counts before each run
             _mockDaprClient.Invocations.Clear();
-<<<<<<< HEAD
-            _mockFailureTracker.Invocations.Clear();
-=======
->>>>>>> origin/main
             
             // Act
             await _handler.HandleControlSignal(evt, config);
