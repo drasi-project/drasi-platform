@@ -163,20 +163,21 @@ public class QueryFailureTrackerTests
     }
     
     [Fact]
-    public void RecordFailure_ConcurrentOperations_ShouldBeThreadSafe()
+    public async Task RecordFailure_ConcurrentOperations_ShouldBeThreadSafe()
     {
         // Arrange
-        string queryId = "test-query";
-        int maxFailures = 100;
+        const string queryId = "test-query";
+        const int maxFailures = 100;
         var tasks = new List<Task<bool>>();
         
         // Act
-        for (int i = 0; i < 200; i++)
+        for (var i = 0; i < 200; i++)
         {
-            tasks.Add(Task.Run(() => _tracker.RecordFailure(queryId, maxFailures, $"Failure {i}")));
+            var i1 = i;
+            tasks.Add(Task.Run(() => _tracker.RecordFailure(queryId, maxFailures, $"Failure {i1}")));
         }
         
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks.ToArray());
         
         // Assert
         Assert.True(_tracker.IsQueryFailed(queryId));

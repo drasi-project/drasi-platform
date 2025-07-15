@@ -21,7 +21,7 @@ public class QueryConfig : IValidatableObject
     public required string BindingOperation { get; set; }
     
     [JsonPropertyName("bindingMetadataTemplate")]
-    public string BindingMetadataTemplate { get; set; } = "";
+    public Dictionary<string, object>? BindingMetadataTemplate { get; set; }
 
     [Required]
     [JsonPropertyName("bindingType")]

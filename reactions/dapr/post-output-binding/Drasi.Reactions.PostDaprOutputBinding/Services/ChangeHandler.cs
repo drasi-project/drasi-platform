@@ -12,40 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Dynamic;
 using System.Text.Json;
 using Dapr.Client;
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Grpc.Core;
 using HandlebarsDotNet;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Drasi.Reactions.PostDaprOutputBinding.Services;
 
-public class ChangeHandler : IChangeEventHandler<QueryConfig>
+public class ChangeHandler(
+    DaprClient daprClient,
+    IChangeFormatterFactory formatterFactory,
+    ILogger<ChangeHandler> logger,
+    IQueryFailureTracker failureTracker)
+    : IChangeEventHandler<QueryConfig>
 {
-    private readonly DaprClient _daprClient;
-    private readonly IChangeFormatterFactory _formatterFactory;
-    private readonly ILogger<ChangeHandler> _logger;
-    private readonly IQueryFailureTracker _failureTracker;
-    private readonly Dictionary<string, string> _metadataConfigurations;
-    
-    public ChangeHandler(
-        DaprClient daprClient, 
-        IChangeFormatterFactory formatterFactory, 
-        ILogger<ChangeHandler> logger,
-        IQueryFailureTracker failureTracker,
-        IConfiguration configuration)
-    {
-        _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
-        _formatterFactory = formatterFactory ?? throw new ArgumentNullException(nameof(formatterFactory));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _failureTracker = failureTracker ?? throw new ArgumentNullException(nameof(failureTracker));
-        var metadataSection = configuration.GetSection("metadata");
-        var s1 = metadataSection.GetChildren();
-        _metadataConfigurations = metadataSection.GetChildren()
-            .ToDictionary(s => s.Key, s => s.Value ?? string.Empty);
-    }
+    private readonly DaprClient _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
+    private readonly IChangeFormatterFactory _formatterFactory = formatterFactory ?? throw new ArgumentNullException(nameof(formatterFactory));
+    private readonly ILogger<ChangeHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly IQueryFailureTracker _failureTracker = failureTracker ?? throw new ArgumentNullException(nameof(failureTracker));
 
     public async Task HandleChange(ChangeEvent evt, QueryConfig? config)
     {
@@ -104,12 +93,15 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
         }
     }
 
-    private Dictionary<string, string>? RenderMetadata(string source)
+    private Dictionary<string, string>? RenderMetadata(string source, object? result)
     {
-        if (_metadataConfigurations.Count == 0) return null;
-        ;
+        if (string.IsNullOrWhiteSpace(source) || result is null)
+        {
+            _logger.LogDebug("Metadata template is empty or null, skipping rendering.");
+            return null;
+        }
         var template = Handlebars.Compile(source);
-        var rendered = template(_metadataConfigurations);
+        var rendered = template(result);
         try
         {
             return JsonSerializer.Deserialize<Dictionary<string, string>>(rendered, ModelOptions.JsonOptions)
@@ -127,10 +119,8 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
     {
         var serializedEvent = JsonSerializer.Serialize(evt, ModelOptions.JsonOptions);
         using var doc = JsonDocument.Parse(serializedEvent);
-        // Render metadata if provided
-        var metadata = RenderMetadata(queryConfig.BindingMetadataTemplate);
         await _daprClient.InvokeBindingAsync(bindingName: queryConfig.BindingName, operation: queryConfig.BindingOperation, 
-            data: doc.RootElement, metadata: metadata);
+            data: doc.RootElement);
         _logger.LogDebug("Published packed event for query {QueryId}", evt.QueryId);
     }
     
@@ -140,14 +130,76 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
         var events = formatter.Format(evt);
 
         var jsonElements = events as JsonElement[] ?? events.ToArray();
-        var metadata = RenderMetadata(queryConfig.BindingMetadataTemplate);
         foreach (var eventData in jsonElements)
         {
-            await _daprClient.InvokeBindingAsync(bindingName: queryConfig.BindingName, operation: queryConfig.BindingOperation, 
-                data: eventData, metadata: metadata);
+            
+            var metadata = RenderMetadata(JsonSerializer.Serialize(queryConfig.BindingMetadataTemplate), ConvertValue(eventData));
+            try
+            {
+                await _daprClient.InvokeBindingAsync(bindingName: queryConfig.BindingName,
+                    operation: queryConfig.BindingOperation,
+                    data: eventData, metadata: metadata);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Failed to publish event for query {QueryId} with error: {ErrorMessage}", 
+                    evt.QueryId, e.Message);
+                _logger.LogError("Event data: {EventData}", JsonSerializer.Serialize(eventData));
+            }
         }
         
         _logger.LogDebug("Published {Count} unpacked events for query {QueryId}",
             jsonElements.Length, evt.QueryId);
     }
+    
+    private static ExpandoObject ToExpando(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+            throw new ArgumentException("Root element must be an object", nameof(element));
+
+        IDictionary<string, object?> expando = new ExpandoObject();
+
+        foreach (var prop in element.EnumerateObject())
+        {
+            expando[prop.Name] = ConvertValue(prop.Value);
+        }
+
+        return (ExpandoObject)expando;
+    }
+    
+    private static object? ConvertValue(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                return ToExpando(element);
+
+            case JsonValueKind.Array:
+                var list = new List<object?>();
+                foreach (var item in element.EnumerateArray())
+                    list.Add(ConvertValue(item));
+                return list;
+
+            case JsonValueKind.String:
+                return element.GetString();
+
+            case JsonValueKind.Number:
+                if (element.TryGetInt64(out var l))    return l;
+                if (element.TryGetDouble(out var d))   return d;
+                return element.GetDecimal();
+
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                return element.GetBoolean();
+
+            case JsonValueKind.Null:
+            case JsonValueKind.Undefined:
+                return null;
+
+            default:
+                return element.GetRawText();
+        }
+    }
+
+
 }
