@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.86-bullseye as builder
-RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
+FROM mcr.microsoft.com/azurelinux/base/rust:1.86 AS builder
+RUN tdnf update -y && tdnf install -y protobuf-devel cmake openssl-devel clang-devel
 
 WORKDIR /usr/src
 COPY . .
 WORKDIR /usr/src
-RUN cargo install  --debug --force --path .
+RUN cargo install --force --path .
 
-FROM ubuntu:22.04 
-RUN apt-get update && apt-get install -y openssl curl libssl3  && rm -rf /var/lib/apt/lists/*
-# gcr.io/distroless/cc 
+FROM mcr.microsoft.com/azurelinux/base/core:3.0
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/view-svc /usr/local/bin/view-svc
 CMD ["view-svc"]

@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.86-bullseye as builder
+FROM rust:1.86-bullseye AS builder
 RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
 
 WORKDIR /usr/src
 COPY . .
 WORKDIR /usr/src
-RUN cargo install  --debug --force --path .
+RUN cargo install --path .
 
-FROM ubuntu:22.04 
-RUN apt-get update && apt-get install -y openssl curl libssl3  && rm -rf /var/lib/apt/lists/*
-# gcr.io/distroless/cc 
+FROM gcr.io/distroless/cc
 ENV RUST_BACKTRACE=1
-COPY --from=builder /usr/local/cargo/bin/view-svc /usr/local/bin/view-svc
-CMD ["view-svc"]
+COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
+CMD ["query-host"]

@@ -12,19 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.84-bullseye as builder
-RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
+FROM rust:1.86-bullseye AS builder
+RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get clean
 
 WORKDIR /usr/src
-COPY ./resource_provider_api ./resource_provider_api
-RUN cargo new kubernetes_provider
-WORKDIR /usr/src/kubernetes_provider
-COPY ./kubernetes_provider/Cargo.toml .
-RUN cargo fetch
+COPY ./infrastructure ./infrastructure
 
-COPY ./kubernetes_provider .
+RUN cargo new source/shared/change-router
+WORKDIR /usr/src/source/shared/change-router
+COPY ./sources/shared/change-router/Cargo.toml . 
+RUN cargo fetch
+COPY ./sources/shared/change-router . 
 RUN cargo install --force --path .
 
-FROM gcr.io/distroless/cc-debian11
-COPY --from=builder /usr/local/cargo/bin/kubernetes_provider /usr/local/bin/kubernetes_provider
-CMD ["kubernetes_provider"]
+
+FROM gcr.io/distroless/cc
+ENV RUST_BACKTRACE=1
+# RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/local/cargo/bin/change-router /usr/local/bin/change-router
+CMD ["change-router"]

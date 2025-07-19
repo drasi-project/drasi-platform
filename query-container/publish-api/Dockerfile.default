@@ -12,23 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.84-bullseye as builder
-RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
-
+FROM rust:1.86-bullseye AS builder
+RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev libcurl4 && apt-get clean
 
 WORKDIR /usr/src
-COPY ./infrastructure ./infrastructure
-
-RUN cargo new source/shared/query-api
-WORKDIR /usr/src/source/shared/query-api
-COPY ./sources/shared/query-api/Cargo.toml . 
-RUN cargo fetch
-COPY ./sources/shared/query-api .
+COPY . .
+WORKDIR /usr/src
 RUN cargo install --force --path .
 
-    
-FROM gcr.io/distroless/cc-debian11
+FROM gcr.io/distroless/cc
 ENV RUST_BACKTRACE=1
-COPY --from=builder /usr/local/cargo/bin/query-api /usr/local/bin/query-api
-# RUN apt-get update && apt install -y openssl
-CMD ["query-api"]
+COPY --from=builder /usr/local/cargo/bin/publish-api /usr/local/bin/publish-api
+CMD ["publish-api"]
