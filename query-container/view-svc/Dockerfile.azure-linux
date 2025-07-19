@@ -20,7 +20,7 @@ COPY . .
 WORKDIR /usr/src
 RUN cargo install --force --path .
 
-FROM mcr.microsoft.com/azurelinux/base/core:3.0
+FROM mcr.microsoft.com/azurelinux/distroless/base:3.0
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/view-svc /usr/local/bin/view-svc
 CMD ["view-svc"]

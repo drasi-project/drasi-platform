@@ -26,8 +26,7 @@ COPY ./sources/shared/change-router .
 RUN cargo install --force --path .
 
 
-FROM mcr.microsoft.com/azurelinux/base/core:3.0
+FROM mcr.microsoft.com/azurelinux/distroless/base:3.0
 ENV RUST_BACKTRACE=1
-# RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/local/cargo/bin/change-router /usr/local/bin/change-router
 CMD ["change-router"]

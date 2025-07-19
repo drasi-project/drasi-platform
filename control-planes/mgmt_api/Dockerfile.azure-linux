@@ -26,6 +26,6 @@ RUN cargo fetch
 COPY ./control-planes/mgmt_api .
 RUN cargo install --force --path .
 
-FROM mcr.microsoft.com/azurelinux/base/core:3.0
+FROM mcr.microsoft.com/azurelinux/distroless/base:3.0
 COPY --from=builder /usr/local/cargo/bin/mgmt_api /usr/local/bin/mgmt_api
 CMD ["mgmt_api"]

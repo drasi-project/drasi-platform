@@ -30,5 +30,4 @@ RUN cargo install --force --path .
 FROM gcr.io/distroless/cc
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-api /usr/local/bin/query-api
-# RUN apt-get update && apt install -y openssl
 CMD ["query-api"]
