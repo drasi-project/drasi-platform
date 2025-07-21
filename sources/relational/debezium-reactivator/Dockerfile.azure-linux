@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM mcr.microsoft.com/azurelinux/base/nodejs:20
+#
+# Build stage
+#
+FROM --platform=$BUILDPLATFORM maven:3.9.9-amazoncorretto-21 AS build
+COPY src /home/app/src
+COPY pom.xml /home/app
+RUN mvn -f /home/app/pom.xml clean package
 
-WORKDIR /usr/src/app
-
-COPY . .
-
-RUN npm install -g typescript
-RUN npm install
-RUN npm run build
-
-CMD ["npm", "start"]
+RUN cd /home/app && mvn dependency:tree
+#
+# Package stage
+#
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/openjdk/jdk:21-distroless
+COPY --from=build /home/app/target /home/app
+CMD ["-jar","/home/app/debezium-reactivator-1.0.jar"]

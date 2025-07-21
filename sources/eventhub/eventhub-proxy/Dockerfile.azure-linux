@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM mcr.microsoft.com/azurelinux/base/nodejs:20
-
-WORKDIR /usr/src/app
-
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-azurelinux3.0 AS build
+WORKDIR /src
+COPY ["eventhub-proxy.csproj", "."]
+RUN dotnet restore "./eventhub-proxy.csproj"
 COPY . .
+WORKDIR "/src/."
+RUN dotnet publish "eventhub-proxy.csproj" -c Release -o /app/publish
 
-RUN npm install -g typescript
-RUN npm install
-RUN npm run build
-
-CMD ["npm", "start"]
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0-distroless AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "eventhub-proxy.dll"]
