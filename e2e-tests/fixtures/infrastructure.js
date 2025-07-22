@@ -43,7 +43,7 @@ const images = [
   "drasi-project/reaction-post-dapr-pubsub",
 ];
 
-async function loadDrasiImages(clusterName) {
+async function loadDrasiImages(clusterName, imageVersion = "latest") {
   let promises = [];
 
   for (let image of images) {
@@ -52,7 +52,7 @@ async function loadDrasiImages(clusterName) {
         let p = cp.spawn("kind", [
           "load",
           "docker-image",
-          image,
+          image + ":" + imageVersion,
           "--name",
           clusterName,
         ]);
@@ -106,9 +106,15 @@ async function tryLoadInfraImages(clusterName) {
   await Promise.all(promises);
 }
 
-async function installDrasi() {
+async function installDrasi(version = "latest") {
+  
   await waitForChildProcess(
-    cp.exec("drasi init --local --version latest", {
+    cp.exec(`drasi env kube`),
+    "install",
+  );
+  
+  await waitForChildProcess(
+    cp.exec(`drasi init --local --version ${version}`, {
       encoding: "utf-8",
     }),
     "install",
