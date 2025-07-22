@@ -29,4 +29,5 @@ RUN cargo install --force --path .
 FROM mcr.microsoft.com/azurelinux/distroless/base:3.0
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-api /usr/local/bin/query-api
+USER root
 CMD ["query-api"]

@@ -26,4 +26,5 @@ RUN cd /home/app && mvn dependency:tree
 #
 FROM --platform=$TARGETPLATFORM mcr.microsoft.com/openjdk/jdk:21-distroless
 COPY --from=build /home/app/target /home/app
+USER root
 CMD ["-jar","/home/app/debezium-reactivator-1.0.jar"]

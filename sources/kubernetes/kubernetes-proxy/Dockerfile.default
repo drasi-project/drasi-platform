@@ -24,4 +24,5 @@ RUN cargo install --force --path .
 FROM gcr.io/distroless/cc
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/kubernetes-proxy /usr/local/bin/kubernetes-proxy
+USER root
 CMD ["kubernetes-proxy"]

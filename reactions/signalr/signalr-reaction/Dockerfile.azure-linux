@@ -14,16 +14,12 @@
 
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-azurelinux3.0 AS build
 WORKDIR /src
-COPY ["signalr-reaction.csproj", "."]
-RUN dotnet restore "./signalr-reaction.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "signalr-reaction.csproj" -c Release -o /app/build
+RUN dotnet publish -c Release -o /app/publish
 
-FROM build AS publish
-RUN dotnet publish "signalr-reaction.csproj" -c Release -o /app/publish
-
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0-distroless AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "signalr-reaction.dll"]
+COPY --from=build /app/publish .
+USER root
+ENTRYPOINT ["/app/Drasi.Reactions.SignalR"]

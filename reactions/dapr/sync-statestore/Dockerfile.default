@@ -1,24 +1,12 @@
-# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-ARG BUILD_CONFIGURATION=Release
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
-
-# Copy solution and project files
-COPY sync-statestore.sln ./
-COPY Drasi.Reactions.SyncDaprStateStore/Drasi.Reactions.SyncDaprStateStore.csproj ./Drasi.Reactions.SyncDaprStateStore/
-
-# Restore dependencies
+COPY ["Drasi.Reactions.SyncDaprStateStore/Drasi.Reactions.SyncDaprStateStore.csproj", "Drasi.Reactions.SyncDaprStateStore/"]
 RUN dotnet restore "./Drasi.Reactions.SyncDaprStateStore/Drasi.Reactions.SyncDaprStateStore.csproj"
+COPY . .
+WORKDIR "/src/Drasi.Reactions.SyncDaprStateStore"
+RUN dotnet publish "Drasi.Reactions.SyncDaprStateStore.csproj" -c Release -o /app/publish
 
-# Copy only the source code
-COPY Drasi.Reactions.SyncDaprStateStore/ ./Drasi.Reactions.SyncDaprStateStore/
-
-# Build the reaction project
-WORKDIR /src/Drasi.Reactions.SyncDaprStateStore
-RUN dotnet publish "./Drasi.Reactions.SyncDaprStateStore.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-# Final stage/image
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 

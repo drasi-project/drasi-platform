@@ -13,14 +13,15 @@
 # limitations under the License.
 
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-cbl-mariner2.0 AS build
-ARG BUILD_CONFIGURATION=Release
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY ["eventbridge-reaction.csproj", "."]
+RUN dotnet restore "./eventbridge-reaction.csproj"
 COPY . .
-RUN dotnet restore
-RUN dotnet build -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/."
+RUN dotnet publish "eventbridge-reaction.csproj" -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-cbl-mariner2.0 AS final
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
-COPY --from=build /app/build .
-ENTRYPOINT ["/app/eventbridge-reaction"]
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "eventbridge-reaction.dll"]

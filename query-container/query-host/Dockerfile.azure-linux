@@ -24,4 +24,5 @@ FROM mcr.microsoft.com/azurelinux/distroless/base:3.0
 COPY --from=builder /usr/lib64/libstdc++.so.6 /usr/lib64/
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
+USER root
 CMD ["query-host"]

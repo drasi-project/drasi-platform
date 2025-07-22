@@ -23,4 +23,5 @@ RUN dotnet publish "eventhub-proxy.csproj" -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0-distroless AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+USER root
 ENTRYPOINT ["dotnet", "eventhub-proxy.dll"]

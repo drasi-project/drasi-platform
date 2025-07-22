@@ -14,16 +14,21 @@
 
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-azurelinux3.0 AS build
 WORKDIR /src
-COPY ["post-pubsub.csproj", "."]
-RUN dotnet restore "./post-pubsub.csproj"
+COPY ["Drasi.Reactions.PostDaprPubSub/Drasi.Reactions.PostDaprPubSub.csproj", "Drasi.Reactions.PostDaprPubSub/"]
+RUN dotnet restore "./Drasi.Reactions.PostDaprPubSub/Drasi.Reactions.PostDaprPubSub.csproj"
 COPY . .
-WORKDIR "/src/."
-RUN dotnet build "post-pubsub.csproj" -c Release -o /app/build
+WORKDIR "/src/Drasi.Reactions.PostDaprPubSub"
+RUN dotnet publish "Drasi.Reactions.PostDaprPubSub.csproj" -c Release -o /app/publish
 
-FROM build AS publish
-RUN dotnet publish "post-pubsub.csproj" -c Release -o /app/publish
-
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0-distroless AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "post-pubsub.dll"]
+COPY --from=build /app/publish .
+
+# Set log levels for reaction in production
+ENV Logging__LogLevel__Default="Information"
+ENV Logging__LogLevel__Microsoft="Warning"
+ENV Logging__LogLevel__Microsoft_Hosting_Lifetime="Information"
+ENV Logging__LogLevel__Drasi_Reactions_PostDaprPubSub="Debug"
+
+USER root
+ENTRYPOINT ["dotnet", "Drasi.Reactions.PostDaprPubSub.dll"]

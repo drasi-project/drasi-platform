@@ -23,17 +23,18 @@ COPY ./debug-reaction.client/ ./
 RUN npm run build
 
 # Stage 2: Build .NET backend
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS backend
-WORKDIR /app/debug-reaction.Server
-COPY ./debug-reaction.Server.csproj ./
-RUN dotnet restore
-COPY . ./
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY ["debug-reaction.Server.csproj", "."]
+RUN dotnet restore "./debug-reaction.Server.csproj"
+COPY . .
 COPY --from=frontend /app/debug-reaction.client/dist ./wwwroot/
-RUN dotnet publish -c Release -o /app/publish
+WORKDIR "/src/."
+RUN dotnet publish "debug-reaction.Server.csproj" -c Release -o /app/publish
 
 # Stage 3: Run the app
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
-COPY --from=backend /app/publish .
+COPY --from=build /app/publish .
 EXPOSE 5195
 ENTRYPOINT ["dotnet", "debug-reaction.Server.dll"]

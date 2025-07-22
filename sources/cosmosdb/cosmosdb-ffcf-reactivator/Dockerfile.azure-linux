@@ -14,16 +14,14 @@
 
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-azurelinux3.0 AS build
 WORKDIR /src
-COPY ["cosmosdb-ffcf-reactivator.csproj", "."]
-RUN dotnet restore "./cosmosdb-ffcf-reactivator.csproj"
+COPY ["cosmosdb-reactivator.csproj", "."]
+RUN dotnet restore "./cosmosdb-reactivator.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "cosmosdb-ffcf-reactivator.csproj" -c Release -o /app/build
+RUN dotnet publish "cosmosdb-reactivator.csproj" -c Release -o /app/publish
 
-FROM build AS publish
-RUN dotnet publish "cosmosdb-ffcf-reactivator.csproj" -c Release -o /app/publish
-
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0-distroless AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "cosmosdb-ffcf-reactivator.dll"]
+COPY --from=build /app/publish .
+USER root
+ENTRYPOINT ["dotnet", "cosmosdb-reactivator.dll"]

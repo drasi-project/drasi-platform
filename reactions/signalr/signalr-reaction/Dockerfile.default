@@ -13,14 +13,13 @@
 # limitations under the License.
 
 # Need to add BUILDPLATFORM to the Dockerfile; see https://github.com/dotnet/sdk/issues/37148
-FROM --platform=$BUILDPLATFORM  mcr.microsoft.com/dotnet/sdk:8.0-cbl-mariner2.0 AS build
-ARG BUILD_CONFIGURATION=Release
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet restore
-RUN dotnet build -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/."
+RUN dotnet publish -c Release -o /app/publish
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0-cbl-mariner2.0 AS final
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
-COPY --from=build /app/build .
+COPY --from=build /app/publish .
 ENTRYPOINT ["/app/Drasi.Reactions.SignalR"]

@@ -29,4 +29,5 @@ RUN cargo install --force --path .
 FROM gcr.io/distroless/cc
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/change-router /usr/local/bin/change-router
+USER root
 CMD ["change-router"]

@@ -24,4 +24,5 @@ RUN cargo install --force --path .
 FROM mcr.microsoft.com/azurelinux/distroless/base:3.0
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/kubernetes-proxy /usr/local/bin/kubernetes-proxy
+USER root
 CMD ["kubernetes-proxy"]

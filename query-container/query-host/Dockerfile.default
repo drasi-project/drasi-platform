@@ -23,4 +23,5 @@ RUN cargo install --path .
 FROM gcr.io/distroless/cc
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
+USER root
 CMD ["query-host"]

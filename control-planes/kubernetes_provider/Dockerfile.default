@@ -27,4 +27,5 @@ RUN cargo install --force --path .
 
 FROM gcr.io/distroless/cc
 COPY --from=builder /usr/local/cargo/bin/kubernetes_provider /usr/local/bin/kubernetes_provider
+USER root
 CMD ["kubernetes_provider"]

@@ -14,7 +14,7 @@ default: docker-build
 
 # Build the Docker image for the reaction
 docker-build:
-	docker buildx build . --no-cache -t $(IMAGE_PREFIX)/reaction-sync-dapr-statestore:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS) -f Dockerfile.$(BUILD_CONFIG)
+	docker buildx build . -t $(IMAGE_PREFIX)/reaction-sync-dapr-statestore:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS) -f Dockerfile.$(BUILD_CONFIG)
 
 # Load the built image into the specified Kind cluster
 kind-load:

@@ -12,18 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-azurelinux3.0 AS build
+#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+# Stage 1: Build React frontend
+FROM node:18 AS frontend
+WORKDIR /app/debug-reaction.client
+COPY ./debug-reaction.client/package.json ./debug-reaction.client/package-lock.json ./
+RUN npm install
+COPY ./debug-reaction.client/ ./
+RUN npm run build
+
+# Stage 2: Build .NET backend
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
-COPY ["debug-reaction.csproj", "."]
-RUN dotnet restore "./debug-reaction.csproj"
+COPY ["debug-reaction.Server.csproj", "."]
+RUN dotnet restore "./debug-reaction.Server.csproj"
 COPY . .
+COPY --from=frontend /app/debug-reaction.client/dist ./wwwroot/
 WORKDIR "/src/."
-RUN dotnet build "debug-reaction.csproj" -c Release -o /app/build
+RUN dotnet publish "debug-reaction.Server.csproj" -c Release -o /app/publish
 
-FROM build AS publish
-RUN dotnet publish "debug-reaction.csproj" -c Release -o /app/publish
-
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0-distroless AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "debug-reaction.dll"]
+COPY --from=build /app/publish .
+EXPOSE 5195
+USER root
+ENTRYPOINT ["dotnet", "debug-reaction.Server.dll"]
+

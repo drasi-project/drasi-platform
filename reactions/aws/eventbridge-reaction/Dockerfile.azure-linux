@@ -18,12 +18,10 @@ COPY ["eventbridge-reaction.csproj", "."]
 RUN dotnet restore "./eventbridge-reaction.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "eventbridge-reaction.csproj" -c Release -o /app/build
-
-FROM build AS publish
 RUN dotnet publish "eventbridge-reaction.csproj" -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0-distroless AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
+USER root
 ENTRYPOINT ["dotnet", "eventbridge-reaction.dll"]
