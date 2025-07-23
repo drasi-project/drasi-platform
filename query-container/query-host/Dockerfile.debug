@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.84-bullseye as builder
-RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
+FROM mcr.microsoft.com/azurelinux/base/rust:1.86 AS builder
+RUN tdnf update -y && tdnf install -y protobuf-devel cmake openssl-devel clang-devel
 
 WORKDIR /usr/src
 COPY . .
 WORKDIR /usr/src
-RUN cargo install  --debug --path .
+RUN cargo install --path .
 
-FROM ubuntu:20.04 
-RUN apt-get update && apt-get install -y openssl curl libssl1.1  && rm -rf /var/lib/apt/lists/*
+FROM mcr.microsoft.com/azurelinux/distroless/debug:3.0
+COPY --from=builder /usr/lib64/libstdc++.so.6 /usr/lib64/
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
+USER root
 CMD ["query-host"]

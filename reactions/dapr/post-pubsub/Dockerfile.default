@@ -1,0 +1,19 @@
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY ["Drasi.Reactions.PostDaprPubSub/Drasi.Reactions.PostDaprPubSub.csproj", "Drasi.Reactions.PostDaprPubSub/"]
+RUN dotnet restore "./Drasi.Reactions.PostDaprPubSub/Drasi.Reactions.PostDaprPubSub.csproj"
+COPY . .
+WORKDIR "/src/Drasi.Reactions.PostDaprPubSub"
+RUN dotnet publish "Drasi.Reactions.PostDaprPubSub.csproj" -c Release -o /app/publish
+
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Set log levels for reaction in production
+ENV Logging__LogLevel__Default="Information"
+ENV Logging__LogLevel__Microsoft="Warning"
+ENV Logging__LogLevel__Microsoft_Hosting_Lifetime="Information"
+ENV Logging__LogLevel__Drasi_Reactions_PostDaprPubSub="Debug"
+
+ENTRYPOINT ["dotnet", "Drasi.Reactions.PostDaprPubSub.dll"]

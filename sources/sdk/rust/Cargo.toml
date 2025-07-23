@@ -1,6 +1,6 @@
 [package]
 name = "drasi-source-sdk"
-version = "0.1.21"
+version = "0.1.22"
 edition = "2021"
 license = "Apache-2.0"
 description = "Source SDK for Drasi"
@@ -21,7 +21,7 @@ futures = "0.3"
 dapr = "0.15.1"
 async-trait = "0.1.83"
 thiserror = "2.0.5"
-reqwest =  { version = "0.12.9", features = ["json"] }
+reqwest = { version = "0.12.22", features = ["json", "rustls-tls"], default-features = false }
 opentelemetry = {version = "0.20", features = ["rt-tokio"]}
 opentelemetry-otlp = {version = "0.13", features = ["trace", "metrics"]}
 opentelemetry-semantic-conventions = "0.12"

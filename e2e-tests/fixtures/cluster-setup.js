@@ -48,6 +48,7 @@ async function clusterExists(clusterName) {
 
 module.exports = async function () {
   const reuseClusterEnv = process.env.REUSE_KIND_CLUSTER === 'true';
+  const version = process.env.DRASI_VERSION || "latest";
   const clusterName = 'drasi-test';
   let clusterIsReused = false;
 
@@ -87,10 +88,10 @@ module.exports = async function () {
   console.log("Loading Docker images into Kind cluster...");
   await Promise.all([
     tryLoadInfraImages(clusterName),
-    loadDrasiImages(clusterName)
+    loadDrasiImages(clusterName, version)
   ]);
 
   console.log("Installing Drasi...");
-  await installDrasi();
+  await installDrasi(version);
   console.log("Cluster setup complete.");
 };

@@ -11,11 +11,6 @@ docker-build:
 	$(MAKE) -C query-host $(MAKECMDGOALS)
 	$(MAKE) -C view-svc $(MAKECMDGOALS)
 
-docker-build-debug:
-	$(MAKE) -C publish-api $(MAKECMDGOALS)
-	$(MAKE) -C query-host $(MAKECMDGOALS)
-	$(MAKE) -C view-svc $(MAKECMDGOALS)
-
 kind-load:
 	$(MAKE) -C publish-api $(MAKECMDGOALS)
 	$(MAKE) -C query-host $(MAKECMDGOALS)

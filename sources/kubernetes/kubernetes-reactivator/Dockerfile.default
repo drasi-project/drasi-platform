@@ -1,0 +1,27 @@
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FROM rust:1.86-bullseye AS builder
+RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get clean
+
+WORKDIR /usr/src
+COPY . .
+WORKDIR /usr/src
+RUN cargo install --force --path .
+
+FROM gcr.io/distroless/cc
+ENV RUST_BACKTRACE=1
+COPY --from=builder /usr/local/cargo/bin/kubernetes-reactivator /usr/local/bin/kubernetes-reactivator
+USER root
+CMD ["kubernetes-reactivator"]
