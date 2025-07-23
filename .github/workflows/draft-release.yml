@@ -34,71 +34,52 @@ permissions:
 env:
   RELEASE_PATH: ./release
 
-  QUERY_COMPONENTS: '[
-    {"label": "Query Host", "path": "query-container/query-host", "name": "query-container-query-host", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Publish API", "path": "query-container/publish-api", "name": "query-container-publish-api", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "View Service", "path": "query-container/view-svc", "name": "query-container-view-svc", "platforms": "linux/amd64,linux/arm64"}]'
-
-  CONTROL_PLANE_COMPONENTS: '[
-    {"label": "Management API", "path": "control-planes/mgmt_api", "name": "api", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "k8s Resource Provider", "path": "control-planes/kubernetes_provider", "name": "kubernetes-provider", "platforms": "linux/amd64,linux/arm64"}]'
-  
-  SOURCES_COMPONENTS: '[
-    {"label": "Change Router", "path": "sources/shared/change-router", "name": "source-change-router", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Change Dispatcher", "path": "sources/shared/change-dispatcher", "name": "source-change-dispatcher", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Query API", "path": "sources/shared/query-api", "name": "source-query-api", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Debezium Reactivator", "path": "sources/relational/debezium-reactivator", "name": "source-debezium-reactivator", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "SQL Proxy", "path": "sources/relational/sql-proxy", "name": "source-sql-proxy", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "CosmosDB Reactivator", "path": "sources/cosmosdb/cosmosdb-ffcf-reactivator", "name": "source-cosmosdb-reactivator", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Gremlin Proxy", "path": "sources/cosmosdb/gremlin-proxy", "name": "source-gremlin-proxy", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Dataverse Reactivator", "path": "sources/dataverse/dataverse-reactivator", "name": "source-dataverse-reactivator", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Dataverse Proxy", "path": "sources/dataverse/dataverse-proxy", "name": "source-dataverse-proxy", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "EventHub Reactivator", "path": "sources/eventhub/eventhub-reactivator", "name": "source-eventhub-reactivator", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "EventHub Proxy", "path": "sources/eventhub/eventhub-proxy", "name": "source-eventhub-proxy", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Kubernetes Reactivator", "path": "sources/kubernetes/kubernetes-reactivator", "name": "source-kubernetes-reactivator", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Kubernetes Proxy", "path": "sources/kubernetes/kubernetes-proxy", "name": "source-kubernetes-proxy", "platforms": "linux/amd64,linux/arm64"}]'
-  
-  REACTIONS_COMPONENTS: '[
-    {"label": "SignalR", "path": "reactions/signalr/signalr-reaction", "name": "reaction-signalr", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Dataverse", "path": "reactions/power-platform/dataverse/dataverse-reaction", "name": "reaction-dataverse", "platforms": "linux/amd64"},
-    {"label": "Debezium", "path": "reactions/debezium/debezium-reaction", "name": "reaction-debezium", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Debug", "path": "reactions/platform/debug-reaction", "name": "reaction-debug", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "EventGrid", "path": "reactions/azure/eventgrid-reaction", "name": "reaction-eventgrid", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "EventBridge", "path": "reactions/aws/eventbridge-reaction", "name": "reaction-eventbridge", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Gremlin", "path": "reactions/gremlin/gremlin-reaction", "name": "reaction-gremlin", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Result", "path": "reactions/platform/result-reaction", "name": "reaction-result", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "StorageQueue", "path": "reactions/azure/storagequeue-reaction", "name": "reaction-storage-queue", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "SyncDaprStateStore", "path": "reactions/dapr/sync-statestore", "name": "reaction-sync-dapr-statestore", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "PostDaprPubSub", "path": "reactions/dapr/post-pubsub", "name": "reaction-post-dapr-pubsub", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "Http", "path": "reactions/http", "name": "reaction-http", "platforms": "linux/amd64,linux/arm64"},
-    {"label": "StoredProc", "path": "reactions/sql/storedproc-reaction", "name": "reaction-storedproc", "platforms": "linux/amd64,linux/arm64"}]'
+  ALL_COMPONENTS: '[
+    {"label": "Query Host", "path": "query-container/query-host", "name": "query-container-query-host", "platforms": "linux/amd64,linux/arm64", "category": "query"},
+    {"label": "Publish API", "path": "query-container/publish-api", "name": "query-container-publish-api", "platforms": "linux/amd64,linux/arm64", "category": "query"},
+    {"label": "View Service", "path": "query-container/view-svc", "name": "query-container-view-svc", "platforms": "linux/amd64,linux/arm64", "category": "query"},
+    {"label": "Management API", "path": "control-planes/mgmt_api", "name": "api", "platforms": "linux/amd64,linux/arm64", "category": "control-plane"},
+    {"label": "k8s Resource Provider", "path": "control-planes/kubernetes_provider", "name": "kubernetes-provider", "platforms": "linux/amd64,linux/arm64", "category": "control-plane"},
+    {"label": "Change Router", "path": "sources/shared/change-router", "name": "source-change-router", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "Change Dispatcher", "path": "sources/shared/change-dispatcher", "name": "source-change-dispatcher", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "Query API", "path": "sources/shared/query-api", "name": "source-query-api", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "Debezium Reactivator", "path": "sources/relational/debezium-reactivator", "name": "source-debezium-reactivator", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "SQL Proxy", "path": "sources/relational/sql-proxy", "name": "source-sql-proxy", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "CosmosDB Reactivator", "path": "sources/cosmosdb/cosmosdb-ffcf-reactivator", "name": "source-cosmosdb-reactivator", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "Gremlin Proxy", "path": "sources/cosmosdb/gremlin-proxy", "name": "source-gremlin-proxy", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "Dataverse Reactivator", "path": "sources/dataverse/dataverse-reactivator", "name": "source-dataverse-reactivator", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "Dataverse Proxy", "path": "sources/dataverse/dataverse-proxy", "name": "source-dataverse-proxy", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "EventHub Reactivator", "path": "sources/eventhub/eventhub-reactivator", "name": "source-eventhub-reactivator", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "EventHub Proxy", "path": "sources/eventhub/eventhub-proxy", "name": "source-eventhub-proxy", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "Kubernetes Reactivator", "path": "sources/kubernetes/kubernetes-reactivator", "name": "source-kubernetes-reactivator", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "Kubernetes Proxy", "path": "sources/kubernetes/kubernetes-proxy", "name": "source-kubernetes-proxy", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
+    {"label": "SignalR", "path": "reactions/signalr/signalr-reaction", "name": "reaction-signalr", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "Dataverse", "path": "reactions/power-platform/dataverse/dataverse-reaction", "name": "reaction-dataverse", "platforms": "linux/amd64", "category": "reactions"},
+    {"label": "Debezium", "path": "reactions/debezium/debezium-reaction", "name": "reaction-debezium", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "Debug", "path": "reactions/platform/debug-reaction", "name": "reaction-debug", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "EventGrid", "path": "reactions/azure/eventgrid-reaction", "name": "reaction-eventgrid", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "EventBridge", "path": "reactions/aws/eventbridge-reaction", "name": "reaction-eventbridge", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "Gremlin", "path": "reactions/gremlin/gremlin-reaction", "name": "reaction-gremlin", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "Result", "path": "reactions/platform/result-reaction", "name": "reaction-result", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "StorageQueue", "path": "reactions/azure/storagequeue-reaction", "name": "reaction-storage-queue", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "SyncDaprStateStore", "path": "reactions/dapr/sync-statestore", "name": "reaction-sync-dapr-statestore", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "PostDaprPubSub", "path": "reactions/dapr/post-pubsub", "name": "reaction-post-dapr-pubsub", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "Http", "path": "reactions/http", "name": "reaction-http", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "StoredProc", "path": "reactions/sql/storedproc-reaction", "name": "reaction-storedproc", "platforms": "linux/amd64,linux/arm64", "category": "reactions"}]'
 
 jobs:
   # Setup job to parse and output component JSON
   setup:
     runs-on: ubuntu-latest
     outputs:
-      query_components: ${{ steps.set_components.outputs.query_components }}
-      control_plane_components: ${{ steps.set_components.outputs.control_plane_components }}
-      sources_components: ${{ steps.set_components.outputs.sources_components }}
-      reactions_components: ${{ steps.set_components.outputs.reactions_components }}
       all_components: ${{ steps.set_components.outputs.all_components }}
     steps:
       - name: Set Component Outputs
         id: set_components
         run: |
-          echo "query_components=$(echo '${{ env.QUERY_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
-          echo "control_plane_components=$(echo '${{ env.CONTROL_PLANE_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
-          echo "sources_components=$(echo '${{ env.SOURCES_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
-          echo "reactions_components=$(echo '${{ env.REACTIONS_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
-          # Combine all components into a single array
-          echo "all_components=$(echo '${{ env.QUERY_COMPONENTS }} ${{ env.CONTROL_PLANE_COMPONENTS }} ${{ env.SOURCES_COMPONENTS }} ${{ env.REACTIONS_COMPONENTS }}' | jq -s 'add')" >> $GITHUB_OUTPUT
+          echo "all_components=$(echo '${{ env.ALL_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
       - name: Debug Outputs
         run: |
-          echo "Query Components: ${{ steps.set_components.outputs.query_components }}"
-          echo "Control Plane Components: ${{ steps.set_components.outputs.control_plane_components }}"
-          echo "Sources Components: ${{ steps.set_components.outputs.sources_components }}"
-          echo "Reactions Components: ${{ steps.set_components.outputs.reactions_components }}"
           echo "All Components: ${{ steps.set_components.outputs.all_components }}"
   
   # Validate the branch name
@@ -178,63 +159,45 @@ jobs:
 
       - name: Create and push manifest lists for all components
         run: |
-          # Process all component types
-          for component_env in "QUERY_COMPONENTS" "CONTROL_PLANE_COMPONENTS" "SOURCES_COMPONENTS" "REACTIONS_COMPONENTS"; do
-            component_json=""
-            case $component_env in
-              "QUERY_COMPONENTS")
-                component_json='${{ env.QUERY_COMPONENTS }}'
-                ;;
-              "CONTROL_PLANE_COMPONENTS")
-                component_json='${{ env.CONTROL_PLANE_COMPONENTS }}'
-                ;;
-              "SOURCES_COMPONENTS")
-                component_json='${{ env.SOURCES_COMPONENTS }}'
-                ;;
-              "REACTIONS_COMPONENTS")
-                component_json='${{ env.REACTIONS_COMPONENTS }}'
-                ;;
-            esac
+          # Process all components from the single array
+          for component in $(echo '${{ env.ALL_COMPONENTS }}' | jq -r '.[].name'); do
+            manifests=()
             
-            for component in $(echo "$component_json" | jq -r '.[].name'); do
-              manifests=()
-              
-              # Get the expected platforms for the component as stored in JSON
-              expected_platforms=$(echo "$component_json" | jq -r ".[] | select(.name == \"$component\") | .platforms")
-              
-              # Does this component need to be built for linux/amd64?
-              if echo "$expected_platforms" | grep -q "linux/amd64"; then
-                # Check if the amd64 manifest exists and add it to the array
-                if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64 > /dev/null 2>&1; then
-                  echo "Manifest for $component:${{ inputs.tag }}-amd64:"
-                  docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64
-                  manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64")
-                else
-                  echo "Error: Expected amd64 manifest not found for $component:${{ inputs.tag }}-amd64" >&2
-                  exit 1
-                fi
-              fi
-              
-              # Does this component need to be built for linux/arm64?
-              if echo "$expected_platforms" | grep -q "linux/arm64"; then
-                # Check and handle arm64 manifest with debug output
-                if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64 > /dev/null 2>&1; then
-                  echo "Manifest for $component:${{ inputs.tag }}-arm64:"
-                  docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64
-                  manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64")
-                else
-                  echo "Error: Expected arm64 manifest not found for $component:${{ inputs.tag }}-arm64" >&2
-                  exit 1
-                fi
-              fi
-              
-              # Create the manifest list if there are manifests to combine
-              if [ ${#manifests[@]} -gt 0 ]; then
-                docker buildx imagetools create -t ghcr.io/drasi-project/$component:${{ inputs.tag }} ${manifests[@]}
+            # Get the expected platforms for the component as stored in JSON
+            expected_platforms=$(echo '${{ env.ALL_COMPONENTS }}' | jq -r ".[] | select(.name == \"$component\") | .platforms")
+            
+            # Does this component need to be built for linux/amd64?
+            if echo "$expected_platforms" | grep -q "linux/amd64"; then
+              # Check if the amd64 manifest exists and add it to the array
+              if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64 > /dev/null 2>&1; then
+                echo "Manifest for $component:${{ inputs.tag }}-amd64:"
+                docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64
+                manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64")
               else
-                echo "No manifests found for $component, skipping manifest creation."
+                echo "Error: Expected amd64 manifest not found for $component:${{ inputs.tag }}-amd64" >&2
+                exit 1
               fi
-            done
+            fi
+            
+            # Does this component need to be built for linux/arm64?
+            if echo "$expected_platforms" | grep -q "linux/arm64"; then
+              # Check and handle arm64 manifest with debug output
+              if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64 > /dev/null 2>&1; then
+                echo "Manifest for $component:${{ inputs.tag }}-arm64:"
+                docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64
+                manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64")
+              else
+                echo "Error: Expected arm64 manifest not found for $component:${{ inputs.tag }}-arm64" >&2
+                exit 1
+              fi
+            fi
+            
+            # Create the manifest list if there are manifests to combine
+            if [ ${#manifests[@]} -gt 0 ]; then
+              docker buildx imagetools create -t ghcr.io/drasi-project/$component:${{ inputs.tag }} ${manifests[@]}
+            else
+              echo "No manifests found for $component, skipping manifest creation."
+            fi
           done
   
   build-cli:
