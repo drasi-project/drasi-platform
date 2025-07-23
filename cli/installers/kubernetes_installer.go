@@ -317,6 +317,7 @@ func (t *KubernetesInstaller) createConfig(localMode bool, acr string, version s
 
 	if localMode {
 		cfg["IMAGE_PULL_POLICY"] = "IfNotPresent"
+		cfg["IMAGE_VERSION_TAG"] = version
 	} else {
 		cfg["ACR"] = acr
 		cfg["IMAGE_VERSION_TAG"] = version

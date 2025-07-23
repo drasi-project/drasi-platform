@@ -4,12 +4,17 @@ CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
 DOCKERX_OPTS ?= --load --cache-to type=inline,mode=max
+BUILD_CONFIG ?= default
+
+ifneq ($(BUILD_CONFIG), default)
+	DOCKER_TAG_VERSION := ${DOCKER_TAG_VERSION}-$(BUILD_CONFIG)
+endif
 
 default: docker-build
 
 # Build the Docker image for the reaction
 docker-build:
-	docker buildx build . --no-cache -t $(IMAGE_PREFIX)/reaction-post-dapr-pubsub:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS) -f Dockerfile
+	docker buildx build . -t $(IMAGE_PREFIX)/reaction-post-dapr-pubsub:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS) -f Dockerfile.$(BUILD_CONFIG)
 
 # Load the built image into the specified Kind cluster
 kind-load:

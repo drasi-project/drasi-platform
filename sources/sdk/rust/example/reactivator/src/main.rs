@@ -30,7 +30,7 @@ async fn my_stream(_context: (), state_store: Arc<dyn StateStore + Send + Sync>)
 
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-            let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() * 1000;            
+            let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
 
             cursor += 1;
             let vehicle_id = format!("vehicle-{}", cursor);
@@ -42,7 +42,7 @@ async fn my_stream(_context: (), state_store: Arc<dyn StateStore + Send + Sync>)
                 ].into_iter().collect(),
             };
 
-            yield SourceChange::new(ChangeOp::Create, vehicle_node, time, cursor, None);
+            yield SourceChange::new(ChangeOp::Create, vehicle_node, time, time, cursor, None);
 
             cursor += 1;
             let vehicle_location_relation = SourceElement::Relation {
@@ -53,7 +53,7 @@ async fn my_stream(_context: (), state_store: Arc<dyn StateStore + Send + Sync>)
                 properties: Map::new(),
             };
 
-            yield SourceChange::new(ChangeOp::Create, vehicle_location_relation, time, cursor, None);
+            yield SourceChange::new(ChangeOp::Create, vehicle_location_relation, time, time, cursor, None);
 
             state_store.put("cursor", cursor.to_be_bytes().to_vec()).await.unwrap();
         }
