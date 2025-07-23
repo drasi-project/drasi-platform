@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This workflow supports building components with multiple build configurations.
+# To add a new build configuration:
+# 1. Add a new entry to the BUILD_CONFIGS array below with "name" and "suffix" fields
+# 2. The "name" will be passed as BUILD_CONFIG environment variable to the make command
+# 3. The "suffix" will be appended to the tag (e.g., "-azure-linux")
+# 4. Both individual platform-specific images and multi-arch manifests will be created for each config
+
 name: Draft Release
 
 on:
@@ -33,6 +40,12 @@ permissions:
 # Environment variables with consistent `platforms` fields
 env:
   RELEASE_PATH: ./release
+
+  BUILD_CONFIGS: >-
+    [
+      {"name": "default", "suffix": ""},
+      {"name": "azure-linux", "suffix": "-azure-linux"}
+    ]
 
   ALL_COMPONENTS: '[
     {"label": "Query Host", "path": "query-container/query-host", "name": "query-container-query-host", "platforms": "linux/amd64,linux/arm64", "category": "query"},
@@ -73,14 +86,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       all_components: ${{ steps.set_components.outputs.all_components }}
+      build_configs: ${{ steps.set_components.outputs.build_configs }}
     steps:
       - name: Set Component Outputs
         id: set_components
         run: |
           echo "all_components=$(echo '${{ env.ALL_COMPONENTS }}' | jq -c .)" >> $GITHUB_OUTPUT
+          echo "build_configs=$(echo '${{ env.BUILD_CONFIGS }}' | jq -c .)" >> $GITHUB_OUTPUT
       - name: Debug Outputs
         run: |
           echo "All Components: ${{ steps.set_components.outputs.all_components }}"
+          echo "Build Configs: ${{ steps.set_components.outputs.build_configs }}"
   
   # Validate the branch name
   validate:
@@ -106,6 +122,7 @@ jobs:
       matrix:
         runner: [ubuntu-latest, ubuntu-24.04-arm]
         component: ${{ fromJson(needs.setup.outputs.all_components) }}
+        build_config: ${{ fromJson(needs.setup.outputs.build_configs) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -128,19 +145,27 @@ jobs:
       - name: Determine platform and tag suffix
         id: platform
         run: |
+          # Determine platform suffix
           if [[ "${{ matrix.runner }}" == "ubuntu-latest" ]]; then
             echo "platform=linux/amd64" >> $GITHUB_OUTPUT
-            echo "suffix=-amd64" >> $GITHUB_OUTPUT
+            platform_suffix="-amd64"
           elif [[ "${{ matrix.runner }}" == "ubuntu-24.04-arm" ]]; then
             echo "platform=linux/arm64" >> $GITHUB_OUTPUT
-            echo "suffix=-arm64" >> $GITHUB_OUTPUT
+            platform_suffix="-arm64"
           fi
+          
+          # Combine build config suffix with platform suffix
+          build_config_suffix="${{ matrix.build_config.suffix }}"
+          combined_suffix="${build_config_suffix}${platform_suffix}"
+          echo "suffix=${combined_suffix}" >> $GITHUB_OUTPUT
 
       - name: Build and Push to GHCR
         if: contains(matrix.component.platforms, steps.platform.outputs.platform)
         run: |
           cd ${{ matrix.component.path }}
-          DOCKER_TAG_VERSION=${{ inputs.tag }}${{ steps.platform.outputs.suffix }} \
+          BUILD_CONFIG=${{ matrix.build_config.name }} \
+          DOCKER_TAG_VERSION=${{ inputs.tag }} \
+          TAG_SUFFIX=${{ steps.platform.outputs.suffix }} \
           IMAGE_PREFIX=${{ inputs.image_prefix }} \
           DOCKERX_OPTS="--push --platform ${{ steps.platform.outputs.platform }}" \
           make
@@ -159,45 +184,52 @@ jobs:
 
       - name: Create and push manifest lists for all components
         run: |
-          # Process all components from the single array
-          for component in $(echo '${{ env.ALL_COMPONENTS }}' | jq -r '.[].name'); do
-            manifests=()
+          # Process all build configs
+          for build_config in $(echo '${{ env.BUILD_CONFIGS }}' | jq -r '.[].name'); do
+            build_config_suffix=$(echo '${{ env.BUILD_CONFIGS }}' | jq -r ".[] | select(.name == \"$build_config\") | .suffix")
             
-            # Get the expected platforms for the component as stored in JSON
-            expected_platforms=$(echo '${{ env.ALL_COMPONENTS }}' | jq -r ".[] | select(.name == \"$component\") | .platforms")
+            echo "Creating manifests for build config: $build_config (suffix: $build_config_suffix)"
             
-            # Does this component need to be built for linux/amd64?
-            if echo "$expected_platforms" | grep -q "linux/amd64"; then
-              # Check if the amd64 manifest exists and add it to the array
-              if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64 > /dev/null 2>&1; then
-                echo "Manifest for $component:${{ inputs.tag }}-amd64:"
-                docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64
-                manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-amd64")
-              else
-                echo "Error: Expected amd64 manifest not found for $component:${{ inputs.tag }}-amd64" >&2
-                exit 1
+            # Process all components for this build config
+            for component in $(echo '${{ env.ALL_COMPONENTS }}' | jq -r '.[].name'); do
+              manifests=()
+              
+              # Get the expected platforms for the component
+              expected_platforms=$(echo '${{ env.ALL_COMPONENTS }}' | jq -r ".[] | select(.name == \"$component\") | .platforms")
+              
+              # Does this component need to be built for linux/amd64?
+              if echo "$expected_platforms" | grep -q "linux/amd64"; then
+                amd64_tag="${{ inputs.tag }}${build_config_suffix}-amd64"
+                if docker manifest inspect ghcr.io/drasi-project/$component:$amd64_tag > /dev/null 2>&1; then
+                  echo "Found amd64 manifest for $component:$amd64_tag"
+                  manifests+=("ghcr.io/drasi-project/$component:$amd64_tag")
+                else
+                  echo "Error: Expected amd64 manifest not found for $component:$amd64_tag" >&2
+                  exit 1
+                fi
               fi
-            fi
-            
-            # Does this component need to be built for linux/arm64?
-            if echo "$expected_platforms" | grep -q "linux/arm64"; then
-              # Check and handle arm64 manifest with debug output
-              if docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64 > /dev/null 2>&1; then
-                echo "Manifest for $component:${{ inputs.tag }}-arm64:"
-                docker manifest inspect ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64
-                manifests+=("ghcr.io/drasi-project/$component:${{ inputs.tag }}-arm64")
-              else
-                echo "Error: Expected arm64 manifest not found for $component:${{ inputs.tag }}-arm64" >&2
-                exit 1
+              
+              # Does this component need to be built for linux/arm64?
+              if echo "$expected_platforms" | grep -q "linux/arm64"; then
+                arm64_tag="${{ inputs.tag }}${build_config_suffix}-arm64"
+                if docker manifest inspect ghcr.io/drasi-project/$component:$arm64_tag > /dev/null 2>&1; then
+                  echo "Found arm64 manifest for $component:$arm64_tag"
+                  manifests+=("ghcr.io/drasi-project/$component:$arm64_tag")
+                else
+                  echo "Error: Expected arm64 manifest not found for $component:$arm64_tag" >&2
+                  exit 1
+                fi
               fi
-            fi
-            
-            # Create the manifest list if there are manifests to combine
-            if [ ${#manifests[@]} -gt 0 ]; then
-              docker buildx imagetools create -t ghcr.io/drasi-project/$component:${{ inputs.tag }} ${manifests[@]}
-            else
-              echo "No manifests found for $component, skipping manifest creation."
-            fi
+              
+              # Create the manifest list if there are manifests to combine
+              if [ ${#manifests[@]} -gt 0 ]; then
+                final_tag="${{ inputs.tag }}${build_config_suffix}"
+                echo "Creating manifest list for $component:$final_tag with ${#manifests[@]} manifests"
+                docker buildx imagetools create -t ghcr.io/drasi-project/$component:$final_tag ${manifests[@]}
+              else
+                echo "No manifests found for $component with build config $build_config, skipping manifest creation."
+              fi
+            done
           done
   
   build-cli:
