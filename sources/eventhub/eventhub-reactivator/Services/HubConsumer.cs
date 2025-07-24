@@ -45,7 +45,7 @@ namespace Reactivator.Services
             _client = BuildClient(entityName, configuration, logger);
         }
 
-        private static EventHubConsumerClient BuildClient(string eventHub, IConfiguration configuration, ILogger logger)
+        internal static EventHubConsumerClient BuildClient(string eventHub, IConfiguration configuration, ILogger logger)
         {
             var consumerGroup = configuration.GetValue<string>("consumerGroup") ?? EventHubConsumerClient.DefaultConsumerGroupName;
             switch (configuration.GetIdentityType())
