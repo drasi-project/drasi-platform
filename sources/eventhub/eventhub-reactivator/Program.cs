@@ -18,6 +18,7 @@ using Reactivator.Services;
 var reactivator = new ReactivatorBuilder()
     .UseChangeMonitor<ChangeMonitor>()
     .ConfigureServices(services => services.AddSingleton<IEventMapper, JsonEventMapper>())
+    .UseDeprovisionHandler<DeprovisionHandler>()
     .Build();
 
 await reactivator.StartAsync();
