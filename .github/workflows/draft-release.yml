@@ -109,7 +109,7 @@ jobs:
             echo "Branch has the correct prefix."
           else
             echo "Branch does not have the correct prefix. Exiting..."
-            # exit 1  - todo: Uncomment this line to enforce branch naming
+            exit 1
           fi
 
   # Build job for all components

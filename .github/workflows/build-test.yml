@@ -212,6 +212,11 @@ jobs:
             label: 'Http',
             path: './reactions/http', 
             name: 'reaction-http'
+          },
+          { 
+            label: 'EventBridge',
+            path: './reactions/aws/eventbridge', 
+            name: 'reaction-eventbridge'
           }
         ]
 
