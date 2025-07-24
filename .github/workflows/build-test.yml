@@ -215,7 +215,7 @@ jobs:
           },
           { 
             label: 'EventBridge',
-            path: './reactions/aws/eventbridge', 
+            path: './reactions/aws/eventbridge-reaction', 
             name: 'reaction-eventbridge'
           }
         ]
