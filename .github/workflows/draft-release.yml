@@ -16,8 +16,9 @@
 # To add a new build configuration:
 # 1. Add a new entry to the BUILD_CONFIGS array below with "name" and "suffix" fields
 # 2. The "name" will be passed as BUILD_CONFIG environment variable to the make command
-# 3. The "suffix" will be appended to the tag (e.g., "-azure-linux")
-# 4. Both individual platform-specific images and multi-arch manifests will be created for each config
+# 3. The Makefiles will append the build config name to the tag (e.g., "tag-azure-linux-amd64")
+# 4. Ensure a corresponding Dockerfile exists (e.g., "Dockerfile.azure-linux") 
+# 5. Both individual platform-specific images and multi-arch manifests will be created for each config
 
 name: Draft Release
 
@@ -43,8 +44,8 @@ env:
 
   BUILD_CONFIGS: >-
     [
-      {"name": "default", "suffix": ""},
-      {"name": "azure-linux", "suffix": "-azure-linux"}
+      {"name": "default"},
+      {"name": "azure-linux"}
     ]
 
   ALL_COMPONENTS: '[
@@ -154,10 +155,8 @@ jobs:
             platform_suffix="-arm64"
           fi
           
-          # Combine build config suffix with platform suffix
-          build_config_suffix="${{ matrix.build_config.suffix }}"
-          combined_suffix="${build_config_suffix}${platform_suffix}"
-          echo "suffix=${combined_suffix}" >> $GITHUB_OUTPUT
+          # The Makefile will handle the build config suffix, we just pass the platform suffix
+          echo "suffix=${platform_suffix}" >> $GITHUB_OUTPUT
 
       - name: Build and Push to GHCR
         if: contains(matrix.component.platforms, steps.platform.outputs.platform)
@@ -186,9 +185,10 @@ jobs:
         run: |
           # Process all build configs
           for build_config in $(echo '${{ env.BUILD_CONFIGS }}' | jq -r '.[].name'); do
-            build_config_suffix=$(echo '${{ env.BUILD_CONFIGS }}' | jq -r ".[] | select(.name == \"$build_config\") | .suffix")
+            echo "Creating manifests for build config: $build_config"
             
-            echo "Creating manifests for build config: $build_config (suffix: $build_config_suffix)"
+            # Track if any components were processed for this build config
+            build_config_has_images=false
             
             # Process all components for this build config
             for component in $(echo '${{ env.ALL_COMPONENTS }}' | jq -r '.[].name'); do
@@ -197,39 +197,54 @@ jobs:
               # Get the expected platforms for the component
               expected_platforms=$(echo '${{ env.ALL_COMPONENTS }}' | jq -r ".[] | select(.name == \"$component\") | .platforms")
               
+              # Check if any images exist for this build config
+              component_has_images=false
+              
+              # Calculate the base tag based on Makefile logic
+              if [ "$build_config" = "default" ]; then
+                base_tag="${{ inputs.tag }}"
+              else
+                base_tag="${{ inputs.tag }}-$build_config"
+              fi
+              
               # Does this component need to be built for linux/amd64?
               if echo "$expected_platforms" | grep -q "linux/amd64"; then
-                amd64_tag="${{ inputs.tag }}${build_config_suffix}-amd64"
+                amd64_tag="${base_tag}-amd64"
                 if docker manifest inspect ghcr.io/drasi-project/$component:$amd64_tag > /dev/null 2>&1; then
                   echo "Found amd64 manifest for $component:$amd64_tag"
                   manifests+=("ghcr.io/drasi-project/$component:$amd64_tag")
+                  component_has_images=true
                 else
-                  echo "Error: Expected amd64 manifest not found for $component:$amd64_tag" >&2
-                  exit 1
+                  echo "Warning: amd64 manifest not found for $component:$amd64_tag"
                 fi
               fi
               
               # Does this component need to be built for linux/arm64?
               if echo "$expected_platforms" | grep -q "linux/arm64"; then
-                arm64_tag="${{ inputs.tag }}${build_config_suffix}-arm64"
+                arm64_tag="${base_tag}-arm64"
                 if docker manifest inspect ghcr.io/drasi-project/$component:$arm64_tag > /dev/null 2>&1; then
                   echo "Found arm64 manifest for $component:$arm64_tag"
                   manifests+=("ghcr.io/drasi-project/$component:$arm64_tag")
+                  component_has_images=true
                 else
-                  echo "Error: Expected arm64 manifest not found for $component:$arm64_tag" >&2
-                  exit 1
+                  echo "Warning: arm64 manifest not found for $component:$arm64_tag"
                 fi
               fi
               
               # Create the manifest list if there are manifests to combine
               if [ ${#manifests[@]} -gt 0 ]; then
-                final_tag="${{ inputs.tag }}${build_config_suffix}"
+                final_tag="${base_tag}"
                 echo "Creating manifest list for $component:$final_tag with ${#manifests[@]} manifests"
                 docker buildx imagetools create -t ghcr.io/drasi-project/$component:$final_tag ${manifests[@]}
+                build_config_has_images=true
               else
                 echo "No manifests found for $component with build config $build_config, skipping manifest creation."
               fi
             done
+            
+            if [ "$build_config_has_images" = false ]; then
+              echo "Warning: No images found for build config $build_config. This may indicate the build failed or the Makefiles don't support BUILD_CONFIG=$build_config"
+            fi
           done
   
   build-cli:
