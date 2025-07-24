@@ -3,11 +3,16 @@
 CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
+TAG_SUFFIX ?=
 DOCKERX_OPTS ?= --load --cache-to type=inline
 BUILD_CONFIG ?= default
 
 ifneq ($(BUILD_CONFIG), default)
 	DOCKER_TAG_VERSION := ${DOCKER_TAG_VERSION}-$(BUILD_CONFIG)
+endif
+
+ifneq ($(TAG_SUFFIX),)
+	DOCKER_TAG_VERSION := ${DOCKER_TAG_VERSION}$(TAG_SUFFIX)
 endif
 
 default: docker-build

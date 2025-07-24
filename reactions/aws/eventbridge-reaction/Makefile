@@ -5,9 +5,14 @@ IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
 DOCKERX_OPTS ?= --load --cache-to type=inline,mode=max
 BUILD_CONFIG ?= default
+TAG_SUFFIX ?=
 
 ifneq ($(BUILD_CONFIG), default)
 	DOCKER_TAG_VERSION := ${DOCKER_TAG_VERSION}-$(BUILD_CONFIG)
+endif
+
+ifneq ($(TAG_SUFFIX),)
+	DOCKER_TAG_VERSION := ${DOCKER_TAG_VERSION}$(TAG_SUFFIX)
 endif
 
 default: docker-build
