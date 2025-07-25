@@ -41,6 +41,8 @@ Usage examples:
   drasi init --docker my-container
   drasi init --registry myregistry.io/drasi --version 0.1.0
   drasi init -n my-namespace
+  drasi init --manifest
+  drasi init --manifest ./manifests
 `,
 		Args: cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -49,6 +51,8 @@ Usage examples:
 			useDocker := false
 			var containerRegistry string
 			var version string
+			var manifestOutput string
+			useManifest := false
 
 			var err error
 
@@ -62,6 +66,11 @@ Usage examples:
 			if version, err = cmd.Flags().GetString("version"); err != nil {
 				return err
 			}
+
+			if manifestOutput, err = cmd.Flags().GetString("manifest"); err != nil {
+				return err
+			}
+			useManifest = manifestOutput != ""
 
 			if useDocker, err = cmd.Flags().GetBool("docker"); err != nil {
 				return err
@@ -109,19 +118,32 @@ Usage examples:
 				return err
 			}
 
-			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
-			if err != nil {
-				return err
-			}
+			if useManifest {
+				// Use manifest installer
+				outputDir := manifestOutput
+				if outputDir == "" {
+					outputDir = "."
+				}
+				if installer, err = installers.MakeKubernetesManifestInstaller(outputDir); err != nil {
+					return err
+				}
+			} else {
+				reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+				if err != nil {
+					return err
+				}
 
-			if installer, err = installers.MakeInstaller(reg); err != nil {
-				return err
+				if installer, err = installers.MakeInstaller(reg); err != nil {
+					return err
+				}
 			}
 
 			installer.SetDaprRuntimeVersion(daprRuntimeVersion)
 			installer.SetDaprSidecarVersion(daprSidecarVersion)
 
-			if local {
+			if useManifest {
+				fmt.Printf("Generating Drasi manifests version %s to directory: %s\n", version, manifestOutput)
+			} else if local {
 				fmt.Printf("Installing Drasi version %s with local images\n", version)
 			} else {
 				fmt.Printf("Installing Drasi with version %s from registry %s\n", version, containerRegistry)
@@ -165,6 +187,7 @@ Usage examples:
 	initCommand.Flags().String("dapr-sidecar-version", "latest", "Dapr sidecar (daprd) version to install.")
 	initCommand.Flags().String("dapr-registry", "docker.io/daprio", "Container registry to pull Dapr images from.")
 	initCommand.Flags().String("observability-level", "none", "Observability level to install. Options: none, metrics, tracing, full.")
+	initCommand.Flags().String("manifest", "", "Generate manifests to files instead of installing. Optional parameter specifies output directory (default: current directory).")
 
 	return initCommand
 }
