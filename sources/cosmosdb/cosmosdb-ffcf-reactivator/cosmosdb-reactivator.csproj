@@ -9,10 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Messaging.EventGrid" Version="4.10.0" />
-    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
-    <PackageReference Include="Dapr.Client" Version="1.8.0" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.36.0-preview" />
+    <PackageReference Include="Azure.Messaging.EventGrid" Version="4.31.0" />
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.12.1" />
+    <PackageReference Include="Dapr.Client" Version="1.15.4" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.51.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0-preview.2.22152.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />

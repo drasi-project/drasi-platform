@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7.5", features = ["http1", "macros", "tokio"] }
-axum-streams = { version = "0.19.0", features=["json"] }
+axum = { version = "0.8.0", features = ["http1", "macros", "tokio"] }
+axum-streams = { version = "0.21.0", features=["json"] }
 chrono = "0.4.38"
 log = "0.4.22"
 serde = { version = "1.0", features = ["derive"] }

@@ -53,11 +53,11 @@
     "eslint-plugin-vue": "^9.17.0",
     "jsdom": "^23.0.1",
     "prettier": "^3.1.1",
-    "typescript": "5.6.2",
+    "typescript": "5.8.3",
     "vite": "^5.4.11",
     "vitest": "^0.34.6",
     "vue": "^3.5.13",
-    "vue-tsc": "2.0.29"
+    "vue-tsc": "2.2.10"
   },
   "engines": {
     "node": ">=18.19.0"
