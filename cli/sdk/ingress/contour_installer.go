@@ -145,7 +145,7 @@ func (ci *ContourInstaller) installContour(output output.TaskOutput) error {
 	pull.DestDir = dir
 
 	// Use Bitnami Contour chart from OCI registry
-	result, err := pull.Run("oci://registry-1.docker.io/bitnamicharts/contour")
+	_, err = pull.Run("oci://registry-1.docker.io/bitnamicharts/contour")
 	if err != nil {
 		output.FailTask("Contour-Install", fmt.Sprintf("Error pulling Contour chart: %v", err.Error()))
 		return err

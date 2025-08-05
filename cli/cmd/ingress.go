@@ -88,7 +88,6 @@ Usage examples:
 			}
 
 			fmt.Printf("Installing Contour ingress controller to projectcontour namespace...\n")
-			fmt.Printf("Configuring ingress for Drasi Sources and Reactions in namespace: %s\n", namespace)
 
 			if err := contourInstaller.Install(namespace, output); err != nil {
 				return err
