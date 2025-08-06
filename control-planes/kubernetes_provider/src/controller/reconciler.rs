@@ -23,6 +23,7 @@ use k8s_openapi::{
     api::{
         apps::v1::{Deployment, DeploymentSpec, DeploymentStrategy},
         core::v1::{ConfigMap, PersistentVolumeClaim, Pod, Service, ServiceAccount},
+        networking::v1::Ingress,
     },
     Metadata,
 };
@@ -47,6 +48,7 @@ pub struct ResourceReconciler {
     cm_api: Api<ConfigMap>,
     pvc_api: Api<PersistentVolumeClaim>,
     service_api: Api<Service>,
+    ingress_api: Api<Ingress>,
     account_api: Api<ServiceAccount>,
     labels: BTreeMap<String, String>,
     pub status: ReconcileStatus,
@@ -83,6 +85,7 @@ impl ResourceReconciler {
             cm_api: Api::default_namespaced(client.clone()),
             pvc_api: Api::default_namespaced(client.clone()),
             service_api: Api::default_namespaced(client.clone()),
+            ingress_api: Api::default_namespaced(client.clone()),
             account_api: Api::default_namespaced(client.clone()),
             labels,
             status: ReconcileStatus::Unknown,
@@ -233,6 +236,24 @@ impl ResourceReconciler {
                         }
                     }
                     _ => return Err(Box::new(err)),
+                }
+            }
+        }
+
+        // if ingresses exist, delete them
+        if let Some(ingresses) = &self.spec.ingresses {
+            for ingress_name in ingresses.keys() {
+                log::info!("Deprovisioning ingress {}", ingress_name);
+                let pp = DeleteParams::default();
+                if let Err(err) = self.ingress_api.delete(ingress_name, &pp).await {
+                    match err {
+                        kube::Error::Api(api_err) => {
+                            if api_err.code != 404 {
+                                return Err(Box::new(api_err));
+                            }
+                        }
+                        _ => return Err(Box::new(err)),
+                    }
                 }
             }
         }
@@ -421,6 +442,39 @@ impl ResourceReconciler {
         Ok(())
     }
 
+    async fn reconcile_ingresses(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(ingresses) = &self.spec.ingresses {
+            log::info!("Reconciling ingresses {}", self.spec.resource_id);
+
+            for (name, ingress_spec) in ingresses {
+                match self.ingress_api.get(name).await {
+                    Ok(current) => {
+                        // Compare the spec to see if update is needed
+                        if current.spec != ingress_spec.spec {
+                            log::info!("Updating ingress {}", name);
+                            let pp = PostParams::default();
+                            self.ingress_api.replace(name, &pp, ingress_spec).await?;
+                        }
+                    }
+                    Err(e) => match e {
+                        kube::Error::Api(api_err) => {
+                            if api_err.code != 404 {
+                                log::error!("Error getting ingress: {}", api_err.code);
+                                return Err(Box::new(api_err));
+                            }
+                            log::info!("Creating ingress {}", name);
+                            let pp = PostParams::default();
+                            self.ingress_api.create(&pp, ingress_spec).await?;
+                        }
+                        _ => return Err(Box::new(e)),
+                    },
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     async fn reconcile_persistent_volume_claims(
         &mut self,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -513,6 +567,10 @@ impl ResourceReconciler {
 
         if let Err(err) = self.reconcile_services().await {
             log::error!("Error reconciling services: {}", err);
+        }
+
+        if let Err(err) = self.reconcile_ingresses().await {
+            log::error!("Error reconciling ingresses: {}", err);
         }
     }
 

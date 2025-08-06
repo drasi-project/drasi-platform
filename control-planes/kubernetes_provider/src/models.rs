@@ -20,6 +20,7 @@ use std::{
 use k8s_openapi::api::{
     apps::v1::DeploymentSpec,
     core::v1::{ConfigMap, EnvVar, PersistentVolumeClaim, ServiceAccount, ServiceSpec},
+    networking::v1::Ingress,
 };
 use kube_derive::CustomResource;
 use schemars::JsonSchema;
@@ -34,6 +35,7 @@ pub struct KubernetesSpec {
     pub services: BTreeMap<String, ServiceSpec>,
     pub config_maps: BTreeMap<String, ConfigMap>,
     pub volume_claims: BTreeMap<String, PersistentVolumeClaim>,
+    pub ingresses: Option<BTreeMap<String, Ingress>>,
     pub pub_sub: Option<Component>,
     pub service_account: Option<ServiceAccount>,
     pub removed: bool,
@@ -54,6 +56,7 @@ impl KubernetesSpec {
             services: BTreeMap::new(),
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
+            ingresses: Some(BTreeMap::new()),
             pub_sub: None,
             service_account: None,
             removed: false,
