@@ -24,7 +24,7 @@ use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::{
     api::{
         core::v1::{ConfigMap, EnvVar, ServicePort, ServiceSpec},
-        networking::v1::{Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, IngressServiceBackend, ServiceBackendPort},
+        networking::v1::{Ingress, IngressSpec, IngressBackend, IngressServiceBackend, ServiceBackendPort},
     },
     apimachinery::pkg::util::intstr::IntOrString,
 };
@@ -140,11 +140,11 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             k8s_services.insert(endpoint_name.clone(), service_spec);
                         }
                         EndpointSetting::External => {
+                            println!("REACHED EXTERNAL ENDPOINT: {}", endpoint_name);
                             let port = endpoint.target.parse::<i32>().unwrap();
                             ports.insert(endpoint_name.clone(), port);
                             
                             // Create ClusterIP service for the ingress to target
-                            let ingress_service_name = format!("{}-{}-{}", reaction.id, service_name, endpoint_name);
                             let service_spec = ServiceSpec {
                                 type_: Some("ClusterIP".to_string()),
                                 selector: Some(labels.clone()),
@@ -156,7 +156,9 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                 }]),
                                 ..Default::default()
                             };
-                            k8s_services.insert(ingress_service_name.clone(), service_spec);
+                            // Use just endpoint_name as key - ResourceReconciler will add reaction.id prefix
+                            let service_key = format!("{}-{}", service_name, endpoint_name);
+                            k8s_services.insert(service_key.clone(), service_spec);
 
                             // Create Ingress resource
                             let ingress_name = format!("{}-{}-{}", reaction.id, service_name, endpoint_name);
@@ -171,25 +173,17 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                     ..Default::default()
                                 },
                                 spec: Some(IngressSpec {
-                                    rules: Some(vec![IngressRule {
-                                        host: None, // Allow any host for now
-                                        http: Some(HTTPIngressRuleValue {
-                                            paths: vec![HTTPIngressPath {
-                                                path: Some(format!("/{}", reaction.id)),
-                                                path_type: "Prefix".to_string(),
-                                                backend: IngressBackend {
-                                                    service: Some(IngressServiceBackend {
-                                                        name: ingress_service_name.clone(),
-                                                        port: Some(ServiceBackendPort {
-                                                            number: Some(port),
-                                                            ..Default::default()
-                                                        }),
-                                                    }),
-                                                    ..Default::default()
-                                                },
-                                            }],
+                                    ingress_class_name: Some("contour".to_string()),
+                                    default_backend: Some(IngressBackend {
+                                        service: Some(IngressServiceBackend {
+                                            name: format!("{}-{}", reaction.id, service_key.clone()),
+                                            port: Some(ServiceBackendPort {
+                                                number: Some(port),
+                                                ..Default::default()
+                                            }),
                                         }),
-                                    }]),
+                                        ..Default::default()
+                                    }),
                                     ..Default::default()
                                 }),
                                 ..Default::default()
