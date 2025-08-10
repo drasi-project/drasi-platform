@@ -316,6 +316,7 @@ impl From<QuerySpec> for resource_provider_api::models::QuerySpec {
         resource_provider_api::models::QuerySpec {
             mode: query_spec.mode,
             query: query_spec.query,
+            query_language: query_spec.query_language,
             sources: query_spec.sources.into(),
             storage_profile: query_spec.storage_profile,
             view: query_spec.view.into(),

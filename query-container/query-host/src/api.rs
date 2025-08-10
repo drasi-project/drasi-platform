@@ -81,6 +81,7 @@ pub struct SourceMiddlewareConfig {
 pub struct QuerySpec {
     pub mode: String,
     pub query: String,
+    pub query_language: Option<String>,
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,

@@ -174,6 +174,7 @@ pub struct QuerySpec {
     pub container: String,
     pub mode: String,
     pub query: String,
+    pub query_language: Option<String>,
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
