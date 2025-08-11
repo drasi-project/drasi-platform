@@ -10,8 +10,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Drasi.Reactions.SyncDaprStateStore.Tests" />
     <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.8-alpha" />
-    <PackageReference Include="Dapr.Client" Version="1.15.0" />
-    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="Dapr.Client" Version="1.15.4" />
+    <PackageReference Include="System.Text.Json" Version="9.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" /> 
   </ItemGroup>
 

@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.12.1" />
-    <PackageReference Include="Azure.Identity" Version="1.14.0" />    
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.12.2" />
+    <PackageReference Include="Azure.Identity" Version="1.14.2" />    
     <PackageReference Include="Drasi.Source.SDK" Version="0.1.4-alpha" />
   </ItemGroup>
 

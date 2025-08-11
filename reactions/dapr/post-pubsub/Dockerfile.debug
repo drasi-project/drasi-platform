@@ -18,7 +18,7 @@ WORKDIR /src/Drasi.Reactions.PostDaprPubSub
 RUN dotnet publish "./Drasi.Reactions.PostDaprPubSub.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Final stage/image
-FROM ubuntu:25.04 AS final
+FROM ubuntu:plucky-20250619 AS final
 RUN apt-get update && apt-get install -y bash curl dotnet-runtime-8.0 aspnetcore-runtime-8.0 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/publish .
