@@ -24,7 +24,7 @@ use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::{
     api::{
         core::v1::{ConfigMap, EnvVar, ServicePort, ServiceSpec},
-        networking::v1::{Ingress, IngressSpec, IngressBackend, IngressServiceBackend, ServiceBackendPort},
+        networking::v1::{Ingress, IngressSpec, IngressBackend, IngressServiceBackend, ServiceBackendPort, IngressRule, HTTPIngressRuleValue, HTTPIngressPath},
     },
     apimachinery::pkg::util::intstr::IntOrString,
 };
@@ -160,10 +160,14 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             let service_key = format!("{}-{}", service_name, endpoint_name);
                             k8s_services.insert(service_key.clone(), service_spec);
 
-                            // Create Ingress resource
+                            // Create Ingress resource with hostname-based routing
                             let ingress_name = format!("{}-{}-{}", reaction.id, service_name, endpoint_name);
                             let mut annotations = BTreeMap::new();
                             annotations.insert("kubernetes.io/ingress.class".to_string(), "contour".to_string());
+                            
+                            // Generate hostname: <reaction-name>.drasi.PLACEHOLDER
+                            // The PLACEHOLDER will be replaced with actual IP during reconciliation
+                            let hostname = format!("{}.drasi.PLACEHOLDER", reaction.id);
                             
                             let ingress = Ingress {
                                 metadata: ObjectMeta {
@@ -174,16 +178,25 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                 },
                                 spec: Some(IngressSpec {
                                     ingress_class_name: Some("contour".to_string()),
-                                    default_backend: Some(IngressBackend {
-                                        service: Some(IngressServiceBackend {
-                                            name: format!("{}-{}", reaction.id, service_key.clone()),
-                                            port: Some(ServiceBackendPort {
-                                                number: Some(port),
-                                                ..Default::default()
-                                            }),
+                                    rules: Some(vec![IngressRule {
+                                        host: Some(hostname),
+                                        http: Some(HTTPIngressRuleValue {
+                                            paths: vec![HTTPIngressPath {
+                                                path: Some("/".to_string()),
+                                                path_type: "Prefix".to_string(),
+                                                backend: IngressBackend {
+                                                    service: Some(IngressServiceBackend {
+                                                        name: format!("{}-{}", reaction.id, service_key.clone()),
+                                                        port: Some(ServiceBackendPort {
+                                                            number: Some(port),
+                                                            ..Default::default()
+                                                        }),
+                                                    }),
+                                                    ..Default::default()
+                                                },
+                                            }],
                                         }),
-                                        ..Default::default()
-                                    }),
+                                    }]),
                                     ..Default::default()
                                 }),
                                 ..Default::default()

@@ -191,7 +191,7 @@ func (ci *ContourInstaller) installContour(output output.TaskOutput) error {
 		},
 		"envoy": map[string]interface{}{
 			"service": map[string]interface{}{
-				"type": "NodePort",
+				"type": "LoadBalancer",
 			},
 		},
 	}
