@@ -50,7 +50,7 @@ use tracing::{dispatcher, info_span, instrument, Dispatch, Instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
-    api::{self, ChangeEvent, ControlSignal, ResultEvent},
+    api::{self, ChangeEvent, ControlSignal, ResultEvent, QueryLanguage},
     change_stream::{
         self, redis_change_stream::RedisChangeStream, Message, SequentialChangeStream,
     },
@@ -105,23 +105,18 @@ impl QueryWorker {
             let mut modified_config = config.clone();
 
             let (parser, function_registry): (Arc<dyn QueryParser>, Arc<FunctionRegistry>) =
-                match query_language.map(|s| s.to_lowercase()).as_deref() {
-                    Some("gql") => {
+                match query_language {
+                    Some(QueryLanguage::GQL) => {
                         let function_registry =
                             Arc::new(FunctionRegistry::new()).with_gql_function_set();
                         let parser = Arc::new(GQLParser::new(function_registry.clone())) as Arc<dyn QueryParser>;
                         (parser, function_registry)
                     }
-                    Some("cypher") | None => {
+                    Some(QueryLanguage::Cypher) | None => {
                         let function_registry =
                             Arc::new(FunctionRegistry::new()).with_cypher_function_set();
                         let parser = Arc::new(CypherParser::new(function_registry.clone())) as Arc<dyn QueryParser>;
                         (parser, function_registry)
-                    }
-                    Some(lang) => {
-                        log::error!("Unsupported query language: {}", lang);
-                        lifecycle.change_state(QueryState::TerminalError("Unsupported query language".to_string()));
-                        return;
                     }
                 };
 

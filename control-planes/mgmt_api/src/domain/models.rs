@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use resource_provider_api::models::QueryLanguage;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, HashMap};
@@ -174,7 +175,7 @@ pub struct QuerySpec {
     pub container: String,
     pub mode: String,
     pub query: String,
-    pub query_language: Option<String>,
+    pub query_language: Option<QueryLanguage>,
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
