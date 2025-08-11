@@ -1,4 +1,4 @@
-FROM rust:1.86-bullseye as builder
+FROM rust:1.87-bullseye as builder
 RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get clean
 
 WORKDIR /usr/src

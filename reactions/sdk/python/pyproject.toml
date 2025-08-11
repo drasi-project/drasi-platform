@@ -20,7 +20,7 @@ pydantic = "^2.10.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
-datamodel-code-generator = "0.26.3"
+datamodel-code-generator = "0.31.0"
 
 
 [build-system]

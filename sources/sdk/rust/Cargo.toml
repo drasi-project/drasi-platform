@@ -12,22 +12,22 @@ readme = "readme.md"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.133"
-axum = { version = "0.7.9", features = ["http1", "macros", "tokio"] }
-axum-streams = { version = "0.19.0", features=["json"] }
+axum = { version = "0.8.0", features = ["http1", "macros", "tokio"] }
+axum-streams = { version = "0.21.0", features=["json"] }
 log = "0.4.22"
 tokio = {version = "1.40.0", features = ["full"]}
 async-stream = "0.3.5"
 futures = "0.3"
-dapr = "0.15.1"
+dapr = "0.16.0"
 async-trait = "0.1.83"
 thiserror = "2.0.5"
 reqwest = { version = "0.12.22", features = ["json", "rustls-tls"], default-features = false }
-opentelemetry = {version = "0.20", features = ["rt-tokio"]}
-opentelemetry-otlp = {version = "0.13", features = ["trace", "metrics"]}
-opentelemetry-semantic-conventions = "0.12"
-opentelemetry_sdk = {version = "0.20", features = ["rt-tokio"]}
+opentelemetry = {version = "0.30", features = ["rt-tokio"]}
+opentelemetry-otlp = {version = "0.30", features = ["trace", "metrics"]}
+opentelemetry-semantic-conventions = "0.30"
+opentelemetry_sdk = {version = "0.30", features = ["rt-tokio"]}
 tracing = "0.1.37"
-tracing-opentelemetry = "0.21"
+tracing-opentelemetry = "0.31"
 tracing-subscriber = {version = "0.3.17", features = ["env-filter"]}
 env_logger = "0.11.5"
 retry = "2.0.0"

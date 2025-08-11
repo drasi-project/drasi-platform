@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.Kafka" Version="2.6.1" />
+    <PackageReference Include="Confluent.Kafka" Version="2.10.1" />
     <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.5-alpha" />
   </ItemGroup>
 

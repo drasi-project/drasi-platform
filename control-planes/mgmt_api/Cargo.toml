@@ -9,54 +9,54 @@ edition = "2021"
 resource_provider_api = { path = "../resource_provider_api" }
 drasi-comms-abstractions = { path = "../../infrastructure/comms-abstractions" }
 drasi-comms-dapr = { path = "../../infrastructure/comms-dapr" }
-dapr = "=0.15.1"
+dapr = "=0.16.2"
 async-stream = "0.3.5"
 async-trait = "0.1"
 actix = "0.13"
 actix-broker = "0.4"
 actix-codec = "0.5"
-actix-cors = "0.6"
+actix-cors = "0.7"
 actix-files = "0.6"
 actix-http = "3"
-actix-identity = "0.5"
-actix-multipart = "0.6"
-actix-multipart-derive = "0.6"
-actix-protobuf = "0.9"
-actix-session = "0.7"
+actix-identity = "0.8"
+actix-multipart = "0.7"
+actix-multipart-derive = "0.7"
+actix-protobuf = "0.11"
+actix-session = "0.10"
 actix-test = "0.1"
 actix-tls = "3"
 actix-utils = "3"
 actix-web = "4.3"
 actix-web-actors = "4.1"
-actix-web-lab = "0.19"
+actix-web-lab = "0.24"
 actix-ws = "0.3.0"
 awc = "3"
 
 derive_more = "0.99.7"
-env_logger = "0.10"
+env_logger = "0.11"
 futures = "0.3"
 futures-util = { version = "0.3.17", default-features = false, features = ["std"] }
 log = "0.4"
-rand = "0.8"
+rand = "0.9"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1.43.1", features = ["sync"] }
 void = "1"
 mongodb = "2.5.0"
 uuid = "1.3.3"
-reqwest = { version = "0.11.18", features = ["json", "rustls-tls"], default-features = false }
-redis = { version = "0.23.0", features = ["tokio-comp"] }
-opentelemetry = {version = "0.20.0", features = ["rt-tokio"]}
-opentelemetry-otlp = {version = "0.13.0", features = ["trace", "metrics"]}
-opentelemetry-semantic-conventions = "0.12.0"
-opentelemetry_sdk = {version = "0.20.0", features = ["rt-tokio"]}
+reqwest = { version = "0.12.0", features = ["json", "rustls-tls"], default-features = false }
+redis = { version = "0.32.0", features = ["tokio-comp"] }
+opentelemetry = {version = "0.30.0", features = ["rt-tokio"]}
+opentelemetry-otlp = {version = "0.30.0", features = ["trace", "metrics"]}
+opentelemetry-semantic-conventions = "0.30.0"
+opentelemetry_sdk = {version = "0.30.0", features = ["rt-tokio"]}
 tracing = "0.1.37"
-tracing-opentelemetry = "0.21.0"
+tracing-opentelemetry = "0.31.0"
 tracing-subscriber = {version = "0.3.17", features = ["env-filter"]}
-cloudevents-sdk = "0.7.0"
+cloudevents-sdk = "0.8.0"
 thiserror = "1.0.49"
-jsonschema = "0.17.1"
-reqwest-streams = { version = "0.3", features=["json"] }
+jsonschema = "0.30.0"
+reqwest-streams = { version = "0.10", features=["json"] }
 
 [dev-dependencies]
 faux = "^0.1"

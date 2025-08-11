@@ -9,11 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Dapr.AspNetCore" Version="1.13.1" />
-    <PackageReference Include="Dapr.Client" Version="1.13.1" />
+    <PackageReference Include="Dapr.AspNetCore" Version="1.15.4" />
+    <PackageReference Include="Dapr.Client" Version="1.15.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.1.22" />
+    <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.2.9" />
   </ItemGroup>
 
 </Project>

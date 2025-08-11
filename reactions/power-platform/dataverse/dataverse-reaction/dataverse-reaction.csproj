@@ -10,11 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<PackageReference Include="Dapr.AspNetCore" Version="1.8.0" />
-	<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
-	<PackageReference Include="Dapr.Client" Version="1.8.0" />
-  <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.1.22" />
-  <PackageReference Include="YamlDotNet" Version="15.1.2" />
+	<PackageReference Include="Dapr.AspNetCore" Version="1.15.4" />
+	<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
+	<PackageReference Include="Dapr.Client" Version="1.15.4" />
+  <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.2.9" />
+  <PackageReference Include="YamlDotNet" Version="15.3.0" />
   </ItemGroup>
 
 </Project>
