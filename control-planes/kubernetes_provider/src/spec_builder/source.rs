@@ -21,7 +21,10 @@ use super::{
     SpecBuilder,
 };
 use k8s_openapi::{
-    api::core::v1::{ServicePort, ServiceSpec},
+    api::{
+        core::v1::{ServicePort, ServiceSpec},
+        networking::v1::{Ingress, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressSpec, IngressServiceBackend, ServiceBackendPort, IngressBackend},
+    },
     apimachinery::pkg::util::intstr::IntOrString,
 };
 use resource_provider_api::models::{ConfigValue, EndpointSetting, ResourceRequest, SourceSpec};
@@ -205,6 +208,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 }
             }
             let mut k8s_services = BTreeMap::new();
+            let mut k8s_ingresses = BTreeMap::new();
             if let Some(endpoints) = service_spec.endpoints {
                 for (endpoint_name, endpoint) in endpoints {
                     match endpoint.setting {
@@ -229,10 +233,69 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                             k8s_services.insert(endpoint_name.clone(), service_spec);
                         }
                         EndpointSetting::External => {
-                            unimplemented!();
-                        }
-                        _ => {
-                            unreachable!();
+                            let port = endpoint.target.parse::<i32>().unwrap();
+                            
+                            // Create ClusterIP service for the ingress to route to
+                            let service_spec = ServiceSpec {
+                                type_: Some("ClusterIP".to_string()),
+                                selector: Some(hashmap![
+                                    "drasi/type".to_string() => ResourceType::Source.to_string(),
+                                    "drasi/resource".to_string() => source.id.clone(),
+                                    "drasi/service".to_string() => service_name.clone()
+                                ]),
+                                ports: Some(vec![ServicePort {
+                                    name: Some(endpoint_name.clone()),
+                                    port,
+                                    target_port: Some(IntOrString::Int(port)),
+                                    ..Default::default()
+                                }]),
+                                ..Default::default()
+                            };
+
+                            k8s_services.insert(endpoint_name.clone(), service_spec);
+
+                            // Create ingress resource
+                            let ingress_name = format!("{}-{}", source.id, endpoint_name);
+                            let service_name_full = format!("{}-{}", source.id, service_name);
+                            
+                            // Generate hostname pattern with PLACEHOLDER for dynamic replacement
+                            let hostname = format!("{}.drasi.PLACEHOLDER", source.id);
+                            
+                            let ingress = Ingress {
+                                metadata: k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta {
+                                    name: Some(ingress_name.clone()),
+                                    annotations: Some(hashmap![
+                                        "kubernetes.io/ingress.class".to_string() => "contour".to_string()
+                                    ]),
+                                    ..Default::default()
+                                },
+                                spec: Some(IngressSpec {
+                                    ingress_class_name: Some("contour".to_string()),
+                                    rules: Some(vec![IngressRule {
+                                        host: Some(hostname),
+                                        http: Some(HTTPIngressRuleValue {
+                                            paths: vec![HTTPIngressPath {
+                                                path: Some("/".to_string()),
+                                                path_type: "Prefix".to_string(),
+                                                backend: IngressBackend {
+                                                    service: Some(IngressServiceBackend {
+                                                        name: service_name_full,
+                                                        port: Some(ServiceBackendPort {
+                                                            number: Some(port),
+                                                            ..Default::default()
+                                                        }),
+                                                    }),
+                                                    ..Default::default()
+                                                },
+                                            }],
+                                        }),
+                                    }]),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            };
+                            
+                            k8s_ingresses.insert(ingress_name, ingress);
                         }
                     }
                 }
@@ -260,7 +323,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 services: k8s_services,
                 config_maps: BTreeMap::new(),
                 volume_claims: BTreeMap::new(),
-                ingresses: None,
+                ingresses: if k8s_ingresses.is_empty() { None } else { Some(k8s_ingresses) },
                 pub_sub: None,
                 service_account: None,
                 removed: false,
