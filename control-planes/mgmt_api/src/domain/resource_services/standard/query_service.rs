@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use super::{
     QueryContainerDomainService, ResourceDomainService, StandardResourceDomainServiceImpl,
@@ -77,8 +77,12 @@ impl StandardSpecValidator<QuerySpec> for QuerySpecValidator {
 
         // Validate that all middleware referenced in subscriptions' pipelines
         // are defined in sources.middleware.
-        let defined_middleware: HashSet<&str> =
-            spec.sources.middleware.iter().map(|m| m.name.as_str()).collect();
+        let defined_middleware: HashSet<&str> = spec
+            .sources
+            .middleware
+            .iter()
+            .map(|m| m.name.as_str())
+            .collect();
 
         for sub in &spec.sources.subscriptions {
             for mw in &sub.pipeline {
@@ -115,9 +119,7 @@ mod tests {
     }
 
     #[async_trait]
-    impl ResourceDomainService<QueryContainerSpec, QueryContainerStatus>
-        for TestQueryContainerService
-    {
+    impl ResourceDomainService<QueryContainerSpec, QueryContainerStatus> for TestQueryContainerService {
         async fn set(
             &self,
             _id: &str,
@@ -146,7 +148,9 @@ mod tests {
             })
         }
 
-        async fn list(&self) -> Result<Vec<Resource<QueryContainerSpec, QueryContainerStatus>>, DomainError> {
+        async fn list(
+            &self,
+        ) -> Result<Vec<Resource<QueryContainerSpec, QueryContainerStatus>>, DomainError> {
             unimplemented!("not needed for these tests")
         }
 
