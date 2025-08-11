@@ -161,7 +161,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             k8s_services.insert(service_key.clone(), service_spec);
 
                             // Create Ingress resource with hostname-based routing
-                            let ingress_name = format!("{}-{}-{}", reaction.id, service_name, endpoint_name);
+                            let ingress_name = format!("{}-reaction-ingress", reaction.id);
                             let mut annotations = BTreeMap::new();
                             annotations.insert("kubernetes.io/ingress.class".to_string(), "contour".to_string());
                             

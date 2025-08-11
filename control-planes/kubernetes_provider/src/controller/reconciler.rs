@@ -443,47 +443,30 @@ impl ResourceReconciler {
     }
 
     async fn get_contour_external_ip(&self) -> Option<String> {
-        // Try to get the LoadBalancer IP from Contour's Envoy service
-        let service_name = "contour-envoy";
-        let namespace = "projectcontour";
-        
-        log::info!("Attempting to discover external IP from {}/{}", namespace, service_name);
-        
         let client = self.service_api.clone().into_client();
-        let service_api: Api<Service> = Api::namespaced(client, namespace);
+        let service_api: Api<Service> = Api::namespaced(client, "projectcontour");
         
-        match service_api.get(service_name).await {
+        match service_api.get("contour-envoy").await {
             Ok(service) => {
-                log::info!("Successfully retrieved {} service", service_name);
                 if let Some(status) = &service.status {
                     if let Some(load_balancer) = &status.load_balancer {
                         if let Some(ingresses) = &load_balancer.ingress {
                             for ingress in ingresses {
                                 if let Some(ip) = &ingress.ip {
-                                    log::info!("Found LoadBalancer IP: {}", ip);
                                     return Some(ip.clone());
                                 }
                                 if let Some(hostname) = &ingress.hostname {
-                                    log::info!("Found LoadBalancer hostname: {}", hostname);
                                     return Some(hostname.clone());
                                 }
                             }
-                        } else {
-                            log::warn!("LoadBalancer status has no ingresses");
                         }
-                    } else {
-                        log::warn!("Service status has no loadBalancer");
                     }
-                } else {
-                    log::warn!("Service has no status");
                 }
             }
             Err(e) => {
-                log::error!("Failed to get Contour Envoy service {}/{}: {}", namespace, service_name, e);
+                log::warn!("Could not get Contour LoadBalancer IP: {}", e);
             }
         }
-        
-        log::warn!("Could not determine external IP, using localhost fallback");
         None
     }
 
@@ -492,26 +475,22 @@ impl ResourceReconciler {
             log::info!("Reconciling ingresses {}", self.spec.resource_id);
 
             // Get the external IP for hostname generation
-            let external_ip = self.get_contour_external_ip().await;
-            let ip_suffix = match external_ip {
+            let ip_suffix = match self.get_contour_external_ip().await {
                 Some(ip) => format!("{}.nip.io", ip),
                 None => {
-                    log::warn!("Could not determine external IP, using placeholder");
+                    log::warn!("Could not determine external IP, using localhost fallback");
                     "localhost".to_string()
                 }
             };
 
             for (name, mut ingress_spec) in ingresses.clone() {
-                // Always update hostname in ingress spec if it contains PLACEHOLDER
-                let mut hostname_updated = false;
+                // Replace PLACEHOLDER with actual IP in hostname
                 if let Some(spec) = &mut ingress_spec.spec {
                     if let Some(rules) = &mut spec.rules {
                         for rule in rules {
                             if let Some(host) = &rule.host {
                                 if host.contains("PLACEHOLDER") {
                                     rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
-                                    log::info!("Updated hostname to: {}", rule.host.as_ref().unwrap());
-                                    hostname_updated = true;
                                 }
                             }
                         }
@@ -520,22 +499,8 @@ impl ResourceReconciler {
 
                 match self.ingress_api.get(&name).await {
                     Ok(current) => {
-                        // Check if current ingress has PLACEHOLDER hostname and needs updating
-                        let needs_update = if let Some(current_spec) = &current.spec {
-                            if let Some(current_rules) = &current_spec.rules {
-                                current_rules.iter().any(|rule| {
-                                    rule.host.as_ref().map_or(false, |host| host.contains("localhost") || host.contains("PLACEHOLDER"))
-                                })
-                            } else {
-                                false
-                            }
-                        } else {
-                            false
-                        };
-
-                        // Update if hostname was changed or spec is different
-                        if hostname_updated || needs_update || current.spec != ingress_spec.spec {
-                            log::info!("Updating ingress {} (hostname_updated: {}, needs_update: {})", name, hostname_updated, needs_update);
+                        if current.spec != ingress_spec.spec {
+                            log::info!("Updating ingress {}", name);
                             let pp = PostParams::default();
                             self.ingress_api.replace(&name, &pp, &ingress_spec).await?;
                         }
@@ -546,12 +511,7 @@ impl ResourceReconciler {
                                 log::error!("Error getting ingress: {}", api_err.code);
                                 return Err(Box::new(api_err));
                             }
-                            log::info!("Creating ingress {} with hostname: {}", name, 
-                                ingress_spec.spec.as_ref()
-                                    .and_then(|s| s.rules.as_ref())
-                                    .and_then(|r| r.first())
-                                    .and_then(|r| r.host.as_ref())
-                                    .map_or("unknown", |v| v));
+                            log::info!("Creating ingress {}", name);
                             let pp = PostParams::default();
                             self.ingress_api.create(&pp, &ingress_spec).await?;
                         }
