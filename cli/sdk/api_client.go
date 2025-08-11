@@ -16,6 +16,7 @@ package sdk
 
 import (
 	"bytes"
+	"context"
 	"drasi.io/cli/output"
 	"encoding/json"
 	"errors"
@@ -27,6 +28,9 @@ import (
 	"time"
 
 	"drasi.io/cli/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type ApiClient struct {
@@ -85,6 +89,10 @@ func (t *ApiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) e
 		}
 
 		output.SucceedTask(subject, fmt.Sprintf("%v: complete", subject))
+
+		if strings.ToLower(mf.Kind) == "reaction" || strings.ToLower(mf.Kind) == "source" {
+			t.displayIngressInfo(mf.Name, mf.Spec, output)
+		}
 	}
 	return nil
 }
@@ -249,6 +257,91 @@ func (t *ApiClient) Watch(kind string, name string, output chan map[string]inter
 	if _, err := decoder.Token(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (t *ApiClient) displayIngressInfo(reactionName string, spec interface{}, output output.TaskOutput) {
+	specMap, ok := spec.(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	services, ok := specMap["services"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	var hasExternalEndpoint bool
+	for _, serviceData := range services {
+		serviceMap, ok := serviceData.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		endpoints, ok := serviceMap["endpoints"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		for _, endpointData := range endpoints {
+			endpointMap, ok := endpointData.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			setting, ok := endpointMap["setting"].(string)
+			if ok && strings.ToLower(setting) == "external" {
+				hasExternalEndpoint = true
+				break
+			}
+		}
+		if hasExternalEndpoint {
+			break
+		}
+	}
+
+	if hasExternalEndpoint {
+		// Get the Contour LoadBalancer IP
+		ip := t.getContourExternalIP()
+		ingressUrl := fmt.Sprintf("http://%s.drasi.%s.nip.io", reactionName, ip)
+		fmt.Printf("Ingress URL: %s\n", ingressUrl)
+	}
+}
+
+func (t *ApiClient) getContourExternalIP() string {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{}
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+
+	config, err := kubeConfig.ClientConfig()
+	if err != nil {
+		// Silently fail for list command - don't spam logs
+		return ""
+	}
+
+	// Create Kubernetes client
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return ""
+	}
+
+	// Query the contour-envoy service in projectcontour namespace
+	service, err := clientset.CoreV1().Services("projectcontour").Get(context.Background(), "contour-envoy", metav1.GetOptions{})
+	if err != nil {
+		return ""
+	}
+
+	// Extract LoadBalancer IP
+	if service.Status.LoadBalancer.Ingress != nil && len(service.Status.LoadBalancer.Ingress) > 0 {
+		if service.Status.LoadBalancer.Ingress[0].IP != "" {
+			return service.Status.LoadBalancer.Ingress[0].IP
+		}
+		// Some cloud providers use hostname instead of IP
+		if service.Status.LoadBalancer.Ingress[0].Hostname != "" {
+			return service.Status.LoadBalancer.Ingress[0].Hostname
+		}
+	}
+
+	return ""
 }
 
 func (t *ApiClient) Close() {

@@ -21,7 +21,7 @@ spec:
       image: reaction-debug
       endpoints:
         service:
-          setting: external
+          setting: internal
           target: $portConfigKey
       config_schema:
         type: object
