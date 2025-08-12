@@ -303,7 +303,7 @@ func (t *ApiClient) displayIngressInfo(reactionName string, spec interface{}, ou
 		// Get the Contour LoadBalancer IP
 		ip := t.getContourExternalIP()
 		ingressUrl := fmt.Sprintf("http://%s.drasi.%s.nip.io", reactionName, ip)
-		fmt.Printf("Ingress URL: %s\n", ingressUrl)
+		output.InfoMessage(fmt.Sprintf("Ingress URL: %s", ingressUrl))
 	}
 }
 
