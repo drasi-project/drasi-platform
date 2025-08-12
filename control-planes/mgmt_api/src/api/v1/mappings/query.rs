@@ -13,12 +13,12 @@
 // limitations under the License.
 
 use crate::domain::models::{
-    QueryJoin, QueryJoinKey, QuerySourceLabel, QuerySources, QuerySpec, QueryStatus,
+    QueryJoin, QueryJoinKey, QueryLanguage, QuerySourceLabel, QuerySources, QuerySpec, QueryStatus,
     QuerySubscription, RetentionPolicy, SourceMiddlewareConfig, ViewSpec,
 };
 
 use super::{
-    QueryJoinDto, QueryJoinKeyDto, QuerySourceLabelDto, QuerySourcesDto, QuerySpecDto,
+    QueryJoinDto, QueryJoinKeyDto, QueryLanguageDto, QuerySourceLabelDto, QuerySourcesDto, QuerySpecDto,
     QueryStatusDto, QuerySubscriptionDto, RetentionPolicyDto, SourceMiddlewareConfigDto,
     ViewSpecDto,
 };
@@ -40,6 +40,7 @@ impl From<QuerySpecDto> for QuerySpec {
             container: spec.container,
             mode: spec.mode,
             query: spec.query,
+            query_language: spec.query_language.map(|lang| lang.into()),
             sources: spec.sources.into(),
             storage_profile: spec.storage_profile,
             view: spec.view.unwrap_or_default().into(),
@@ -54,6 +55,7 @@ impl From<QuerySpec> for QuerySpecDto {
             container: spec.container,
             mode: spec.mode,
             query: spec.query,
+            query_language: spec.query_language.map(|lang| lang.into()),
             sources: spec.sources.into(),
             storage_profile: spec.storage_profile,
             view: Some(spec.view.into()),
@@ -238,6 +240,24 @@ impl From<ViewSpec> for ViewSpecDto {
         ViewSpecDto {
             enabled: spec.enabled,
             retention_policy: spec.retention_policy.into(),
+        }
+    }
+}
+
+impl From<QueryLanguageDto> for QueryLanguage {
+    fn from(lang: QueryLanguageDto) -> Self {
+        match lang {
+            QueryLanguageDto::Cypher => QueryLanguage::Cypher,
+            QueryLanguageDto::GQL => QueryLanguage::GQL,
+        }
+    }
+}
+
+impl From<QueryLanguage> for QueryLanguageDto {
+    fn from(lang: QueryLanguage) -> Self {
+        match lang {
+            QueryLanguage::Cypher => QueryLanguageDto::Cypher,
+            QueryLanguage::GQL => QueryLanguageDto::GQL,
         }
     }
 }

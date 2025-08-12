@@ -168,12 +168,21 @@ pub struct QueryJoin {
     pub keys: Vec<QueryJoinKey>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum QueryLanguage {
+    #[serde(rename = "Cypher")]
+    Cypher,
+    #[serde(rename = "GQL")]
+    GQL,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct QuerySpec {
     pub container: String,
     pub mode: String,
     pub query: String,
+    pub query_language: Option<QueryLanguage>,
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,

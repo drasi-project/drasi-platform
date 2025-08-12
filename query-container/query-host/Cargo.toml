@@ -8,7 +8,10 @@ edition = "2021"
 [dependencies]
 drasi-core = { path = "./drasi-core/core" }
 drasi-query-cypher = { path = "./drasi-core/query-cypher" }
+drasi-query-gql = { path = "./drasi-core/query-gql" }
 drasi-query-ast = { path = "./drasi-core/query-ast" }
+drasi-functions-cypher = { path = "./drasi-core/functions-cypher" }
+drasi-functions-gql = { path = "./drasi-core/functions-gql" }
 drasi-middleware = { path = "./drasi-core/middleware" }
 drasi-index-garnet = { path = "./drasi-core/index-garnet" }
 drasi-index-rocksdb = { path = "./drasi-core/index-rocksdb" }

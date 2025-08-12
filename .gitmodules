@@ -1,3 +1,4 @@
 [submodule "query-container/query-host/drasi-core"]
 	path = query-container/query-host/drasi-core
-	url = https://github.com/project-drasi/drasi-core.git
+	url = https://github.com/drasi-project/drasi-core.git
+	branch = feature-gql
