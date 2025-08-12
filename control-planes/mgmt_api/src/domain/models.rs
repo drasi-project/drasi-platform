@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use resource_provider_api::models::QueryLanguage;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, HashMap};
@@ -167,6 +166,14 @@ pub struct QueryJoinKey {
 pub struct QueryJoin {
     pub id: String,
     pub keys: Vec<QueryJoinKey>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum QueryLanguage {
+    #[serde(rename = "Cypher")]
+    Cypher,
+    #[serde(rename = "GQL")]
+    GQL,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

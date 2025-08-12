@@ -12,9 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use resource_provider_api::models::QueryLanguage;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum QueryLanguageDto {
+    #[serde(rename = "Cypher")]
+    Cypher,
+    #[serde(rename = "GQL")]
+    GQL,
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -52,7 +59,7 @@ pub struct QuerySpecDto {
     pub container: String,
     pub mode: String,
     pub query: String,
-    pub query_language: Option<QueryLanguage>,
+    pub query_language: Option<QueryLanguageDto>,
     pub sources: QuerySourcesDto,
     pub storage_profile: Option<String>,
     pub view: Option<ViewSpecDto>,
