@@ -109,11 +109,11 @@ Usage examples:
 				output.InfoMessage(fmt.Sprintf("Service: %s in namespace: %s", ingressServiceName, ingressNamespace))
 				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))
 
-				if err := updateIngressConfig(k8sPlatformClient, namespace, ingressClassName, ingressServiceName, ingressNamespace, output); err != nil {
+				if err := UpdateIngressConfig(k8sPlatformClient, namespace, ingressClassName, ingressServiceName, ingressNamespace, output); err != nil {
 					return err
 				}
 
-				if err := updateClusterRolePermissions(k8sPlatformClient, ingressNamespace, output); err != nil {
+				if err := UpdateClusterRolePermissions(k8sPlatformClient, ingressNamespace, output); err != nil {
 					return err
 				}
 
@@ -133,7 +133,7 @@ Usage examples:
 					return err
 				}
 
-				if err := updateIngressConfig(k8sPlatformClient, namespace, "contour", "contour-envoy", "projectcontour", output); err != nil {
+				if err := UpdateIngressConfig(k8sPlatformClient, namespace, "contour", "contour-envoy", "projectcontour", output); err != nil {
 					return err
 				}
 
@@ -151,8 +151,8 @@ Usage examples:
 	return cmd
 }
 
-// updateIngressConfig updates the drasi-config ConfigMap with ingress controller configuration
-func updateIngressConfig(platformClient *sdk.KubernetesPlatformClient, drasiNamespace string, ingressClassName, ingressService, ingressNamespace string, output output.TaskOutput) error {
+// UpdateIngressConfig updates the drasi-config ConfigMap with ingress controller configuration
+func UpdateIngressConfig(platformClient *sdk.KubernetesPlatformClient, drasiNamespace string, ingressClassName, ingressService, ingressNamespace string, output output.TaskOutput) error {
 	output.AddTask("Ingress-Config", "Updating ingress configuration")
 
 	kubeConfig := platformClient.GetKubeConfig()
@@ -191,8 +191,8 @@ func updateIngressConfig(platformClient *sdk.KubernetesPlatformClient, drasiName
 	return nil
 }
 
-// updateClusterRolePermissions updates the ClusterRole to grant service access in the specified namespace
-func updateClusterRolePermissions(platformClient *sdk.KubernetesPlatformClient, ingressNamespace string, output output.TaskOutput) error {
+// UpdateClusterRolePermissions updates the ClusterRole to grant service access in the specified namespace
+func UpdateClusterRolePermissions(platformClient *sdk.KubernetesPlatformClient, ingressNamespace string, output output.TaskOutput) error {
 	output.AddTask("RBAC-Update", "Updating ClusterRole permissions for ingress namespace")
 
 	kubeConfig := platformClient.GetKubeConfig()

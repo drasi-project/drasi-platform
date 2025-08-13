@@ -18,11 +18,11 @@ import (
 	"fmt"
 	"strings"
 
+	"drasi.io/cli/config"
 	"drasi.io/cli/installers"
 	"drasi.io/cli/output"
+	"drasi.io/cli/sdk"
 	"drasi.io/cli/sdk/registry"
-
-	"drasi.io/cli/config"
 	"github.com/spf13/cobra"
 )
 
@@ -97,6 +97,7 @@ Usage examples:
 				if err := registry.SetCurrentRegistration(dockerName); err != nil {
 					return err
 				}
+
 			}
 
 			if containerRegistry, err = cmd.Flags().GetString("registry"); err != nil {
@@ -174,6 +175,12 @@ Usage examples:
 				return err
 			}
 
+			if useDocker {
+				if err := configureTraefikForDocker("drasi-system", output); err != nil {
+					return fmt.Errorf("failed to configure Traefik for Docker: %w", err)
+				}
+			}
+
 			return nil
 		},
 	}
@@ -190,4 +197,39 @@ Usage examples:
 	initCommand.Flags().String("manifest", "", "Generate manifests to files instead of installing. Optional parameter specifies output directory (default: current directory).")
 
 	return initCommand
+}
+
+func configureTraefikForDocker(namespace string, output output.TaskOutput) error {
+	output.InfoMessage("Auto-configuring Traefik ingress controller for k3s Docker environment...")
+
+	// Get current registry configuration
+	reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+	if err != nil {
+		return fmt.Errorf("failed to load registry configuration: %w", err)
+	}
+
+	// Create platform client
+	platformClient, err := sdk.NewPlatformClient(reg)
+	if err != nil {
+		return fmt.Errorf("failed to create platform client: %w", err)
+	}
+
+	// Ensure we have a Kubernetes platform client
+	k8sPlatformClient, ok := platformClient.(*sdk.KubernetesPlatformClient)
+	if !ok {
+		return fmt.Errorf("platform client is not a Kubernetes client")
+	}
+
+	if err := UpdateIngressConfig(k8sPlatformClient, namespace, "traefik", "traefik", "kube-system", output); err != nil {
+		return fmt.Errorf("failed to update ingress configuration: %w", err)
+	}
+
+	if err := UpdateClusterRolePermissions(k8sPlatformClient, "kube-system", output); err != nil {
+		return fmt.Errorf("failed to update cluster role permissions: %w", err)
+	}
+
+	output.InfoMessage("Successfully configured Traefik ingress for k3s Docker environment")
+	output.InfoMessage("Drasi Sources and Reactions with External endpoints will now be accessible via Traefik")
+
+	return nil
 }

@@ -475,6 +475,9 @@ func (t *DockerizedDeployer) mergeDockerKubeConfig(name string, kubeconfig []byt
 		Namespace: "default",
 	}
 
+	// Set the new context as the current context
+	existingConfig.CurrentContext = contextName
+
 	// Save the merged config
 	err = clientcmd.WriteToFile(*existingConfig, kubeconfigPath)
 	if err != nil {
