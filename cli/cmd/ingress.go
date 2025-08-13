@@ -43,7 +43,7 @@ func NewIngressCommand() *cobra.Command {
 
 func ingressInitCommand() *cobra.Command {
 	var useExisting bool
-	var ingressService string
+	var ingressServiceName string
 	var ingressNamespace string
 	var ingressClassName string
 
@@ -57,8 +57,8 @@ Drasi to work with their existing controller instead.
 
 Usage examples:
   drasi ingress init                                                           # Install and configure Contour (default)
-  drasi ingress init --use-existing --service nginx-controller --ingress-namespace ingress-nginx --ingress-class-name nginx    # Use existing NGINX controller
-  drasi ingress init --use-existing --service traefik --ingress-namespace traefik-system --ingress-class-name traefik         # Use existing Traefik controller`,
+  drasi ingress init --use-existing --ingress-service-name ingress-nginx-controller --ingress-namespace ingress-nginx --ingress-class-name nginx    # Use existing NGINX controller
+  drasi ingress init --use-existing --ingress-service-name traefik --ingress-namespace traefik-system --ingress-class-name traefik         # Use existing Traefik controller`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var namespace string
@@ -95,8 +95,8 @@ Usage examples:
 
 			// Validate that required flags are provided when using --use-existing
 			if useExisting {
-				if ingressService == "" {
-					return fmt.Errorf("--service is required when using --use-existing")
+				if ingressServiceName == "" {
+					return fmt.Errorf("--ingress-service-name is required when using --use-existing")
 				}
 				if ingressNamespace == "" {
 					return fmt.Errorf("--ingress-namespace is required when using --use-existing")
@@ -106,10 +106,10 @@ Usage examples:
 				}
 
 				output.InfoMessage("Configuring Drasi to use existing ingress controller")
-				output.InfoMessage(fmt.Sprintf("Service: %s in namespace: %s", ingressService, ingressNamespace))
+				output.InfoMessage(fmt.Sprintf("Service: %s in namespace: %s", ingressServiceName, ingressNamespace))
 				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))
 
-				if err := updateIngressConfig(k8sPlatformClient, namespace, ingressClassName, ingressService, ingressNamespace, output); err != nil {
+				if err := updateIngressConfig(k8sPlatformClient, namespace, ingressClassName, ingressServiceName, ingressNamespace, output); err != nil {
 					return err
 				}
 
@@ -144,7 +144,7 @@ Usage examples:
 	}
 
 	cmd.Flags().BoolVar(&useExisting, "use-existing", false, "Use existing ingress controller instead of installing Contour")
-	cmd.Flags().StringVar(&ingressService, "service", "", "Name of the existing ingress controller LoadBalancer service (required with --use-existing)")
+	cmd.Flags().StringVar(&ingressServiceName, "ingress-service-name", "", "Name of the existing ingress controller LoadBalancer service (required with --use-existing)")
 	cmd.Flags().StringVar(&ingressNamespace, "ingress-namespace", "", "Namespace where the existing ingress controller is installed (required with --use-existing)")
 	cmd.Flags().StringVar(&ingressClassName, "ingress-class-name", "", "IngressClassName to use in ingress resources (required with --use-existing)")
 
