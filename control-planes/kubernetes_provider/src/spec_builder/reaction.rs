@@ -24,7 +24,10 @@ use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::{
     api::{
         core::v1::{ConfigMap, EnvVar, ServicePort, ServiceSpec},
-        networking::v1::{Ingress, IngressSpec, IngressBackend, IngressServiceBackend, ServiceBackendPort, IngressRule, HTTPIngressRuleValue, HTTPIngressPath},
+        networking::v1::{
+            HTTPIngressPath, HTTPIngressRuleValue, Ingress, IngressBackend, IngressRule,
+            IngressServiceBackend, IngressSpec, ServiceBackendPort,
+        },
     },
     apimachinery::pkg::util::intstr::IntOrString,
 };
@@ -143,7 +146,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             println!("REACHED EXTERNAL ENDPOINT: {}", endpoint_name);
                             let port = endpoint.target.parse::<i32>().unwrap();
                             ports.insert(endpoint_name.clone(), port);
-                            
+
                             // Create ClusterIP service for the ingress to target
                             let service_spec = ServiceSpec {
                                 type_: Some("ClusterIP".to_string()),
@@ -163,12 +166,15 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             // Create Ingress resource with hostname-based routing
                             let ingress_name = format!("{}-reaction-ingress", reaction.id);
                             let mut annotations = BTreeMap::new();
-                            annotations.insert("kubernetes.io/ingress.class".to_string(), runtime_config.ingress_class_name.clone());
-                            
+                            annotations.insert(
+                                "kubernetes.io/ingress.class".to_string(),
+                                runtime_config.ingress_class_name.clone(),
+                            );
+
                             // Generate hostname: <reaction-name>.drasi.PLACEHOLDER
                             // The PLACEHOLDER will be replaced with actual IP during reconciliation
                             let hostname = format!("{}.drasi.PLACEHOLDER", reaction.id);
-                            
+
                             let ingress = Ingress {
                                 metadata: ObjectMeta {
                                     name: Some(ingress_name.clone()),
@@ -177,7 +183,9 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                     ..Default::default()
                                 },
                                 spec: Some(IngressSpec {
-                                    ingress_class_name: Some(runtime_config.ingress_class_name.clone()),
+                                    ingress_class_name: Some(
+                                        runtime_config.ingress_class_name.clone(),
+                                    ),
                                     rules: Some(vec![IngressRule {
                                         host: Some(hostname),
                                         http: Some(HTTPIngressRuleValue {
@@ -186,7 +194,11 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                                 path_type: "Prefix".to_string(),
                                                 backend: IngressBackend {
                                                     service: Some(IngressServiceBackend {
-                                                        name: format!("{}-{}", reaction.id, service_key.clone()),
+                                                        name: format!(
+                                                            "{}-{}",
+                                                            reaction.id,
+                                                            service_key.clone()
+                                                        ),
                                                         port: Some(ServiceBackendPort {
                                                             number: Some(port),
                                                             ..Default::default()

@@ -36,7 +36,11 @@ pub struct ResourceController {
 unsafe impl Send for ResourceController {}
 
 impl ResourceController {
-    pub fn start(kube_config: kube::Config, spec: KubernetesSpec, runtime_config: RuntimeConfig) -> Self {
+    pub fn start(
+        kube_config: kube::Config,
+        spec: KubernetesSpec,
+        runtime_config: RuntimeConfig,
+    ) -> Self {
         let name = format!("{}-{}", spec.resource_id.clone(), spec.service_name.clone());
         let mut reconciler = ResourceReconciler::new(kube_config, spec, runtime_config);
 

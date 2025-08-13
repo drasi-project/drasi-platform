@@ -173,7 +173,8 @@ impl RuntimeConfig {
                 Ok(service) => service,
                 Err(_) => "contour-envoy".to_string(),
             },
-            ingress_load_balancer_namespace: match std::env::var("INGRESS_LOAD_BALANCER_NAMESPACE") {
+            ingress_load_balancer_namespace: match std::env::var("INGRESS_LOAD_BALANCER_NAMESPACE")
+            {
                 Ok(namespace) => namespace,
                 Err(_) => "projectcontour".to_string(),
             },

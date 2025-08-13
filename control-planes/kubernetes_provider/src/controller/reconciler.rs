@@ -65,7 +65,11 @@ pub enum ReconcileStatus {
 unsafe impl Send for ResourceReconciler {}
 
 impl ResourceReconciler {
-    pub fn new(kube_config: kube::Config, spec: KubernetesSpec, runtime_config: RuntimeConfig) -> Self {
+    pub fn new(
+        kube_config: kube::Config,
+        spec: KubernetesSpec,
+        runtime_config: RuntimeConfig,
+    ) -> Self {
         let labels = spec
             .deployment
             .selector
@@ -471,7 +475,10 @@ impl ResourceReconciler {
                 }
             }
             Err(e) => {
-                log::warn!("Could not read drasi-config ConfigMap, using defaults: {}", e);
+                log::warn!(
+                    "Could not read drasi-config ConfigMap, using defaults: {}",
+                    e
+                );
             }
         }
 
@@ -480,10 +487,11 @@ impl ResourceReconciler {
 
     async fn get_ingress_external_ip(&self) -> Option<String> {
         let client = self.service_api.clone().into_client();
-        let (ingress_service, ingress_namespace, _ingress_class_name) = self.get_dynamic_ingress_config().await;
-        
+        let (ingress_service, ingress_namespace, _ingress_class_name) =
+            self.get_dynamic_ingress_config().await;
+
         let service_api: Api<Service> = Api::namespaced(client, &ingress_namespace);
-        
+
         match service_api.get(&ingress_service).await {
             Ok(service) => {
                 if let Some(status) = &service.status {
@@ -502,10 +510,12 @@ impl ResourceReconciler {
                 }
             }
             Err(e) => {
-                log::warn!("Could not get ingress controller LoadBalancer IP from service {}/{}: {}", 
+                log::warn!(
+                    "Could not get ingress controller LoadBalancer IP from service {}/{}: {}",
                     &ingress_namespace,
                     &ingress_service,
-                    e);
+                    e
+                );
             }
         }
         None
@@ -525,16 +535,20 @@ impl ResourceReconciler {
             };
 
             for (name, mut ingress_spec) in ingresses.clone() {
-                let (_ingress_service, _ingress_namespace, ingress_class_name) = self.get_dynamic_ingress_config().await;
-                
+                let (_ingress_service, _ingress_namespace, ingress_class_name) =
+                    self.get_dynamic_ingress_config().await;
+
                 if let Some(spec) = &mut ingress_spec.spec {
                     spec.ingress_class_name = Some(ingress_class_name.clone());
                 }
-                
+
                 if let Some(annotations) = &mut ingress_spec.metadata.annotations {
-                    annotations.insert("kubernetes.io/ingress.class".to_string(), ingress_class_name.clone());
+                    annotations.insert(
+                        "kubernetes.io/ingress.class".to_string(),
+                        ingress_class_name.clone(),
+                    );
                 }
-                
+
                 if let Some(spec) = &mut ingress_spec.spec {
                     if let Some(rules) = &mut spec.rules {
                         for rule in rules {

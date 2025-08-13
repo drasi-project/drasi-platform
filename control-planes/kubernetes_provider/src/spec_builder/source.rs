@@ -23,7 +23,10 @@ use super::{
 use k8s_openapi::{
     api::{
         core::v1::{ServicePort, ServiceSpec},
-        networking::v1::{Ingress, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressSpec, IngressServiceBackend, ServiceBackendPort, IngressBackend},
+        networking::v1::{
+            HTTPIngressPath, HTTPIngressRuleValue, Ingress, IngressBackend, IngressRule,
+            IngressServiceBackend, IngressSpec, ServiceBackendPort,
+        },
     },
     apimachinery::pkg::util::intstr::IntOrString,
 };
@@ -234,7 +237,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                         }
                         EndpointSetting::External => {
                             let port = endpoint.target.parse::<i32>().unwrap();
-                            
+
                             // Create ClusterIP service for the ingress to route to
                             let service_spec = ServiceSpec {
                                 type_: Some("ClusterIP".to_string()),
@@ -257,20 +260,23 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                             // Create ingress resource
                             let ingress_name = format!("{}-{}", source.id, endpoint_name);
                             let service_name_full = format!("{}-{}", source.id, service_name);
-                            
+
                             // Generate hostname pattern with PLACEHOLDER for dynamic replacement
                             let hostname = format!("{}.drasi.PLACEHOLDER", source.id);
-                            
+
                             let ingress = Ingress {
-                                metadata: k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta {
-                                    name: Some(ingress_name.clone()),
-                                    annotations: Some(hashmap![
-                                        "kubernetes.io/ingress.class".to_string() => runtime_config.ingress_class_name.clone()
-                                    ]),
-                                    ..Default::default()
-                                },
+                                metadata:
+                                    k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta {
+                                        name: Some(ingress_name.clone()),
+                                        annotations: Some(hashmap![
+                                            "kubernetes.io/ingress.class".to_string() => runtime_config.ingress_class_name.clone()
+                                        ]),
+                                        ..Default::default()
+                                    },
                                 spec: Some(IngressSpec {
-                                    ingress_class_name: Some(runtime_config.ingress_class_name.clone()),
+                                    ingress_class_name: Some(
+                                        runtime_config.ingress_class_name.clone(),
+                                    ),
                                     rules: Some(vec![IngressRule {
                                         host: Some(hostname),
                                         http: Some(HTTPIngressRuleValue {
@@ -294,7 +300,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                                 }),
                                 ..Default::default()
                             };
-                            
+
                             k8s_ingresses.insert(ingress_name, ingress);
                         }
                     }
@@ -323,7 +329,11 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 services: k8s_services,
                 config_maps: BTreeMap::new(),
                 volume_claims: BTreeMap::new(),
-                ingresses: if k8s_ingresses.is_empty() { None } else { Some(k8s_ingresses) },
+                ingresses: if k8s_ingresses.is_empty() {
+                    None
+                } else {
+                    Some(k8s_ingresses)
+                },
                 pub_sub: None,
                 service_account: None,
                 removed: false,
