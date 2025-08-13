@@ -169,6 +169,7 @@ pub struct QueryJoin {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum QueryLanguage {
     #[serde(rename = "Cypher")]
     Cypher,
