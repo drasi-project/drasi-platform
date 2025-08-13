@@ -103,6 +103,9 @@ pub struct RuntimeConfig {
     pub pub_sub_type: String,
     pub pub_sub_version: String,
     pub pub_sub_config: Vec<EnvVar>,
+    pub ingress_class_name: String,
+    pub ingress_load_balancer_service: String,
+    pub ingress_load_balancer_namespace: String,
 }
 
 impl RuntimeConfig {
@@ -162,6 +165,18 @@ impl RuntimeConfig {
                 Err(_) => "v1".to_string(),
             },
             pub_sub_config,
+            ingress_class_name: match std::env::var("INGRESS_CLASS_NAME") {
+                Ok(class_name) => class_name,
+                Err(_) => "contour".to_string(),
+            },
+            ingress_load_balancer_service: match std::env::var("INGRESS_LOAD_BALANCER_SERVICE") {
+                Ok(service) => service,
+                Err(_) => "contour-envoy".to_string(),
+            },
+            ingress_load_balancer_namespace: match std::env::var("INGRESS_LOAD_BALANCER_NAMESPACE") {
+                Ok(namespace) => namespace,
+                Err(_) => "projectcontour".to_string(),
+            },
         }
     }
 }

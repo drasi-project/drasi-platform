@@ -36,10 +36,11 @@ use serde::Serialize;
 
 use crate::models::Component;
 
-use super::super::models::KubernetesSpec;
+use super::super::models::{KubernetesSpec, RuntimeConfig};
 
 pub struct ResourceReconciler {
     spec: KubernetesSpec,
+    runtime_config: RuntimeConfig,
     deployment_hash: String,
     service_account_hash: String,
     component_api: Api<Component>,
@@ -64,7 +65,7 @@ pub enum ReconcileStatus {
 unsafe impl Send for ResourceReconciler {}
 
 impl ResourceReconciler {
-    pub fn new(kube_config: kube::Config, spec: KubernetesSpec) -> Self {
+    pub fn new(kube_config: kube::Config, spec: KubernetesSpec, runtime_config: RuntimeConfig) -> Self {
         let labels = spec
             .deployment
             .selector
@@ -79,6 +80,7 @@ impl ResourceReconciler {
             deployment_hash: calc_deployment_hash(&spec),
             service_account_hash: calc_service_account_hash(&spec),
             spec,
+            runtime_config,
             component_api: Api::default_namespaced(client.clone()),
             deployment_api: Api::default_namespaced(client.clone()),
             pod_api: Api::default_namespaced(client.clone()),
@@ -442,11 +444,47 @@ impl ResourceReconciler {
         Ok(())
     }
 
-    async fn get_contour_external_ip(&self) -> Option<String> {
+    async fn get_dynamic_ingress_config(&self) -> (String, String, String) {
+        // Try to read from drasi-config ConfigMap, fall back to defaults
+        let mut ingress_service = self.runtime_config.ingress_load_balancer_service.clone();
+        let mut ingress_namespace = self.runtime_config.ingress_load_balancer_namespace.clone();
+        let mut ingress_class_name = self.runtime_config.ingress_class_name.clone();
+
+        match self.cm_api.get("drasi-config").await {
+            Ok(config_map) => {
+                if let Some(data) = &config_map.data {
+                    if let Some(service) = data.get("INGRESS_LOAD_BALANCER_SERVICE") {
+                        if !service.is_empty() {
+                            ingress_service = service.clone();
+                        }
+                    }
+                    if let Some(namespace) = data.get("INGRESS_LOAD_BALANCER_NAMESPACE") {
+                        if !namespace.is_empty() {
+                            ingress_namespace = namespace.clone();
+                        }
+                    }
+                    if let Some(class_name) = data.get("INGRESS_CLASS_NAME") {
+                        if !class_name.is_empty() {
+                            ingress_class_name = class_name.clone();
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                log::warn!("Could not read drasi-config ConfigMap, using defaults: {}", e);
+            }
+        }
+
+        (ingress_service, ingress_namespace, ingress_class_name)
+    }
+
+    async fn get_ingress_external_ip(&self) -> Option<String> {
         let client = self.service_api.clone().into_client();
-        let service_api: Api<Service> = Api::namespaced(client, "projectcontour");
+        let (ingress_service, ingress_namespace, _ingress_class_name) = self.get_dynamic_ingress_config().await;
         
-        match service_api.get("contour-envoy").await {
+        let service_api: Api<Service> = Api::namespaced(client, &ingress_namespace);
+        
+        match service_api.get(&ingress_service).await {
             Ok(service) => {
                 if let Some(status) = &service.status {
                     if let Some(load_balancer) = &status.load_balancer {
@@ -464,7 +502,10 @@ impl ResourceReconciler {
                 }
             }
             Err(e) => {
-                log::warn!("Could not get Contour LoadBalancer IP: {}", e);
+                log::warn!("Could not get ingress controller LoadBalancer IP from service {}/{}: {}", 
+                    &ingress_namespace,
+                    &ingress_service,
+                    e);
             }
         }
         None
@@ -475,7 +516,7 @@ impl ResourceReconciler {
             log::info!("Reconciling ingresses {}", self.spec.resource_id);
 
             // Get the external IP for hostname generation
-            let ip_suffix = match self.get_contour_external_ip().await {
+            let ip_suffix = match self.get_ingress_external_ip().await {
                 Some(ip) => format!("{}.nip.io", ip),
                 None => {
                     log::warn!("Could not determine external IP, using localhost fallback");
@@ -484,7 +525,16 @@ impl ResourceReconciler {
             };
 
             for (name, mut ingress_spec) in ingresses.clone() {
-                // Replace PLACEHOLDER with actual IP in hostname
+                let (_ingress_service, _ingress_namespace, ingress_class_name) = self.get_dynamic_ingress_config().await;
+                
+                if let Some(spec) = &mut ingress_spec.spec {
+                    spec.ingress_class_name = Some(ingress_class_name.clone());
+                }
+                
+                if let Some(annotations) = &mut ingress_spec.metadata.annotations {
+                    annotations.insert("kubernetes.io/ingress.class".to_string(), ingress_class_name.clone());
+                }
+                
                 if let Some(spec) = &mut ingress_spec.spec {
                     if let Some(rules) = &mut spec.rules {
                         for rule in rules {

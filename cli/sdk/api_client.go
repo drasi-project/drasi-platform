@@ -300,21 +300,20 @@ func (t *ApiClient) displayIngressInfo(reactionName string, spec interface{}, ou
 	}
 
 	if hasExternalEndpoint {
-		// Get the Contour LoadBalancer IP
-		ip := t.getContourExternalIP()
+		// Get the ingress controller LoadBalancer IP
+		ip := t.getIngressExternalIP()
 		ingressUrl := fmt.Sprintf("http://%s.drasi.%s.nip.io", reactionName, ip)
 		output.InfoMessage(fmt.Sprintf("Ingress URL: %s", ingressUrl))
 	}
 }
 
-func (t *ApiClient) getContourExternalIP() string {
+func (t *ApiClient) getIngressExternalIP() string {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 
 	config, err := kubeConfig.ClientConfig()
 	if err != nil {
-		// Silently fail for list command - don't spam logs
 		return ""
 	}
 
@@ -324,8 +323,20 @@ func (t *ApiClient) getContourExternalIP() string {
 		return ""
 	}
 
-	// Query the contour-envoy service in projectcontour namespace
-	service, err := clientset.CoreV1().Services("projectcontour").Get(context.Background(), "contour-envoy", metav1.GetOptions{})
+	ingressService := "contour-envoy"    // default
+	ingressNamespace := "projectcontour" // default
+
+	configMap, err := clientset.CoreV1().ConfigMaps("drasi-system").Get(context.Background(), "drasi-config", metav1.GetOptions{})
+	if err == nil && configMap.Data != nil {
+		if service, exists := configMap.Data["INGRESS_LOAD_BALANCER_SERVICE"]; exists && service != "" {
+			ingressService = service
+		}
+		if namespace, exists := configMap.Data["INGRESS_LOAD_BALANCER_NAMESPACE"]; exists && namespace != "" {
+			ingressNamespace = namespace
+		}
+	}
+
+	service, err := clientset.CoreV1().Services(ingressNamespace).Get(context.Background(), ingressService, metav1.GetOptions{})
 	if err != nil {
 		return ""
 	}
@@ -335,7 +346,6 @@ func (t *ApiClient) getContourExternalIP() string {
 		if service.Status.LoadBalancer.Ingress[0].IP != "" {
 			return service.Status.LoadBalancer.Ingress[0].IP
 		}
-		// Some cloud providers use hostname instead of IP
 		if service.Status.LoadBalancer.Ingress[0].Hostname != "" {
 			return service.Status.LoadBalancer.Ingress[0].Hostname
 		}

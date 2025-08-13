@@ -265,12 +265,12 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                                 metadata: k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta {
                                     name: Some(ingress_name.clone()),
                                     annotations: Some(hashmap![
-                                        "kubernetes.io/ingress.class".to_string() => "contour".to_string()
+                                        "kubernetes.io/ingress.class".to_string() => runtime_config.ingress_class_name.clone()
                                     ]),
                                     ..Default::default()
                                 },
                                 spec: Some(IngressSpec {
-                                    ingress_class_name: Some("contour".to_string()),
+                                    ingress_class_name: Some(runtime_config.ingress_class_name.clone()),
                                     rules: Some(vec![IngressRule {
                                         host: Some(hostname),
                                         http: Some(HTTPIngressRuleValue {

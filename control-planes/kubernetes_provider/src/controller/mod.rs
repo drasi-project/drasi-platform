@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use self::reconciler::{ReconcileStatus, ResourceReconciler};
-use super::models::KubernetesSpec;
+use super::models::{KubernetesSpec, RuntimeConfig};
 use tokio::{
     sync::{mpsc, oneshot, watch},
     task::JoinHandle,
@@ -36,9 +36,9 @@ pub struct ResourceController {
 unsafe impl Send for ResourceController {}
 
 impl ResourceController {
-    pub fn start(kube_config: kube::Config, spec: KubernetesSpec) -> Self {
+    pub fn start(kube_config: kube::Config, spec: KubernetesSpec, runtime_config: RuntimeConfig) -> Self {
         let name = format!("{}-{}", spec.resource_id.clone(), spec.service_name.clone());
-        let mut reconciler = ResourceReconciler::new(kube_config, spec);
+        let mut reconciler = ResourceReconciler::new(kube_config, spec, runtime_config);
 
         let (status_tx, status_rx) = watch::channel(ReconcileStatus::Unknown);
         let (command_tx, mut command_rx) = mpsc::unbounded_channel();
