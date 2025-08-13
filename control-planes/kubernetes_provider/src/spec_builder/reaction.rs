@@ -143,7 +143,6 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             k8s_services.insert(endpoint_name.clone(), service_spec);
                         }
                         EndpointSetting::External => {
-                            println!("REACHED EXTERNAL ENDPOINT: {}", endpoint_name);
                             let port = endpoint.target.parse::<i32>().unwrap();
                             ports.insert(endpoint_name.clone(), port);
 
