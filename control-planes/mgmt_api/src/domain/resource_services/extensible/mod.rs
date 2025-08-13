@@ -492,15 +492,15 @@ fn merge_spec(
 
         // Start with user-provided endpoints (these take precedence)
         let mut result = curr_service.endpoints.unwrap_or_default();
-        
+
         // Add provider endpoints only if user hasn't defined them
         let endpoints = match &service_config.endpoints {
             Some(endpoints) => {
                 for (endpoint_name, endpoint_config) in endpoints {
                     // Only add provider endpoint if user hasn't already defined it
                     if !result.contains_key(endpoint_name) {
-                    let target = endpoint_config.target.trim_start_matches("$").to_string();
-                    let target_port_value = match service_properties {
+                        let target = endpoint_config.target.trim_start_matches("$").to_string();
+                        let target_port_value = match service_properties {
                             Some(ref properties) => {
                                 match properties.get(&target) {
                                     Some(value) => match value {
@@ -535,7 +535,13 @@ fn merge_spec(
 
                 Some(result)
             }
-            None => if result.is_empty() { None } else { Some(result) },
+            None => {
+                if result.is_empty() {
+                    None
+                } else {
+                    Some(result)
+                }
+            }
         };
 
         let new_service = ServiceConfig {
