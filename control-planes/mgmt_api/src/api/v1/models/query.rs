@@ -15,6 +15,15 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::upper_case_acronyms)]
+pub enum QueryLanguageDto {
+    #[serde(rename = "Cypher")]
+    Cypher,
+    #[serde(rename = "GQL")]
+    GQL,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct QuerySourceLabelDto {
@@ -51,6 +60,7 @@ pub struct QuerySpecDto {
     pub container: String,
     pub mode: String,
     pub query: String,
+    pub query_language: Option<QueryLanguageDto>,
     pub sources: QuerySourcesDto,
     pub storage_profile: Option<String>,
     pub view: Option<ViewSpecDto>,
