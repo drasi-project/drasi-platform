@@ -200,7 +200,7 @@ pub enum ServiceIdentity {
     MicrosoftEntraApplication {
         #[serde(rename = "tenantId")]
         tenant_id: ConfigValue,
-        
+
         #[serde(rename = "clientId")]
         client_id: ConfigValue,
 
@@ -227,7 +227,7 @@ pub enum ServiceIdentity {
         secret_access_key: ConfigValue,
         #[serde(rename = "region")]
         aws_region: ConfigValue,
-    }
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

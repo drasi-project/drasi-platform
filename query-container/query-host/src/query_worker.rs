@@ -50,7 +50,7 @@ use tracing::{dispatcher, info_span, instrument, Dispatch, Instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
-    api::{self, ChangeEvent, ControlSignal, ResultEvent, QueryLanguage},
+    api::{self, ChangeEvent, ControlSignal, QueryLanguage, ResultEvent},
     change_stream::{
         self, redis_change_stream::RedisChangeStream, Message, SequentialChangeStream,
     },
@@ -109,13 +109,15 @@ impl QueryWorker {
                     Some(QueryLanguage::GQL) => {
                         let function_registry =
                             Arc::new(FunctionRegistry::new()).with_gql_function_set();
-                        let parser = Arc::new(GQLParser::new(function_registry.clone())) as Arc<dyn QueryParser>;
+                        let parser = Arc::new(GQLParser::new(function_registry.clone()))
+                            as Arc<dyn QueryParser>;
                         (parser, function_registry)
                     }
                     Some(QueryLanguage::Cypher) | None => {
                         let function_registry =
                             Arc::new(FunctionRegistry::new()).with_cypher_function_set();
-                        let parser = Arc::new(CypherParser::new(function_registry.clone())) as Arc<dyn QueryParser>;
+                        let parser = Arc::new(CypherParser::new(function_registry.clone()))
+                            as Arc<dyn QueryParser>;
                         (parser, function_registry)
                     }
                 };

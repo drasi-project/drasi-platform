@@ -18,9 +18,9 @@ use crate::domain::models::{
 };
 
 use super::{
-    QueryJoinDto, QueryJoinKeyDto, QueryLanguageDto, QuerySourceLabelDto, QuerySourcesDto, QuerySpecDto,
-    QueryStatusDto, QuerySubscriptionDto, RetentionPolicyDto, SourceMiddlewareConfigDto,
-    ViewSpecDto,
+    QueryJoinDto, QueryJoinKeyDto, QueryLanguageDto, QuerySourceLabelDto, QuerySourcesDto,
+    QuerySpecDto, QueryStatusDto, QuerySubscriptionDto, RetentionPolicyDto,
+    SourceMiddlewareConfigDto, ViewSpecDto,
 };
 
 impl From<QueryStatus> for QueryStatusDto {
