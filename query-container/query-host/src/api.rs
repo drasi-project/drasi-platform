@@ -25,6 +25,15 @@ use drasi_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::upper_case_acronyms)]
+pub enum QueryLanguage {
+    #[serde(rename = "Cypher")]
+    Cypher,
+    #[serde(rename = "GQL")]
+    GQL,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct QueryRequest {
     pub id: String,
@@ -81,6 +90,7 @@ pub struct SourceMiddlewareConfig {
 pub struct QuerySpec {
     pub mode: String,
     pub query: String,
+    pub query_language: Option<QueryLanguage>,
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
