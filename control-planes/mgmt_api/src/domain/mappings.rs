@@ -311,11 +311,21 @@ impl From<SourceMiddlewareConfig> for resource_provider_api::models::SourceMiddl
     }
 }
 
+impl From<QueryLanguage> for resource_provider_api::models::QueryLanguage {
+    fn from(lang: QueryLanguage) -> resource_provider_api::models::QueryLanguage {
+        match lang {
+            QueryLanguage::Cypher => resource_provider_api::models::QueryLanguage::Cypher,
+            QueryLanguage::GQL => resource_provider_api::models::QueryLanguage::GQL,
+        }
+    }
+}
+
 impl From<QuerySpec> for resource_provider_api::models::QuerySpec {
     fn from(query_spec: QuerySpec) -> resource_provider_api::models::QuerySpec {
         resource_provider_api::models::QuerySpec {
             mode: query_spec.mode,
             query: query_spec.query,
+            query_language: query_spec.query_language.map(|lang| lang.into()),
             sources: query_spec.sources.into(),
             storage_profile: query_spec.storage_profile,
             view: query_spec.view.into(),

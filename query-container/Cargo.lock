@@ -871,6 +871,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "drasi-functions-cypher"
+version = "0.2.0"
+dependencies = [
+ "drasi-core",
+]
+
+[[package]]
+name = "drasi-functions-gql"
+version = "0.2.0"
+dependencies = [
+ "drasi-core",
+ "tokio",
+]
+
+[[package]]
 name = "drasi-index-garnet"
 version = "0.1.0"
 dependencies = [
@@ -947,6 +962,16 @@ dependencies = [
 
 [[package]]
 name = "drasi-query-cypher"
+version = "0.1.0"
+dependencies = [
+ "drasi-query-ast",
+ "peg",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "drasi-query-gql"
 version = "0.1.0"
 dependencies = [
  "drasi-query-ast",
@@ -2561,11 +2586,14 @@ dependencies = [
  "dapr",
  "dapr-macros",
  "drasi-core",
+ "drasi-functions-cypher",
+ "drasi-functions-gql",
  "drasi-index-garnet",
  "drasi-index-rocksdb",
  "drasi-middleware",
  "drasi-query-ast",
  "drasi-query-cypher",
+ "drasi-query-gql",
  "either",
  "env_logger 0.11.5",
  "futures",
@@ -3301,6 +3329,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "drasi-core",
+ "drasi-functions-cypher",
  "drasi-middleware",
  "drasi-query-ast",
  "drasi-query-cypher",
