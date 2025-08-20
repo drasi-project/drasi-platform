@@ -164,11 +164,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 
                             // Create Ingress resource with hostname-based routing
                             let ingress_name = format!("{}-reaction-ingress", reaction.id);
-                            let mut annotations = BTreeMap::new();
-                            annotations.insert(
-                                "kubernetes.io/ingress.class".to_string(),
-                                runtime_config.ingress_class_name.clone(),
-                            );
+                            let annotations = BTreeMap::new();
 
                             // Generate hostname: <reaction-name>.drasi.PLACEHOLDER
                             // The PLACEHOLDER will be replaced with actual IP during reconciliation

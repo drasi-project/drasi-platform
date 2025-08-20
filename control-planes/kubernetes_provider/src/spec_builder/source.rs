@@ -268,9 +268,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                                 metadata:
                                     k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta {
                                         name: Some(ingress_name.clone()),
-                                        annotations: Some(hashmap![
-                                            "kubernetes.io/ingress.class".to_string() => runtime_config.ingress_class_name.clone()
-                                        ]),
+                                        annotations: None,
                                         ..Default::default()
                                     },
                                 spec: Some(IngressSpec {

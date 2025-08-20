@@ -43,6 +43,8 @@ func NewIngressCommand() *cobra.Command {
 
 func ingressInitCommand() *cobra.Command {
 	var useExisting bool
+	var useAgic bool
+	var gatewayIPAddress string
 	var ingressServiceName string
 	var ingressNamespace string
 	var ingressClassName string
@@ -54,11 +56,13 @@ func ingressInitCommand() *cobra.Command {
 By default, installs Contour ingress controller to the projectcontour namespace.
 Organizations with existing ingress controllers can use --use-existing to configure 
 Drasi to work with their existing controller instead.
+For Azure Application Gateway Ingress Controller (AGIC), use --use-agic.
 
 Usage examples:
   drasi ingress init                                                           # Install and configure Contour (default)
   drasi ingress init --use-existing --ingress-service-name ingress-nginx-controller --ingress-namespace ingress-nginx --ingress-class-name nginx    # Use existing NGINX controller
-  drasi ingress init --use-existing --ingress-service-name traefik --ingress-namespace traefik-system --ingress-class-name traefik         # Use existing Traefik controller`,
+  drasi ingress init --use-existing --ingress-service-name traefik --ingress-namespace traefik-system --ingress-class-name traefik         # Use existing Traefik controller
+  drasi ingress init --use-agic --ingress-class-name azure-application-gateway --gateway-ip-address <ip-address? # Use Azure Application Gateway Ingress Controller`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var namespace string
@@ -93,6 +97,11 @@ Usage examples:
 				return fmt.Errorf("ingress command only supports Kubernetes environments")
 			}
 
+			// Validate mutually exclusive flags
+			if useExisting && useAgic {
+				return fmt.Errorf("--use-existing and --use-agic are mutually exclusive")
+			}
+
 			// Validate that required flags are provided when using --use-existing
 			if useExisting {
 				if ingressServiceName == "" {
@@ -104,7 +113,19 @@ Usage examples:
 				if ingressClassName == "" {
 					return fmt.Errorf("--ingress-class-name is required when using --use-existing")
 				}
+			}
 
+			// Validate that required flags are provided when using --use-agic
+			if useAgic {
+				if ingressClassName == "" {
+					return fmt.Errorf("--ingress-class-name is required when using --use-agic")
+				}
+				if gatewayIPAddress == "" {
+					return fmt.Errorf("--gateway-ip-address is required when using --use-agic")
+				}
+			}
+
+			if useExisting {
 				output.InfoMessage("Configuring Drasi to use existing ingress controller")
 				output.InfoMessage(fmt.Sprintf("Service: %s in namespace: %s", ingressServiceName, ingressNamespace))
 				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))
@@ -118,7 +139,18 @@ Usage examples:
 				}
 
 				output.InfoMessage("Drasi configured to use existing ingress controller")
+				return nil
+			} else if useAgic {
+				output.InfoMessage("Configuring Drasi to use Azure Application Gateway Ingress Controller (AGIC)")
+				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))
+				output.InfoMessage(fmt.Sprintf("Gateway IP: %s", gatewayIPAddress))
 
+				// For AGIC, we store the gateway IP for hostname generation
+				if err := UpdateIngressConfigForAgic(k8sPlatformClient, namespace, ingressClassName, gatewayIPAddress, output); err != nil {
+					return err
+				}
+
+				output.InfoMessage("Drasi configured to use Azure Application Gateway Ingress Controller")
 				return nil
 			} else {
 				// Create and use Contour installer
@@ -144,9 +176,11 @@ Usage examples:
 	}
 
 	cmd.Flags().BoolVar(&useExisting, "use-existing", false, "Use existing ingress controller instead of installing Contour")
+	cmd.Flags().BoolVar(&useAgic, "use-agic", false, "Use Azure Application Gateway Ingress Controller (AGIC)")
+	cmd.Flags().StringVar(&gatewayIPAddress, "gateway-ip-address", "", "Public IP address of the Application Gateway (required with --use-agic)")
 	cmd.Flags().StringVar(&ingressServiceName, "ingress-service-name", "", "Name of the existing ingress controller LoadBalancer service (required with --use-existing)")
 	cmd.Flags().StringVar(&ingressNamespace, "ingress-namespace", "", "Namespace where the existing ingress controller is installed (required with --use-existing)")
-	cmd.Flags().StringVar(&ingressClassName, "ingress-class-name", "", "IngressClassName to use in ingress resources (required with --use-existing)")
+	cmd.Flags().StringVar(&ingressClassName, "ingress-class-name", "", "IngressClassName to use in ingress resources (required with --use-existing or --use-agic)")
 
 	return cmd
 }
@@ -177,6 +211,10 @@ func UpdateIngressConfig(platformClient *sdk.KubernetesPlatformClient, drasiName
 	cfg["INGRESS_CLASS_NAME"] = ingressClassName
 	cfg["INGRESS_LOAD_BALANCER_SERVICE"] = ingressService
 	cfg["INGRESS_LOAD_BALANCER_NAMESPACE"] = ingressNamespace
+
+	// Clear previous AGIC configuration if it exists
+	delete(cfg, "INGRESS_AZURE_APPLICATION_GATEWAY")
+	delete(cfg, "INGRESS_AZURE_APPLICATION_GATEWAY_NAMESPACE")
 
 	// Apply the updated ConfigMap
 	configMap := corev1apply.ConfigMap("drasi-config", drasiNamespace).WithData(cfg)
@@ -282,5 +320,48 @@ func UpdateClusterRolePermissions(platformClient *sdk.KubernetesPlatformClient, 
 	}
 
 	output.SucceedTask("RBAC-Update", "ClusterRole updated")
+	return nil
+}
+
+// UpdateIngressConfigForAgic updates the drasi-config ConfigMap for AGIC configuration
+func UpdateIngressConfigForAgic(platformClient *sdk.KubernetesPlatformClient, drasiNamespace string, ingressClassName string, gatewayIPAddress string, output output.TaskOutput) error {
+	output.AddTask("AGIC-Config", "Configuring Drasi for Azure Application Gateway Ingress Controller")
+
+	kubeConfig := platformClient.GetKubeConfig()
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		output.FailTask("AGIC-Config", fmt.Sprintf("Error creating Kubernetes client: %v", err))
+		return err
+	}
+
+	currentConfigMap, err := kubeClient.CoreV1().ConfigMaps(drasiNamespace).Get(context.TODO(), "drasi-config", metav1.GetOptions{})
+	if err != nil {
+		output.FailTask("AGIC-Config", fmt.Sprintf("Error getting drasi-config ConfigMap: %v", err))
+		return err
+	}
+
+	cfg := currentConfigMap.Data
+	if cfg == nil {
+		cfg = make(map[string]string)
+	}
+
+	// Clear previous ingress configuration
+	delete(cfg, "INGRESS_LOAD_BALANCER_SERVICE")
+	delete(cfg, "INGRESS_LOAD_BALANCER_NAMESPACE")
+
+	cfg["INGRESS_CLASS_NAME"] = ingressClassName
+	cfg["INGRESS_TYPE"] = "agic"
+	cfg["AGIC_GATEWAY_IP"] = gatewayIPAddress
+
+	configMap := corev1apply.ConfigMap("drasi-config", drasiNamespace).WithData(cfg)
+	if _, err := kubeClient.CoreV1().ConfigMaps(drasiNamespace).Apply(context.TODO(), configMap, metav1.ApplyOptions{
+		FieldManager: "drasi-ingress",
+		Force:        true,
+	}); err != nil {
+		output.FailTask("AGIC-Config", fmt.Sprintf("Error updating ConfigMap: %v", err))
+		return err
+	}
+
+	output.SucceedTask("AGIC-Config", "AGIC configuration updated")
 	return nil
 }

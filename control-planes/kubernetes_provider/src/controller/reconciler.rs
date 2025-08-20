@@ -448,11 +448,13 @@ impl ResourceReconciler {
         Ok(())
     }
 
-    async fn get_dynamic_ingress_config(&self) -> (String, String, String) {
+    async fn get_dynamic_ingress_config(&self) -> (String, String, String, bool, Option<String>) {
         // Try to read from drasi-config ConfigMap, fall back to defaults
         let mut ingress_service = self.runtime_config.ingress_load_balancer_service.clone();
         let mut ingress_namespace = self.runtime_config.ingress_load_balancer_namespace.clone();
         let mut ingress_class_name = self.runtime_config.ingress_class_name.clone();
+        let mut is_agic = false;
+        let mut agic_gateway_ip: Option<String> = None;
 
         match self.cm_api.get("drasi-config").await {
             Ok(config_map) => {
@@ -472,6 +474,16 @@ impl ResourceReconciler {
                             ingress_class_name = class_name.clone();
                         }
                     }
+                    if let Some(ingress_type) = data.get("INGRESS_TYPE") {
+                        if ingress_type == "agic" {
+                            is_agic = true;
+                        }
+                    }
+                    if let Some(gateway_ip) = data.get("AGIC_GATEWAY_IP") {
+                        if !gateway_ip.is_empty() {
+                            agic_gateway_ip = Some(gateway_ip.clone());
+                        }
+                    }
                 }
             }
             Err(e) => {
@@ -482,14 +494,26 @@ impl ResourceReconciler {
             }
         }
 
-        (ingress_service, ingress_namespace, ingress_class_name)
+        (ingress_service, ingress_namespace, ingress_class_name, is_agic, agic_gateway_ip)
     }
 
     async fn get_ingress_external_ip(&self) -> Option<String> {
-        let client = self.service_api.clone().into_client();
-        let (ingress_service, ingress_namespace, _ingress_class_name) =
+        let (ingress_service, ingress_namespace, _ingress_class_name, is_agic, agic_gateway_ip) =
             self.get_dynamic_ingress_config().await;
 
+        // For AGIC, return the configured gateway IP directly
+        if is_agic {
+            if let Some(gateway_ip) = agic_gateway_ip {
+                log::info!("Using AGIC gateway IP: {}", gateway_ip);
+                return Some(gateway_ip);
+            } else {
+                log::warn!("AGIC configured but no gateway IP found");
+                return None;
+            }
+        }
+
+        // For traditional ingress controllers, lookup IP from LoadBalancer service
+        let client = self.service_api.clone().into_client();
         let service_api: Api<Service> = Api::namespaced(client, &ingress_namespace);
 
         match service_api.get(&ingress_service).await {
@@ -525,7 +549,7 @@ impl ResourceReconciler {
         if let Some(ingresses) = &self.spec.ingresses {
             log::info!("Reconciling ingresses {}", self.spec.resource_id);
 
-            // Get the external IP for hostname generation
+            // Get the external IP for hostname generation (handles both AGIC and traditional controllers)
             let ip_suffix = match self.get_ingress_external_ip().await {
                 Some(ip) => format!("{}.nip.io", ip),
                 None => {
@@ -535,19 +559,15 @@ impl ResourceReconciler {
             };
 
             for (name, mut ingress_spec) in ingresses.clone() {
-                let (_ingress_service, _ingress_namespace, ingress_class_name) =
+                let (_ingress_service, _ingress_namespace, ingress_class_name, is_agic, _agic_gateway_ip) =
                     self.get_dynamic_ingress_config().await;
 
                 if let Some(spec) = &mut ingress_spec.spec {
                     spec.ingress_class_name = Some(ingress_class_name.clone());
                 }
 
-                if let Some(annotations) = &mut ingress_spec.metadata.annotations {
-                    annotations.insert(
-                        "kubernetes.io/ingress.class".to_string(),
-                        ingress_class_name.clone(),
-                    );
-                }
+                // Note: kubernetes.io/ingress.class annotation is deprecated
+                // We only use spec.ingressClassName which is set above
 
                 if let Some(spec) = &mut ingress_spec.spec {
                     if let Some(rules) = &mut spec.rules {
@@ -555,6 +575,15 @@ impl ResourceReconciler {
                             if let Some(host) = &rule.host {
                                 if host.contains("PLACEHOLDER") {
                                     rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
+                                }
+                            }
+                            
+                            // For AGIC, update path type to "Exact" for better compatibility
+                            if is_agic {
+                                if let Some(http) = &mut rule.http {
+                                    for path in &mut http.paths {
+                                        path.path_type = "Exact".to_string();
+                                    }
                                 }
                             }
                         }

@@ -323,31 +323,40 @@ func (t *ApiClient) getIngressExternalIP() string {
 		return ""
 	}
 
-	ingressService := "contour-envoy"    // default
-	ingressNamespace := "projectcontour" // default
-
 	configMap, err := clientset.CoreV1().ConfigMaps("drasi-system").Get(context.Background(), "drasi-config", metav1.GetOptions{})
 	if err == nil && configMap.Data != nil {
+		// Check if AGIC is configured
+		if ingressType, exists := configMap.Data["INGRESS_TYPE"]; exists && ingressType == "agic" {
+			// For AGIC, return the configured gateway IP directly
+			if gatewayIP, exists := configMap.Data["AGIC_GATEWAY_IP"]; exists && gatewayIP != "" {
+				return gatewayIP
+			}
+		}
+
+		// For traditional ingress controllers, use LoadBalancer service discovery
+		ingressService := "contour-envoy"    // default
+		ingressNamespace := "projectcontour" // default
+
 		if service, exists := configMap.Data["INGRESS_LOAD_BALANCER_SERVICE"]; exists && service != "" {
 			ingressService = service
 		}
 		if namespace, exists := configMap.Data["INGRESS_LOAD_BALANCER_NAMESPACE"]; exists && namespace != "" {
 			ingressNamespace = namespace
 		}
-	}
 
-	service, err := clientset.CoreV1().Services(ingressNamespace).Get(context.Background(), ingressService, metav1.GetOptions{})
-	if err != nil {
-		return ""
-	}
-
-	// Extract LoadBalancer IP
-	if service.Status.LoadBalancer.Ingress != nil && len(service.Status.LoadBalancer.Ingress) > 0 {
-		if service.Status.LoadBalancer.Ingress[0].IP != "" {
-			return service.Status.LoadBalancer.Ingress[0].IP
+		service, err := clientset.CoreV1().Services(ingressNamespace).Get(context.Background(), ingressService, metav1.GetOptions{})
+		if err != nil {
+			return ""
 		}
-		if service.Status.LoadBalancer.Ingress[0].Hostname != "" {
-			return service.Status.LoadBalancer.Ingress[0].Hostname
+
+		// Extract LoadBalancer IP
+		if service.Status.LoadBalancer.Ingress != nil && len(service.Status.LoadBalancer.Ingress) > 0 {
+			if service.Status.LoadBalancer.Ingress[0].IP != "" {
+				return service.Status.LoadBalancer.Ingress[0].IP
+			}
+			if service.Status.LoadBalancer.Ingress[0].Hostname != "" {
+				return service.Status.LoadBalancer.Ingress[0].Hostname
+			}
 		}
 	}
 
