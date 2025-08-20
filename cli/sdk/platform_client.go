@@ -380,24 +380,26 @@ func (k *KubernetesPlatformClient) UpdateIngressConfig(drasiNamespace string, in
 		cfg = make(map[string]string)
 	}
 
-	cfg["INGRESS_CLASS_NAME"] = ingressClassName
+	// Clear all ingress-related configuration first
+	delete(cfg, "INGRESS_CLASS_NAME")
+	delete(cfg, "INGRESS_LOAD_BALANCER_SERVICE")
+	delete(cfg, "INGRESS_LOAD_BALANCER_NAMESPACE")
+	delete(cfg, "INGRESS_TYPE")
+	delete(cfg, "AGIC_GATEWAY_IP")
 
+	// Add values only if they are not empty strings
+	if ingressClassName != "" {
+		cfg["INGRESS_CLASS_NAME"] = ingressClassName
+	}
+	if ingressService != "" {
+		cfg["INGRESS_LOAD_BALANCER_SERVICE"] = ingressService
+	}
+	if ingressNamespace != "" {
+		cfg["INGRESS_LOAD_BALANCER_NAMESPACE"] = ingressNamespace
+	}
 	if gatewayIPAddress != "" {
-		// AGIC configuration
-		// Clear previous regular ingress configuration
-		delete(cfg, "INGRESS_LOAD_BALANCER_SERVICE")
-		delete(cfg, "INGRESS_LOAD_BALANCER_NAMESPACE")
-
 		cfg["INGRESS_TYPE"] = "agic"
 		cfg["AGIC_GATEWAY_IP"] = gatewayIPAddress
-	} else {
-		// Regular ingress controller configuration
-		cfg["INGRESS_LOAD_BALANCER_SERVICE"] = ingressService
-		cfg["INGRESS_LOAD_BALANCER_NAMESPACE"] = ingressNamespace
-
-		// Clear previous AGIC configuration if it exists
-		delete(cfg, "INGRESS_TYPE")
-		delete(cfg, "AGIC_GATEWAY_IP")
 	}
 
 	// Apply the updated ConfigMap

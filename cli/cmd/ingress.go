@@ -38,7 +38,6 @@ func NewIngressCommand() *cobra.Command {
 
 func ingressInitCommand() *cobra.Command {
 	var useExisting bool
-	var useAgic bool
 	var gatewayIPAddress string
 	var ingressServiceName string
 	var ingressNamespace string
@@ -51,13 +50,12 @@ func ingressInitCommand() *cobra.Command {
 By default, installs Contour ingress controller to the projectcontour namespace.
 Organizations with existing ingress controllers can use --use-existing to configure 
 Drasi to work with their existing controller instead.
-For Azure Application Gateway Ingress Controller (AGIC), use --use-agic.
 
 Usage examples:
   drasi ingress init                                                           # Install and configure Contour (default)
   drasi ingress init --use-existing --ingress-service-name ingress-nginx-controller --ingress-namespace ingress-nginx --ingress-class-name nginx    # Use existing NGINX controller
   drasi ingress init --use-existing --ingress-service-name traefik --ingress-namespace traefik-system --ingress-class-name traefik         # Use existing Traefik controller
-  drasi ingress init --use-agic --ingress-class-name azure-application-gateway --gateway-ip-address <ip-address? # Use Azure Application Gateway Ingress Controller`,
+  drasi ingress init --use-existing --ingress-class-name azure-application-gateway --gateway-ip-address <ip-address>                       # Use Azure Application Gateway Ingress Controller (AGIC)`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var namespace string
@@ -92,40 +90,28 @@ Usage examples:
 				return fmt.Errorf("ingress command only supports Kubernetes environments")
 			}
 
-			// Validate mutually exclusive flags
-			if useExisting && useAgic {
-				return fmt.Errorf("--use-existing and --use-agic are mutually exclusive")
-			}
-
 			// Validate that required flags are provided when using --use-existing
 			if useExisting {
-				if ingressServiceName == "" {
-					return fmt.Errorf("--ingress-service-name is required when using --use-existing")
-				}
-				if ingressNamespace == "" {
-					return fmt.Errorf("--ingress-namespace is required when using --use-existing")
-				}
 				if ingressClassName == "" {
 					return fmt.Errorf("--ingress-class-name is required when using --use-existing")
 				}
-			}
 
-			// Validate that required flags are provided when using --use-agic
-			if useAgic {
-				if ingressClassName == "" {
-					return fmt.Errorf("--ingress-class-name is required when using --use-agic")
-				}
 				if gatewayIPAddress == "" {
-					return fmt.Errorf("--gateway-ip-address is required when using --use-agic")
+					// Regular ingress controller - need service name and namespace
+					if ingressServiceName == "" {
+						return fmt.Errorf("--ingress-service-name is required when using --use-existing (unless using AGIC with --gateway-ip-address)")
+					}
+					if ingressNamespace == "" {
+						return fmt.Errorf("--ingress-namespace is required when using --use-existing (unless using AGIC with --gateway-ip-address)")
+					}
 				}
 			}
 
 			if useExisting {
 				output.InfoMessage("Configuring Drasi to use existing ingress controller")
-				output.InfoMessage(fmt.Sprintf("Service: %s in namespace: %s", ingressServiceName, ingressNamespace))
 				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))
 
-				if err := k8sPlatformClient.UpdateIngressConfig(namespace, ingressClassName, ingressServiceName, ingressNamespace, "", output); err != nil {
+				if err := k8sPlatformClient.UpdateIngressConfig(namespace, ingressClassName, ingressServiceName, ingressNamespace, gatewayIPAddress, output); err != nil {
 					return err
 				}
 
@@ -134,18 +120,6 @@ Usage examples:
 				}
 
 				output.InfoMessage("Drasi configured to use existing ingress controller")
-				return nil
-			} else if useAgic {
-				output.InfoMessage("Configuring Drasi to use Azure Application Gateway Ingress Controller (AGIC)")
-				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))
-				output.InfoMessage(fmt.Sprintf("Gateway IP: %s", gatewayIPAddress))
-
-				// For AGIC, we store the gateway IP for hostname generation
-				if err := k8sPlatformClient.UpdateIngressConfig(namespace, ingressClassName, "", "", gatewayIPAddress, output); err != nil {
-					return err
-				}
-
-				output.InfoMessage("Drasi configured to use Azure Application Gateway Ingress Controller")
 				return nil
 			} else {
 				// Create ingress installer (defaults to Contour)
@@ -173,11 +147,10 @@ Usage examples:
 	}
 
 	cmd.Flags().BoolVar(&useExisting, "use-existing", false, "Use existing ingress controller instead of installing Contour")
-	cmd.Flags().BoolVar(&useAgic, "use-agic", false, "Use Azure Application Gateway Ingress Controller (AGIC)")
-	cmd.Flags().StringVar(&gatewayIPAddress, "gateway-ip-address", "", "Public IP address of the Application Gateway (required with --use-agic)")
-	cmd.Flags().StringVar(&ingressServiceName, "ingress-service-name", "", "Name of the existing ingress controller LoadBalancer service (required with --use-existing)")
-	cmd.Flags().StringVar(&ingressNamespace, "ingress-namespace", "", "Namespace where the existing ingress controller is installed (required with --use-existing)")
-	cmd.Flags().StringVar(&ingressClassName, "ingress-class-name", "", "IngressClassName to use in ingress resources (required with --use-existing or --use-agic)")
+	cmd.Flags().StringVar(&gatewayIPAddress, "gateway-ip-address", "", "Public IP address of the Application Gateway (use with --use-existing for AGIC)")
+	cmd.Flags().StringVar(&ingressServiceName, "ingress-service-name", "", "Name of the existing ingress controller LoadBalancer service (required with --use-existing for regular controllers)")
+	cmd.Flags().StringVar(&ingressNamespace, "ingress-namespace", "", "Namespace where the existing ingress controller is installed (required with --use-existing for regular controllers)")
+	cmd.Flags().StringVar(&ingressClassName, "ingress-class-name", "", "IngressClassName to use in ingress resources (required with --use-existing)")
 
 	return cmd
 }
