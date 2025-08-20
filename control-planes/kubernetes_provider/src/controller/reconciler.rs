@@ -494,7 +494,13 @@ impl ResourceReconciler {
             }
         }
 
-        (ingress_service, ingress_namespace, ingress_class_name, is_agic, agic_gateway_ip)
+        (
+            ingress_service,
+            ingress_namespace,
+            ingress_class_name,
+            is_agic,
+            agic_gateway_ip,
+        )
     }
 
     async fn get_ingress_external_ip(&self) -> Option<String> {
@@ -559,8 +565,13 @@ impl ResourceReconciler {
             };
 
             for (name, mut ingress_spec) in ingresses.clone() {
-                let (_ingress_service, _ingress_namespace, ingress_class_name, is_agic, _agic_gateway_ip) =
-                    self.get_dynamic_ingress_config().await;
+                let (
+                    _ingress_service,
+                    _ingress_namespace,
+                    ingress_class_name,
+                    is_agic,
+                    _agic_gateway_ip,
+                ) = self.get_dynamic_ingress_config().await;
 
                 if let Some(spec) = &mut ingress_spec.spec {
                     spec.ingress_class_name = Some(ingress_class_name.clone());
@@ -577,7 +588,7 @@ impl ResourceReconciler {
                                     rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
                                 }
                             }
-                            
+
                             // For AGIC, update path type to "Exact" for better compatibility
                             if is_agic {
                                 if let Some(http) = &mut rule.http {
