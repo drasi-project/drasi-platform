@@ -125,11 +125,11 @@ Usage examples:
 				output.InfoMessage(fmt.Sprintf("Service: %s in namespace: %s", ingressServiceName, ingressNamespace))
 				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))
 
-				if err := ingress.UpdateIngressConfig(k8sPlatformClient, namespace, ingressClassName, ingressServiceName, ingressNamespace, output); err != nil {
+				if err := k8sPlatformClient.UpdateIngressConfig(namespace, ingressClassName, ingressServiceName, ingressNamespace, "", output); err != nil {
 					return err
 				}
 
-				if err := ingress.UpdateClusterRolePermissions(k8sPlatformClient, output); err != nil {
+				if err := k8sPlatformClient.UpdateClusterRolePermissions(output); err != nil {
 					return err
 				}
 
@@ -141,7 +141,7 @@ Usage examples:
 				output.InfoMessage(fmt.Sprintf("Gateway IP: %s", gatewayIPAddress))
 
 				// For AGIC, we store the gateway IP for hostname generation
-				if err := ingress.UpdateIngressConfigForAgic(k8sPlatformClient, namespace, ingressClassName, gatewayIPAddress, output); err != nil {
+				if err := k8sPlatformClient.UpdateIngressConfig(namespace, ingressClassName, "", "", gatewayIPAddress, output); err != nil {
 					return err
 				}
 
@@ -162,7 +162,7 @@ Usage examples:
 
 				// Get configuration from the installer
 				config := ingressInstaller.GetIngressConfig()
-				if err := ingress.UpdateIngressConfig(k8sPlatformClient, namespace, config.ClassName, config.ServiceName, config.Namespace, output); err != nil {
+				if err := k8sPlatformClient.UpdateIngressConfig(namespace, config.ClassName, config.ServiceName, config.Namespace, "", output); err != nil {
 					return err
 				}
 
