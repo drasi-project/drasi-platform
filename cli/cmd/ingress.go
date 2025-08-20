@@ -134,7 +134,7 @@ Usage examples:
 					return err
 				}
 
-				if err := UpdateClusterRolePermissions(k8sPlatformClient, ingressNamespace, output); err != nil {
+				if err := UpdateClusterRolePermissions(k8sPlatformClient, output); err != nil {
 					return err
 				}
 
@@ -230,7 +230,7 @@ func UpdateIngressConfig(platformClient *sdk.KubernetesPlatformClient, drasiName
 }
 
 // UpdateClusterRolePermissions updates the ClusterRole to grant service access in the specified namespace
-func UpdateClusterRolePermissions(platformClient *sdk.KubernetesPlatformClient, ingressNamespace string, output output.TaskOutput) error {
+func UpdateClusterRolePermissions(platformClient *sdk.KubernetesPlatformClient, output output.TaskOutput) error {
 	output.AddTask("RBAC-Update", "Updating ClusterRole permissions for ingress namespace")
 
 	kubeConfig := platformClient.GetKubeConfig()
