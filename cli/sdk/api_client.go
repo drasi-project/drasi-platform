@@ -259,7 +259,7 @@ func (t *ApiClient) Watch(kind string, name string, output chan map[string]inter
 	}
 }
 
-func (t *ApiClient) displayIngressInfo(reactionName string, spec interface{}, output output.TaskOutput) {
+func (t *ApiClient) displayIngressInfo(resourceName string, spec interface{}, output output.TaskOutput) {
 	specMap, ok := spec.(map[string]interface{})
 	if !ok {
 		return
@@ -300,11 +300,65 @@ func (t *ApiClient) displayIngressInfo(reactionName string, spec interface{}, ou
 	}
 
 	if hasExternalEndpoint {
-		// Get the ingress controller LoadBalancer IP
-		ip := t.getIngressExternalIP()
-		ingressUrl := fmt.Sprintf("http://%s.drasi.%s.nip.io", reactionName, ip)
-		output.InfoMessage(fmt.Sprintf("Ingress URL: %s", ingressUrl))
+		ingressUrl := t.getIngressURL(resourceName)
+		if ingressUrl != "" {
+			output.InfoMessage(fmt.Sprintf("Ingress URL: %s", ingressUrl))
+		}
 	}
+}
+
+func (t *ApiClient) getIngressURL(resourceName string) string {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{}
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+
+	config, err := kubeConfig.ClientConfig()
+	if err != nil {
+		return ""
+	}
+
+	// Create Kubernetes client
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return ""
+	}
+
+	// Find ingress by label selector
+	labelSelector := fmt.Sprintf("drasi/resource=%s", resourceName)
+	ingressList, err := clientset.NetworkingV1().Ingresses("drasi-system").List(context.Background(), metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil || len(ingressList.Items) == 0 {
+		return ""
+	}
+
+	ingress := ingressList.Items[0]
+
+	if ingress.Spec.Rules != nil && len(ingress.Spec.Rules) > 0 {
+		rule := ingress.Spec.Rules[0]
+
+		// If host is set and not "*", use the hostname
+		if rule.Host != "" && rule.Host != "*" {
+			return fmt.Sprintf("http://%s", rule.Host)
+		}
+
+		// If host is "*" or empty, use the ingress address directly
+		if rule.Host == "*" || rule.Host == "" {
+			if ingress.Status.LoadBalancer.Ingress != nil && len(ingress.Status.LoadBalancer.Ingress) > 0 {
+				address := ""
+				if ingress.Status.LoadBalancer.Ingress[0].IP != "" {
+					address = ingress.Status.LoadBalancer.Ingress[0].IP
+				} else if ingress.Status.LoadBalancer.Ingress[0].Hostname != "" {
+					address = ingress.Status.LoadBalancer.Ingress[0].Hostname
+				}
+				if address != "" {
+					return fmt.Sprintf("http://%s", address)
+				}
+			}
+		}
+	}
+
+	return ""
 }
 
 func (t *ApiClient) getIngressExternalIP() string {

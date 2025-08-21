@@ -585,7 +585,12 @@ impl ResourceReconciler {
                         for rule in rules {
                             if let Some(host) = &rule.host {
                                 if host.contains("PLACEHOLDER") {
-                                    rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
+                                    // For ALB, remove hostname entirely - let ALB generate its own URL
+                                    if ingress_class_name == "alb" {
+                                        rule.host = None;
+                                    } else {
+                                        rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
+                                    }
                                 }
                             }
 

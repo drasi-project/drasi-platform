@@ -95,16 +95,6 @@ Usage examples:
 				if ingressClassName == "" {
 					return fmt.Errorf("--ingress-class-name is required when using --use-existing")
 				}
-
-				if gatewayIPAddress == "" {
-					// Regular ingress controller - need service name and namespace
-					if ingressServiceName == "" {
-						return fmt.Errorf("--ingress-service-name is required when using --use-existing (unless using AGIC with --gateway-ip-address)")
-					}
-					if ingressNamespace == "" {
-						return fmt.Errorf("--ingress-namespace is required when using --use-existing (unless using AGIC with --gateway-ip-address)")
-					}
-				}
 			}
 
 			if useExisting {

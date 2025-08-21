@@ -264,11 +264,18 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                             // Generate hostname pattern with PLACEHOLDER for dynamic replacement
                             let hostname = format!("{}.drasi.PLACEHOLDER", source.id);
 
+                            // Add ALB-specific annotations if using AWS Load Balancer Controller
+                            let mut annotations = BTreeMap::new();
+                            if runtime_config.ingress_class_name == "alb" {
+                                annotations.insert("alb.ingress.kubernetes.io/scheme".to_string(), "internet-facing".to_string());
+                                annotations.insert("alb.ingress.kubernetes.io/target-type".to_string(), "ip".to_string());
+                            }
+
                             let ingress = Ingress {
                                 metadata:
                                     k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta {
                                         name: Some(ingress_name.clone()),
-                                        annotations: None,
+                                        annotations: if annotations.is_empty() { None } else { Some(annotations) },
                                         ..Default::default()
                                     },
                                 spec: Some(IngressSpec {

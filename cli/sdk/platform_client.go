@@ -352,14 +352,7 @@ func (t *KubernetesPlatformClient) getResourcePod(resourceType string, resourceN
 // For regular ingress controllers, provide ingressService and ingressNamespace, leave gatewayIPAddress empty
 // For AGIC, provide ingressClassName and gatewayIPAddress, leave ingressService and ingressNamespace empty
 func (k *KubernetesPlatformClient) UpdateIngressConfig(drasiNamespace string, ingressClassName, ingressService, ingressNamespace, gatewayIPAddress string, output output.TaskOutput) error {
-	var taskName string
-	if gatewayIPAddress != "" {
-		taskName = "AGIC-Config"
-		output.AddTask(taskName, "Configuring Drasi for Azure Application Gateway Ingress Controller")
-	} else {
-		taskName = "Ingress-Config"
-		output.AddTask(taskName, "Updating ingress configuration")
-	}
+	taskName := "Ingress-Config"
 
 	kubeConfig := k.GetKubeConfig()
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
