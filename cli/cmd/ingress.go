@@ -111,10 +111,6 @@ Usage examples:
 					return err
 				}
 
-				if err := k8sPlatformClient.UpdateClusterRolePermissions(output); err != nil {
-					return err
-				}
-
 				output.InfoMessage("Drasi configured to use existing ingress controller")
 				return nil
 			} else {

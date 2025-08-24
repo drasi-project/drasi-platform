@@ -18,7 +18,6 @@ import (
 	"drasi.io/cli/sdk/registry"
 	"github.com/phayes/freeport"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1apply "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -44,7 +43,6 @@ type PlatformClient interface {
 
 	// Ingress management methods
 	UpdateIngressConfig(config *IngressConfig, output output.TaskOutput) error
-	UpdateClusterRolePermissions(output output.TaskOutput) error
 	GetIngressURL(resourceName string) string
 	DisplayIngressInfo(resourceName string, spec interface{}, output output.TaskOutput)
 }
@@ -416,100 +414,6 @@ func (k *KubernetesPlatformClient) UpdateIngressConfig(config *IngressConfig, ou
 	} else {
 		output.SucceedTask(taskName, "Ingress configuration updated")
 	}
-	return nil
-}
-
-// UpdateClusterRolePermissions updates the ClusterRole to grant service access in the specified namespace
-func (k *KubernetesPlatformClient) UpdateClusterRolePermissions(output output.TaskOutput) error {
-	output.AddTask("RBAC-Update", "Updating ClusterRole permissions for ingress namespace")
-
-	kubeConfig := k.GetKubeConfig()
-	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		output.FailTask("RBAC-Update", fmt.Sprintf("Error creating Kubernetes client: %v", err))
-		return err
-	}
-
-	clusterRoleName := "drasi-resource-provider-cluster-role"
-
-	// Get current ClusterRole
-	currentClusterRole, err := kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), clusterRoleName, metav1.GetOptions{})
-	if err != nil {
-		output.FailTask("RBAC-Update", fmt.Sprintf("Error getting ClusterRole: %v", err))
-		return err
-	}
-
-	// Check if we already have generic service permissions
-	hasGenericServiceAccess := false
-	for _, rule := range currentClusterRole.Rules {
-		for _, apiGroup := range rule.APIGroups {
-			if apiGroup == "" { // Core API group
-				for _, resource := range rule.Resources {
-					if resource == "services" {
-						hasGet := false
-						hasList := false
-						for _, verb := range rule.Verbs {
-							if verb == "get" {
-								hasGet = true
-							}
-							if verb == "list" {
-								hasList = true
-							}
-						}
-						if hasGet && hasList && len(rule.ResourceNames) == 0 {
-							hasGenericServiceAccess = true
-							break
-						}
-					}
-				}
-			}
-		}
-		if hasGenericServiceAccess {
-			break
-		}
-	}
-
-	if hasGenericServiceAccess {
-		output.InfoTask("RBAC-Update", "ClusterRole already has generic service access")
-		output.SucceedTask("RBAC-Update", "No ClusterRole update needed")
-		return nil
-	}
-
-	// Update the ClusterRole to have generic service access
-	var updatedRules []rbacv1.PolicyRule
-	for _, rule := range currentClusterRole.Rules {
-		// Skip service rules with resourceNames (e.g., contour-envoy specific rule)
-		isServiceRuleWithNames := false
-		for _, apiGroup := range rule.APIGroups {
-			if apiGroup == "" {
-				for _, resource := range rule.Resources {
-					if resource == "services" && len(rule.ResourceNames) > 0 {
-						isServiceRuleWithNames = true
-						break
-					}
-				}
-			}
-		}
-		if !isServiceRuleWithNames {
-			updatedRules = append(updatedRules, rule)
-		}
-	}
-
-	updatedRules = append(updatedRules, rbacv1.PolicyRule{
-		APIGroups: []string{""},
-		Resources: []string{"services"},
-		Verbs:     []string{"get", "list"},
-	})
-
-	// Update the ClusterRole
-	currentClusterRole.Rules = updatedRules
-	_, err = kubeClient.RbacV1().ClusterRoles().Update(context.TODO(), currentClusterRole, metav1.UpdateOptions{})
-	if err != nil {
-		output.FailTask("RBAC-Update", fmt.Sprintf("Error updating ClusterRole: %v", err))
-		return err
-	}
-
-	output.SucceedTask("RBAC-Update", "ClusterRole updated")
 	return nil
 }
 

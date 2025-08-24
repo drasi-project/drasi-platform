@@ -22,9 +22,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/phayes/freeport"
-	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
@@ -543,142 +540,8 @@ func (t *DockerizedDeployer) ConfigureTraefikForDocker(namespace string, output 
 		return fmt.Errorf("failed to update ingress configuration: %w", err)
 	}
 
-	if err := updateClusterRolePermissions(k8sPlatformClient, output); err != nil {
-		return fmt.Errorf("failed to update cluster role permissions: %w", err)
-	}
-
 	output.InfoMessage("Successfully configured Traefik ingress for k3s Docker environment")
 	output.InfoMessage("Drasi Sources and Reactions with External endpoints will now be accessible via Traefik")
 
-	return nil
-}
-
-// updateIngressConfig updates the drasi-config ConfigMap with ingress controller configuration
-// func updateIngressConfig(platformClient *sdk.KubernetesPlatformClient, drasiNamespace string, ingressClassName, ingressService, ingressNamespace string, output output.TaskOutput) error {
-// 	output.AddTask("Ingress-Config", "Updating ingress configuration")
-// 	kubeConfig := platformClient.GetKubeConfig()
-// 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-// 	if err != nil {
-// 		output.FailTask("Ingress-Config", fmt.Sprintf("Error creating Kubernetes client: %v", err))
-// 		return err
-// 	}
-
-// 	currentConfigMap, err := kubeClient.CoreV1().ConfigMaps(drasiNamespace).Get(context.TODO(), "drasi-config", metav1.GetOptions{})
-// 	if err != nil {
-// 		output.FailTask("Ingress-Config", fmt.Sprintf("Error getting drasi-config ConfigMap: %v", err))
-// 		return err
-// 	}
-
-// 	// Update the ConfigMap data with ingress configuration
-// 	cfg := currentConfigMap.Data
-// 	if cfg == nil {
-// 		cfg = make(map[string]string)
-// 	}
-// 	cfg["INGRESS_CLASS_NAME"] = ingressClassName
-// 	cfg["INGRESS_LOAD_BALANCER_SERVICE"] = ingressService
-// 	cfg["INGRESS_LOAD_BALANCER_NAMESPACE"] = ingressNamespace
-
-// 	currentConfigMap.Data = cfg
-
-// 	_, err = kubeClient.CoreV1().ConfigMaps(drasiNamespace).Update(context.TODO(), currentConfigMap, metav1.UpdateOptions{})
-// 	if err != nil {
-// 		output.FailTask("Ingress-Config", fmt.Sprintf("Error updating drasi-config ConfigMap: %v", err))
-// 		return err
-// 	}
-
-// 	output.SucceedTask("Ingress-Config", fmt.Sprintf("Successfully configured ingress: class=%s, service=%s/%s", ingressClassName, ingressNamespace, ingressService))
-// 	return nil
-// }
-
-func updateClusterRolePermissions(platformClient *sdk.KubernetesPlatformClient, output output.TaskOutput) error {
-	output.AddTask("RBAC-Update", "Updating ClusterRole permissions for ingress namespace")
-
-	kubeConfig := platformClient.GetKubeConfig()
-	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		output.FailTask("RBAC-Update", fmt.Sprintf("Error creating Kubernetes client: %v", err))
-		return err
-	}
-
-	clusterRoleName := "drasi-resource-provider-cluster-role"
-
-	// Get current ClusterRole
-	currentClusterRole, err := kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), clusterRoleName, metav1.GetOptions{})
-	if err != nil {
-		output.FailTask("RBAC-Update", fmt.Sprintf("Error getting ClusterRole: %v", err))
-		return err
-	}
-
-	// Check if we already have generic service permissions
-	hasGenericServiceAccess := false
-	for _, rule := range currentClusterRole.Rules {
-		for _, apiGroup := range rule.APIGroups {
-			if apiGroup == "" { // Core API group
-				for _, resource := range rule.Resources {
-					if resource == "services" {
-						hasGet := false
-						hasList := false
-						for _, verb := range rule.Verbs {
-							if verb == "get" {
-								hasGet = true
-							}
-							if verb == "list" {
-								hasList = true
-							}
-						}
-						if hasGet && hasList && len(rule.ResourceNames) == 0 {
-							hasGenericServiceAccess = true
-							break
-						}
-					}
-				}
-			}
-		}
-		if hasGenericServiceAccess {
-			break
-		}
-	}
-
-	if hasGenericServiceAccess {
-		output.InfoTask("RBAC-Update", "ClusterRole already has generic service access")
-		output.SucceedTask("RBAC-Update", "No ClusterRole update needed")
-		return nil
-	}
-
-	// Update the ClusterRole to have generic service access
-	var updatedRules []rbacv1.PolicyRule
-	for _, rule := range currentClusterRole.Rules {
-		// Skip service rules with resourceNames (e.g., contour-envoy specific rule)
-		isServiceRuleWithNames := false
-		for _, apiGroup := range rule.APIGroups {
-			if apiGroup == "" {
-				for _, resource := range rule.Resources {
-					if resource == "services" && len(rule.ResourceNames) > 0 {
-						isServiceRuleWithNames = true
-						break
-					}
-				}
-			}
-		}
-		if !isServiceRuleWithNames {
-			updatedRules = append(updatedRules, rule)
-		}
-	}
-
-	updatedRules = append(updatedRules, rbacv1.PolicyRule{
-		APIGroups: []string{""},
-		Resources: []string{"services"},
-		Verbs:     []string{"get", "list"},
-	})
-
-	// Update the ClusterRole
-	currentClusterRole.Rules = updatedRules
-	_, err = kubeClient.RbacV1().ClusterRoles().Update(context.TODO(), currentClusterRole, metav1.UpdateOptions{})
-	if err != nil {
-		output.FailTask("RBAC-Update", fmt.Sprintf("Error updating ClusterRole: %v", err))
-		return err
-	}
-
-	output.SucceedTask("RBAC-Update", "ClusterRole updated")
 	return nil
 }
