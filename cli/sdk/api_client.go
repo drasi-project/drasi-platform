@@ -16,8 +16,6 @@ package sdk
 
 import (
 	"bytes"
-	"context"
-	"drasi.io/cli/output"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,9 +26,7 @@ import (
 	"time"
 
 	"drasi.io/cli/api"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	"drasi.io/cli/output"
 )
 
 type ApiClient struct {
@@ -89,10 +85,6 @@ func (t *ApiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) e
 		}
 
 		output.SucceedTask(subject, fmt.Sprintf("%v: complete", subject))
-
-		if strings.ToLower(mf.Kind) == "reaction" || strings.ToLower(mf.Kind) == "source" {
-			t.displayIngressInfo(mf.Name, mf.Spec, output)
-		}
 	}
 	return nil
 }
@@ -257,164 +249,6 @@ func (t *ApiClient) Watch(kind string, name string, output chan map[string]inter
 	if _, err := decoder.Token(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func (t *ApiClient) displayIngressInfo(resourceName string, spec interface{}, output output.TaskOutput) {
-	specMap, ok := spec.(map[string]interface{})
-	if !ok {
-		return
-	}
-
-	services, ok := specMap["services"].(map[string]interface{})
-	if !ok {
-		return
-	}
-
-	var hasExternalEndpoint bool
-	for _, serviceData := range services {
-		serviceMap, ok := serviceData.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		endpoints, ok := serviceMap["endpoints"].(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		for _, endpointData := range endpoints {
-			endpointMap, ok := endpointData.(map[string]interface{})
-			if !ok {
-				continue
-			}
-
-			setting, ok := endpointMap["setting"].(string)
-			if ok && strings.ToLower(setting) == "external" {
-				hasExternalEndpoint = true
-				break
-			}
-		}
-		if hasExternalEndpoint {
-			break
-		}
-	}
-
-	if hasExternalEndpoint {
-		ingressUrl := t.getIngressURL(resourceName)
-		if ingressUrl != "" {
-			output.InfoMessage(fmt.Sprintf("Ingress URL: %s", ingressUrl))
-		}
-	}
-}
-
-func (t *ApiClient) getIngressURL(resourceName string) string {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
-	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-
-	config, err := kubeConfig.ClientConfig()
-	if err != nil {
-		return ""
-	}
-
-	// Create Kubernetes client
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return ""
-	}
-
-	// Find ingress by label selector
-	labelSelector := fmt.Sprintf("drasi/resource=%s", resourceName)
-	ingressList, err := clientset.NetworkingV1().Ingresses("drasi-system").List(context.Background(), metav1.ListOptions{
-		LabelSelector: labelSelector,
-	})
-	if err != nil || len(ingressList.Items) == 0 {
-		return ""
-	}
-
-	ingress := ingressList.Items[0]
-
-	if ingress.Spec.Rules != nil && len(ingress.Spec.Rules) > 0 {
-		rule := ingress.Spec.Rules[0]
-
-		// If host is set and not "*", use the hostname
-		if rule.Host != "" && rule.Host != "*" {
-			return fmt.Sprintf("http://%s", rule.Host)
-		}
-
-		// If host is "*" or empty, use the ingress address directly
-		if rule.Host == "*" || rule.Host == "" {
-			if ingress.Status.LoadBalancer.Ingress != nil && len(ingress.Status.LoadBalancer.Ingress) > 0 {
-				address := ""
-				if ingress.Status.LoadBalancer.Ingress[0].IP != "" {
-					address = ingress.Status.LoadBalancer.Ingress[0].IP
-				} else if ingress.Status.LoadBalancer.Ingress[0].Hostname != "" {
-					address = ingress.Status.LoadBalancer.Ingress[0].Hostname
-				}
-				if address != "" {
-					return fmt.Sprintf("http://%s", address)
-				}
-			}
-		}
-	}
-
-	return ""
-}
-
-func (t *ApiClient) getIngressExternalIP() string {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
-	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-
-	config, err := kubeConfig.ClientConfig()
-	if err != nil {
-		return ""
-	}
-
-	// Create Kubernetes client
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return ""
-	}
-
-	configMap, err := clientset.CoreV1().ConfigMaps("drasi-system").Get(context.Background(), "drasi-config", metav1.GetOptions{})
-	if err == nil && configMap.Data != nil {
-		// Check if AGIC is configured
-		if ingressType, exists := configMap.Data["INGRESS_TYPE"]; exists && ingressType == "agic" {
-			// For AGIC, return the configured gateway IP directly
-			if gatewayIP, exists := configMap.Data["AGIC_GATEWAY_IP"]; exists && gatewayIP != "" {
-				return gatewayIP
-			}
-		}
-
-		// For traditional ingress controllers, use LoadBalancer service discovery
-		ingressService := "contour-envoy"    // default
-		ingressNamespace := "projectcontour" // default
-
-		if service, exists := configMap.Data["INGRESS_LOAD_BALANCER_SERVICE"]; exists && service != "" {
-			ingressService = service
-		}
-		if namespace, exists := configMap.Data["INGRESS_LOAD_BALANCER_NAMESPACE"]; exists && namespace != "" {
-			ingressNamespace = namespace
-		}
-
-		service, err := clientset.CoreV1().Services(ingressNamespace).Get(context.Background(), ingressService, metav1.GetOptions{})
-		if err != nil {
-			return ""
-		}
-
-		// Extract LoadBalancer IP
-		if service.Status.LoadBalancer.Ingress != nil && len(service.Status.LoadBalancer.Ingress) > 0 {
-			if service.Status.LoadBalancer.Ingress[0].IP != "" {
-				return service.Status.LoadBalancer.Ingress[0].IP
-			}
-			if service.Status.LoadBalancer.Ingress[0].Hostname != "" {
-				return service.Status.LoadBalancer.Ingress[0].Hostname
-			}
-		}
-	}
-
-	return ""
 }
 
 func (t *ApiClient) Close() {

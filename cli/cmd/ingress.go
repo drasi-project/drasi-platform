@@ -101,7 +101,13 @@ Usage examples:
 				output.InfoMessage("Configuring Drasi to use existing ingress controller")
 				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))
 
-				if err := k8sPlatformClient.UpdateIngressConfig(namespace, ingressClassName, ingressServiceName, ingressNamespace, gatewayIPAddress, output); err != nil {
+				config := &sdk.IngressConfig{
+					IngressClassName: ingressClassName,
+					IngressService:   ingressServiceName,
+					IngressNamespace: ingressNamespace,
+					GatewayIPAddress: gatewayIPAddress,
+				}
+				if err := k8sPlatformClient.UpdateIngressConfig(config, output); err != nil {
 					return err
 				}
 
@@ -125,8 +131,14 @@ Usage examples:
 				}
 
 				// Get configuration from the installer
-				config := ingressInstaller.GetIngressConfig()
-				if err := k8sPlatformClient.UpdateIngressConfig(namespace, config.ClassName, config.ServiceName, config.Namespace, "", output); err != nil {
+				installerConfig := ingressInstaller.GetIngressConfig()
+				config := &sdk.IngressConfig{
+					IngressClassName: installerConfig.ClassName,
+					IngressService:   installerConfig.ServiceName,
+					IngressNamespace: installerConfig.Namespace,
+					GatewayIPAddress: "",
+				}
+				if err := k8sPlatformClient.UpdateIngressConfig(config, output); err != nil {
 					return err
 				}
 

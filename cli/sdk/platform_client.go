@@ -20,7 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1apply "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -29,6 +28,14 @@ import (
 	"k8s.io/client-go/transport/spdy"
 )
 
+// IngressConfig holds ingress controller configuration parameters
+type IngressConfig struct {
+	IngressClassName string
+	IngressService   string
+	IngressNamespace string
+	GatewayIPAddress string
+}
+
 type PlatformClient interface {
 	CreateDrasiClient() (*ApiClient, error)
 	CreateTunnel(resourceType string, resourceName string, localPort uint16) error
@@ -36,8 +43,10 @@ type PlatformClient interface {
 	DeleteSecret(name string, key string) error
 
 	// Ingress management methods
-	UpdateIngressConfig(drasiNamespace string, ingressClassName, ingressService, ingressNamespace, gatewayIPAddress string, output output.TaskOutput) error
+	UpdateIngressConfig(config *IngressConfig, output output.TaskOutput) error
 	UpdateClusterRolePermissions(output output.TaskOutput) error
+	GetIngressURL(resourceName string) string
+	DisplayIngressInfo(resourceName string, spec interface{}, output output.TaskOutput)
 }
 
 func NewPlatformClient(registration registry.Registration) (PlatformClient, error) {
@@ -197,11 +206,11 @@ func (t *KubernetesPlatformClient) CreateTunnel(resourceType string, resourceNam
 }
 
 func (t *KubernetesPlatformClient) SetSecret(name string, key string, value []byte) error {
-	secret, err := t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Get(context.TODO(), name, v1.GetOptions{})
+	secret, err := t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			secret = &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: t.kubeNamespace,
 				},
@@ -209,7 +218,7 @@ func (t *KubernetesPlatformClient) SetSecret(name string, key string, value []by
 					key: value,
 				},
 			}
-			_, err = t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Create(context.TODO(), secret, v1.CreateOptions{})
+			_, err = t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 			if err != nil {
 				return err
 			}
@@ -225,7 +234,7 @@ func (t *KubernetesPlatformClient) SetSecret(name string, key string, value []by
 
 	secret.Data[key] = value
 
-	_, err = t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Update(context.TODO(), secret, v1.UpdateOptions{})
+	_, err = t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -234,7 +243,7 @@ func (t *KubernetesPlatformClient) SetSecret(name string, key string, value []by
 }
 
 func (t *KubernetesPlatformClient) DeleteSecret(name string, key string) error {
-	secret, err := t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Get(context.TODO(), name, v1.GetOptions{})
+	secret, err := t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -245,7 +254,7 @@ func (t *KubernetesPlatformClient) DeleteSecret(name string, key string) error {
 
 	delete(secret.Data, key)
 
-	_, err = t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Update(context.TODO(), secret, v1.UpdateOptions{})
+	_, err = t.kubeClient.CoreV1().Secrets(t.kubeNamespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -301,7 +310,7 @@ func (t *KubernetesPlatformClient) createManagementApiTunnel(apiClient *ApiClien
 
 func (t *KubernetesPlatformClient) getApiPodName() (string, error) {
 	namespace := t.kubeNamespace
-	ep, err := t.kubeClient.CoreV1().Endpoints(namespace).Get(context.TODO(), "drasi-api", v1.GetOptions{})
+	ep, err := t.kubeClient.CoreV1().Endpoints(namespace).Get(context.TODO(), "drasi-api", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -323,7 +332,7 @@ type ResourcePodPort struct {
 
 func (t *KubernetesPlatformClient) getResourcePod(resourceType string, resourceName string) (*ResourcePodPort, error) {
 	namespace := t.kubeNamespace
-	endpoints, err := t.kubeClient.CoreV1().Endpoints(namespace).List(context.TODO(), v1.ListOptions{
+	endpoints, err := t.kubeClient.CoreV1().Endpoints(namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("drasi/type=%s,drasi/resource=%s", resourceType, resourceName),
 	})
 	if err != nil {
@@ -349,17 +358,14 @@ func (t *KubernetesPlatformClient) getResourcePod(resourceType string, resourceN
 }
 
 // UpdateIngressConfig updates the drasi-config ConfigMap with ingress controller configuration
-// For regular ingress controllers, provide ingressService and ingressNamespace, leave gatewayIPAddress empty
-// For AGIC, provide ingressClassName and gatewayIPAddress, leave ingressService and ingressNamespace empty
-func (k *KubernetesPlatformClient) UpdateIngressConfig(drasiNamespace string, ingressClassName, ingressService, ingressNamespace, gatewayIPAddress string, output output.TaskOutput) error {
+// For regular ingress controllers, provide IngressService and IngressNamespace, leave GatewayIPAddress empty
+// For AGIC, provide IngressClassName and GatewayIPAddress, leave IngressService and IngressNamespace empty
+func (k *KubernetesPlatformClient) UpdateIngressConfig(config *IngressConfig, output output.TaskOutput) error {
 	taskName := "Ingress-Config"
+	output.AddTask(taskName, "Updating ingress configuration")
 
-	kubeConfig := k.GetKubeConfig()
-	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		output.FailTask(taskName, fmt.Sprintf("Error creating Kubernetes client: %v", err))
-		return err
-	}
+	kubeClient := k.kubeClient
+	drasiNamespace := k.kubeNamespace
 
 	currentConfigMap, err := kubeClient.CoreV1().ConfigMaps(drasiNamespace).Get(context.TODO(), "drasi-config", metav1.GetOptions{})
 	if err != nil {
@@ -381,18 +387,18 @@ func (k *KubernetesPlatformClient) UpdateIngressConfig(drasiNamespace string, in
 	delete(cfg, "AGIC_GATEWAY_IP")
 
 	// Add values only if they are not empty strings
-	if ingressClassName != "" {
-		cfg["INGRESS_CLASS_NAME"] = ingressClassName
+	if config.IngressClassName != "" {
+		cfg["INGRESS_CLASS_NAME"] = config.IngressClassName
 	}
-	if ingressService != "" {
-		cfg["INGRESS_LOAD_BALANCER_SERVICE"] = ingressService
+	if config.IngressService != "" {
+		cfg["INGRESS_LOAD_BALANCER_SERVICE"] = config.IngressService
 	}
-	if ingressNamespace != "" {
-		cfg["INGRESS_LOAD_BALANCER_NAMESPACE"] = ingressNamespace
+	if config.IngressNamespace != "" {
+		cfg["INGRESS_LOAD_BALANCER_NAMESPACE"] = config.IngressNamespace
 	}
-	if gatewayIPAddress != "" {
+	if config.GatewayIPAddress != "" {
 		cfg["INGRESS_TYPE"] = "agic"
-		cfg["AGIC_GATEWAY_IP"] = gatewayIPAddress
+		cfg["AGIC_GATEWAY_IP"] = config.GatewayIPAddress
 	}
 
 	// Apply the updated ConfigMap
@@ -405,7 +411,7 @@ func (k *KubernetesPlatformClient) UpdateIngressConfig(drasiNamespace string, in
 		return err
 	}
 
-	if gatewayIPAddress != "" {
+	if config.GatewayIPAddress != "" {
 		output.SucceedTask(taskName, "AGIC configuration updated")
 	} else {
 		output.SucceedTask(taskName, "Ingress configuration updated")
@@ -505,4 +511,95 @@ func (k *KubernetesPlatformClient) UpdateClusterRolePermissions(output output.Ta
 
 	output.SucceedTask("RBAC-Update", "ClusterRole updated")
 	return nil
+}
+
+// GetIngressURL gets the ingress URL for a specific resource using the platform client's Kubernetes connection
+func (k *KubernetesPlatformClient) GetIngressURL(resourceName string) string {
+	// Find ingress by label selector
+	labelSelector := fmt.Sprintf("drasi/resource=%s", resourceName)
+	ingressList, err := k.kubeClient.NetworkingV1().Ingresses(k.kubeNamespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return ""
+	}
+	if len(ingressList.Items) == 0 {
+		return ""
+	}
+
+	ingress := ingressList.Items[0]
+
+	if ingress.Spec.Rules != nil && len(ingress.Spec.Rules) > 0 {
+		rule := ingress.Spec.Rules[0]
+
+		// If host is set and not "*", use the hostname
+		if rule.Host != "" && rule.Host != "*" {
+			return fmt.Sprintf("http://%s", rule.Host)
+		}
+
+		// If host is "*" or empty, use the ingress address directly
+		if rule.Host == "*" || rule.Host == "" {
+			if ingress.Status.LoadBalancer.Ingress != nil && len(ingress.Status.LoadBalancer.Ingress) > 0 {
+				address := ""
+				if ingress.Status.LoadBalancer.Ingress[0].IP != "" {
+					address = ingress.Status.LoadBalancer.Ingress[0].IP
+				} else if ingress.Status.LoadBalancer.Ingress[0].Hostname != "" {
+					address = ingress.Status.LoadBalancer.Ingress[0].Hostname
+				}
+				if address != "" {
+					return fmt.Sprintf("http://%s", address)
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
+func (k *KubernetesPlatformClient) DisplayIngressInfo(resourceName string, spec interface{}, output output.TaskOutput) {
+	specMap, ok := spec.(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	services, ok := specMap["services"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	var hasExternalEndpoint bool
+	for _, serviceData := range services {
+		serviceMap, ok := serviceData.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		endpoints, ok := serviceMap["endpoints"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		for _, endpointData := range endpoints {
+			endpointMap, ok := endpointData.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			setting, ok := endpointMap["setting"].(string)
+			if ok && strings.ToLower(setting) == "external" {
+				hasExternalEndpoint = true
+				break
+			}
+		}
+		if hasExternalEndpoint {
+			break
+		}
+	}
+
+	if hasExternalEndpoint {
+		ingressUrl := k.GetIngressURL(resourceName)
+		if ingressUrl != "" {
+			output.InfoMessage(fmt.Sprintf("Ingress URL: %s", ingressUrl))
+		}
+	}
 }

@@ -536,7 +536,13 @@ func (t *DockerizedDeployer) ConfigureTraefikForDocker(namespace string, output 
 		return fmt.Errorf("platform client is not a Kubernetes client")
 	}
 
-	if err := updateIngressConfig(k8sPlatformClient, namespace, "traefik", "traefik", "kube-system", output); err != nil {
+	config := &sdk.IngressConfig{
+		IngressClassName: "traefik",
+		IngressService:   "traefik",
+		IngressNamespace: "kube-system",
+		GatewayIPAddress: "",
+	}
+	if err := k8sPlatformClient.UpdateIngressConfig(config, output); err != nil {
 		return fmt.Errorf("failed to update ingress configuration: %w", err)
 	}
 
@@ -551,41 +557,41 @@ func (t *DockerizedDeployer) ConfigureTraefikForDocker(namespace string, output 
 }
 
 // updateIngressConfig updates the drasi-config ConfigMap with ingress controller configuration
-func updateIngressConfig(platformClient *sdk.KubernetesPlatformClient, drasiNamespace string, ingressClassName, ingressService, ingressNamespace string, output output.TaskOutput) error {
-	output.AddTask("Ingress-Config", "Updating ingress configuration")
-	kubeConfig := platformClient.GetKubeConfig()
-	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		output.FailTask("Ingress-Config", fmt.Sprintf("Error creating Kubernetes client: %v", err))
-		return err
-	}
+// func updateIngressConfig(platformClient *sdk.KubernetesPlatformClient, drasiNamespace string, ingressClassName, ingressService, ingressNamespace string, output output.TaskOutput) error {
+// 	output.AddTask("Ingress-Config", "Updating ingress configuration")
+// 	kubeConfig := platformClient.GetKubeConfig()
+// 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
+// 	if err != nil {
+// 		output.FailTask("Ingress-Config", fmt.Sprintf("Error creating Kubernetes client: %v", err))
+// 		return err
+// 	}
 
-	currentConfigMap, err := kubeClient.CoreV1().ConfigMaps(drasiNamespace).Get(context.TODO(), "drasi-config", metav1.GetOptions{})
-	if err != nil {
-		output.FailTask("Ingress-Config", fmt.Sprintf("Error getting drasi-config ConfigMap: %v", err))
-		return err
-	}
+// 	currentConfigMap, err := kubeClient.CoreV1().ConfigMaps(drasiNamespace).Get(context.TODO(), "drasi-config", metav1.GetOptions{})
+// 	if err != nil {
+// 		output.FailTask("Ingress-Config", fmt.Sprintf("Error getting drasi-config ConfigMap: %v", err))
+// 		return err
+// 	}
 
-	// Update the ConfigMap data with ingress configuration
-	cfg := currentConfigMap.Data
-	if cfg == nil {
-		cfg = make(map[string]string)
-	}
-	cfg["INGRESS_CLASS_NAME"] = ingressClassName
-	cfg["INGRESS_LOAD_BALANCER_SERVICE"] = ingressService
-	cfg["INGRESS_LOAD_BALANCER_NAMESPACE"] = ingressNamespace
+// 	// Update the ConfigMap data with ingress configuration
+// 	cfg := currentConfigMap.Data
+// 	if cfg == nil {
+// 		cfg = make(map[string]string)
+// 	}
+// 	cfg["INGRESS_CLASS_NAME"] = ingressClassName
+// 	cfg["INGRESS_LOAD_BALANCER_SERVICE"] = ingressService
+// 	cfg["INGRESS_LOAD_BALANCER_NAMESPACE"] = ingressNamespace
 
-	currentConfigMap.Data = cfg
+// 	currentConfigMap.Data = cfg
 
-	_, err = kubeClient.CoreV1().ConfigMaps(drasiNamespace).Update(context.TODO(), currentConfigMap, metav1.UpdateOptions{})
-	if err != nil {
-		output.FailTask("Ingress-Config", fmt.Sprintf("Error updating drasi-config ConfigMap: %v", err))
-		return err
-	}
+// 	_, err = kubeClient.CoreV1().ConfigMaps(drasiNamespace).Update(context.TODO(), currentConfigMap, metav1.UpdateOptions{})
+// 	if err != nil {
+// 		output.FailTask("Ingress-Config", fmt.Sprintf("Error updating drasi-config ConfigMap: %v", err))
+// 		return err
+// 	}
 
-	output.SucceedTask("Ingress-Config", fmt.Sprintf("Successfully configured ingress: class=%s, service=%s/%s", ingressClassName, ingressNamespace, ingressService))
-	return nil
-}
+// 	output.SucceedTask("Ingress-Config", fmt.Sprintf("Successfully configured ingress: class=%s, service=%s/%s", ingressClassName, ingressNamespace, ingressService))
+// 	return nil
+// }
 
 func updateClusterRolePermissions(platformClient *sdk.KubernetesPlatformClient, output output.TaskOutput) error {
 	output.AddTask("RBAC-Update", "Updating ClusterRole permissions for ingress namespace")

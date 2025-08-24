@@ -107,6 +107,16 @@ Usage examples:
 						}
 					}
 				}
+
+				// Add ingress URL for reactions and sources
+				if args[0] == "reaction" || args[0] == "source" {
+					ingressURL := platformClient.GetIngressURL(result[i].Id)
+					if ingressURL != "" {
+						item["ingress_url"] = ingressURL
+						statusFields["ingress_url"] = nil
+					}
+				}
+
 				items = append(items, item)
 			}
 
