@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use super::{
@@ -74,12 +75,170 @@ impl StandardSpecValidator<QuerySpec> for QuerySpecValidator {
             },
         };
 
+        // Validate that all middleware referenced in subscriptions' pipelines
+        // are defined in sources.middleware.
+        let defined_middleware: HashSet<&str> = spec
+            .sources
+            .middleware
+            .iter()
+            .map(|m| m.name.as_str())
+            .collect();
+
+        for sub in &spec.sources.subscriptions {
+            for mw in &sub.pipeline {
+                if !defined_middleware.contains(mw.as_str()) {
+                    return Err(DomainError::InvalidSpec {
+                        message: format!(
+                            "Middleware '{}' referenced in pipeline for subscription '{}' is not defined in sources.middleware",
+                            mw, sub.id
+                        ),
+                    });
+                }
+            }
+        }
+
         match qc.status {
             Some(status) => match status.available {
                 true => Ok(()),
                 false => Err(DomainError::QueryContainerOffline),
             },
             None => Err(DomainError::QueryContainerOffline),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::models::*;
+    use async_trait::async_trait;
+    use std::collections::HashMap;
+
+    struct TestQueryContainerService {
+        status: Option<QueryContainerStatus>,
+    }
+
+    #[async_trait]
+    impl ResourceDomainService<QueryContainerSpec, QueryContainerStatus> for TestQueryContainerService {
+        async fn set(
+            &self,
+            _id: &str,
+            _source: QueryContainerSpec,
+        ) -> Result<Resource<QueryContainerSpec, QueryContainerStatus>, DomainError> {
+            unimplemented!("not needed for these tests")
+        }
+
+        async fn delete(&self, _id: &str) -> Result<(), DomainError> {
+            unimplemented!("not needed for these tests")
+        }
+
+        async fn get(
+            &self,
+            id: &str,
+        ) -> Result<Resource<QueryContainerSpec, QueryContainerStatus>, DomainError> {
+            Ok(Resource {
+                id: id.to_string(),
+                spec: QueryContainerSpec {
+                    query_host_count: 1,
+                    results: HashMap::new(),
+                    storage: HashMap::new(),
+                    default_store: "default".to_string(),
+                },
+                status: self.status.clone(),
+            })
+        }
+
+        async fn list(
+            &self,
+        ) -> Result<Vec<Resource<QueryContainerSpec, QueryContainerStatus>>, DomainError> {
+            unimplemented!("not needed for these tests")
+        }
+
+        async fn wait_for_ready(
+            &self,
+            _id: &str,
+            _time_out: std::time::Duration,
+        ) -> Result<bool, DomainError> {
+            unimplemented!("not needed for these tests")
+        }
+    }
+
+    fn make_query_spec_with_pipeline(pipeline: Vec<String>) -> QuerySpec {
+        QuerySpec {
+            container: "qc1".to_string(),
+            mode: "continuous".to_string(),
+            query: "SELECT *".to_string(),
+            query_language: None,
+            sources: QuerySources {
+                subscriptions: vec![QuerySubscription {
+                    id: "sub1".to_string(),
+                    nodes: vec![],
+                    relations: vec![],
+                    pipeline,
+                }],
+                joins: vec![],
+                middleware: vec![
+                    SourceMiddlewareConfig {
+                        kind: "example".to_string(),
+                        name: "mw1".to_string(),
+                        config: serde_json::Map::new(),
+                    },
+                    SourceMiddlewareConfig {
+                        kind: "example".to_string(),
+                        name: "mw2".to_string(),
+                        config: serde_json::Map::new(),
+                    },
+                ],
+            },
+            storage_profile: None,
+            view: ViewSpec {
+                enabled: false,
+                retention_policy: RetentionPolicy::Latest,
+            },
+            transient: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn validate_passes_when_pipeline_middlewares_exist() {
+        let svc: Arc<QueryContainerDomainService> = Arc::new(TestQueryContainerService {
+            status: Some(QueryContainerStatus {
+                available: true,
+                messages: None,
+            }),
+        });
+        let validator = QuerySpecValidator {
+            query_container_service: svc,
+        };
+
+        let spec = make_query_spec_with_pipeline(vec!["mw1".into(), "mw2".into()]);
+
+        let res = validator.validate(&spec).await;
+        assert!(res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn validate_fails_when_pipeline_references_unknown_middleware() {
+        // Even if the container is offline, the middleware error should be raised first
+        let svc: Arc<QueryContainerDomainService> = Arc::new(TestQueryContainerService {
+            status: Some(QueryContainerStatus {
+                available: false,
+                messages: None,
+            }),
+        });
+        let validator = QuerySpecValidator {
+            query_container_service: svc,
+        };
+
+        let spec = make_query_spec_with_pipeline(vec!["unknown".into()]);
+
+        let err = validator.validate(&spec).await.unwrap_err();
+        match err {
+            DomainError::InvalidSpec { message } => {
+                assert!(message.contains("unknown"));
+                assert!(message.contains("sub1"));
+            }
+            other => panic!("expected InvalidSpec, got: {:?}", other),
         }
     }
 }
