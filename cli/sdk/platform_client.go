@@ -294,15 +294,17 @@ func (t *KubernetesPlatformClient) createManagementApiTunnel(apiClient *ApiClien
 
 func (t *KubernetesPlatformClient) getApiPodName() (string, error) {
 	namespace := t.kubeNamespace
-	ep, err := t.kubeClient.CoreV1().Endpoints(namespace).Get(context.TODO(), "drasi-api", v1.GetOptions{})
+	endpointSlices, err := t.kubeClient.DiscoveryV1().EndpointSlices(namespace).List(context.TODO(), v1.ListOptions{
+		LabelSelector: "kubernetes.io/service-name=drasi-api",
+	})
 	if err != nil {
 		return "", err
 	}
 
-	for _, subset := range ep.Subsets {
-		for _, addr := range subset.Addresses {
-			if addr.TargetRef.Kind == "Pod" {
-				return addr.TargetRef.Name, nil
+	for _, endpointSlice := range endpointSlices.Items {
+		for _, endpoint := range endpointSlice.Endpoints {
+			if endpoint.TargetRef != nil && endpoint.TargetRef.Kind == "Pod" {
+				return endpoint.TargetRef.Name, nil
 			}
 		}
 	}
@@ -316,23 +318,21 @@ type ResourcePodPort struct {
 
 func (t *KubernetesPlatformClient) getResourcePod(resourceType string, resourceName string) (*ResourcePodPort, error) {
 	namespace := t.kubeNamespace
-	endpoints, err := t.kubeClient.CoreV1().Endpoints(namespace).List(context.TODO(), v1.ListOptions{
+	endpointSlices, err := t.kubeClient.DiscoveryV1().EndpointSlices(namespace).List(context.TODO(), v1.ListOptions{
 		LabelSelector: fmt.Sprintf("drasi/type=%s,drasi/resource=%s", resourceType, resourceName),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, ep := range endpoints.Items {
-		for _, subset := range ep.Subsets {
-			for _, addr := range subset.Addresses {
-				if addr.TargetRef.Kind == "Pod" {
-					if len(subset.Ports) == 1 {
-						return &ResourcePodPort{
-							Pod:  addr.TargetRef.Name,
-							Port: subset.Ports[0].Port,
-						}, nil
-					}
+	for _, endpointSlice := range endpointSlices.Items {
+		for _, endpoint := range endpointSlice.Endpoints {
+			if endpoint.TargetRef != nil && endpoint.TargetRef.Kind == "Pod" {
+				if len(endpointSlice.Ports) == 1 {
+					return &ResourcePodPort{
+						Pod:  endpoint.TargetRef.Name,
+						Port: *endpointSlice.Ports[0].Port,
+					}, nil
 				}
 			}
 		}
