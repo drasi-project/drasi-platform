@@ -22,6 +22,15 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 use void::Void;
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::upper_case_acronyms)]
+pub enum QueryLanguage {
+    #[serde(rename = "Cypher")]
+    Cypher,
+    #[serde(rename = "GQL")]
+    GQL,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Resource<TSpec, TStatus> {
     pub id: String,
@@ -192,7 +201,7 @@ pub enum ServiceIdentity {
     MicrosoftEntraApplication {
         #[serde(rename = "tenantId")]
         tenant_id: ConfigValue,
-        
+
         #[serde(rename = "clientId")]
         client_id: ConfigValue,
 
@@ -219,7 +228,7 @@ pub enum ServiceIdentity {
         secret_access_key: ConfigValue,
         #[serde(rename = "region")]
         aws_region: ConfigValue,
-    }
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -284,6 +293,7 @@ pub struct SourceMiddlewareConfig {
 pub struct QuerySpec {
     pub mode: String,
     pub query: String,
+    pub query_language: Option<QueryLanguage>,
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
