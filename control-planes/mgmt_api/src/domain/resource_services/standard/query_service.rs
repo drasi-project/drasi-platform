@@ -168,6 +168,7 @@ mod tests {
             container: "qc1".to_string(),
             mode: "continuous".to_string(),
             query: "SELECT *".to_string(),
+            query_language: None,
             sources: QuerySources {
                 subscriptions: vec![QuerySubscription {
                     id: "sub1".to_string(),
