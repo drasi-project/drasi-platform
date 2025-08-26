@@ -79,8 +79,14 @@ public class ResultStream implements BootstrapStream {
                 return DriverManager.getConnection(jdbcConnectionString, propsMySql);
             case "SQLServer":
                 var propsSQL = new Properties();
-                propsSQL.setProperty("user", SourceProxy.GetConfigValue("user"));
-                propsSQL.setProperty("password", SourceProxy.GetConfigValue("password"));
+                String sqlUser = SourceProxy.GetConfigValue("user");
+                String sqlPassword = SourceProxy.GetConfigValue("password");
+                if (sqlUser != null) {
+                    propsSQL.setProperty("user", sqlUser);
+                }
+                if (sqlPassword != null) {
+                    propsSQL.setProperty("password", sqlPassword);
+                }
                 propsSQL.setProperty("encrypt", SourceProxy.GetConfigValue("encrypt"));
                 propsSQL.setProperty("trustServerCertificate", SourceProxy.GetConfigValue("trustServerCertificate", "false"));
                 propsSQL.setProperty("authentication", SourceProxy.GetConfigValue("authentication", "NotSpecified"));
