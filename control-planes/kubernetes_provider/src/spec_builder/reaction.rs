@@ -165,11 +165,17 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             // Create Ingress resource with hostname-based routing
                             let ingress_name = format!("{}-reaction-ingress", reaction.id);
                             let mut annotations = BTreeMap::new();
-                            
+
                             // Add ALB-specific annotations if using AWS Load Balancer Controller
                             if runtime_config.ingress_class_name == "alb" {
-                                annotations.insert("alb.ingress.kubernetes.io/scheme".to_string(), "internet-facing".to_string());
-                                annotations.insert("alb.ingress.kubernetes.io/target-type".to_string(), "ip".to_string());
+                                annotations.insert(
+                                    "alb.ingress.kubernetes.io/scheme".to_string(),
+                                    "internet-facing".to_string(),
+                                );
+                                annotations.insert(
+                                    "alb.ingress.kubernetes.io/target-type".to_string(),
+                                    "ip".to_string(),
+                                );
                             }
 
                             // Generate hostname: <reaction-name>.drasi.PLACEHOLDER
@@ -180,7 +186,11 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                 metadata: ObjectMeta {
                                     name: Some(ingress_name.clone()),
                                     labels: Some(labels.clone()),
-                                    annotations: if annotations.is_empty() { None } else { Some(annotations) },
+                                    annotations: if annotations.is_empty() {
+                                        None
+                                    } else {
+                                        Some(annotations)
+                                    },
                                     ..Default::default()
                                 },
                                 spec: Some(IngressSpec {
