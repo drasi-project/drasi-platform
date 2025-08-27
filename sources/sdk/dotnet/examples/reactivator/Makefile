@@ -9,6 +9,5 @@ docker-build:
 kind-load:
 	kind load docker-image my-reactivator --name $(CLUSTER_NAME)
 
-k3d-load: CLUSTER_NAME=k3s-default
 k3d-load:
-	k3d image import my-reactivator --name $(CLUSTER_NAME)
+	k3d image import my-reactivator --name $${CLUSTER_NAME:-k3s-default}
