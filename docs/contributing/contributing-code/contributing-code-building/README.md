@@ -44,6 +44,18 @@ If you are using a different cluster name from the default (kind), you can overr
 make kind-load CLUSTER_NAME="my-cluster"
 ```
 
+If you are using k3d in your development workflow, you can load the built images to your k3d cluster using the `k3d-load` target:
+
+```sh
+make k3d-load
+```
+
+If you are using a different cluster name from the default (k3s-default), you can override it with the `CLUSTER_NAME` parameter as follows:
+
+```sh
+make k3d-load CLUSTER_NAME="my-cluster"
+```
+
 #### Steps to run
 
 To run Drasi with the container images you've built and loaded locally, use the following command. Replace `--version latest` with your `--version DOCKER_TAG_VERSION` if you used one when building the images.
