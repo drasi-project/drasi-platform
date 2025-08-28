@@ -36,7 +36,6 @@ kind-load:
 	$(MAKE) -C kubernetes/kubernetes-reactivator $(MAKECMDGOALS)
 	$(MAKE) -C kubernetes/kubernetes-proxy $(MAKECMDGOALS)
 
-k3d-load: CLUSTER_NAME=k3s-default
 k3d-load:
 	$(MAKE) -C cosmosdb/cosmosdb-ffcf-reactivator $(MAKECMDGOALS)
 	$(MAKE) -C cosmosdb/gremlin-proxy $(MAKECMDGOALS)

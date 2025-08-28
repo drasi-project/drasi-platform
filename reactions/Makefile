@@ -30,7 +30,6 @@ kind-load:
 	$(MAKE) -C platform/result-reaction $(MAKECMDGOALS)
 	$(MAKE) -C power-platform/dataverse/dataverse-reaction $(MAKECMDGOALS)
 
-k3d-load: CLUSTER_NAME=k3s-default
 k3d-load:
 	$(MAKE) -C platform/debug-reaction $(MAKECMDGOALS)
 	$(MAKE) -C signalr/signalr-reaction $(MAKECMDGOALS)

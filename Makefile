@@ -14,7 +14,6 @@ kind-load:
 	$(MAKE) -C sources $(MAKECMDGOALS)
 	$(MAKE) -C reactions $(MAKECMDGOALS)
 
-k3d-load: CLUSTER_NAME=k3s-default
 k3d-load:
 	$(MAKE) -C control-planes $(MAKECMDGOALS)
 	$(MAKE) -C query-container $(MAKECMDGOALS)

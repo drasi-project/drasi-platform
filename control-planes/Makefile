@@ -14,7 +14,6 @@ kind-load:
 	$(MAKE) -C mgmt_api $(MAKECMDGOALS)
 	$(MAKE) -C kubernetes_provider $(MAKECMDGOALS)
 
-k3d-load: CLUSTER_NAME=k3s-default
 k3d-load:
 	$(MAKE) -C mgmt_api $(MAKECMDGOALS)
 	$(MAKE) -C kubernetes_provider $(MAKECMDGOALS)
