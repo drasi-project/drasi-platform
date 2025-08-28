@@ -8,7 +8,7 @@ Drasi is a data processing platform that simplifies detecting changes in data an
 
 Drasi operates through three main components:
 - **Sources**: Connect to data repositories to monitor logs and feeds for changing data
-- **Continuous Queries**: Apply criteria and conditions using Cypher Query Language to identify significant changes
+- **Continuous Queries**: Apply criteria and conditions using graph queries to identify significant changes
 - **Reactions**: Trigger meaningful responses based on query result updates
 
 ## Repository Structure
