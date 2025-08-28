@@ -1,6 +1,5 @@
 .PHONY: default docker-build kind-load
 
-CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
 TAG_SUFFIX ?=
@@ -21,14 +20,10 @@ docker-build:
 	docker buildx build . -f Dockerfile.$(BUILD_CONFIG) -t $(IMAGE_PREFIX)/source-gremlin-proxy:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
 
 kind-load:
-	kind load docker-image $(IMAGE_PREFIX)/source-gremlin-proxy:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
+	kind load docker-image $(IMAGE_PREFIX)/source-gremlin-proxy:$(DOCKER_TAG_VERSION) --name $(if $(CLUSTER_NAME),$(CLUSTER_NAME),kind)
 
 k3d-load:
-ifeq ($(CLUSTER_NAME),kind)
-	k3d image import $(IMAGE_PREFIX)/source-gremlin-proxy:$(DOCKER_TAG_VERSION) -c k3s-default
-else
-	k3d image import $(IMAGE_PREFIX)/source-gremlin-proxy:$(DOCKER_TAG_VERSION) -c $(CLUSTER_NAME)
-endif
+	k3d image import $(IMAGE_PREFIX)/source-gremlin-proxy:$(DOCKER_TAG_VERSION) -c $(if $(CLUSTER_NAME),$(CLUSTER_NAME),k3s-default)
 
 test:
 	@echo "No tests to run yet"
