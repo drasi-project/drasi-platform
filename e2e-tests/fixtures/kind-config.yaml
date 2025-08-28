@@ -1,0 +1,28 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  # Disable default DNS search domains to avoid conflicts
+  dnsSearch: []
+nodes:
+- role: control-plane
+  # Mount a custom resolv.conf if needed (optional)
+  # extraMounts:
+  # - hostPath: /tmp/kind-resolv.conf
+  #   containerPath: /etc/resolv.conf
+  #   readOnly: true
+# Configure CoreDNS to use Google DNS servers
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  apiVersion: kubeadm.k8s.io/v1beta3
+  dns:
+    imageRepository: registry.k8s.io/coredns
+    imageTag: v1.11.1
+- |
+  kind: InitConfiguration
+  apiVersion: kubeadm.k8s.io/v1beta3
+  nodeRegistration:
+    criSocket: unix:///run/containerd/containerd.sock
+    kubeletExtraArgs:
+      cluster-dns: "10.96.0.10"
+      cluster-domain: "cluster.local"

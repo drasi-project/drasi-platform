@@ -1,0 +1,138 @@
+# PostgreSQL Database with test data (same as InMemory)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sk-vectorstore-qdrant-init
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        category_id INTEGER
+    );
+    
+    CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(50) NOT NULL,
+        description TEXT
+    );
+    
+    -- Insert initial test data
+    INSERT INTO categories (id, name, description) VALUES 
+        (1, 'Electronics', 'Electronic devices and accessories'),
+        (2, 'Books', 'Books and publications'),
+        (3, 'Clothing', 'Apparel and accessories');
+    
+    INSERT INTO products (id, name, description, category_id) VALUES 
+        (1, 'Laptop Pro', 'High-performance laptop with 16GB RAM and 512GB SSD', 1),
+        (2, 'Wireless Mouse', 'Ergonomic wireless mouse with precision tracking', 1),
+        (3, 'Data Science Handbook', 'Comprehensive guide to data science and machine learning', 2),
+        (4, 'Python Programming', 'Learn Python programming from basics to advanced', 2),
+        (5, 'Cotton T-Shirt', 'Comfortable cotton t-shirt in multiple colors', 3);
+        
+    -- Reset sequences
+    SELECT setval('products_id_seq', 100, false);
+    SELECT setval('categories_id_seq', 100, false);
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sk-qdrant-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sk-qdrant-postgres
+  template:
+    metadata:
+      labels:
+        app: sk-qdrant-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          args: ["-c", "wal_level=logical"]
+          env:
+            - name: POSTGRES_DB
+              value: testdb
+            - name: POSTGRES_USER
+              value: testuser
+            - name: POSTGRES_PASSWORD
+              value: testpass
+          volumeMounts:
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+          ports:
+            - containerPort: 5432
+      volumes:
+        - name: init
+          configMap:
+            name: sk-vectorstore-qdrant-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sk-qdrant-postgres
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: sk-qdrant-postgres
+---
+# Qdrant Vector Database
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qdrant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+    spec:
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:latest
+          ports:
+            - containerPort: 6333
+              name: http
+            - containerPort: 6334
+              name: grpc
+          volumeMounts:
+            - name: storage
+              mountPath: /qdrant/storage
+          env:
+            - name: QDRANT__LOG_LEVEL
+              value: "INFO"
+      volumes:
+        - name: storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+spec:
+  ports:
+    - port: 6333
+      name: http
+    - port: 6334
+      name: grpc
+  selector:
+    app: qdrant
+---
+# Azure OpenAI Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-openai-qdrant-secret
+type: Opaque
+stringData:
+  endpoint: "https://aman-eastus-resource.cognitiveservices.azure.com/"
+  apiKey: "${AZURE_OPENAI_KEY}"  # Will be replaced during deployment
+  deploymentName: "text-embedding-3-large"
