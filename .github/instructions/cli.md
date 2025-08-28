@@ -1,3 +1,7 @@
+---
+applyTo: "cli/**/*"
+---
+
 # Drasi CLI - GitHub Copilot Instructions
 
 ## Project Overview

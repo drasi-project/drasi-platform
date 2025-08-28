@@ -1,3 +1,7 @@
+---
+applyTo: "e2e-tests/**/*"
+---
+
 # E2E Tests - GitHub Copilot Instructions
 
 ## Project Overview

@@ -1,3 +1,7 @@
+---
+applyTo: "infrastructure/**/*"
+---
+
 # Infrastructure - GitHub Copilot Instructions
 
 ## Project Overview

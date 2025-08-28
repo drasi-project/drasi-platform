@@ -1,3 +1,7 @@
+---
+applyTo: "sources/**/*"
+---
+
 # Sources - GitHub Copilot Instructions
 
 ## Project Overview

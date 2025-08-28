@@ -1,3 +1,7 @@
+---
+applyTo: "control-planes/**/*"
+---
+
 # Control Planes - GitHub Copilot Instructions
 
 ## Project Overview

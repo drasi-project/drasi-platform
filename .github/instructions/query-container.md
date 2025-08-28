@@ -1,3 +1,7 @@
+---
+applyTo: "query-container/**/*"
+---
+
 # Query Container - GitHub Copilot Instructions
 
 ## Project Overview

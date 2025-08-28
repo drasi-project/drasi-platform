@@ -1,3 +1,7 @@
+---
+applyTo: "reactions/**/*"
+---
+
 # Reactions - GitHub Copilot Instructions
 
 ## Project Overview
