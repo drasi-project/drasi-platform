@@ -24,7 +24,7 @@ kind-load:
 	kind load docker-image $(IMAGE_PREFIX)/kubernetes-provider:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
 
 k3d-load:
-	k3d image import $(IMAGE_PREFIX)/kubernetes-provider:$(DOCKER_TAG_VERSION) -c $${CLUSTER_NAME:-k3s-default}
+	k3d image import $(IMAGE_PREFIX)/kubernetes-provider:$(DOCKER_TAG_VERSION) -c ${CLUSTER_NAME:-k3s-default}
 
 test:
 	cargo test
