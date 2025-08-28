@@ -10,4 +10,4 @@ kind-load:
 	kind load docker-image my-proxy --name $(CLUSTER_NAME)
 
 k3d-load:
-	k3d image import my-proxy --name $${CLUSTER_NAME:-k3s-default}
+	k3d image import my-proxy --name ${CLUSTER_NAME:-k3s-default}

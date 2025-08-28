@@ -25,7 +25,7 @@ kind-load:
 	kind load docker-image $(IMAGE_PREFIX)/reaction-debezium:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
 
 k3d-load:
-	k3d image import $(IMAGE_PREFIX)/reaction-debezium:$(DOCKER_TAG_VERSION) -c $${CLUSTER_NAME:-k3s-default}
+	k3d image import $(IMAGE_PREFIX)/reaction-debezium:$(DOCKER_TAG_VERSION) -c ${CLUSTER_NAME:-k3s-default}
 
 test:
 	@echo "No tests to run yet"
