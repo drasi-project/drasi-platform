@@ -27,7 +27,11 @@ kind-load:
 
 # Load the built image into the specified k3d cluster
 k3d-load:
-	k3d image import $(IMAGE_PREFIX)/reaction-post-dapr-pubsub:$(DOCKER_TAG_VERSION) -c ${CLUSTER_NAME:-k3s-default}
+ifeq ($(CLUSTER_NAME),kind)
+	k3d image import $(IMAGE_PREFIX)/reaction-post-dapr-pubsub:$(DOCKER_TAG_VERSION) -c k3s-default
+else
+	k3d image import $(IMAGE_PREFIX)/reaction-post-dapr-pubsub:$(DOCKER_TAG_VERSION) -c $(CLUSTER_NAME)
+endif
 
 # Run unit tests
 test:
