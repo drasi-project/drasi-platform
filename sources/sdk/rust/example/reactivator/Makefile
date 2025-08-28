@@ -1,17 +1,12 @@
 .PHONY: default docker-build kind-load
 
-CLUSTER_NAME ?= kind
 default: docker-build
 
 docker-build:
 	docker build . -t my-reactivator
 
 kind-load:
-	kind load docker-image my-reactivator --name $(CLUSTER_NAME)
+	kind load docker-image my-reactivator --name $(if $(CLUSTER_NAME),$(CLUSTER_NAME),kind)
 
 k3d-load:
-ifeq ($(CLUSTER_NAME),kind)
-	k3d image import my-reactivator --name k3s-default
-else
-	k3d image import my-reactivator --name $(CLUSTER_NAME)
-endif
+	k3d image import my-reactivator -c $(if $(CLUSTER_NAME),$(CLUSTER_NAME),k3s-default)
