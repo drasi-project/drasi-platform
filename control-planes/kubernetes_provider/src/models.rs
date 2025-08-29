@@ -108,6 +108,60 @@ pub struct RuntimeConfig {
     pub ingress_load_balancer_namespace: String,
 }
 
+#[derive(Clone, Debug)]
+pub struct IngressControllerConfig {
+    pub class_name: String,
+    pub supports_hostname: bool,
+    pub path_type: String,
+    pub is_agic: bool,
+}
+
+impl IngressControllerConfig {
+    pub fn from_class_name(class_name: &str, is_agic: bool) -> Self {
+        match class_name {
+            "alb" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: false, // ALB generates its own URL
+                path_type: "Prefix".to_string(),
+                is_agic: false,
+            },
+            "nginx" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: true,
+                path_type: "Prefix".to_string(),
+                is_agic: false,
+            },
+            "contour" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: true,
+                path_type: "Prefix".to_string(),
+                is_agic: false,
+            },
+            "traefik" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: true,
+                path_type: "Prefix".to_string(),
+                is_agic: false,
+            },
+            "azure-application-gateway" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: true,
+                path_type: "Exact".to_string(),
+                is_agic: true,
+            },
+            _ => {
+                // Default configuration for unknown controllers
+                IngressControllerConfig {
+                    class_name: class_name.to_string(),
+                    supports_hostname: true,
+                    path_type: "Prefix".to_string(),
+                    is_agic,
+                }
+            }
+        }
+    }
+}
+
 impl RuntimeConfig {
     #[allow(clippy::should_implement_trait)]
     pub fn default() -> RuntimeConfig {

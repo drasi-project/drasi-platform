@@ -36,7 +36,7 @@ use serde::Serialize;
 
 use crate::models::Component;
 
-use super::super::models::{KubernetesSpec, RuntimeConfig};
+use super::super::models::{IngressControllerConfig, KubernetesSpec, RuntimeConfig};
 
 pub struct ResourceReconciler {
     spec: KubernetesSpec,
@@ -573,33 +573,30 @@ impl ResourceReconciler {
                     _agic_gateway_ip,
                 ) = self.get_dynamic_ingress_config().await;
 
-                if let Some(spec) = &mut ingress_spec.spec {
-                    spec.ingress_class_name = Some(ingress_class_name.clone());
-                }
+                // Get controller-specific configuration
+                let controller_config = IngressControllerConfig::from_class_name(&ingress_class_name, is_agic);
 
-                // Note: kubernetes.io/ingress.class annotation is deprecated
-                // We only use spec.ingressClassName which is set above
+                if let Some(spec) = &mut ingress_spec.spec {
+                    spec.ingress_class_name = Some(controller_config.class_name.clone());
+                }
 
                 if let Some(spec) = &mut ingress_spec.spec {
                     if let Some(rules) = &mut spec.rules {
                         for rule in rules {
+                            // Handle hostname based on controller capabilities
                             if let Some(host) = &rule.host {
                                 if host.contains("PLACEHOLDER") {
-                                    // For ALB, remove hostname entirely - let ALB generate its own URL
-                                    if ingress_class_name == "alb" {
-                                        rule.host = None;
-                                    } else {
+                                    if controller_config.supports_hostname {
                                         rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
+                                    } else {
+                                        rule.host = None;
                                     }
                                 }
                             }
 
-                            // For AGIC, update path type to "Exact" for better compatibility
-                            if is_agic {
-                                if let Some(http) = &mut rule.http {
-                                    for path in &mut http.paths {
-                                        path.path_type = "Exact".to_string();
-                                    }
+                            if let Some(http) = &mut rule.http {
+                                for path in &mut http.paths {
+                                    path.path_type = controller_config.path_type.clone();
                                 }
                             }
                         }
