@@ -36,4 +36,5 @@ pub struct SourceSpecDto {
 pub struct SourceStatusDto {
     pub available: bool,
     pub messages: Option<BTreeMap<String, String>>,
+    pub ingress_url: Option<String>,
 }

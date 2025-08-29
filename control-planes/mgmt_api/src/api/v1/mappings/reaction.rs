@@ -21,6 +21,7 @@ impl From<ReactionStatus> for ReactionStatusDto {
         ReactionStatusDto {
             available: status.available,
             messages: status.messages,
+            ingress_url: status.ingress_url,
         }
     }
 }

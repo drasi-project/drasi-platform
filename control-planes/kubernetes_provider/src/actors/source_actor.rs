@@ -20,6 +20,8 @@ use crate::{
 use axum::{response::IntoResponse, Json};
 use dapr::server::actor::context_client::ActorContextClient;
 use dapr_macros::actor;
+use k8s_openapi::api::networking::v1::Ingress;
+use kube::{Api, Client};
 use resource_provider_api::models::{SourceSpec, SourceStatus};
 use std::{collections::BTreeMap, marker};
 use tokio::sync::RwLock;
@@ -65,9 +67,75 @@ impl SourceActor {
             };
         }
 
+        // Get ingress URL
+        let ingress_url = self.get_ingress_url().await;
+
         Json(SourceStatus {
             available,
             messages: Some(messages),
+            ingress_url,
         })
+    }
+
+    async fn get_ingress_url(&self) -> Option<String> {
+        match Client::try_from(self.kube_config.clone()) {
+            Ok(client) => {
+                let ingresses: Api<Ingress> = Api::default_namespaced(client);
+                let label_selector = format!("drasi/resource={}", self.id);
+                
+                match ingresses.list(&kube::api::ListParams::default().labels(&label_selector)).await {
+                    Ok(ingress_list) => {
+                        if ingress_list.items.is_empty() {
+                            return None;
+                        }
+
+                        let ingress = &ingress_list.items[0];
+
+                        if let Some(spec) = &ingress.spec {
+                            if let Some(rules) = &spec.rules {
+                                if !rules.is_empty() {
+                                    let rule = &rules[0];
+
+                                    // If host is set and not "*", use the hostname
+                                    if let Some(host) = &rule.host {
+                                        if !host.is_empty() && host != "*" {
+                                            return Some(format!("http://{}", host));
+                                        }
+                                    }
+
+                                    // If host is "*" or empty, use the ingress address directly
+                                    if rule.host.as_deref() == Some("*") || rule.host.is_none() {
+                                        if let Some(status) = &ingress.status {
+                                            if let Some(load_balancer) = &status.load_balancer {
+                                                if let Some(ingress_list) = &load_balancer.ingress {
+                                                    if !ingress_list.is_empty() {
+                                                        let ingress_item = &ingress_list[0];
+                                                        if let Some(ip) = &ingress_item.ip {
+                                                            return Some(format!("http://{}", ip));
+                                                        } else if let Some(hostname) = &ingress_item.hostname {
+                                                            return Some(format!("http://{}", hostname));
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        None
+                    }
+                    Err(e) => {
+                        log::debug!("Failed to list ingresses for source {}: {}", self.id, e);
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to create Kubernetes client: {}", e);
+                None
+            }
+        }
     }
 }

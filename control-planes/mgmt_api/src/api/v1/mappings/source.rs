@@ -21,6 +21,7 @@ impl From<SourceStatusDto> for SourceStatus {
         SourceStatus {
             available: status.available,
             messages: status.messages,
+            ingress_url: status.ingress_url,
         }
     }
 }
@@ -30,6 +31,7 @@ impl From<SourceStatus> for SourceStatusDto {
         SourceStatusDto {
             available: status.available,
             messages: status.messages,
+            ingress_url: status.ingress_url,
         }
     }
 }
