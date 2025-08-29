@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"drasi.io/cli/output"
+	"drasi.io/cli/sdk"
 	"drasi.io/cli/sdk/registry"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -503,6 +504,44 @@ func pullImage(ctx context.Context, cli *client.Client, imageName string, output
 	io.Copy(os.Stdout, out)
 
 	output.SucceedTask("Pull-Image", fmt.Sprintf("Image %s pulled", imageName))
+
+	return nil
+}
+
+// ConfigureTraefikForDocker configures Traefik ingress controller for k3s Docker environment
+func (t *DockerizedDeployer) ConfigureTraefikForDocker(namespace string, output output.TaskOutput) error {
+	output.InfoMessage("Auto-configuring Traefik ingress controller for k3s Docker environment...")
+
+	// Get current registry configuration
+	reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+	if err != nil {
+		return fmt.Errorf("failed to load registry configuration: %w", err)
+	}
+
+	// Create platform client
+	platformClient, err := sdk.NewPlatformClient(reg)
+	if err != nil {
+		return fmt.Errorf("failed to create platform client: %w", err)
+	}
+
+	// Ensure we have a Kubernetes platform client
+	k8sPlatformClient, ok := platformClient.(*sdk.KubernetesPlatformClient)
+	if !ok {
+		return fmt.Errorf("platform client is not a Kubernetes client")
+	}
+
+	config := &sdk.IngressConfig{
+		IngressClassName: "traefik",
+		IngressService:   "traefik",
+		IngressNamespace: "kube-system",
+		GatewayIPAddress: "",
+	}
+	if err := k8sPlatformClient.UpdateIngressConfig(config, output); err != nil {
+		return fmt.Errorf("failed to update ingress configuration: %w", err)
+	}
+
+	output.InfoMessage("Successfully configured Traefik ingress for k3s Docker environment")
+	output.InfoMessage("Drasi Sources and Reactions with External endpoints will now be accessible via Traefik")
 
 	return nil
 }

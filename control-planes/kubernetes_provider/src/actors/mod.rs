@@ -259,7 +259,11 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
         for spec in specs {
             controllers.insert(
                 spec.service_name.clone(),
-                ResourceController::start(self.kube_config.clone(), spec),
+                ResourceController::start(
+                    self.kube_config.clone(),
+                    spec,
+                    self.runtime_config.clone(),
+                ),
             );
         }
     }

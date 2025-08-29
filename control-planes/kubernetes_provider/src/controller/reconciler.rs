@@ -23,6 +23,7 @@ use k8s_openapi::{
     api::{
         apps::v1::{Deployment, DeploymentSpec, DeploymentStrategy},
         core::v1::{ConfigMap, PersistentVolumeClaim, Pod, Service, ServiceAccount},
+        networking::v1::Ingress,
     },
     Metadata,
 };
@@ -35,10 +36,11 @@ use serde::Serialize;
 
 use crate::models::Component;
 
-use super::super::models::KubernetesSpec;
+use super::super::models::{IngressControllerConfig, KubernetesSpec, RuntimeConfig};
 
 pub struct ResourceReconciler {
     spec: KubernetesSpec,
+    runtime_config: RuntimeConfig,
     deployment_hash: String,
     service_account_hash: String,
     component_api: Api<Component>,
@@ -47,6 +49,7 @@ pub struct ResourceReconciler {
     cm_api: Api<ConfigMap>,
     pvc_api: Api<PersistentVolumeClaim>,
     service_api: Api<Service>,
+    ingress_api: Api<Ingress>,
     account_api: Api<ServiceAccount>,
     labels: BTreeMap<String, String>,
     pub status: ReconcileStatus,
@@ -62,7 +65,11 @@ pub enum ReconcileStatus {
 unsafe impl Send for ResourceReconciler {}
 
 impl ResourceReconciler {
-    pub fn new(kube_config: kube::Config, spec: KubernetesSpec) -> Self {
+    pub fn new(
+        kube_config: kube::Config,
+        spec: KubernetesSpec,
+        runtime_config: RuntimeConfig,
+    ) -> Self {
         let labels = spec
             .deployment
             .selector
@@ -77,12 +84,14 @@ impl ResourceReconciler {
             deployment_hash: calc_deployment_hash(&spec),
             service_account_hash: calc_service_account_hash(&spec),
             spec,
+            runtime_config,
             component_api: Api::default_namespaced(client.clone()),
             deployment_api: Api::default_namespaced(client.clone()),
             pod_api: Api::default_namespaced(client.clone()),
             cm_api: Api::default_namespaced(client.clone()),
             pvc_api: Api::default_namespaced(client.clone()),
             service_api: Api::default_namespaced(client.clone()),
+            ingress_api: Api::default_namespaced(client.clone()),
             account_api: Api::default_namespaced(client.clone()),
             labels,
             status: ReconcileStatus::Unknown,
@@ -233,6 +242,24 @@ impl ResourceReconciler {
                         }
                     }
                     _ => return Err(Box::new(err)),
+                }
+            }
+        }
+
+        // if ingresses exist, delete them
+        if let Some(ingresses) = &self.spec.ingresses {
+            for ingress_name in ingresses.keys() {
+                log::info!("Deprovisioning ingress {}", ingress_name);
+                let pp = DeleteParams::default();
+                if let Err(err) = self.ingress_api.delete(ingress_name, &pp).await {
+                    match err {
+                        kube::Error::Api(api_err) => {
+                            if api_err.code != 404 {
+                                return Err(Box::new(api_err));
+                            }
+                        }
+                        _ => return Err(Box::new(err)),
+                    }
                 }
             }
         }
@@ -421,6 +448,188 @@ impl ResourceReconciler {
         Ok(())
     }
 
+    async fn get_dynamic_ingress_config(&self) -> (String, String, String, bool, Option<String>) {
+        // Try to read from drasi-config ConfigMap, fall back to defaults
+        let mut ingress_service = self.runtime_config.ingress_load_balancer_service.clone();
+        let mut ingress_namespace = self.runtime_config.ingress_load_balancer_namespace.clone();
+        let mut ingress_class_name = self.runtime_config.ingress_class_name.clone();
+        let mut is_agic = false;
+        let mut agic_gateway_ip: Option<String> = None;
+
+        match self.cm_api.get("drasi-config").await {
+            Ok(config_map) => {
+                if let Some(data) = &config_map.data {
+                    if let Some(service) = data.get("INGRESS_LOAD_BALANCER_SERVICE") {
+                        if !service.is_empty() {
+                            ingress_service = service.clone();
+                        }
+                    }
+                    if let Some(namespace) = data.get("INGRESS_LOAD_BALANCER_NAMESPACE") {
+                        if !namespace.is_empty() {
+                            ingress_namespace = namespace.clone();
+                        }
+                    }
+                    if let Some(class_name) = data.get("INGRESS_CLASS_NAME") {
+                        if !class_name.is_empty() {
+                            ingress_class_name = class_name.clone();
+                        }
+                    }
+                    if let Some(ingress_type) = data.get("INGRESS_TYPE") {
+                        if ingress_type == "agic" {
+                            is_agic = true;
+                        }
+                    }
+                    if let Some(gateway_ip) = data.get("AGIC_GATEWAY_IP") {
+                        if !gateway_ip.is_empty() {
+                            agic_gateway_ip = Some(gateway_ip.clone());
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                log::warn!(
+                    "Could not read drasi-config ConfigMap, using defaults: {}",
+                    e
+                );
+            }
+        }
+
+        (
+            ingress_service,
+            ingress_namespace,
+            ingress_class_name,
+            is_agic,
+            agic_gateway_ip,
+        )
+    }
+
+    async fn get_ingress_external_ip(&self) -> Option<String> {
+        let (ingress_service, ingress_namespace, _ingress_class_name, is_agic, agic_gateway_ip) =
+            self.get_dynamic_ingress_config().await;
+
+        // For AGIC, return the configured gateway IP directly
+        if is_agic {
+            if let Some(gateway_ip) = agic_gateway_ip {
+                log::info!("Using AGIC gateway IP: {}", gateway_ip);
+                return Some(gateway_ip);
+            } else {
+                log::warn!("AGIC configured but no gateway IP found");
+                return None;
+            }
+        }
+
+        // For traditional ingress controllers, lookup IP from LoadBalancer service
+        let client = self.service_api.clone().into_client();
+        let service_api: Api<Service> = Api::namespaced(client, &ingress_namespace);
+
+        match service_api.get(&ingress_service).await {
+            Ok(service) => {
+                if let Some(status) = &service.status {
+                    if let Some(load_balancer) = &status.load_balancer {
+                        if let Some(ingresses) = &load_balancer.ingress {
+                            for ingress in ingresses {
+                                if let Some(ip) = &ingress.ip {
+                                    return Some(ip.clone());
+                                }
+                                if let Some(hostname) = &ingress.hostname {
+                                    return Some(hostname.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                log::warn!(
+                    "Could not get ingress controller LoadBalancer IP from service {}/{}: {}",
+                    &ingress_namespace,
+                    &ingress_service,
+                    e
+                );
+            }
+        }
+        None
+    }
+
+    async fn reconcile_ingresses(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(ingresses) = &self.spec.ingresses {
+            log::info!("Reconciling ingresses {}", self.spec.resource_id);
+
+            // Get the external IP for hostname generation (handles both AGIC and traditional controllers)
+            let ip_suffix = match self.get_ingress_external_ip().await {
+                Some(ip) => format!("{}.nip.io", ip),
+                None => {
+                    log::warn!("Could not determine external IP, using localhost fallback");
+                    "localhost".to_string()
+                }
+            };
+
+            for (name, mut ingress_spec) in ingresses.clone() {
+                let (
+                    _ingress_service,
+                    _ingress_namespace,
+                    ingress_class_name,
+                    is_agic,
+                    _agic_gateway_ip,
+                ) = self.get_dynamic_ingress_config().await;
+
+                // Get controller-specific configuration
+                let controller_config = IngressControllerConfig::from_class_name(&ingress_class_name, is_agic);
+
+                if let Some(spec) = &mut ingress_spec.spec {
+                    spec.ingress_class_name = Some(controller_config.class_name.clone());
+                }
+
+                if let Some(spec) = &mut ingress_spec.spec {
+                    if let Some(rules) = &mut spec.rules {
+                        for rule in rules {
+                            // Handle hostname based on controller capabilities
+                            if let Some(host) = &rule.host {
+                                if host.contains("PLACEHOLDER") {
+                                    if controller_config.supports_hostname {
+                                        rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
+                                    } else {
+                                        rule.host = None;
+                                    }
+                                }
+                            }
+
+                            if let Some(http) = &mut rule.http {
+                                for path in &mut http.paths {
+                                    path.path_type = controller_config.path_type.clone();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                match self.ingress_api.get(&name).await {
+                    Ok(current) => {
+                        if current.spec != ingress_spec.spec {
+                            log::info!("Updating ingress {}", name);
+                            let pp = PostParams::default();
+                            self.ingress_api.replace(&name, &pp, &ingress_spec).await?;
+                        }
+                    }
+                    Err(e) => match e {
+                        kube::Error::Api(api_err) => {
+                            if api_err.code != 404 {
+                                log::error!("Error getting ingress: {}", api_err.code);
+                                return Err(Box::new(api_err));
+                            }
+                            log::info!("Creating ingress {}", name);
+                            let pp = PostParams::default();
+                            self.ingress_api.create(&pp, &ingress_spec).await?;
+                        }
+                        _ => return Err(Box::new(e)),
+                    },
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     async fn reconcile_persistent_volume_claims(
         &mut self,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -513,6 +722,10 @@ impl ResourceReconciler {
 
         if let Err(err) = self.reconcile_services().await {
             log::error!("Error reconciling services: {}", err);
+        }
+
+        if let Err(err) = self.reconcile_ingresses().await {
+            log::error!("Error reconciling ingresses: {}", err);
         }
     }
 

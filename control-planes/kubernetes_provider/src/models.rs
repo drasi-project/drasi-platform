@@ -20,6 +20,7 @@ use std::{
 use k8s_openapi::api::{
     apps::v1::DeploymentSpec,
     core::v1::{ConfigMap, EnvVar, PersistentVolumeClaim, ServiceAccount, ServiceSpec},
+    networking::v1::Ingress,
 };
 use kube_derive::CustomResource;
 use schemars::JsonSchema;
@@ -34,6 +35,7 @@ pub struct KubernetesSpec {
     pub services: BTreeMap<String, ServiceSpec>,
     pub config_maps: BTreeMap<String, ConfigMap>,
     pub volume_claims: BTreeMap<String, PersistentVolumeClaim>,
+    pub ingresses: Option<BTreeMap<String, Ingress>>,
     pub pub_sub: Option<Component>,
     pub service_account: Option<ServiceAccount>,
     pub removed: bool,
@@ -54,6 +56,7 @@ impl KubernetesSpec {
             services: BTreeMap::new(),
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
+            ingresses: Some(BTreeMap::new()),
             pub_sub: None,
             service_account: None,
             removed: false,
@@ -100,6 +103,63 @@ pub struct RuntimeConfig {
     pub pub_sub_type: String,
     pub pub_sub_version: String,
     pub pub_sub_config: Vec<EnvVar>,
+    pub ingress_class_name: String,
+    pub ingress_load_balancer_service: String,
+    pub ingress_load_balancer_namespace: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct IngressControllerConfig {
+    pub class_name: String,
+    pub supports_hostname: bool,
+    pub path_type: String,
+    pub is_agic: bool,
+}
+
+impl IngressControllerConfig {
+    pub fn from_class_name(class_name: &str, is_agic: bool) -> Self {
+        match class_name {
+            "alb" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: false, // ALB generates its own URL
+                path_type: "Prefix".to_string(),
+                is_agic: false,
+            },
+            "nginx" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: true,
+                path_type: "Prefix".to_string(),
+                is_agic: false,
+            },
+            "contour" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: true,
+                path_type: "Prefix".to_string(),
+                is_agic: false,
+            },
+            "traefik" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: true,
+                path_type: "Prefix".to_string(),
+                is_agic: false,
+            },
+            "azure-application-gateway" => IngressControllerConfig {
+                class_name: class_name.to_string(),
+                supports_hostname: true,
+                path_type: "Exact".to_string(),
+                is_agic: true,
+            },
+            _ => {
+                // Default configuration for unknown controllers
+                IngressControllerConfig {
+                    class_name: class_name.to_string(),
+                    supports_hostname: true,
+                    path_type: "Prefix".to_string(),
+                    is_agic,
+                }
+            }
+        }
+    }
 }
 
 impl RuntimeConfig {
@@ -159,6 +219,19 @@ impl RuntimeConfig {
                 Err(_) => "v1".to_string(),
             },
             pub_sub_config,
+            ingress_class_name: match std::env::var("INGRESS_CLASS_NAME") {
+                Ok(class_name) => class_name,
+                Err(_) => "contour".to_string(),
+            },
+            ingress_load_balancer_service: match std::env::var("INGRESS_LOAD_BALANCER_SERVICE") {
+                Ok(service) => service,
+                Err(_) => "contour-envoy".to_string(),
+            },
+            ingress_load_balancer_namespace: match std::env::var("INGRESS_LOAD_BALANCER_NAMESPACE")
+            {
+                Ok(namespace) => namespace,
+                Err(_) => "projectcontour".to_string(),
+            },
         }
     }
 }
