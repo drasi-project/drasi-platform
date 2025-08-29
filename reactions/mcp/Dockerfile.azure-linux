@@ -1,0 +1,30 @@
+# Dockerfile for MCP Reaction - Azure Linux
+FROM mcr.microsoft.com/cbl-mariner/base/nodejs:18 AS build-env
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY src/ ./src/
+
+# Build the application
+RUN npm run build
+
+# Final stage
+FROM mcr.microsoft.com/cbl-mariner/distroless/nodejs:18
+
+WORKDIR /app
+
+# Copy built application
+COPY --from=build-env /app/dist ./dist
+COPY --from=build-env /app/node_modules ./node_modules
+COPY --from=build-env /app/package.json ./package.json
+
+# Set the command to run
+CMD ["dist/index.js"]

@@ -1,0 +1,41 @@
+# Example query configuration for the Drasi MCP Reaction
+# This shows how to configure templates for different change types
+
+# Configuration for items being added to the query results
+added:
+  template: |
+    {
+      "type": "item_added",
+      "timestamp": "{{new Date().toISOString()}}",
+      "data": {{json after}},
+      "queryId": "{{queryId}}"
+    }
+
+# Configuration for items being updated in the query results  
+updated:
+  template: |
+    {
+      "type": "item_updated",
+      "timestamp": "{{new Date().toISOString()}}",
+      "before": {{json before}},
+      "after": {{json after}},
+      "queryId": "{{queryId}}"
+    }
+
+# Configuration for items being deleted from the query results
+deleted:
+  template: |
+    {
+      "type": "item_deleted", 
+      "timestamp": "{{new Date().toISOString()}}",
+      "data": {{json before}},
+      "queryId": "{{queryId}}"
+    }
+
+# Notes:
+# - Templates use Handlebars syntax
+# - {{json obj}} outputs the object as JSON
+# - {{moment}} can be used for timestamps (if configured)
+# - {{queryId}} provides the ID of the query that changed
+# - 'before' contains the old state for updates/deletes
+# - 'after' contains the new state for additions/updates
