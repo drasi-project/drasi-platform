@@ -52,6 +52,7 @@ export class DrasiReaction<TQueryConfig = any> {
     private configDirectory: string = process.env["QueryConfigPath"] ?? "/etc/queries";
     private queryConfig: Map<string, any> = new Map<string, TQueryConfig>();
     private parseQueryConfig: (queryId: string, config: string) => TQueryConfig | undefined;
+    private queryIds: string[] = [];
 
     /**
      * 
@@ -72,8 +73,8 @@ export class DrasiReaction<TQueryConfig = any> {
      */
     public async start() {
         try {
-            let queryIds = readdirSync(this.configDirectory);
-            for (let queryId of queryIds) {
+            this.queryIds = readdirSync(this.configDirectory);
+            for (let queryId of this.queryIds) {
                 if (!queryId || queryId.startsWith('.')) 
                     continue;
                 console.log(`Subscribing to query ${queryId}`);
@@ -95,6 +96,10 @@ export class DrasiReaction<TQueryConfig = any> {
 
     public async stop() {
         await this.daprServer.stop();
+    }
+
+    public getQueryIds(): string[] {
+        return this.queryIds;
     }
 
     async onMessage(data: any) {
