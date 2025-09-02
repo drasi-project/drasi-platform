@@ -1,32 +1,34 @@
-# Makefile for MCP Reaction
+.PHONY: default docker-build kind-load
 
-.PHONY: build run clean test docker-build
+CLUSTER_NAME ?= kind
+IMAGE_PREFIX ?= drasi-project
+DOCKER_TAG_VERSION ?= latest
+TAG_SUFFIX ?=
+DOCKERX_OPTS ?= --load --cache-to type=inline,mode=max
+BUILD_CONFIG ?= default
 
-# Build the TypeScript project
-build:
-	npm run build
+ifneq ($(BUILD_CONFIG), default)
+	DOCKER_TAG_VERSION := ${DOCKER_TAG_VERSION}-$(BUILD_CONFIG)
+endif
 
-# Run the built application
-run: build
-	npm start
+ifneq ($(TAG_SUFFIX),)
+	DOCKER_TAG_VERSION := ${DOCKER_TAG_VERSION}$(TAG_SUFFIX)
+endif
 
-# Clean build artifacts
-clean:
-	rm -rf dist/
-	rm -rf node_modules/
-
-# Install dependencies
-install:
-	npm install
-
-# Run tests (when available)
-test:
-	npm test
-
-# Build Docker image
+default: docker-build
+	
 docker-build:
-	docker build -f Dockerfile.default -t drasi-mcp-reaction .
+	docker buildx build . -f Dockerfile.$(BUILD_CONFIG) -t $(IMAGE_PREFIX)/reaction-mcp:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
 
-# Build Docker image for Azure Linux
-docker-build-azure:
-	docker build -f Dockerfile.azure-linux -t drasi-mcp-reaction:azure-linux .
+kind-load:
+	kind load docker-image $(IMAGE_PREFIX)/reaction-mcp:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
+
+k3d-load: CLUSTER_NAME=k3s-default
+k3d-load:
+	k3d image import $(IMAGE_PREFIX)/reaction-mcp:$(DOCKER_TAG_VERSION) -c $(CLUSTER_NAME)
+
+test:
+	@echo "No tests to run yet"
+
+lint-check:
+	@echo "No lint checks to run yet"

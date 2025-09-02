@@ -4,11 +4,11 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { 
     isInitializeRequest,
     SubscribeRequestSchema,
-    UnsubscribeRequestSchema 
+    UnsubscribeRequestSchema,
+    ListResourcesRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
 import express from 'express';
 import { randomUUID } from 'node:crypto';
-import { AsyncLocalStorage } from 'node:async_hooks';
 import Handlebars from 'handlebars';
 
 class QueryConfig {
@@ -21,15 +21,7 @@ class NotificationTemplate {
     template: string = '';
 }
 
-class ReactionConfig {
-    port: number = 3000;
-    endpoint: string = "/mcp";
-}
-
-const reactionConfig: ReactionConfig = {
-    port: parseInt(getConfigValue("port") || "3000"),
-    endpoint: getConfigValue("endpoint") || "/mcp"
-};
+const port = parseInt(getConfigValue("port") || "3000");
 
 // Create an MCP server with implementation details
 const server = new McpServer({
@@ -40,10 +32,15 @@ const server = new McpServer({
         resources: {
             subscribe: true,
             listChanged: true
-        },
-        logging: {}
+        }
     }
 });
+
+const myReaction = new DrasiReaction<QueryConfig>(onChangeEvent, {
+    parseQueryConfig: parseYaml,
+    onControlEvent: onControlEvent
+});
+
 
 // Add subscription and unsubscription handlers
 server.server.setRequestHandler(SubscribeRequestSchema, async (request, extra) => {
@@ -74,6 +71,16 @@ server.server.setRequestHandler(UnsubscribeRequestSchema, async (request, extra)
     }
     
     return {};
+});
+
+server.server.setRequestHandler(ListResourcesRequestSchema, async (request, extra) => {
+    const queryIds = myReaction.getQueryIds();
+    return {
+        resources: queryIds.map(id => ({
+            "uri": `drasi://query/${id}`,
+            "name": id
+        }))
+    };
 });
 
 // Store transports by session ID to send notifications
@@ -155,7 +162,7 @@ async function notifyResourceUpdated(queryId: string, type: 'added' | 'updated' 
 
     console.log(`Sending ${type} notification for ${uri} to ${subscribedSessions.size} subscribers`);
     
-    for (const sessionId of subscribedSessions) {
+    const notificationPromises = Array.from(subscribedSessions).map(async (sessionId) => {
         const transport = transports[sessionId];
         if (transport) {
             try {
@@ -175,7 +182,9 @@ async function notifyResourceUpdated(queryId: string, type: 'added' | 'updated' 
             console.warn(`No transport found for subscribed session ${sessionId}, cleaning up`);
             cleanupSessionSubscriptions(sessionId);
         }
-    }
+    });
+
+    await Promise.all(notificationPromises);
 }
 
 // Process Drasi change events
@@ -240,12 +249,30 @@ async function onControlEvent(event: ControlEvent): Promise<void> {
 const app = express();
 app.use(express.json());
 
+// Response logging middleware
+app.use((_req, res, next) => {
+    const originalSend = res.send;
+    const originalJson = res.json;
+    
+    res.send = function(data) {
+        console.log(`Response [${res.statusCode}]:`, data);
+        return originalSend.call(this, data);
+    };
+    
+    res.json = function(data) {
+        console.log(`JSON Response [${res.statusCode}]:`, JSON.stringify(data, null, 2));
+        return originalJson.call(this, data);
+    };
+    
+    next();
+});
+
 // Handle MCP POST requests
-app.post(reactionConfig.endpoint, async (req, res) => {
+app.post("/", async (req, res) => {
     console.log('Received MCP request:', req.body);
     try {
         // Check for existing session ID
-        const sessionId = req.headers['Mcp-Session-Id'] as string;
+        const sessionId = req.headers['mcp-session-id'] as string;
         let transport: StreamableHTTPServerTransport;
 
         if (sessionId && transports[sessionId]) {
@@ -280,6 +307,7 @@ app.post(reactionConfig.endpoint, async (req, res) => {
             return; // Already handled
         } else {
             // Invalid request - no session ID or not initialization request
+            console.log(`Invalid session id: ${sessionId}`);
             res.status(400).json({
                 jsonrpc: '2.0',
                 error: {
@@ -309,8 +337,8 @@ app.post(reactionConfig.endpoint, async (req, res) => {
 });
 
 // Handle GET requests for SSE streams (now using built-in support from StreamableHTTP)
-app.get(reactionConfig.endpoint, async (req, res) => {
-    const sessionId = req.headers['Mcp-Session-Id'] as string;
+app.get("/", async (req, res) => {
+    const sessionId = req.headers['mcp-session-id'] as string;
     if (!sessionId || !transports[sessionId]) {
         res.status(400).send('Invalid or missing session ID');
         return;
@@ -321,14 +349,12 @@ app.get(reactionConfig.endpoint, async (req, res) => {
 });
 
 // Start the server
-const PORT = reactionConfig.port;
-app.listen(PORT, (error?: Error) => {
+app.listen(port, (error?: Error) => {
     if (error) {
         console.error('Failed to start server:', error);
         process.exit(1);
     }
-    console.log(`MCP HTTP server listening on port ${PORT}`);
-    console.log(`MCP endpoint: http://localhost:${PORT}${reactionConfig.endpoint}`);
+    console.log(`MCP HTTP server listening on port ${port}`);
 });
 
 // Handle server shutdown
@@ -339,29 +365,6 @@ process.on('SIGINT', async () => {
 });
 
 // Start Drasi reaction
-// const myReaction = new DrasiReaction<QueryConfig>(onChangeEvent, {
-//     parseQueryConfig: parseYaml,
-//     onControlEvent: onControlEvent
-// });
-
-// myReaction.start();
-
-setInterval(async () => {
-    console.log("Drasi MCP Reaction heartbeat");
-    await onChangeEvent({
-        kind: "change",
-        queryId: "query1",
-        sequence: "1",
-        sourceTimeMs: "0",
-        addedResults: [
-            { id: "1", data: "hello" }
-        ],
-        updatedResults: [],
-        deletedResults: []
-    }, {
-        added: { template: '{"id": "{{after.id}}", "data": "{{after.data}}"}' },
-    });
-}, 10000);
+myReaction.start();
 
 console.log("Drasi MCP Reaction started");
-console.log(`Connect MCP clients to: http://localhost:${reactionConfig.port}${reactionConfig.endpoint}`);

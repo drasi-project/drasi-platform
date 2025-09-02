@@ -1,20 +1,11 @@
-# Dockerfile for MCP Reaction
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
+COPY . .
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
-COPY src/ ./src/
-
-# Build the application
+RUN npm install -g typescript
+RUN npm install
 RUN npm run build
 
-# Set the command to run
 CMD ["npm", "start"]

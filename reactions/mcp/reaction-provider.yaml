@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ReactionProvider
+name: MCP
+spec:
+  services:
+    reaction:
+      image: reaction-mcp
+      endpoints:
+        gateway:
+          setting: internal
+          target: $port
+  config_schema:
+    type: object
+    properties: 
+      port:
+        type: integer

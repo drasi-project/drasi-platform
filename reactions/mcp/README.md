@@ -23,7 +23,6 @@ When Drasi sends change events, the reaction processes them through Handlebars t
 ### Environment Variables
 
 - `port`: HTTP server port (default: 3000)
-- `endpoint`: MCP endpoint path (default: "/mcp")
 
 ### Query Configuration
 
@@ -59,13 +58,13 @@ npm start
 MCP clients can connect to the server using Streamable HTTP transport:
 
 ```
-HTTP Endpoint: http://localhost:3000/mcp
+HTTP Endpoint: http://localhost:3000/
 Transport: Streamable HTTP (preferred) with SSE fallback
 Protocol Version: 2025-03-26 (with 2024-11-05 compatibility)
 ```
 
 #### Connection Process:
-1. **Initialization**: POST to `/mcp` with MCP initialization request
+1. **Initialization**: POST to `/` with MCP initialization request
 2. **Session Management**: Server generates session ID and tracks transport
 3. **Message Exchange**: POST requests for client-to-server messages
 4. **Notifications**: GET requests establish SSE streams for server-to-client messages
@@ -81,20 +80,7 @@ drasi://query/{queryId}
 
 1. Client connects to the MCP server via SSE
 2. Client subscribes to specific query resources using `resources/subscribe`
-3. When Drasi sends change events for subscribed queries, the server sends `notifications/resources/updated` to clients
-4. Clients can read updated resource content using `resources/read`
-
-## Docker
-
-Build and run using Docker:
-
-```bash
-# Build Docker image
-make docker-build
-
-# Run container
-docker run -p 3000:3000 drasi-mcp-reaction
-```
+3. When Drasi sends change events for subscribed queries, the server sends `notifications/{query}/added`, `notifications/{query}/updated` and `notifications/{query}/deleted` to clients
 
 ## Development
 
