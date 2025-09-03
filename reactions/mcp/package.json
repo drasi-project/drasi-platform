@@ -11,7 +11,7 @@
   "license": "Apache-2.0",
   "description": "Drasi MCP Reaction - provides an MCP server for real-time query notifications",
   "dependencies": {
-    "@drasi/reaction-sdk": "0.1.1-alpha",
+    "@drasi/reaction-sdk": "0.1.2-alpha",
     "@modelcontextprotocol/sdk": "1.17.4",
     "@types/express": "^5.0.3",
     "express": "^5.1.0",

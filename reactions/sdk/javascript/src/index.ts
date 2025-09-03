@@ -73,10 +73,8 @@ export class DrasiReaction<TQueryConfig = any> {
      */
     public async start() {
         try {
-            this.queryIds = readdirSync(this.configDirectory);
-            for (let queryId of this.queryIds) {
-                if (!queryId || queryId.startsWith('.')) 
-                    continue;
+            this.queryIds = readdirSync(this.configDirectory).filter(q => q && !q.startsWith('.'));
+            for (let queryId of this.queryIds) {                
                 console.log(`Subscribing to query ${queryId}`);
                 await this.daprServer.pubsub.subscribe(this.pubSubName, `${queryId}-results`, this.onMessage.bind(this));
                 if (this.parseQueryConfig) {
