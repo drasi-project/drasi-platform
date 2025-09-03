@@ -18,6 +18,12 @@ on:
   push:
     branches: 
       - "image-validation-workflow"
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Version tag to validate'
+        required: true
+        type: string
 
 env:
   DRASI_IMAGES: >-
@@ -64,34 +70,11 @@ jobs:
       image_tag: ${{ steps.get_version.outputs.IMAGE_TAG }}
     
     steps:
-      - name: Get latest release version
+      - name: Set version tag
         id: get_version
         run: |
-          echo "🔍 Getting latest release version from GitHub API..."
-          
-          # Get latest release version (excluding RC versions)
-          getLatestRelease() {
-              local releaseUrl="https://api.github.com/repos/drasi-project/drasi-platform/releases"
-              
-              if command -v curl >/dev/null 2>&1; then
-                  latest_release=$(curl -s $releaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' | sed -n 's/\"\(.*\)\",/\1/p')
-              else
-                  latest_release=$(wget -q --header="Accept: application/json" -O - $releaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' | sed -n 's/\"\(.*\)\",/\1/p')
-              fi
-              
-              echo $latest_release
-          }
-          
-          LATEST_VERSION=$(getLatestRelease)
-          
-          if [ -z "$LATEST_VERSION" ]; then
-              echo "⚠️ Warning: Could not determine latest version, falling back to 'latest'"
-              LATEST_VERSION="latest"
-          else
-              echo "✅ Found latest version: $LATEST_VERSION"
-          fi
-          
-          echo "IMAGE_TAG=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "🔍 Using provided tag: ${{ inputs.tag }}"
+          echo "IMAGE_TAG=${{ inputs.tag }}" >> $GITHUB_OUTPUT
 
   multi-arch-validation:
     name: Multi-Architecture Validation

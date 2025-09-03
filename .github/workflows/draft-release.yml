@@ -342,6 +342,14 @@ jobs:
           name: drasi_vscode_extension
           path: ${{ env.RELEASE_PATH}}/drasi-*.vsix
 
+  # Call image validation workflow
+  validate-images:
+    name: Validate Images
+    needs: create-all-manifests
+    uses: ./.github/workflows/image-validation.yml
+    with:
+      tag: ${{ inputs.tag }}
+
   # Final release job
   release:
     permissions:
@@ -353,6 +361,7 @@ jobs:
     needs:
       - validate
       - create-all-manifests
+      - validate-images
       - package-cli
       - vscode-extension
     runs-on: ubuntu-latest
