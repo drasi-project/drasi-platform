@@ -16,24 +16,27 @@ import java.util.Collections;
 
 class TableCursor {
     private static final Logger log = LoggerFactory.getLogger(TableCursor.class);
-    public final String tableName;
+    public final String schemaName;
+    public final String tableName;    
     public NodeMapping mapping;
     public ResultSet resultSet;
     public ResultSetMetaData metaData;
     public int columnCount;
 
-    public TableCursor(String tableName) {
+    public TableCursor(String schemaName, String tableName) {
+        this.schemaName = schemaName;
         this.tableName = tableName;
     }
 
     private void Init(Connection connection) throws SQLException {
         if (resultSet == null) {
-            mapping = ReadMappingFromSchema(tableName, connection);
+            mapping = ReadMappingFromSchema(schemaName, tableName, connection);
             var statement = connection.createStatement();
 
             String quote = SourceProxy.GetConfigValue("connector").equalsIgnoreCase("MySQL") ? "`" : "\"";
             var sanitizedTableName = tableName.replace(quote, "").replace(";", "");
-            resultSet = statement.executeQuery("SELECT * FROM " + quote + sanitizedTableName + quote);
+            var fullyQualifiedTableName = schemaName != null ? quote + schemaName + quote + "." + quote + sanitizedTableName + quote : quote + sanitizedTableName + quote;
+            resultSet = statement.executeQuery("SELECT * FROM " + fullyQualifiedTableName);
             metaData = resultSet.getMetaData();
             columnCount = metaData.getColumnCount();
         }
@@ -81,23 +84,15 @@ class TableCursor {
         return nodeId.replace('.', ':');
     }
 
-    private NodeMapping ReadMappingFromSchema(String table, Connection connection) throws SQLException {
+    private NodeMapping ReadMappingFromSchema(String schemaName, String tableName, Connection connection) throws SQLException {
         var metadata = connection.getMetaData();
-        table = table.trim();
-        String schemaName = null;
-        String tableName = table;
-
-        if (table.contains(".")) {
-            var tableComps = table.split("\\.");
-            schemaName = tableComps[0];
-            tableName = tableComps[1];
-        }
 
         var rs = metadata.getPrimaryKeys(null, schemaName, tableName);
         if (!rs.next())
-            throw new SQLException("No primary key found for " + table);
+            throw new SQLException("No primary key found for " + (schemaName != null ? schemaName + "." + tableName : tableName));
         var mapping = new NodeMapping();
-        mapping.tableName = rs.getString("TABLE_SCHEM") + "." + tableName;
+        String actualSchema = rs.getString("TABLE_SCHEM");
+        mapping.tableName = actualSchema != null ? actualSchema + "." + tableName : tableName;
         mapping.keyField = rs.getString("COLUMN_NAME");
         mapping.labels = Collections.singleton(tableName);
 
