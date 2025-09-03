@@ -15,9 +15,11 @@
 name: Image Validation
 
 on:
-  push:
-    branches: 
-      - "image-validation-workflow"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to validate'
+        required: true
   workflow_call:
     inputs:
       tag:
