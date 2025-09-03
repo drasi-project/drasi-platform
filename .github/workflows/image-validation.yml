@@ -187,6 +187,94 @@ jobs:
           echo ""
           echo "✅ SUCCESS: All images meet their architecture requirements for version $IMAGE_TAG"
 
+      - name: Validate azure-linux variant architecture support
+        run: |
+          echo "🔍 Validating azure-linux variant multi-architecture support..."
+          echo "📋 Using image tag: ${{ needs.get-version.outputs.image_tag }}-azure-linux"
+          
+          # Images that only need amd64 support
+          AMD64_ONLY_IMAGES="ghcr.io/drasi-project/reaction-dataverse"
+          
+          failed_images=()
+          
+          IMAGE_TAG="${{ needs.get-version.outputs.image_tag }}-azure-linux"
+          
+          for image in $DRASI_IMAGES; do
+            echo "📦 Checking $image:$IMAGE_TAG"
+            
+            # Check if image exists and get manifest
+            if ! docker manifest inspect "${image}:${IMAGE_TAG}" > /dev/null 2>&1; then
+              echo "❌ ERROR: Failed to inspect $image:$IMAGE_TAG - image may not exist"
+              failed_images+=("$image:$IMAGE_TAG (not found)")
+              continue
+            fi
+            
+            manifest=$(docker manifest inspect "${image}:${IMAGE_TAG}" 2>/dev/null)
+            
+            # Check for amd64 and arm64 architectures
+            amd64_support=false
+            arm64_support=false
+            
+            if echo "$manifest" | jq -e '.manifests[]? | select(.platform.architecture == "amd64")' > /dev/null 2>&1; then
+              amd64_support=true
+            elif echo "$manifest" | jq -e '.platform.architecture == "amd64"' > /dev/null 2>&1; then
+              amd64_support=true
+            fi
+            
+            if echo "$manifest" | jq -e '.manifests[]? | select(.platform.architecture == "arm64")' > /dev/null 2>&1; then
+              arm64_support=true
+            elif echo "$manifest" | jq -e '.platform.architecture == "arm64"' > /dev/null 2>&1; then
+              arm64_support=true
+            fi
+            
+            # Check if this image is in the amd64-only list
+            if echo "$AMD64_ONLY_IMAGES" | grep -q "$image"; then
+              # For amd64-only images, only require amd64 support
+              if [[ "$amd64_support" == true ]]; then
+                echo "✅ $image:$IMAGE_TAG supports amd64 (amd64-only image)"
+              else
+                echo "❌ ERROR: $image:$IMAGE_TAG missing amd64 support"
+                failed_images+=("$image:$IMAGE_TAG (missing: amd64)")
+              fi
+            else
+              # For all other images, require both amd64 and arm64
+              if [[ "$amd64_support" == true && "$arm64_support" == true ]]; then
+                echo "✅ $image:$IMAGE_TAG supports both amd64 and arm64"
+              else
+                missing_archs=""
+                if [[ "$amd64_support" == false ]]; then
+                  missing_archs="amd64"
+                fi
+                if [[ "$arm64_support" == false ]]; then
+                  if [[ -n "$missing_archs" ]]; then
+                    missing_archs="$missing_archs, arm64"
+                  else
+                    missing_archs="arm64"
+                  fi
+                fi
+                echo "❌ ERROR: $image:$IMAGE_TAG missing support for: $missing_archs"
+                failed_images+=("$image:$IMAGE_TAG (missing: $missing_archs)")
+              fi
+            fi
+          done
+          
+          # Fail the job if any images don't meet their architecture requirements
+          if [ ${#failed_images[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ VALIDATION FAILED: The following azure-linux images do not meet architecture requirements:"
+            for failed_image in "${failed_images[@]}"; do
+              echo "  - $failed_image"
+            done
+            echo ""
+            echo "Requirements:"
+            echo "- Most images: amd64 + arm64 support required"
+            echo "- reaction-dataverse: amd64 support only required"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ SUCCESS: All azure-linux images meet their architecture requirements for version $IMAGE_TAG"
+
   image-pull-test:
     name: Image Pull Test
     runs-on: ${{ matrix.runner }}
@@ -254,3 +342,57 @@ jobs:
           
           echo ""
           echo "✅ SUCCESS: All required images pulled successfully on ${{ matrix.arch }}"
+
+      - name: Test azure-linux image pull on ${{ matrix.arch }}
+        run: |
+          echo "🔍 Testing azure-linux image pull on ${{ matrix.arch }} architecture..."
+          echo "📋 Using image tag: ${{ needs.get-version.outputs.image_tag }}-azure-linux"
+          echo "🖥️  Running on: ${{ matrix.runner }}"
+          
+          IMAGE_TAG="${{ needs.get-version.outputs.image_tag }}-azure-linux"
+          
+          # Images that only need amd64 support
+          AMD64_ONLY_IMAGES="ghcr.io/drasi-project/reaction-dataverse"
+          
+          failed_pulls=()
+          skipped_images=()
+          
+          for image in $DRASI_IMAGES; do
+            # Skip reaction-dataverse unless we're on x86-64 runner
+            if echo "$AMD64_ONLY_IMAGES" | grep -q "$image" && [[ "${{ matrix.runner }}" != "oracle-vm-8cpu-32gb-x86-64" ]]; then
+              echo "⏭️  Skipping $image (only tested on x86-64 runner)"
+              skipped_images+=("$image")
+              continue
+            fi
+            
+            echo "📦 Pulling $image:$IMAGE_TAG on ${{ matrix.arch }}..."
+            
+            if docker pull  "${image}:${IMAGE_TAG}" > /dev/null 2>&1; then
+              echo "✅ Successfully pulled $image:$IMAGE_TAG"
+              # Clean up to save space
+              docker rmi "${image}:${IMAGE_TAG}" > /dev/null 2>&1 || true
+            else
+              echo "❌ Failed to pull $image:$IMAGE_TAG"
+              failed_pulls+=("$image:$IMAGE_TAG")
+            fi
+          done
+          
+          # Report results
+          if [ ${#skipped_images[@]} -gt 0 ]; then
+            echo ""
+            echo "⏭️  Skipped images (amd64-only): ${#skipped_images[@]}"
+          fi
+          
+          if [ ${#failed_pulls[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ AZURE-LINUX PULL TEST FAILED on ${{ matrix.arch }}: The following images could not be pulled:"
+            for failed_pull in "${failed_pulls[@]}"; do
+              echo "  - $failed_pull"
+            done
+            echo ""
+            echo "This indicates that the ${{ matrix.arch }} azure-linux image layers are missing or corrupted."
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ SUCCESS: All required azure-linux images pulled successfully on ${{ matrix.arch }}"
