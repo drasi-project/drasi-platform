@@ -167,11 +167,12 @@ async function notifyResourceUpdated(queryId: string, type: 'added' | 'updated' 
         if (transport) {
             try {
                 // Send notification through the MCP server
-                await server.server.notification({
+                await transport.send({
+                    jsonrpc: '2.0',
                     method: `notifications/${queryId}/${type}`,
                     params: data
                 });
-                console.log(`Sent ${type} notification for query ${queryId} to session ${sessionId}`);
+                console.log(`Sent ${type} notification for query ${queryId} to session ${sessionId}`);            
             } catch (error) {
                 console.error(`Failed to send notification to session ${sessionId}:`, error);
                 // If transport is broken, clean up the session
@@ -302,6 +303,7 @@ app.post("/", async (req, res) => {
             });
             // Connect the transport to the MCP server
             await server.connect(transport);
+
             // Handle the request wrapped in session context using the generated session ID
             await transport.handleRequest(req, res, req.body);
             return; // Already handled
