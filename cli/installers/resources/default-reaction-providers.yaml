@@ -20,7 +20,7 @@ spec:
     reaction:
       image: reaction-debug
       endpoints:
-        ingress:
+        gateway:
           setting: internal
           target: $portConfigKey
       config_schema:
