@@ -1,6 +1,5 @@
 .PHONY: default docker-build kind-load k3d-load test clean
 
-CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
 TAG_SUFFIX ?=
@@ -23,12 +22,11 @@ docker-build:
 
 # Load the built image into the specified Kind cluster
 kind-load:
-	kind load docker-image $(IMAGE_PREFIX)/reaction-post-dapr-pubsub:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
+	kind load docker-image $(IMAGE_PREFIX)/reaction-post-dapr-pubsub:$(DOCKER_TAG_VERSION) --name $(if $(CLUSTER_NAME),$(CLUSTER_NAME),kind)
 
 # Load the built image into the specified k3d cluster
-k3d-load: CLUSTER_NAME=k3s-default
 k3d-load:
-	k3d image import $(IMAGE_PREFIX)/reaction-post-dapr-pubsub:$(DOCKER_TAG_VERSION) -c $(CLUSTER_NAME)
+	k3d image import $(IMAGE_PREFIX)/reaction-post-dapr-pubsub:$(DOCKER_TAG_VERSION) -c $(if $(CLUSTER_NAME),$(CLUSTER_NAME),k3s-default)
 
 # Run unit tests
 test:
