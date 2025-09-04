@@ -39,7 +39,7 @@ func NewIngressCommand() *cobra.Command {
 
 func ingressInitCommand() *cobra.Command {
 	var useExisting bool
-	var gatewayIPAddress string
+	var ingressIPAddress string
 	var ingressServiceName string
 	var ingressNamespace string
 	var ingressClassName string
@@ -58,7 +58,7 @@ Usage examples:
   drasi ingress init --ingress-annotation "projectcontour.io/websocket-routes=/ws"  # Install Contour with custom annotations
   drasi ingress init --use-existing --ingress-service-name ingress-nginx-controller --ingress-namespace ingress-nginx --ingress-class-name nginx    # Use existing NGINX controller
   drasi ingress init --use-existing --ingress-service-name traefik --ingress-namespace traefik-system --ingress-class-name traefik         # Use existing Traefik controller
-  drasi ingress init --use-existing --ingress-class-name azure-application-gateway --gateway-ip-address <ip-address>                       # Use Azure Application Gateway Ingress Controller (AGIC)
+  drasi ingress init --use-existing --ingress-class-name azure-application-gateway --ingress-ip-address <ip-address>                       # Use Azure Application Gateway Ingress Controller (AGIC)
   drasi ingress init --use-existing --ingress-class-name alb --ingress-annotation "alb.ingress.kubernetes.io/scheme=internet-facing" --ingress-annotation "alb.ingress.kubernetes.io/target-type=ip"  # Use AWS Load Balancer Controller with annotations`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -117,7 +117,7 @@ Usage examples:
 					IngressClassName:   ingressClassName,
 					IngressService:     ingressServiceName,
 					IngressNamespace:   ingressNamespace,
-					GatewayIPAddress:   gatewayIPAddress,
+					GatewayIPAddress:   ingressIPAddress,
 					IngressAnnotations: annotationsMap,
 				}
 				if err := k8sPlatformClient.UpdateIngressConfig(config, output); err != nil {
@@ -159,7 +159,7 @@ Usage examples:
 	}
 
 	cmd.Flags().BoolVar(&useExisting, "use-existing", false, "Use existing ingress controller instead of installing Contour")
-	cmd.Flags().StringVar(&gatewayIPAddress, "gateway-ip-address", "", "Public IP address of the Application Gateway (use with --use-existing for AGIC)")
+	cmd.Flags().StringVar(&ingressIPAddress, "ingress-ip-address", "", "Public IP address for the ingress controller (use with --use-existing for controllers like AGIC)")
 	cmd.Flags().StringVar(&ingressServiceName, "ingress-service-name", "", "Name of the existing ingress controller LoadBalancer service (required with --use-existing for regular controllers)")
 	cmd.Flags().StringVar(&ingressNamespace, "ingress-namespace", "", "Namespace where the existing ingress controller is installed (required with --use-existing for regular controllers)")
 	cmd.Flags().StringVar(&ingressClassName, "ingress-class-name", "", "IngressClassName to use in ingress resources (required with --use-existing)")

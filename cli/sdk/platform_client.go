@@ -358,7 +358,7 @@ func (t *KubernetesPlatformClient) getResourcePod(resourceType string, resourceN
 
 // UpdateIngressConfig updates the drasi-config ConfigMap with ingress controller configuration
 // For regular ingress controllers, provide IngressService and IngressNamespace, leave GatewayIPAddress empty
-// For AGIC, provide IngressClassName and GatewayIPAddress, leave IngressService and IngressNamespace empty
+// For controllers that need a specific IP (like AGIC), provide GatewayIPAddress
 func (k *KubernetesPlatformClient) UpdateIngressConfig(config *IngressConfig, output output.TaskOutput) error {
 	taskName := "Ingress-Config"
 	output.AddTask(taskName, "Updating ingress configuration")
@@ -382,8 +382,7 @@ func (k *KubernetesPlatformClient) UpdateIngressConfig(config *IngressConfig, ou
 	delete(cfg, "INGRESS_CLASS_NAME")
 	delete(cfg, "INGRESS_LOAD_BALANCER_SERVICE")
 	delete(cfg, "INGRESS_LOAD_BALANCER_NAMESPACE")
-	delete(cfg, "INGRESS_TYPE")
-	delete(cfg, "AGIC_GATEWAY_IP")
+	delete(cfg, "INGRESS_IP")
 	delete(cfg, "INGRESS_ANNOTATIONS")
 
 	// Add values only if they are not empty strings
@@ -397,8 +396,7 @@ func (k *KubernetesPlatformClient) UpdateIngressConfig(config *IngressConfig, ou
 		cfg["INGRESS_LOAD_BALANCER_NAMESPACE"] = config.IngressNamespace
 	}
 	if config.GatewayIPAddress != "" {
-		cfg["INGRESS_TYPE"] = "agic"
-		cfg["AGIC_GATEWAY_IP"] = config.GatewayIPAddress
+		cfg["INGRESS_IP"] = config.GatewayIPAddress
 	}
 
 	// Add annotations if provided
@@ -421,7 +419,7 @@ func (k *KubernetesPlatformClient) UpdateIngressConfig(config *IngressConfig, ou
 	}
 
 	if config.GatewayIPAddress != "" {
-		output.SucceedTask(taskName, "AGIC configuration updated")
+		output.SucceedTask(taskName, "Ingress configuration with IP address updated")
 	} else {
 		output.SucceedTask(taskName, "Ingress configuration updated")
 	}
