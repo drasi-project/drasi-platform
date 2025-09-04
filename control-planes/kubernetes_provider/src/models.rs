@@ -106,6 +106,7 @@ pub struct RuntimeConfig {
     pub ingress_class_name: String,
     pub ingress_load_balancer_service: String,
     pub ingress_load_balancer_namespace: String,
+    pub ingress_annotations: BTreeMap<String, String>,
 }
 
 #[derive(Clone, Debug)]
@@ -232,7 +233,24 @@ impl RuntimeConfig {
                 Ok(namespace) => namespace,
                 Err(_) => "projectcontour".to_string(),
             },
+            ingress_annotations: Self::parse_ingress_annotations(),
         }
+    }
+
+    fn parse_ingress_annotations() -> BTreeMap<String, String> {
+        let mut annotations = BTreeMap::new();
+        
+        // Parse INGRESS_ANNOTATIONS environment variable
+        // Expected format: "key1=value1,key2=value2,key3=value3"
+        if let Ok(annotations_str) = std::env::var("INGRESS_ANNOTATIONS") {
+            for pair in annotations_str.split(',') {
+                if let Some((key, value)) = pair.split_once('=') {
+                    annotations.insert(key.trim().to_string(), value.trim().to_string());
+                }
+            }
+        }
+        
+        annotations
     }
 }
 

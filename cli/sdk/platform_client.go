@@ -29,10 +29,11 @@ import (
 
 // IngressConfig holds ingress controller configuration parameters
 type IngressConfig struct {
-	IngressClassName string
-	IngressService   string
-	IngressNamespace string
-	GatewayIPAddress string
+	IngressClassName   string
+	IngressService     string
+	IngressNamespace   string
+	GatewayIPAddress   string
+	IngressAnnotations map[string]string
 }
 
 type PlatformClient interface {
@@ -383,6 +384,7 @@ func (k *KubernetesPlatformClient) UpdateIngressConfig(config *IngressConfig, ou
 	delete(cfg, "INGRESS_LOAD_BALANCER_NAMESPACE")
 	delete(cfg, "INGRESS_TYPE")
 	delete(cfg, "AGIC_GATEWAY_IP")
+	delete(cfg, "INGRESS_ANNOTATIONS")
 
 	// Add values only if they are not empty strings
 	if config.IngressClassName != "" {
@@ -397,6 +399,15 @@ func (k *KubernetesPlatformClient) UpdateIngressConfig(config *IngressConfig, ou
 	if config.GatewayIPAddress != "" {
 		cfg["INGRESS_TYPE"] = "agic"
 		cfg["AGIC_GATEWAY_IP"] = config.GatewayIPAddress
+	}
+
+	// Add annotations if provided
+	if len(config.IngressAnnotations) > 0 {
+		var annotationPairs []string
+		for key, value := range config.IngressAnnotations {
+			annotationPairs = append(annotationPairs, fmt.Sprintf("%s=%s", key, value))
+		}
+		cfg["INGRESS_ANNOTATIONS"] = strings.Join(annotationPairs, ",")
 	}
 
 	// Apply the updated ConfigMap

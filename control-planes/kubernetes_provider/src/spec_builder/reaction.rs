@@ -166,16 +166,9 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             let ingress_name = format!("{}-reaction-ingress", reaction.id);
                             let mut annotations = BTreeMap::new();
 
-                            // Add ALB-specific annotations if using AWS Load Balancer Controller
-                            if runtime_config.ingress_class_name == "alb" {
-                                annotations.insert(
-                                    "alb.ingress.kubernetes.io/scheme".to_string(),
-                                    "internet-facing".to_string(),
-                                );
-                                annotations.insert(
-                                    "alb.ingress.kubernetes.io/target-type".to_string(),
-                                    "ip".to_string(),
-                                );
+                            // Add configurable annotations from RuntimeConfig
+                            for (key, value) in &runtime_config.ingress_annotations {
+                                annotations.insert(key.clone(), value.clone());
                             }
 
                             // Generate hostname: <reaction-name>.drasi.PLACEHOLDER

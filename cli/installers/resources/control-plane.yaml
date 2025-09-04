@@ -93,6 +93,12 @@ spec:
                   name: drasi-config
                   key: INGRESS_LOAD_BALANCER_NAMESPACE
                   optional: true
+            - name: INGRESS_ANNOTATIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: INGRESS_ANNOTATIONS
+                  optional: true
           resources:
             limits:
               cpu: 200m

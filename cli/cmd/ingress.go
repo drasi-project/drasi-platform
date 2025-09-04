@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"drasi.io/cli/output"
 	"drasi.io/cli/sdk"
@@ -42,6 +43,7 @@ func ingressInitCommand() *cobra.Command {
 	var ingressServiceName string
 	var ingressNamespace string
 	var ingressClassName string
+	var ingressAnnotations []string
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -53,9 +55,11 @@ Drasi to work with their existing controller instead.
 
 Usage examples:
   drasi ingress init                                                           # Install and configure Contour (default)
+  drasi ingress init --ingress-annotation "projectcontour.io/websocket-routes=/ws"  # Install Contour with custom annotations
   drasi ingress init --use-existing --ingress-service-name ingress-nginx-controller --ingress-namespace ingress-nginx --ingress-class-name nginx    # Use existing NGINX controller
   drasi ingress init --use-existing --ingress-service-name traefik --ingress-namespace traefik-system --ingress-class-name traefik         # Use existing Traefik controller
-  drasi ingress init --use-existing --ingress-class-name azure-application-gateway --gateway-ip-address <ip-address>                       # Use Azure Application Gateway Ingress Controller (AGIC)`,
+  drasi ingress init --use-existing --ingress-class-name azure-application-gateway --gateway-ip-address <ip-address>                       # Use Azure Application Gateway Ingress Controller (AGIC)
+  drasi ingress init --use-existing --ingress-class-name alb --ingress-annotation "alb.ingress.kubernetes.io/scheme=internet-facing" --ingress-annotation "alb.ingress.kubernetes.io/target-type=ip"  # Use AWS Load Balancer Controller with annotations`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var namespace string
@@ -97,15 +101,24 @@ Usage examples:
 				}
 			}
 
+			// Parse annotations from command line flags (common to both paths)
+			annotationsMap := make(map[string]string)
+			for _, annotation := range ingressAnnotations {
+				if key, value, found := strings.Cut(annotation, "="); found {
+					annotationsMap[strings.TrimSpace(key)] = strings.TrimSpace(value)
+				}
+			}
+
 			if useExisting {
 				output.InfoMessage("Configuring Drasi to use existing ingress controller")
 				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))
 
 				config := &sdk.IngressConfig{
-					IngressClassName: ingressClassName,
-					IngressService:   ingressServiceName,
-					IngressNamespace: ingressNamespace,
-					GatewayIPAddress: gatewayIPAddress,
+					IngressClassName:   ingressClassName,
+					IngressService:     ingressServiceName,
+					IngressNamespace:   ingressNamespace,
+					GatewayIPAddress:   gatewayIPAddress,
+					IngressAnnotations: annotationsMap,
 				}
 				if err := k8sPlatformClient.UpdateIngressConfig(config, output); err != nil {
 					return err
@@ -129,10 +142,11 @@ Usage examples:
 				// Get configuration from the installer
 				installerConfig := ingressInstaller.GetIngressConfig()
 				config := &sdk.IngressConfig{
-					IngressClassName: installerConfig.ClassName,
-					IngressService:   installerConfig.ServiceName,
-					IngressNamespace: installerConfig.Namespace,
-					GatewayIPAddress: "",
+					IngressClassName:   installerConfig.ClassName,
+					IngressService:     installerConfig.ServiceName,
+					IngressNamespace:   installerConfig.Namespace,
+					GatewayIPAddress:   "",
+					IngressAnnotations: annotationsMap, // Include annotations for Contour too
 				}
 				if err := k8sPlatformClient.UpdateIngressConfig(config, output); err != nil {
 					return err
@@ -149,6 +163,7 @@ Usage examples:
 	cmd.Flags().StringVar(&ingressServiceName, "ingress-service-name", "", "Name of the existing ingress controller LoadBalancer service (required with --use-existing for regular controllers)")
 	cmd.Flags().StringVar(&ingressNamespace, "ingress-namespace", "", "Namespace where the existing ingress controller is installed (required with --use-existing for regular controllers)")
 	cmd.Flags().StringVar(&ingressClassName, "ingress-class-name", "", "IngressClassName to use in ingress resources (required with --use-existing)")
+	cmd.Flags().StringSliceVar(&ingressAnnotations, "ingress-annotation", []string{}, "Ingress annotations in key=value format (can be specified multiple times)")
 
 	return cmd
 }
