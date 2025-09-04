@@ -239,7 +239,7 @@ impl RuntimeConfig {
 
     fn parse_ingress_annotations() -> BTreeMap<String, String> {
         let mut annotations = BTreeMap::new();
-        
+
         // Parse INGRESS_ANNOTATIONS environment variable
         // Expected format: "key1=value1,key2=value2,key3=value3"
         if let Ok(annotations_str) = std::env::var("INGRESS_ANNOTATIONS") {
@@ -249,7 +249,7 @@ impl RuntimeConfig {
                 }
             }
         }
-        
+
         annotations
     }
 }

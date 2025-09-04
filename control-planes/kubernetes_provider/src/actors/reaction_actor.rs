@@ -82,8 +82,11 @@ impl ReactionActor {
             Ok(client) => {
                 let ingresses: Api<Ingress> = Api::default_namespaced(client);
                 let label_selector = format!("drasi/resource={}", self.id);
-                
-                match ingresses.list(&kube::api::ListParams::default().labels(&label_selector)).await {
+
+                match ingresses
+                    .list(&kube::api::ListParams::default().labels(&label_selector))
+                    .await
+                {
                     Ok(ingress_list) => {
                         if ingress_list.items.is_empty() {
                             return None;
@@ -112,8 +115,13 @@ impl ReactionActor {
                                                         let ingress_item = &ingress_list[0];
                                                         if let Some(ip) = &ingress_item.ip {
                                                             return Some(format!("http://{}", ip));
-                                                        } else if let Some(hostname) = &ingress_item.hostname {
-                                                            return Some(format!("http://{}", hostname));
+                                                        } else if let Some(hostname) =
+                                                            &ingress_item.hostname
+                                                        {
+                                                            return Some(format!(
+                                                                "http://{}",
+                                                                hostname
+                                                            ));
                                                         }
                                                     }
                                                 }

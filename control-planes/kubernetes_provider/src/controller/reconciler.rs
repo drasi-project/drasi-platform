@@ -448,7 +448,16 @@ impl ResourceReconciler {
         Ok(())
     }
 
-    async fn get_dynamic_ingress_config(&self) -> (String, String, String, bool, Option<String>, BTreeMap<String, String>) {
+    async fn get_dynamic_ingress_config(
+        &self,
+    ) -> (
+        String,
+        String,
+        String,
+        bool,
+        Option<String>,
+        BTreeMap<String, String>,
+    ) {
         // Try to read from drasi-config ConfigMap, fall back to defaults
         let mut ingress_service = self.runtime_config.ingress_load_balancer_service.clone();
         let mut ingress_namespace = self.runtime_config.ingress_load_balancer_namespace.clone();
@@ -485,12 +494,13 @@ impl ResourceReconciler {
                             agic_gateway_ip = Some(gateway_ip.clone());
                         }
                     }
-                    
+
                     // Parse INGRESS_ANNOTATIONS from ConfigMap
                     if let Some(annotations_str) = data.get("INGRESS_ANNOTATIONS") {
                         for pair in annotations_str.split(',') {
                             if let Some((key, value)) = pair.split_once('=') {
-                                ingress_annotations.insert(key.trim().to_string(), value.trim().to_string());
+                                ingress_annotations
+                                    .insert(key.trim().to_string(), value.trim().to_string());
                             }
                         }
                     }
@@ -515,8 +525,14 @@ impl ResourceReconciler {
     }
 
     async fn get_ingress_external_ip(&self) -> Option<String> {
-        let (ingress_service, ingress_namespace, _ingress_class_name, is_agic, agic_gateway_ip, _ingress_annotations) =
-            self.get_dynamic_ingress_config().await;
+        let (
+            ingress_service,
+            ingress_namespace,
+            _ingress_class_name,
+            is_agic,
+            agic_gateway_ip,
+            _ingress_annotations,
+        ) = self.get_dynamic_ingress_config().await;
 
         // For AGIC, return the configured gateway IP directly
         if is_agic {
@@ -586,7 +602,8 @@ impl ResourceReconciler {
                 ) = self.get_dynamic_ingress_config().await;
 
                 // Get controller-specific configuration
-                let controller_config = IngressControllerConfig::from_class_name(&ingress_class_name, is_agic);
+                let controller_config =
+                    IngressControllerConfig::from_class_name(&ingress_class_name, is_agic);
 
                 // Apply dynamic annotations from ConfigMap
                 if !dynamic_annotations.is_empty() {
