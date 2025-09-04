@@ -18,11 +18,10 @@ import (
 	"fmt"
 	"strings"
 
+	"drasi.io/cli/config"
 	"drasi.io/cli/installers"
 	"drasi.io/cli/output"
 	"drasi.io/cli/sdk/registry"
-
-	"drasi.io/cli/config"
 	"github.com/spf13/cobra"
 )
 
@@ -76,13 +75,13 @@ Usage examples:
 				return err
 			}
 
+			var dd *installers.DockerizedDeployer
 			if useDocker {
 				dockerName := "docker"
 				if len(args) > 0 {
 					dockerName = args[0]
 				}
 
-				var dd *installers.DockerizedDeployer
 				if dd, err = installers.MakeDockerizedDeployer(); err != nil {
 					return err
 				}
@@ -97,6 +96,7 @@ Usage examples:
 				if err := registry.SetCurrentRegistration(dockerName); err != nil {
 					return err
 				}
+
 			}
 
 			if containerRegistry, err = cmd.Flags().GetString("registry"); err != nil {
@@ -172,6 +172,12 @@ Usage examples:
 			}
 			if err := installer.Install(local, containerRegistry, version, output, daprRegistry, observabilityLevel); err != nil {
 				return err
+			}
+
+			if useDocker {
+				if err := dd.ConfigureTraefikForDocker("drasi-system", output); err != nil {
+					return fmt.Errorf("failed to configure Traefik for Docker: %w", err)
+				}
 			}
 
 			return nil

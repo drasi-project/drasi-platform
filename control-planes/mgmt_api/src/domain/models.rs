@@ -78,6 +78,7 @@ impl HasKind for SourceSpec {
 pub struct SourceStatus {
     pub available: bool,
     pub messages: Option<BTreeMap<String, String>>,
+    pub ingress_url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -132,6 +133,7 @@ impl HasKind for ReactionSpec {
 pub struct ReactionStatus {
     pub available: bool,
     pub messages: Option<BTreeMap<String, String>>,
+    pub ingress_url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

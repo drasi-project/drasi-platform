@@ -338,6 +338,7 @@ impl From<SourceStatus> for resource_provider_api::models::SourceStatus {
         resource_provider_api::models::SourceStatus {
             available: source_status.available,
             messages: source_status.messages,
+            ingress_url: source_status.ingress_url,
         }
     }
 }
@@ -347,6 +348,7 @@ impl From<resource_provider_api::models::SourceStatus> for SourceStatus {
         SourceStatus {
             available: source_status.available,
             messages: source_status.messages,
+            ingress_url: source_status.ingress_url,
         }
     }
 }
@@ -378,6 +380,7 @@ impl From<ReactionStatus> for resource_provider_api::models::ReactionStatus {
         resource_provider_api::models::ReactionStatus {
             available: reaction_status.available,
             messages: reaction_status.messages,
+            ingress_url: reaction_status.ingress_url,
         }
     }
 }
@@ -387,6 +390,7 @@ impl From<resource_provider_api::models::ReactionStatus> for ReactionStatus {
         ReactionStatus {
             available: reaction_status.available,
             messages: reaction_status.messages,
+            ingress_url: reaction_status.ingress_url,
         }
     }
 }

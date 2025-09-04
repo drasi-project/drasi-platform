@@ -91,10 +91,22 @@ Usage examples:
 						statusFields[statusFieldName] = nil
 						val := reflect.ValueOf(result[i].Status).MapIndex(itemStatus[k])
 
-						switch val.Elem().Kind() {
+						// Check if the value is valid and not null
+						if !val.IsValid() || val.IsNil() {
+							item[statusFieldName] = ""
+							continue
+						}
+
+						elem := val.Elem()
+						if !elem.IsValid() {
+							item[statusFieldName] = ""
+							continue
+						}
+
+						switch elem.Kind() {
 						case reflect.Map:
 							var builder strings.Builder
-							iter := val.Elem().MapRange()
+							iter := elem.MapRange()
 							for iter.Next() {
 								builder.WriteString(iter.Key().String())
 								builder.WriteString(" - ")
@@ -103,10 +115,11 @@ Usage examples:
 							}
 							item[statusFieldName] = builder.String()
 						default:
-							item[statusFieldName] = fmt.Sprintf(" %v", val.Elem())
+							item[statusFieldName] = fmt.Sprintf(" %v", elem)
 						}
 					}
 				}
+
 				items = append(items, item)
 			}
 
