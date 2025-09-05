@@ -1,24 +1,32 @@
 .PHONY: default docker-build kind-load k3d-load test clean
 
-CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
-DOCKERX_OPTS ?= --load
+TAG_SUFFIX ?=
+DOCKERX_OPTS ?= --load --cache-to type=inline,mode=max
+BUILD_CONFIG ?= default
+
+ifneq ($(BUILD_CONFIG), default)
+	DOCKER_TAG_VERSION := ${DOCKER_TAG_VERSION}-$(BUILD_CONFIG)
+endif
+
+ifneq ($(TAG_SUFFIX),)
+	DOCKER_TAG_VERSION := ${DOCKER_TAG_VERSION}$(TAG_SUFFIX)
+endif
 
 default: docker-build
 
 # Build the Docker image for the reaction
 docker-build:
-	docker buildx build . --no-cache -t $(IMAGE_PREFIX)/reaction-sync-semantickernel-vectorstore:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS) -f Dockerfile
+	docker buildx build . -t $(IMAGE_PREFIX)/reaction-sync-semantickernel-vectorstore:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS) -f Dockerfile.$(BUILD_CONFIG)
 
 # Load the built image into the specified Kind cluster
 kind-load:
-	kind load docker-image $(IMAGE_PREFIX)/reaction-sync-semantickernel-vectorstore:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
+	kind load docker-image $(IMAGE_PREFIX)/reaction-sync-semantickernel-vectorstore:$(DOCKER_TAG_VERSION) --name $(if $(CLUSTER_NAME),$(CLUSTER_NAME),kind)
 
 # Load the built image into the specified k3d cluster
-k3d-load: CLUSTER_NAME=k3s-default
 k3d-load:
-	k3d image import $(IMAGE_PREFIX)/reaction-sync-semantickernel-vectorstore:$(DOCKER_TAG_VERSION) -c $(CLUSTER_NAME)
+	k3d image import $(IMAGE_PREFIX)/reaction-sync-semantickernel-vectorstore:$(DOCKER_TAG_VERSION) -c $(if $(CLUSTER_NAME),$(CLUSTER_NAME),k3s-default)
 
 # Run unit tests
 test:

@@ -18,6 +18,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Drasi.Reactions.SyncSemanticKernelVectorStore.Factories;
 using Drasi.Reactions.SyncSemanticKernelVectorStore.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -31,14 +32,22 @@ public class SyncPointManagerTests
     private readonly Mock<ILogger<SyncPointManager>> _mockLogger;
     private readonly Mock<IVectorCollectionAdapter> _mockMetadataCollection;
     private readonly SyncPointManager _syncPointManager;
+    private readonly VectorStoreConfiguration _testConfiguration;
 
     public SyncPointManagerTests()
     {
         _mockVectorStoreService = new Mock<IVectorStoreService>();
         _mockLogger = new Mock<ILogger<SyncPointManager>>();
         _mockMetadataCollection = new Mock<IVectorCollectionAdapter>();
+        _testConfiguration = new VectorStoreConfiguration
+        {
+            VectorStoreType = "inmemory",
+            ConnectionString = "",
+            EmbeddingDimensions = 1536
+        };
         _syncPointManager = new SyncPointManager(
             _mockVectorStoreService.Object,
+            _testConfiguration,
             _mockLogger.Object);
     }
 

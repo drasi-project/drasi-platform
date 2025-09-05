@@ -101,8 +101,11 @@ public class VectorStoreFactory
         {
             var connectionParams = ParseConnectionString(config.ConnectionString);
             string? endpoint = connectionParams.GetValueOrDefault("Endpoint") ?? 
-                               connectionParams.GetValueOrDefault("Host") ?? 
-                               "localhost";
+                               connectionParams.GetValueOrDefault("Host");
+            
+            if (string.IsNullOrEmpty(endpoint))
+                throw new ArgumentException("Endpoint or Host is required in connection string for Qdrant");
+            
             string? apiKey = connectionParams.GetValueOrDefault("ApiKey") ?? 
                             connectionParams.GetValueOrDefault("Key");
             
@@ -158,8 +161,10 @@ public class VectorStoreFactory
             
             // Extract Qdrant connection parameters
             string? endpoint = connectionParams.GetValueOrDefault("Endpoint") ?? 
-                               connectionParams.GetValueOrDefault("Host") ?? 
-                               "localhost";
+                               connectionParams.GetValueOrDefault("Host");
+            
+            if (string.IsNullOrEmpty(endpoint))
+                throw new ArgumentException("Endpoint or Host is required in connection string for Qdrant");
             
             string? apiKey = connectionParams.GetValueOrDefault("ApiKey") ?? 
                             connectionParams.GetValueOrDefault("Key");

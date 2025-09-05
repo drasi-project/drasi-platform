@@ -15,11 +15,11 @@
 using System;
 using Drasi.Reactions.SyncSemanticKernelVectorStore.Adapters;
 using Drasi.Reactions.SyncSemanticKernelVectorStore.Factories;
-using Drasi.Reactions.SyncSemanticKernelVectorStore.VectorStores;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.Connectors.AzureAISearch;
 using Microsoft.SemanticKernel.Connectors.Qdrant;
+using Microsoft.SemanticKernel.Connectors.InMemory;
 using Moq;
 using Xunit;
 
@@ -245,6 +245,38 @@ public class VectorStoreFactoryTests
         // Assert
         Assert.NotNull(result);
         Assert.IsType<QdrantVectorStoreAdapter>(result);
+    }
+
+    [Fact]
+    public void CreateVectorStoreAdapter_QdrantMissingEndpoint_ThrowsArgumentException()
+    {
+        // Arrange
+        var config = new VectorStoreConfiguration
+        {
+            VectorStoreType = "qdrant",
+            ConnectionString = "ApiKey=testkey", // No endpoint provided
+            EmbeddingDimensions = 1536
+        };
+
+        // Act & Assert
+        var ex = Assert.Throws<ArgumentException>(() => _factory.CreateVectorStoreAdapter(config));
+        Assert.Contains("Endpoint or Host is required", ex.Message);
+    }
+
+    [Fact]
+    public void CreateVectorStore_QdrantMissingEndpoint_ThrowsArgumentException()
+    {
+        // Arrange
+        var config = new VectorStoreConfiguration
+        {
+            VectorStoreType = "qdrant",
+            ConnectionString = "", // Empty connection string
+            EmbeddingDimensions = 1536
+        };
+
+        // Act & Assert
+        var ex = Assert.Throws<ArgumentException>(() => _factory.CreateVectorStore(config));
+        Assert.Contains("Endpoint or Host is required", ex.Message);
     }
 
     [Fact]
