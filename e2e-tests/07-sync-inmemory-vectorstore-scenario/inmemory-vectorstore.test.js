@@ -36,29 +36,27 @@ let dbPortForward;
 let dbClient;
 let signalrFixture;
 
-// Helper function to get vector store documents from reaction pods
-async function getInMemoryVectorStoreDocuments(reactionName, collectionName) {
-  try {
-    // Get the pod name for the reaction
-    const podName = cp.execSync(
-      `kubectl get pods -l drasi.io/reaction=${reactionName} -o jsonpath='{.items[0].metadata.name}'`,
-      { encoding: 'utf8' }
-    ).trim();
-    
-    if (!podName) {
-      console.error(`No pod found for reaction ${reactionName}`);
-      return null;
-    }
-
-    // For InMemory vector store, we need to check via pod logs or internal state
-    // Since InMemory doesn't persist, we'll verify through SignalR that changes are being processed
-    // and use query state as proxy for vector store state
-    return { verified: true, podName };
-  } catch (error) {
-    console.error(`Error getting vector store documents: ${error.message}`);
-    return null;
-  }
-}
+/**
+ * InMemory Vector Store Test Scope
+ * 
+ * The InMemory vector store doesn't expose an external API for verification.
+ * Unlike Qdrant (which has HTTP REST API), the InMemory store exists only in 
+ * process memory within the reaction container.
+ * 
+ * What these tests validate:
+ * - Embeddings are generated (via log verification) 
+ * - Documents are processed through the pipeline (via logs)
+ * - Drasi query state changes correctly (via SignalR as proxy)
+ * - The reaction responds to adds/updates/deletes
+ * 
+ * What these tests cannot validate:
+ * - Actual vector store content
+ * - Vector dimensions or structure  
+ * - Document retrieval or search
+ * - Vector similarity operations
+ * 
+ * For full vector store validation, see: e2e-tests/08-sync-qdrant-vectorstore-scenario/
+ */
 
 // Helper to verify embedding was created (check reaction logs)
 async function verifyEmbeddingCreation(reactionName, expectedCount) {
@@ -70,7 +68,7 @@ async function verifyEmbeddingCreation(reactionName, expectedCount) {
       { encoding: 'utf8' }
     );
     
-    // Look for embedding generation logs - match actual log format
+    // Look for embedding generation logs - matches logging done in EmbeddingService.cs 
     const embeddingLogs = logs.match(/Generated\s+embedding\s+for\s+\d+\s+texts/gi) || [];
     const totalEmbeddings = embeddingLogs.reduce((sum, log) => {
       const match = log.match(/for\s+(\d+)\s+texts/i);
@@ -81,6 +79,112 @@ async function verifyEmbeddingCreation(reactionName, expectedCount) {
     return totalEmbeddings >= expectedCount;
   } catch (error) {
     console.error(`Error checking logs: ${error.message}`);
+    return false;
+  }
+}
+
+// Helper to verify initial documents were loaded during bootstrap
+async function verifyInitialLoad(reactionName, queryId, expectedCount) {
+  try {
+    const deploymentName = `${reactionName}-reaction`;
+    const logs = cp.execSync(
+      `kubectl logs -n drasi-system deployment/${deploymentName} -c reaction --tail=500`,
+      { encoding: 'utf8' }
+    );
+    
+    // During bootstrap, QueryInitializationService logs: "Successfully loaded X documents for query Y"
+    const loadPattern = new RegExp(`Successfully loaded (\\d+) documents for query ${queryId}`, 'g');
+    const loadLogs = logs.match(loadPattern) || [];
+    
+    if (loadLogs.length > 0) {
+      const lastLog = loadLogs[loadLogs.length - 1];
+      const match = lastLog.match(/loaded (\d+) documents/);
+      if (match) {
+        const count = parseInt(match[1]);
+        console.log(`Verified initial load of ${count} documents for query ${queryId}`);
+        return count === expectedCount;
+      }
+    }
+    
+    console.log(`No initial load logs found for query ${queryId}`);
+    return false;
+  } catch (error) {
+    console.error(`Error checking initial load logs: ${error.message}`);
+    return false;
+  }
+}
+
+// Helper to verify documents were upserted to vector store (via logs)
+// This is used for incremental changes AFTER initial bootstrap
+async function verifyDocumentUpsert(reactionName, queryId, expectedCount) {
+  try {
+    const deploymentName = `${reactionName}-reaction`;
+    const logs = cp.execSync(
+      `kubectl logs -n drasi-system deployment/${deploymentName} -c reaction --tail=500`,
+      { encoding: 'utf8' }
+    );
+    
+    // Look for upsert logs - matches ChangeEventHandler.cs lines 164-166
+    const upsertPattern = new RegExp(`Successfully upserted \\d+ documents for query ${queryId}`, 'g');
+    const upsertLogs = logs.match(upsertPattern) || [];
+    
+    console.log(`DEBUG: Found ${upsertLogs.length} upsert log entries for query ${queryId}`);
+    if (upsertLogs.length === 0) {
+      // Try to find any upsert logs to debug
+      const anyUpsertLogs = logs.match(/Successfully upserted \d+ documents/g) || [];
+      console.log(`DEBUG: Found ${anyUpsertLogs.length} total upsert logs (any query):`);
+      anyUpsertLogs.forEach(log => console.log(`  - ${log}`));
+      
+      // Also check for any errors
+      const errorLogs = logs.match(/ERROR|Failed to upsert|Exception/gi) || [];
+      if (errorLogs.length > 0) {
+        console.log(`DEBUG: Found ${errorLogs.length} potential error logs`);
+      }
+    }
+    
+    if (upsertLogs.length > 0) {
+      // Get the most recent upsert log
+      const lastLog = upsertLogs[upsertLogs.length - 1];
+      const match = lastLog.match(/upserted (\d+) documents/);
+      if (match) {
+        const count = parseInt(match[1]);
+        console.log(`Found upsert of ${count} documents for query ${queryId} (expected ${expectedCount})`);
+        return count === expectedCount;
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error(`Error checking upsert logs: ${error.message}`);
+    return false;
+  }
+}
+
+// Helper to verify documents were deleted from vector store (via logs)
+async function verifyDocumentDeletion(reactionName, queryId, expectedCount) {
+  try {
+    const deploymentName = `${reactionName}-reaction`;
+    const logs = cp.execSync(
+      `kubectl logs -n drasi-system deployment/${deploymentName} -c reaction --tail=500`,
+      { encoding: 'utf8' }
+    );
+    
+    // Look for deletion logs - matches ChangeEventHandler.cs lines 215-217
+    const deletePattern = new RegExp(`Successfully deleted \\d+ documents for query ${queryId}`, 'g');
+    const deleteLogs = logs.match(deletePattern) || [];
+    
+    if (deleteLogs.length > 0) {
+      // Get the most recent delete log
+      const lastLog = deleteLogs[deleteLogs.length - 1];
+      const match = lastLog.match(/deleted (\d+) documents/);
+      if (match) {
+        const count = parseInt(match[1]);
+        console.log(`Found deletion of ${count} documents for query ${queryId}`);
+        return count === expectedCount;
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error(`Error checking deletion logs: ${error.message}`);
     return false;
   }
 }
@@ -202,9 +306,9 @@ afterAll(async () => {
   }
 });
 
-describe("InMemory Vector Store E2E Tests", () => {
-  test("Initial state sync - Simple query", async () => {
-    console.log("Verifying initial state sync for simple products query...");
+describe("InMemory Vector Store Pipeline E2E Tests", () => {
+  test("Initial state sync - Simple query (validates pipeline, not storage)", async () => {
+    console.log("Verifying initial state sync pipeline for simple products query...");
 
     // Get current state from SignalR (as proxy for vector store state)
     const queryData = await signalrFixture.requestReload("sk-products-query");
@@ -219,8 +323,12 @@ describe("InMemory Vector Store E2E Tests", () => {
     // Verify reaction is processing (check logs for embedding generation)
     const embeddingsCreated = await verifyEmbeddingCreation("sk-inmemory-simple-reaction", 5);
     expect(embeddingsCreated).toBe(true);
+    
+    // Verify initial documents were loaded during bootstrap
+    const initialLoadVerified = await verifyInitialLoad("sk-inmemory-simple-reaction", "sk-products-query", 5);
+    expect(initialLoadVerified).toBe(true);
 
-    console.log("Simple query initial sync verified.");
+    console.log("Simple query initial sync pipeline verified.");
   }, 60000);
 
   test("Initial state sync - Join query", async () => {
@@ -396,12 +504,16 @@ describe("InMemory Vector Store E2E Tests", () => {
     const result = await deletePromise;
     expect(result).toBeTruthy();
     
-    // Verify product is gone
+    // Verify product is gone from query state
     const queryData = await signalrFixture.requestReload("sk-products-query");
     const deletedProduct = queryData.find(item => item.id === 106);
     expect(deletedProduct).toBeUndefined();
+    
+    // Verify deletion was processed (via logs)
+    const deletionProcessed = await verifyDocumentDeletion("sk-inmemory-simple-reaction", "sk-products-query", 1);
+    expect(deletionProcessed).toBe(true);
 
-    console.log("Single row delete verified.");
+    console.log("Single row delete pipeline verified.");
   }, 30000);
 
   test("Delete operations - Cascade delete in join", async () => {
