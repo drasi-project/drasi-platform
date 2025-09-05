@@ -39,18 +39,21 @@ let qdrantPortForward;
 let qdrantPort; // Store the port separately
 let signalrFixture;
 
-// Helper function to generate deterministic GUID from string key (matching C# MD5 logic)
+// Helper function to generate deterministic GUID from string key (matching C# SHA-256 logic)
 function generateDeterministicGuid(key) {
-  const hash = crypto.createHash('md5').update(key).digest();
+  const hash = crypto.createHash('sha256').update(key).digest();
+  // Take first 16 bytes of SHA-256 hash for GUID
+  const guidBytes = hash.slice(0, 16);
+  
   // C# Guid(byte[]) constructor interprets bytes with specific endianness:
   // - First 4 bytes as little-endian Int32
   // - Next 2 bytes as little-endian Int16  
   // - Next 2 bytes as little-endian Int16
   // - Last 8 bytes as-is
-  const a = hash.readUInt32LE(0);
-  const b = hash.readUInt16LE(4);
-  const c = hash.readUInt16LE(6);
-  const d = Buffer.from([hash[8], hash[9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]]);
+  const a = guidBytes.readUInt32LE(0);
+  const b = guidBytes.readUInt16LE(4);
+  const c = guidBytes.readUInt16LE(6);
+  const d = Buffer.from([guidBytes[8], guidBytes[9], guidBytes[10], guidBytes[11], guidBytes[12], guidBytes[13], guidBytes[14], guidBytes[15]]);
   
   const guid = [
     a.toString(16).padStart(8, '0'),

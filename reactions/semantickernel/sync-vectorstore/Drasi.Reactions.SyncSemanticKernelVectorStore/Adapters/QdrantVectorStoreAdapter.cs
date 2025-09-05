@@ -349,12 +349,15 @@ internal class QdrantCollectionAdapter : IVectorCollectionAdapter
     }
 
     /// <summary>
-    /// Generates a deterministic GUID from a string key
+    /// Generates a deterministic GUID from a string key using SHA-256
     /// </summary>
     private static Guid GenerateDeterministicGuid(string key)
     {
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(key));
-        return new Guid(hash);
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        byte[] hash = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(key));
+        // Take first 16 bytes of SHA-256 hash for GUID
+        byte[] guidBytes = new byte[16];
+        Array.Copy(hash, guidBytes, 16);
+        return new Guid(guidBytes);
     }
 }
