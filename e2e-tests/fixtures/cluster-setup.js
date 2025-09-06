@@ -16,7 +16,9 @@
 
 const cp = require('child_process');
 const util = require('util');
+const path = require('path');
 const { loadDrasiImages, installDrasi, tryLoadInfraImages, waitForChildProcess } = require('./infrastructure');
+const { configureDNS } = require('./configure-dns');
 const execAsync = util.promisify(cp.exec);
 
 function getErrorMessage(error, defaultMessage = 'Unknown error') {
@@ -81,8 +83,24 @@ module.exports = async function () {
     }
 
     console.log(`Creating cluster '${clusterName}'...`);
-    await waitForChildProcess(cp.exec(`kind create cluster --name ${clusterName}`, { encoding: 'utf-8' }));
+    // Check if Kind config file exists, use it if available
+    const kindConfigPath = path.join(__dirname, 'kind-config.yaml');
+    const fs = require('fs');
+    let createCommand = `kind create cluster --name ${clusterName}`;
+    if (fs.existsSync(kindConfigPath)) {
+      createCommand += ` --config ${kindConfigPath}`;
+      console.log(`Using Kind configuration from ${kindConfigPath}`);
+    }
+    
+    await waitForChildProcess(cp.exec(createCommand, { encoding: 'utf-8' }));
     await waitForChildProcess(cp.exec(`docker update --memory=8g --memory-swap=8g --cpus=4 ${clusterName}-control-plane`, { encoding: 'utf-8' }));
+    
+    // Configure DNS for external access (e.g., Azure OpenAI)
+    try {
+      await configureDNS();
+    } catch (error) {
+      console.warn("DNS configuration failed, continuing anyway:", error.message);
+    }
   }
 
   console.log("Loading Docker images into Kind cluster...");
