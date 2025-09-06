@@ -160,18 +160,18 @@ beforeAll(async () => {
   const reactions = yaml.loadAll(fs.readFileSync(reactionsFilePath, 'utf8'));
 
   // Replace Azure OpenAI configuration from environment variables
-  const azureKey = process.env.AZURE_OPENAI_KEY;
-  const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
-  const azureModel = process.env.AZURE_OPENAI_MODEL;
+  const azureKey = process.env.E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY;
+  const azureEndpoint = process.env.E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT;
+  const azureModel = process.env.E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL;
   
   if (!azureKey) {
-    throw new Error("AZURE_OPENAI_KEY environment variable is required");
+    throw new Error("E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY environment variable is required");
   }
   if (!azureEndpoint) {
-    throw new Error("AZURE_OPENAI_ENDPOINT environment variable is required");
+    throw new Error("E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT environment variable is required");
   }
   if (!azureModel) {
-    throw new Error("AZURE_OPENAI_MODEL environment variable is required");
+    throw new Error("E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL environment variable is required");
   }
   
   console.log(`Azure OpenAI configured: endpoint=${azureEndpoint}, model=${azureModel}`);
@@ -187,13 +187,13 @@ beforeAll(async () => {
   
   // Update reactions with environment-specific values
   reactions.forEach(reaction => {
-    if (reaction.spec?.properties?.embeddingApiKey === '${AZURE_OPENAI_KEY}') {
+    if (reaction.spec?.properties?.embeddingApiKey === '${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}') {
       reaction.spec.properties.embeddingApiKey = azureKey;
     }
-    if (reaction.spec?.properties?.embeddingEndpoint) {
+    if (reaction.spec?.properties?.embeddingEndpoint === '${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}') {
       reaction.spec.properties.embeddingEndpoint = azureEndpoint;
     }
-    if (reaction.spec?.properties?.embeddingModel) {
+    if (reaction.spec?.properties?.embeddingModel === '${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}') {
       reaction.spec.properties.embeddingModel = azureModel;
     }
   });

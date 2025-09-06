@@ -37,8 +37,9 @@ async function configureDNS() {
        ttl 30
     }
     prometheus :9153
-    forward . 8.8.8.8 8.8.4.4 {
+    forward . /etc/resolv.conf 8.8.8.8 8.8.4.4 {
        max_concurrent 1000
+       prefer_udp
     }
     cache 30
     loop
@@ -65,6 +66,14 @@ async function configureDNS() {
     // Wait for CoreDNS to be ready
     await execAsync('kubectl rollout status deployment/coredns -n kube-system --timeout=60s');
     console.log("CoreDNS is ready with Google DNS configuration.");
+    
+    // Verify DNS is working by testing internal resolution
+    try {
+      const { stdout } = await execAsync('kubectl run dns-test --image=busybox:1.28 --rm -i --restart=Never -- nslookup kubernetes.default', { timeout: 10000 });
+      console.log("DNS test successful - internal resolution working");
+    } catch (testError) {
+      console.warn("DNS test failed, but continuing:", testError.message);
+    }
     
   } catch (error) {
     console.error("Failed to configure DNS:", error.message);

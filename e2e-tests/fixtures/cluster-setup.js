@@ -98,6 +98,9 @@ module.exports = async function () {
     // Configure DNS for external access (e.g., Azure OpenAI)
     try {
       await configureDNS();
+      // Give CoreDNS some time to stabilize after restart
+      console.log("Waiting for CoreDNS to stabilize...");
+      await new Promise(resolve => setTimeout(resolve, 5000));
     } catch (error) {
       console.warn("DNS configuration failed, continuing anyway:", error.message);
     }
