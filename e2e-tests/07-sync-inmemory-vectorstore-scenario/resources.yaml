@@ -87,6 +87,6 @@ metadata:
   name: azure-openai-secret
 type: Opaque
 stringData:
-  endpoint: "https://aman-eastus-resource.cognitiveservices.azure.com/"
-  apiKey: "${AZURE_OPENAI_KEY}"  # Will be replaced during deployment
-  deploymentName: "text-embedding-3-large"
+  endpoint: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}"  # Will be replaced during deployment
+  apiKey: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}"  # Will be replaced during deployment
+  deploymentName: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}"  # Will be replaced during deployment

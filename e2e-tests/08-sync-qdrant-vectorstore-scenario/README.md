@@ -20,13 +20,14 @@ PostgreSQL → Drasi Queries → SK Vector Store Reaction → Qdrant Vector Stor
 Verifies that existing database rows are:
 - Detected by Drasi queries
 - Processed to generate embeddings via Azure OpenAI
-- Stored in Qdrant collections with proper vector dimensions (3072)
+- Stored in Qdrant collections with proper vector dimensions
 - Accessible via Qdrant's HTTP API for verification
 
 ```javascript
 // Verify collection has initial 5 products
 const collectionInfo = await getQdrantCollectionInfo(qdrantPort, "qdrant_products_simple");
 expect(collectionInfo.result.points_count).toBeGreaterThanOrEqual(5);
+// Vector dimensions should match the configured embedding model
 expect(collectionInfo.result.config.params.vectors.size).toBe(3072);
 ```
 
@@ -126,9 +127,9 @@ spec:
     vectorStoreType: Qdrant
     connectionString: "Endpoint=qdrant.default.svc.cluster.local:6334"  # gRPC port
     embeddingServiceType: AzureOpenAI
-    embeddingEndpoint: "https://aman-eastus-resource.cognitiveservices.azure.com/"
-    embeddingApiKey: "${AZURE_OPENAI_KEY}"  # Set via environment variable
-    embeddingModel: "text-embedding-3-large"
+    embeddingEndpoint: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}"  # Set via environment variable
+    embeddingApiKey: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}"  # Set via environment variable
+    embeddingModel: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}"  # Set via environment variable
     embeddingDimensions: 3072
     distanceFunction: CosineSimilarity
     indexKind: Hnsw
@@ -138,8 +139,9 @@ spec:
 ### Key Components
 - **Vector Store**: Qdrant (persistent, production-ready)
 - **Embedding Service**: Azure OpenAI
-- **Embedding Model**: text-embedding-3-large (3072 dimensions)
-- **Template Engine**: Handlebars for document and title generation
+- **Embedding Model**: Configured via `E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL` environment variable
+- **Embedding Dimensions**: 3072 (must match your model's output dimensions)
+- **Template Engine**: String templates for document and title generation
 - **Database**: PostgreSQL with logical replication enabled
 - **Distance Function**: Cosine Similarity
 - **Index Type**: HNSW (Hierarchical Navigable Small World)
@@ -210,9 +212,14 @@ INSERT INTO products (id, name, description, category_id) VALUES
 ### Required
 All three environment variables must be set before running the tests:
 
-- `AZURE_OPENAI_KEY`: API key for Azure OpenAI service
-- `AZURE_OPENAI_ENDPOINT`: Azure OpenAI endpoint URL (e.g., `https://your-resource.openai.azure.com/`)
-- `AZURE_OPENAI_MODEL`: Embedding model deployment name (e.g., `text-embedding-3-large`)
+- `E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY`: API key for Azure OpenAI service
+- `E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT`: Azure OpenAI endpoint URL
+  - Format: `https://your-resource.openai.azure.com/`
+  - Must include `https://` prefix and trailing `/`
+- `E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL`: Embedding model deployment name
+  - Examples: `text-embedding-3-large`, `text-embedding-3-small`, `text-embedding-ada-002`
+  - Must match a deployment in your Azure OpenAI resource
+  - Model dimensions must align with `embeddingDimensions` config (3072 for text-embedding-3-large)
 
 ## Verification Methods
 
@@ -241,9 +248,9 @@ Unlike InMemory store, Qdrant provides direct verification through its HTTP API:
 ### Prerequisites
 ```bash
 # Required: Set all Azure OpenAI environment variables
-export AZURE_OPENAI_KEY="your-api-key"
-export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
-export AZURE_OPENAI_MODEL="text-embedding-3-large"
+export E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY="your-api-key"
+export E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
+export E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL="text-embedding-3-large"
 
 # Ensure Docker is running and kind cluster is available
 docker info
@@ -266,7 +273,7 @@ npx jest 08-sync-qdrant-vectorstore-scenario/qdrant-vectorstore.test.js
 
 ### ✅ Success Indicators:
 - All 5 initial products generate embeddings and appear in Qdrant
-- Collections created with correct vector dimensions (3072)
+- Collections created with correct vector dimensions (matching the embedding model)
 - Insert operations add documents within 30 seconds
 - Update operations regenerate embeddings with new content
 - Delete operations remove documents from Qdrant
@@ -275,10 +282,11 @@ npx jest 08-sync-qdrant-vectorstore-scenario/qdrant-vectorstore.test.js
 - Resource cleanup completes successfully
 
 ### ❌ Common Failures:
-- **Missing environment variables**: All three Azure OpenAI variables are required: `AZURE_OPENAI_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_MODEL`
+- **Missing environment variables**: All three Azure OpenAI variables are required: `E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY`, `E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT`, `E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL`
 - **Invalid API key**: Verify key has access to the specified endpoint and model
-- **Wrong endpoint format**: Ensure endpoint includes `https://` and trailing `/`
+- **Wrong endpoint format**: Ensure endpoint includes `https://` prefix and trailing `/`
 - **Model not deployed**: Verify the model name matches your Azure OpenAI deployment
+- **Model dimension mismatch**: If using a different model, ensure `embeddingDimensions` matches the model's output (e.g., 1536 for ada-002, 3072 for text-embedding-3-large)
 - **Qdrant connection issues**: Check Qdrant pod is running and accessible
 - **Timeout errors**: Initial sync may take up to 60 seconds due to embedding generation
 - **Port conflicts**: Ensure ports 5432 and 6333 aren't in use locally

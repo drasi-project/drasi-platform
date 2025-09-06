@@ -18,9 +18,9 @@ spec:
     vectorStoreType: InMemory
     connectionString: ""
     embeddingServiceType: AzureOpenAI
-    embeddingEndpoint: "https://aman-eastus-resource.cognitiveservices.azure.com/"
-    embeddingApiKey: "${AZURE_OPENAI_KEY}"
-    embeddingModel: "text-embedding-3-large"
+    embeddingEndpoint: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}"  # Will be replaced during deployment
+    embeddingApiKey: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}"  # Will be replaced during deployment
+    embeddingModel: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}"  # Will be replaced during deployment
     embeddingDimensions: 3072
     distanceFunction: CosineSimilarity
     indexKind: Hnsw
@@ -46,9 +46,9 @@ spec:
     vectorStoreType: InMemory
     connectionString: ""
     embeddingServiceType: AzureOpenAI
-    embeddingEndpoint: "https://aman-eastus-resource.cognitiveservices.azure.com/"
-    embeddingApiKey: "${AZURE_OPENAI_KEY}"
-    embeddingModel: "text-embedding-3-large"
+    embeddingEndpoint: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}"  # Will be replaced during deployment
+    embeddingApiKey: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}"  # Will be replaced during deployment
+    embeddingModel: "${E2E_SK_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}"  # Will be replaced during deployment
     embeddingDimensions: 3072
     distanceFunction: CosineSimilarity
     indexKind: Hnsw
