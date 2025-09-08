@@ -109,7 +109,6 @@ pub struct RuntimeConfig {
     pub ingress_annotations: BTreeMap<String, String>,
 }
 
-
 impl RuntimeConfig {
     #[allow(clippy::should_implement_trait)]
     pub fn default() -> RuntimeConfig {
