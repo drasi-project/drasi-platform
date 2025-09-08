@@ -309,7 +309,7 @@ func (t *KubernetesPlatformClient) createManagementApiTunnel(apiClient *ApiClien
 
 func (t *KubernetesPlatformClient) getApiPodName() (string, error) {
 	namespace := t.kubeNamespace
-	endpointSlices, err := t.kubeClient.DiscoveryV1().EndpointSlices(namespace).List(context.TODO(), v1.ListOptions{
+	endpointSlices, err := t.kubeClient.DiscoveryV1().EndpointSlices(namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "kubernetes.io/service-name=drasi-api",
 	})
 	if err != nil {
@@ -333,7 +333,7 @@ type ResourcePodPort struct {
 
 func (t *KubernetesPlatformClient) getResourcePod(resourceType string, resourceName string) (*ResourcePodPort, error) {
 	namespace := t.kubeNamespace
-	endpointSlices, err := t.kubeClient.DiscoveryV1().EndpointSlices(namespace).List(context.TODO(), v1.ListOptions{
+	endpointSlices, err := t.kubeClient.DiscoveryV1().EndpointSlices(namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("drasi/type=%s,drasi/resource=%s", resourceType, resourceName),
 	})
 	if err != nil {
