@@ -60,13 +60,17 @@ func MakeContourInstaller(platformClient *sdk.KubernetesPlatformClient) (*Contou
 }
 
 func (ci *ContourInstaller) Install(drasiNamespace string, output output.TaskOutput) error {
+	return ci.InstallWithOptions(drasiNamespace, false, output)
+}
+
+func (ci *ContourInstaller) InstallWithOptions(drasiNamespace string, localCluster bool, output output.TaskOutput) error {
 	contourInstalled, err := ci.checkContourInstallation(output)
 	if err != nil {
 		return err
 	}
 
 	if !contourInstalled {
-		if err = ci.installContour(output); err != nil {
+		if err = ci.installContour(localCluster, output); err != nil {
 			return err
 		}
 	}
@@ -96,7 +100,7 @@ func (ci *ContourInstaller) checkContourInstallation(output output.TaskOutput) (
 	}
 }
 
-func (ci *ContourInstaller) installContour(output output.TaskOutput) error {
+func (ci *ContourInstaller) installContour(localCluster bool, output output.TaskOutput) error {
 	output.AddTask("Contour-Install", "Installing Contour...")
 	ns := "projectcontour"
 	kubeContextFile, err := ci.saveKubeConfigToTemp()
@@ -178,7 +182,8 @@ func (ci *ContourInstaller) installContour(output output.TaskOutput) error {
 
 	installClient.ReleaseName = "contour"
 	installClient.Namespace = "projectcontour"
-	installClient.Wait = true
+	// Don't wait for LoadBalancer services in local clusters since they never get external IPs
+	installClient.Wait = !localCluster
 	installClient.CreateNamespace = true
 	installClient.Timeout = time.Duration(300) * time.Second
 

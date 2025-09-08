@@ -39,6 +39,7 @@ func NewIngressCommand() *cobra.Command {
 
 func ingressInitCommand() *cobra.Command {
 	var useExisting bool
+	var localCluster bool
 	var ingressIPAddress string
 	var ingressServiceName string
 	var ingressNamespace string
@@ -55,6 +56,7 @@ Drasi to work with their existing controller instead.
 
 Usage examples:
   drasi ingress init                                                           # Install and configure Contour (default)
+  drasi ingress init --local-cluster                                          # Install Contour optimized for local dev (kind, minikube)
   drasi ingress init --ingress-annotation "projectcontour.io/websocket-routes=/ws"  # Install Contour with custom annotations
   drasi ingress init --use-existing --ingress-service-name ingress-nginx-controller --ingress-namespace ingress-nginx --ingress-class-name nginx    # Use existing NGINX controller
   drasi ingress init --use-existing --ingress-service-name traefik --ingress-namespace traefik-system --ingress-class-name traefik         # Use existing Traefik controller
@@ -135,7 +137,7 @@ Usage examples:
 
 				output.InfoMessage("Installing Contour ingress controller to projectcontour namespace...")
 
-				if err := ingressInstaller.Install(namespace, output); err != nil {
+				if err := ingressInstaller.InstallWithOptions(namespace, localCluster, output); err != nil {
 					return err
 				}
 
@@ -159,6 +161,7 @@ Usage examples:
 	}
 
 	cmd.Flags().BoolVar(&useExisting, "use-existing", false, "Use existing ingress controller instead of installing Contour")
+	cmd.Flags().BoolVar(&localCluster, "local-cluster", false, "Optimize for local development clusters (kind, minikube) - skips readiness wait for LoadBalancer services")
 	cmd.Flags().StringVar(&ingressIPAddress, "ingress-ip-address", "", "Public IP address for the ingress controller (use with --use-existing for controllers like AGIC)")
 	cmd.Flags().StringVar(&ingressServiceName, "ingress-service-name", "", "Name of the existing ingress controller LoadBalancer service (required with --use-existing for regular controllers)")
 	cmd.Flags().StringVar(&ingressNamespace, "ingress-namespace", "", "Namespace where the existing ingress controller is installed (required with --use-existing for regular controllers)")

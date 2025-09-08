@@ -36,7 +36,7 @@ use serde::Serialize;
 
 use crate::models::Component;
 
-use super::super::models::{IngressControllerConfig, KubernetesSpec, RuntimeConfig};
+use super::super::models::{KubernetesSpec, RuntimeConfig};
 
 pub struct ResourceReconciler {
     spec: KubernetesSpec,
@@ -572,7 +572,7 @@ impl ResourceReconciler {
             let ip_suffix = match self.get_ingress_external_ip().await {
                 Some(ip) => format!("{}.nip.io", ip),
                 None => {
-                    log::warn!("Could not determine external IP, using UNAVAILABLE placeholder");
+                    log::warn!("Could not determine external IP, using UNAVAILABLE");
                     "UNAVAILABLE".to_string()
                 }
             };
@@ -585,10 +585,6 @@ impl ResourceReconciler {
                     _ingress_ip,
                     dynamic_annotations,
                 ) = self.get_dynamic_ingress_config().await;
-
-                // Get controller-specific configuration
-                let controller_config =
-                    IngressControllerConfig::from_class_name(&ingress_class_name);
 
                 // Apply dynamic annotations from ConfigMap
                 if !dynamic_annotations.is_empty() {
@@ -604,18 +600,18 @@ impl ResourceReconciler {
                 }
 
                 if let Some(spec) = &mut ingress_spec.spec {
-                    spec.ingress_class_name = Some(controller_config.class_name.clone());
+                    spec.ingress_class_name = Some(ingress_class_name);
                 }
 
                 if let Some(spec) = &mut ingress_spec.spec {
                     if let Some(rules) = &mut spec.rules {
                         for rule in rules {
-                            // Handle hostname based on controller capabilities
                             if let Some(host) = &rule.host {
                                 if host.contains("PLACEHOLDER") {
-                                    if controller_config.supports_hostname {
+                                    if ip_suffix != "UNAVAILABLE" {
                                         rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
                                     } else {
+                                        log::warn!("Could not determine external IP, using None");
                                         rule.host = None;
                                     }
                                 }
@@ -623,7 +619,7 @@ impl ResourceReconciler {
 
                             if let Some(http) = &mut rule.http {
                                 for path in &mut http.paths {
-                                    path.path_type = controller_config.path_type.clone();
+                                    path.path_type = "Prefix".to_string();
                                 }
                             }
                         }

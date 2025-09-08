@@ -16,7 +16,7 @@
 
 const cp = require('child_process');
 const util = require('util');
-const { loadDrasiImages, installDrasi, tryLoadInfraImages, waitForChildProcess } = require('./infrastructure');
+const { loadDrasiImages, installDrasi, installDrasiIngress, tryLoadInfraImages, waitForChildProcess } = require('./infrastructure');
 const execAsync = util.promisify(cp.exec);
 
 function getErrorMessage(error, defaultMessage = 'Unknown error') {
@@ -93,5 +93,7 @@ module.exports = async function () {
 
   console.log("Installing Drasi...");
   await installDrasi(version);
+  console.log("Installing Drasi Ingress...");
+  await installDrasiIngress();
   console.log("Cluster setup complete.");
 };

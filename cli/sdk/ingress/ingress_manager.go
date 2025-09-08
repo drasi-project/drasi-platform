@@ -26,6 +26,9 @@ type IngressInstaller interface {
 	// Install installs the ingress controller and configures it for Drasi usage
 	Install(drasiNamespace string, output output.TaskOutput) error
 
+	// InstallWithOptions installs the ingress controller with additional options
+	InstallWithOptions(drasiNamespace string, localCluster bool, output output.TaskOutput) error
+
 	// GetIngressConfig returns the configuration details for this ingress controller
 	GetIngressConfig() IngressConfig
 }

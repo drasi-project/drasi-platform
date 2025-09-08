@@ -109,52 +109,6 @@ pub struct RuntimeConfig {
     pub ingress_annotations: BTreeMap<String, String>,
 }
 
-#[derive(Clone, Debug)]
-pub struct IngressControllerConfig {
-    pub class_name: String,
-    pub supports_hostname: bool,
-    pub path_type: String,
-}
-
-impl IngressControllerConfig {
-    pub fn from_class_name(class_name: &str) -> Self {
-        match class_name {
-            "alb" => IngressControllerConfig {
-                class_name: class_name.to_string(),
-                supports_hostname: false, // ALB generates its own URL
-                path_type: "Prefix".to_string(),
-            },
-            "nginx" => IngressControllerConfig {
-                class_name: class_name.to_string(),
-                supports_hostname: true,
-                path_type: "Prefix".to_string(),
-            },
-            "contour" => IngressControllerConfig {
-                class_name: class_name.to_string(),
-                supports_hostname: true,
-                path_type: "Prefix".to_string(),
-            },
-            "traefik" => IngressControllerConfig {
-                class_name: class_name.to_string(),
-                supports_hostname: true,
-                path_type: "Prefix".to_string(),
-            },
-            "azure-application-gateway" => IngressControllerConfig {
-                class_name: class_name.to_string(),
-                supports_hostname: true,
-                path_type: "Exact".to_string(),
-            },
-            _ => {
-                // Default configuration for unknown controllers
-                IngressControllerConfig {
-                    class_name: class_name.to_string(),
-                    supports_hostname: true,
-                    path_type: "Prefix".to_string(),
-                }
-            }
-        }
-    }
-}
 
 impl RuntimeConfig {
     #[allow(clippy::should_implement_trait)]
