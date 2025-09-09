@@ -527,9 +527,6 @@ impl ResourceReconciler {
 
         if let Some(ip) = ingress_ip {
             return Some(ip);
-        } else {
-            log::warn!("Ingress configured but no IP found");
-            return None;
         }
 
         // For traditional ingress controllers, lookup IP from LoadBalancer service

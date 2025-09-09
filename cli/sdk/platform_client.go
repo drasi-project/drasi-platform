@@ -442,7 +442,7 @@ func (k *KubernetesPlatformClient) GetIngressURL(resourceName string) string {
 
 	ingress := ingressList.Items[0]
 
-	if ingress.Spec.Rules != nil && len(ingress.Spec.Rules) > 0 {
+	if len(ingress.Spec.Rules) > 0 {
 		rule := ingress.Spec.Rules[0]
 
 		// If host is set and not "*", use the hostname
@@ -452,7 +452,7 @@ func (k *KubernetesPlatformClient) GetIngressURL(resourceName string) string {
 
 		// If host is "*" or empty, use the ingress address directly
 		if rule.Host == "*" || rule.Host == "" {
-			if ingress.Status.LoadBalancer.Ingress != nil && len(ingress.Status.LoadBalancer.Ingress) > 0 {
+			if len(ingress.Status.LoadBalancer.Ingress) > 0 {
 				address := ""
 				if ingress.Status.LoadBalancer.Ingress[0].IP != "" {
 					address = ingress.Status.LoadBalancer.Ingress[0].IP
