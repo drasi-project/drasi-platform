@@ -188,6 +188,23 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 	installClient.Timeout = time.Duration(300) * time.Second
 
 	// Configure Contour values
+	serviceType := "LoadBalancer"
+	serviceValues := map[string]interface{}{
+		"type": serviceType,
+	}
+
+	// For local clusters (like kind), use NodePort with specific ports for extraPortMappings
+	if localCluster {
+		serviceType = "NodePort"
+		serviceValues = map[string]interface{}{
+			"type": serviceType,
+			"nodePorts": map[string]interface{}{
+				"http":  30080,
+				"https": 30443,
+			},
+		}
+	}
+
 	values := map[string]interface{}{
 		"contour": map[string]interface{}{
 			"configFileContents": map[string]interface{}{
@@ -195,9 +212,7 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 			},
 		},
 		"envoy": map[string]interface{}{
-			"service": map[string]interface{}{
-				"type": "LoadBalancer",
-			},
+			"service": serviceValues,
 		},
 	}
 
