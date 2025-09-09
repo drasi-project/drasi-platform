@@ -31,7 +31,8 @@ class IngressFixture {
     this.ingressServiceName = ingressServiceName;
     this.ingressNamespace = ingressNamespace;
     
-    this.portForward = new PortForward(ingressServiceName, 80, ingressNamespace);
+    // No port forwarding needed with kind extraPortMappings
+    // this.portForward = new PortForward(ingressServiceName, 80, ingressNamespace);
     
     // SignalR change listeners
     this.changeListeners = new Map();
@@ -41,15 +42,15 @@ class IngressFixture {
   }
 
   async start() {
-    // Start port forwarding to the ingress controller
-    this.localPort = await this.portForward.start();
+    // With kind extraPortMappings, access directly via localhost
+    // No port forwarding needed
     
     // Generate the hostname that the ingress expects
     // Format: {reaction-name}.drasi.{ip}.nip.io
-    // For local testing, we can use a fake IP since we're port-forwarding
-    this.hostname = `${this.reactionName}.drasi.127.0.0.1.nip.io`;
+    // For local testing with kind, we can use localhost
+    this.hostname = `${this.reactionName}.drasi.localhost`;
     
-    console.log(`IngressFixture: Started port-forward to ${this.ingressServiceName}:80 on localhost:${this.localPort}`);
+    console.log(`IngressFixture: Using direct localhost access via kind extraPortMappings`);
     console.log(`IngressFixture: Using hostname: ${this.hostname}`);
     
     // Initialize SignalR connection through ingress
@@ -58,12 +59,12 @@ class IngressFixture {
 
   async stop() {
     await this.signalr?.stop();
-    this.portForward?.stop();
+    // No port forward to stop
   }
   
   async connectSignalR() {
-    // Create SignalR connection through ingress
-    const hubUrl = `http://127.0.0.1:${this.localPort}/hub`;
+    // Create SignalR connection through ingress via localhost
+    const hubUrl = `http://localhost/hub`;
     
     this.signalr = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
@@ -98,7 +99,7 @@ class IngressFixture {
    * @returns {Promise} - axios response
    */
   async request(path = '/', options = {}) {
-    const url = `http://127.0.0.1:${this.localPort}${path}`;
+    const url = `http://localhost${path}`;
     
     // Set the Host header to match the ingress hostname
     const headers = {
@@ -118,7 +119,7 @@ class IngressFixture {
    * Get the base URL for manual testing
    */
   getTestUrl() {
-    return `http://127.0.0.1:${this.localPort}`;
+    return `http://localhost`;
   }
 
   /**
@@ -204,7 +205,7 @@ class ChangeListener {
   constructor(predicate, timeoutMs) {
     this.complete = false;
     this.predicate = predicate;
-    this.resolve = (value) => {};
+    this.resolve = (_value) => {};
     let self = this;
     this.promise = new Promise((resolve, reject) => {
       self.resolve = resolve;

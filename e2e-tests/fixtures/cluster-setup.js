@@ -81,7 +81,7 @@ module.exports = async function () {
     }
 
     console.log(`Creating cluster '${clusterName}'...`);
-    await waitForChildProcess(cp.exec(`kind create cluster --name ${clusterName}`, { encoding: 'utf-8' }));
+    await waitForChildProcess(cp.exec(`kind create cluster --name ${clusterName} --config kind-config.yaml`, { encoding: 'utf-8' }));
     await waitForChildProcess(cp.exec(`docker update --memory=8g --memory-swap=8g --cpus=4 ${clusterName}-control-plane`, { encoding: 'utf-8' }));
   }
 
