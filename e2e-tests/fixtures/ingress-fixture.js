@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-const PortForward = require('./port-forward');
 const axios = require('axios');
 const signalR = require("@microsoft/signalr");
 
@@ -30,9 +29,6 @@ class IngressFixture {
     this.queryIds = queryIds;
     this.ingressServiceName = ingressServiceName;
     this.ingressNamespace = ingressNamespace;
-    
-    // No port forwarding needed with kind extraPortMappings
-    // this.portForward = new PortForward(ingressServiceName, 80, ingressNamespace);
     
     // SignalR change listeners
     this.changeListeners = new Map();
