@@ -172,3 +172,17 @@ spec:
     - name: app
       image: "drasidemo.azurecr.io/my-app:0.2"
       imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Reaction
+name: reaction1
+spec:
+  kind: SignalR
+  queries:
+    risky-containers:
+  services:
+    reaction:
+      endpoints:
+        service:
+          setting: external
+          target: "8080"

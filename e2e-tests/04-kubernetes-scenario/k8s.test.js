@@ -19,12 +19,12 @@ const fs = require("fs");
 const deployResources = require("../fixtures/deploy-resources");
 const deleteResources = require("../fixtures/delete-resources");
 const PortForward = require("../fixtures/port-forward");
-const SignalrFixture = require("../fixtures/signalr-fixture");
+const IngressFixture = require("../fixtures/ingress-fixture");
 const pg = require("pg");
 const cp = require("child_process");
 const { waitForChildProcess } = require("../fixtures/infrastructure");
 
-let signalrFixture = new SignalrFixture(["risky-containers"]);
+let ingressFixture = new IngressFixture("reaction1", ["risky-containers"]);
 let dbPortForward = new PortForward("devops-pg", 5432);
 
 let dbClient = new pg.Client({
@@ -68,14 +68,14 @@ beforeAll(async () => {
     );
     throw e;
   }
-  await signalrFixture.start();
+  await ingressFixture.start();
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
   await new Promise((r) => setTimeout(r, 5000));
 }, 240000);
 
 afterAll(async () => {
-  await signalrFixture.stop();
+  await ingressFixture.stop();
   await dbClient.end();
   dbPortForward.stop();
   const resources = yaml.loadAll(
@@ -85,12 +85,12 @@ afterAll(async () => {
 });
 
 test("scenario", async () => {
-  let initData = await signalrFixture.requestReload("risky-containers");
+  let initData = await ingressFixture.requestReload("risky-containers");
 
   expect(initData.length == 1).toBeTruthy();
   expect(initData[0].image == "drasidemo.azurecr.io/my-app:0.1").toBeTruthy();
 
-  let insertCondition = signalrFixture.waitForChange(
+  let insertCondition = ingressFixture.waitForChange(
     "risky-containers",
     (change) =>
       change.op == "i" &&
@@ -104,7 +104,7 @@ test("scenario", async () => {
 
   expect(await insertCondition).toBeTruthy();
 
-  let updateCondition = signalrFixture.waitForChange(
+  let updateCondition = ingressFixture.waitForChange(
     "risky-containers",
     (change) =>
       change.op == "d" &&

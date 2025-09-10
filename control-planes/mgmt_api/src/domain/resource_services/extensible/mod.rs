@@ -490,13 +490,17 @@ fn merge_spec(
 
         log::info!("service_properties: {:?}", service_properties);
 
+        // Start with user-provided endpoints (these take precedence)
+        let mut result = curr_service.endpoints.unwrap_or_default();
+
+        // Add provider endpoints only if user hasn't defined them
         let endpoints = match &service_config.endpoints {
             Some(endpoints) => {
-                let mut result = HashMap::new();
-
                 for (endpoint_name, endpoint_config) in endpoints {
-                    let target = endpoint_config.target.trim_start_matches("$").to_string();
-                    let target_port_value = match service_properties {
+                    // Only add provider endpoint if user hasn't already defined it
+                    if !result.contains_key(endpoint_name) {
+                        let target = endpoint_config.target.trim_start_matches("$").to_string();
+                        let target_port_value = match service_properties {
                             Some(ref properties) => {
                                 match properties.get(&target) {
                                     Some(value) => match value {
@@ -521,16 +525,23 @@ fn merge_spec(
                             }),
                         };
 
-                    let endpoint = Endpoint {
-                        setting: endpoint_config.setting.clone(),
-                        target: target_port_value,
-                    };
-                    result.insert(endpoint_name.clone(), endpoint);
+                        let endpoint = Endpoint {
+                            setting: endpoint_config.setting.clone(),
+                            target: target_port_value,
+                        };
+                        result.insert(endpoint_name.clone(), endpoint);
+                    }
                 }
 
                 Some(result)
             }
-            None => None,
+            None => {
+                if result.is_empty() {
+                    None
+                } else {
+                    Some(result)
+                }
+            }
         };
 
         let new_service = ServiceConfig {

@@ -20,6 +20,7 @@ use std::{
 use k8s_openapi::api::{
     apps::v1::DeploymentSpec,
     core::v1::{ConfigMap, EnvVar, PersistentVolumeClaim, ServiceAccount, ServiceSpec},
+    networking::v1::Ingress,
 };
 use kube_derive::CustomResource;
 use schemars::JsonSchema;
@@ -34,6 +35,7 @@ pub struct KubernetesSpec {
     pub services: BTreeMap<String, ServiceSpec>,
     pub config_maps: BTreeMap<String, ConfigMap>,
     pub volume_claims: BTreeMap<String, PersistentVolumeClaim>,
+    pub ingresses: Option<BTreeMap<String, Ingress>>,
     pub pub_sub: Option<Component>,
     pub service_account: Option<ServiceAccount>,
     pub removed: bool,
@@ -54,6 +56,7 @@ impl KubernetesSpec {
             services: BTreeMap::new(),
             config_maps: BTreeMap::new(),
             volume_claims: BTreeMap::new(),
+            ingresses: Some(BTreeMap::new()),
             pub_sub: None,
             service_account: None,
             removed: false,
@@ -100,6 +103,10 @@ pub struct RuntimeConfig {
     pub pub_sub_type: String,
     pub pub_sub_version: String,
     pub pub_sub_config: Vec<EnvVar>,
+    pub ingress_class_name: String,
+    pub ingress_load_balancer_service: String,
+    pub ingress_load_balancer_namespace: String,
+    pub ingress_annotations: BTreeMap<String, String>,
 }
 
 impl RuntimeConfig {
@@ -159,7 +166,37 @@ impl RuntimeConfig {
                 Err(_) => "v1".to_string(),
             },
             pub_sub_config,
+            ingress_class_name: match std::env::var("INGRESS_CLASS_NAME") {
+                Ok(class_name) => class_name,
+                Err(_) => "contour".to_string(),
+            },
+            ingress_load_balancer_service: match std::env::var("INGRESS_LOAD_BALANCER_SERVICE") {
+                Ok(service) => service,
+                Err(_) => "contour-envoy".to_string(),
+            },
+            ingress_load_balancer_namespace: match std::env::var("INGRESS_LOAD_BALANCER_NAMESPACE")
+            {
+                Ok(namespace) => namespace,
+                Err(_) => "projectcontour".to_string(),
+            },
+            ingress_annotations: Self::parse_ingress_annotations(),
         }
+    }
+
+    fn parse_ingress_annotations() -> BTreeMap<String, String> {
+        let mut annotations = BTreeMap::new();
+
+        // Parse INGRESS_ANNOTATIONS environment variable
+        // Expected format: "key1=value1,key2=value2,key3=value3"
+        if let Ok(annotations_str) = std::env::var("INGRESS_ANNOTATIONS") {
+            for pair in annotations_str.split(',') {
+                if let Some((key, value)) = pair.split_once('=') {
+                    annotations.insert(key.trim().to_string(), value.trim().to_string());
+                }
+            }
+        }
+
+        annotations
     }
 }
 
