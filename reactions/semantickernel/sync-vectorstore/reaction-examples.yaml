@@ -1,0 +1,181 @@
+apiVersion: v1
+kind: Reaction
+name: product-catalog-vectorstore
+spec:
+  kind: SyncSemanticKernelVectorStore
+  
+  # REACTION-LEVEL PROPERTIES (Infrastructure Configuration)
+  properties:
+    # Vector Store Configuration
+    vectorStoreType: "AzureAISearch"
+    connectionString: "Endpoint=https://your-search-service.search.windows.net;ApiKey=your-api-key"
+    
+    # Embedding Service Configuration  
+    embeddingServiceType: "AzureOpenAI"
+    embeddingEndpoint: "https://aman-eastus-resource.cognitiveservices.azure.com/"
+    embeddingApiKey:
+      kind: Secret
+      name: azure-openai-creds
+      key: api-key
+    embeddingModel: "text-embedding-3-large"
+    embeddingDimensions: 3072
+    
+    # Vector Store Collection Configuration (applies to all queries)
+    distanceFunction: "CosineSimilarity"
+    indexKind: "Hnsw"
+    isFilterable: true
+    isFullTextSearchable: true
+    
+  # QUERY-LEVEL PROPERTIES (Data Processing Configuration)
+  queries:
+    # Product catalog query - creates searchable product documents
+    product-catalog: |
+      {
+        "collectionName": "products",
+        "keyField": "product_id",
+        "documentTemplate": "Product: {{name}}\nCategory: {{category}}\nDescription: {{description}}\nPrice: ${{price}}\nFeatures: {{features}}\nBrand: {{brand}}\nAvailability: {{availability_status}}",
+        "titleTemplate": "{{brand}} - {{name}}",
+        "vectorField": "content_vector",
+        "createCollection": true
+      }
+    
+    # Customer profile enrichment for personalization
+    customer-profiles: |
+      {
+        "collectionName": "customers",
+        "keyField": "customer_id",
+        "documentTemplate": "Customer Profile:\nName: {{full_name}}\nSegment: {{segment}}\nInterests: {{interests}}\nPurchase History: {{purchase_summary}}\nPreferences: {{preferences}}\nLocation: {{city}}, {{country}}",
+        "titleTemplate": "Customer: {{full_name}}",
+        "vectorField": "profile_vector",
+        "createCollection": true
+      }
+    
+    # Support ticket knowledge base
+    support-tickets: |
+      {
+        "collectionName": "support_kb",
+        "keyField": "ticket_id",
+        "documentTemplate": "Issue: {{issue_title}}\nCategory: {{category}}\nDescription: {{description}}\nResolution: {{resolution}}\nTags: {{tags}}",
+        "titleTemplate": "{{category}}: {{issue_title}}",
+        "vectorField": "issue_vector",
+        "createCollection": true
+      }
+
+---
+# Alternative configuration for Qdrant vector store
+apiVersion: v1
+kind: Reaction
+name: product-catalog-qdrant
+spec:
+  kind: SyncSemanticKernelVectorStore
+  
+  properties:
+    # Qdrant Configuration
+    vectorStoreType: "Qdrant"
+    connectionString: "Endpoint=qdrant-service:6334"
+    
+    # OpenAI Embeddings
+    embeddingServiceType: "OpenAI"
+    embeddingEndpoint: "https://api.openai.com/v1"
+    embeddingApiKey:
+      kind: Secret
+      name: openai-creds
+      key: api-key
+    embeddingModel: "text-embedding-3-small"
+    embeddingDimensions: 1536
+    
+    # Vector configuration for Qdrant
+    distanceFunction: "EuclideanDistance"
+    indexKind: "Hnsw"  # Qdrant only supports HNSW
+    isFilterable: true
+    isFullTextSearchable: false  # Qdrant doesn't support full-text search
+    
+  queries:
+    product-catalog: |
+      {
+        "collectionName": "products",
+        "keyField": "id",
+        "documentTemplate": "{{name}}: {{description}}",
+        "titleTemplate": "{{name}}",
+        "vectorField": "embedding",
+        "createCollection": true
+      }
+
+---
+# Local development configuration with In-Memory store
+apiVersion: v1
+kind: Reaction
+name: dev-vectorstore
+spec:
+  kind: SyncSemanticKernelVectorStore
+  
+  properties:
+    # In-memory vector store for development
+    vectorStoreType: "InMemory"
+    connectionString: "memory://local"
+    
+    # Azure OpenAI embeddings (requires actual API key)
+    embeddingServiceType: "AzureOpenAI"
+    embeddingEndpoint: "https://aman-eastus-resource.cognitiveservices.azure.com/"
+    embeddingApiKey:
+      kind: Secret
+      name: azure-openai-creds
+      key: api-key
+    embeddingModel: "text-embedding-3-large"
+    embeddingDimensions: 3072
+    
+    # In-memory store configuration
+    distanceFunction: "DotProductSimilarity"
+    indexKind: "Flat"  # In-memory can use any index type
+    isFilterable: false
+    isFullTextSearchable: false
+    
+  queries:
+    test-data: |
+      {
+        "collectionName": "test",
+        "keyField": "id",
+        "documentTemplate": "{{title}}: {{content}}",
+        "titleTemplate": "{{title}}",
+        "vectorField": "content_vector",
+        "createCollection": true
+      }
+
+---
+# Example with different embedding model
+apiVersion: v1
+kind: Reaction  
+name: small-embeddings-example
+spec:
+  kind: SyncSemanticKernelVectorStore
+  
+  properties:
+    vectorStoreType: "AzureAISearch"
+    connectionString: "Endpoint=https://search.windows.net;ApiKey=key"
+    
+    # Using smaller embedding model for cost optimization
+    embeddingServiceType: "AzureOpenAI"
+    embeddingEndpoint: "https://myservice.openai.azure.com/"
+    embeddingApiKey:
+      kind: Secret
+      name: embeddings
+      key: api-key
+    embeddingModel: "text-embedding-ada-002"
+    embeddingDimensions: 1536
+    
+    # Optimized for fast approximate search
+    distanceFunction: "CosineSimilarity"
+    indexKind: "Hnsw"
+    isFilterable: true
+    isFullTextSearchable: false
+    
+  queries:
+    documents: |
+      {
+        "collectionName": "docs",
+        "keyField": "doc_id",
+        "documentTemplate": "{{title}}\n\n{{content}}",
+        "titleTemplate": "{{title}}",
+        "vectorField": "doc_vector",
+        "createCollection": true
+      }
