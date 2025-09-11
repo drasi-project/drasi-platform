@@ -57,3 +57,7 @@ You can use the Makefile to install a local build of Drasi. By default this will
 ```sh
 make install
 ```
+
+## Documentation
+
+For detailed CLI documentation, including command references and guides, see the [CLI documentation](../docs/cli/README.md).

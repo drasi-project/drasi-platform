@@ -1,0 +1,89 @@
+# Example Contour Ingress Controller Configuration
+# This configuration file demonstrates how to customize the Contour ingress
+# controller installation for Drasi.
+
+apiVersion: drasi.io/v1
+kind: IngressConfig
+metadata:
+  name: contour-config
+  annotations:
+    description: "Production-ready Contour configuration for Drasi"
+spec:
+  contour:
+    # Contour version to install (uses latest if not specified)
+    version: "1.28.0"
+    
+    # Number of Contour controller replicas for high availability
+    replicas: 2
+    
+    # Resource requests and limits for Contour controller
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    
+    # Envoy proxy configuration
+    envoy:
+      # Service configuration for Envoy
+      service:
+        # Use LoadBalancer for cloud environments, NodePort for on-premises
+        type: LoadBalancer
+        annotations:
+          # AWS-specific annotations (remove if not using AWS)
+          service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+          service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+          # Azure-specific annotations (uncomment if using Azure)
+          # service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+          # GCP-specific annotations (uncomment if using GCP)
+          # cloud.google.com/load-balancer-type: "External"
+      
+      # Resource requests and limits for Envoy proxies
+      resources:
+        requests:
+          cpu: 200m
+          memory: 256Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+
+  # Drasi service configuration for ingress
+  drasi:
+    services:
+      # Management API service
+      - name: management-api
+        port: 8080
+        host: drasi-api.example.com
+        path: /
+        tls:
+          enabled: true
+          secretName: drasi-api-tls
+        annotations:
+          # Enable websocket support for real-time features
+          projectcontour.io/websocket-routes: "/"
+          # Set timeout for long-running operations
+          projectcontour.io/timeout-policy: "infinite"
+
+      # Query container service
+      - name: query-container
+        port: 8081
+        host: drasi-query.example.com
+        path: /
+        tls:
+          enabled: true
+          secretName: drasi-query-tls
+        annotations:
+          # Enable CORS for web applications
+          projectcontour.io/cors-allow-origin: "*"
+          projectcontour.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+          projectcontour.io/cors-allow-headers: "authorization, content-type"
+
+      # Example additional service (uncomment if needed)
+      # - name: monitoring
+      #   port: 3000
+      #   host: drasi-monitoring.example.com
+      #   path: /
+      #   tls:
+      #     enabled: false
