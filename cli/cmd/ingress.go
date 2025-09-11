@@ -68,14 +68,41 @@ func newIngressInstallContourCommand() *cobra.Command {
 		Long: `Install the Contour ingress controller using the official Helm chart.
 
 Contour is a high-performance ingress controller for Kubernetes that uses Envoy proxy.
-This command will install Contour into the specified namespace.
+This command will install Contour into the specified namespace and can be customized
+with a Helm values file.
+
+The installation includes:
+- Contour deployment (control plane)  
+- Envoy DaemonSet or Deployment (data plane)
+- Required RBAC resources
+- Service configurations
+
+Prerequisites:
+- kubectl configured with cluster access
+- Sufficient permissions to create namespaces and deploy resources
+- Helm charts will be pulled from https://charts.bitnami.com/bitnami
 
 Usage examples:
+  # Install with defaults
   drasi ingress install contour
+
+  # Install into specific namespace  
   drasi ingress install contour --namespace contour-system
+
+  # Install with custom configuration and wait for readiness
   drasi ingress install contour --config-file values.yaml --wait
+
+  # Install using global namespace flag
+  drasi ingress install contour -n ingress-system
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Validate config file exists if provided
+			if configFile != "" {
+				if _, err := os.Stat(configFile); os.IsNotExist(err) {
+					return fmt.Errorf("config file not found: %s", configFile)
+				}
+			}
+
 			// Get namespace from flag or use default
 			targetNamespace := namespace
 			if targetNamespace == "" {
@@ -90,17 +117,18 @@ Usage examples:
 
 			// Create output handler
 			taskOutput := output.NewTaskOutput()
+			defer taskOutput.Close()
 
 			// Load current environment
 			current, err := registry.LoadCurrentRegistration()
 			if err != nil {
-				return fmt.Errorf("unable to load current environment: %w", err)
+				return fmt.Errorf("unable to load current environment: %w\nHint: Run 'drasi env kube' to configure a Kubernetes environment", err)
 			}
 
 			// Create platform client
 			platformClient, err := sdk.NewPlatformClient(current)
 			if err != nil {
-				return fmt.Errorf("unable to create platform client: %w", err)
+				return fmt.Errorf("unable to create platform client: %w\nHint: Ensure kubectl is configured and you have access to the cluster", err)
 			}
 
 			kubeClient, ok := platformClient.(*sdk.KubernetesPlatformClient)
