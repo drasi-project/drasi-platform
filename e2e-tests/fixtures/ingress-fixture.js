@@ -42,7 +42,7 @@ class IngressFixture {
   async start() {
     // Find an available port to avoid conflicts with other services
     this.localPort = await portfinder.getPortPromise({
-      port: 8000
+      port: 8001
     });
 
     // Generate the hostname that the ingress expects
