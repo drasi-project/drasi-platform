@@ -41,7 +41,7 @@ class IngressFixture {
 
   async start() {
     // Find an available port to avoid conflicts with other services
-    this.localPort = await portfinder.getPortPromise({
+    this.localPort = process.env.INGRESS_PORT || await portfinder.getPortPromise({
       port: 8001
     });
 
