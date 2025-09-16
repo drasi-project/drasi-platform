@@ -1,0 +1,46 @@
+# Simple single-table query
+apiVersion: v1
+kind: ContinuousQuery
+name: sk-products-query
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: sk-vectorstore-source
+  query: |
+    MATCH 
+      (p:products)
+    RETURN 
+      p.id AS id,
+      p.name AS name,
+      p.description AS description,
+      p.category_id AS category_id
+---
+# Join query with categories
+apiVersion: v1
+kind: ContinuousQuery  
+name: sk-products-with-category-query
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: sk-vectorstore-source
+        nodes:
+          - sourceLabel: products
+          - sourceLabel: categories
+    joins:
+      - id: HAS_CATEGORY
+        keys:
+          - label: products
+            property: category_id
+          - label: categories
+            property: id
+  query: |
+    MATCH 
+      (p:products)-[:HAS_CATEGORY]->(c:categories)
+    RETURN 
+      p.id AS product_id,
+      p.name AS product_name,
+      p.description AS product_description,
+      c.name AS category_name,
+      c.description AS category_description

@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ReactionProvider
+name: SyncSemanticKernelVectorStore
+spec:
+  services:
+    reaction:
+      image: reaction-sync-semantickernel-vectorstore
+  config_schema:
+    type: object
+    properties:
+      # Vector Store Configuration
+      vectorStoreType:
+        type: string
+        enum: ["Qdrant", "AzureAISearch", "InMemory"]
+        description: "Type of vector store to sync with (currently supported stores)"
+      connectionString:
+        type: string
+        description: "Connection string for the vector store (e.g., 'Endpoint=host:port;ApiKey=key' for Qdrant, 'Endpoint=https://...;ApiKey=key' for Azure AI Search)"
+      
+      # Embedding Service Configuration
+      embeddingServiceType:
+        type: string
+        enum: ["AzureOpenAI", "OpenAI"]
+        description: "Type of embedding service to use"
+      embeddingEndpoint:
+        type: string
+        description: "Endpoint URL for the embedding service"
+      embeddingApiKey:
+        type: string
+        description: "API key for the embedding service"
+      embeddingModel:
+        type: string
+        description: "Model name/deployment name for embeddings"
+        default: "text-embedding-3-large"
+      embeddingDimensions:
+        type: integer
+        description: "Number of dimensions for embedding vectors"
+        default: 3072
+        minimum: 1
+        maximum: 20000
+      
+      # Vector Store Collection Configuration
+      distanceFunction:
+        type: string
+        enum: ["CosineSimilarity", "CosineDistance", "EuclideanDistance", "DotProductSimilarity", "ManhattanDistance"]
+        description: "Distance function for vector similarity"
+        default: "CosineSimilarity"
+      indexKind:
+        type: string
+        enum: ["Hnsw", "Flat", "IvfFlat", "DiskAnn"]
+        description: "Index type for vector search"
+        default: "Hnsw"
+      isFilterable:
+        type: boolean
+        description: "Enable filtering on data fields"
+        default: true
+      isFullTextSearchable:
+        type: boolean
+        description: "Enable full-text search on content fields (Azure AI Search only)"
+        default: false
+    required:
+      - vectorStoreType
+      - connectionString
+      - embeddingServiceType
+      - embeddingEndpoint
+      - embeddingApiKey
+      - embeddingModel
