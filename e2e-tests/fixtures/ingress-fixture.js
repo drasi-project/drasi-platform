@@ -40,8 +40,8 @@ class IngressFixture {
   }
 
   async start() {
-    // Find an available port to avoid conflicts with other services
-    this.localPort = process.env.INGRESS_PORT || 8001;
+    // Use the port that was configured in kind-config.yaml by cluster-setup.js
+    this.localPort = parseInt(process.env.INGRESS_PORT) || 8001;
 
     // Generate the hostname that the ingress expects
     // Format: {reaction-name}.drasi.{ip}.nip.io

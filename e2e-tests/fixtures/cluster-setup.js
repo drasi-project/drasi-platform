@@ -16,6 +16,9 @@
 
 const cp = require('child_process');
 const util = require('util');
+const fs = require('fs');
+const path = require('path');
+const portfinder = require('portfinder');
 const { loadDrasiImages, installDrasi, installDrasiIngress, tryLoadInfraImages, waitForChildProcess } = require('./infrastructure');
 const execAsync = util.promisify(cp.exec);
 
@@ -30,6 +33,41 @@ function getErrorMessage(error, defaultMessage = 'Unknown error') {
     }
   }
   return defaultMessage;
+}
+
+async function updateKindConfigWithAvailablePort() {
+  try {
+    // Find an available port starting from 8000
+    const availablePort = await portfinder.getPortPromise({
+      port: 8000,
+      stopPort: 9000
+    });
+
+    console.log(`Found available port: ${availablePort}`);
+
+    // Read the kind-config.yaml file
+    const configPath = path.join(__dirname, '..', 'kind-config.yaml');
+    let configContent = fs.readFileSync(configPath, 'utf8');
+
+    // Replace the hostPort value with the available port
+    configContent = configContent.replace(
+      /hostPort:\s*\d+(\s*#.*contour-envoy.*30080)/,
+      `hostPort: ${availablePort}$1`
+    );
+
+    // Write back to the file
+    fs.writeFileSync(configPath, configContent);
+
+    console.log(`Updated kind-config.yaml with port ${availablePort}`);
+
+    // Set environment variable for use by ingress fixture
+    process.env.INGRESS_PORT = availablePort.toString();
+
+    return availablePort;
+  } catch (error) {
+    console.error('Error updating kind config with available port:', error.message);
+    throw error;
+  }
 }
 
 async function clusterExists(clusterName) {
@@ -80,7 +118,11 @@ module.exports = async function () {
       console.warn(`'kind delete cluster --name ${clusterName}' failed, ignoring. Error: ${deleteErrorMsg}`);
     }
 
-    console.log(`Creating cluster '${clusterName}'...`);
+    // Update kind-config.yaml with an available port before creating cluster
+    console.log("Finding available port and updating kind-config.yaml...");
+    const ingressPort = await updateKindConfigWithAvailablePort();
+
+    console.log(`Creating cluster '${clusterName}' with ingress port ${ingressPort}...`);
     await waitForChildProcess(cp.exec(`kind create cluster --name ${clusterName} --config kind-config.yaml`, { encoding: 'utf-8' }));
     await waitForChildProcess(cp.exec(`docker update --memory=8g --memory-swap=8g --cpus=4 ${clusterName}-control-plane`, { encoding: 'utf-8' }));
   }
