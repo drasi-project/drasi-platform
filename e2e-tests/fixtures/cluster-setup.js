@@ -37,9 +37,9 @@ function getErrorMessage(error, defaultMessage = 'Unknown error') {
 
 async function updateKindConfigWithAvailablePort() {
   try {
-    // Find an available port starting from 8000
+    // Find an available port starting from 8001
     const availablePort = await portfinder.getPortPromise({
-      port: 8000,
+      port: 8001,
       stopPort: 9000
     });
 
