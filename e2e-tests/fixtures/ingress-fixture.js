@@ -16,6 +16,7 @@
 
 const axios = require('axios');
 const signalR = require("@microsoft/signalr");
+const portfinder = require('portfinder');
 
 class IngressFixture {
   /**
@@ -29,7 +30,8 @@ class IngressFixture {
     this.queryIds = queryIds;
     this.ingressServiceName = ingressServiceName;
     this.ingressNamespace = ingressNamespace;
-    
+    this.localPort = null;
+
     // SignalR change listeners
     this.changeListeners = new Map();
     for (let queryId of this.queryIds) {
@@ -38,17 +40,19 @@ class IngressFixture {
   }
 
   async start() {
-    // With kind extraPortMappings, access directly via localhost
-    // No port forwarding needed
-    
+    // Find an available port to avoid conflicts with other services
+    this.localPort = await portfinder.getPortPromise({
+      port: 8000
+    });
+
     // Generate the hostname that the ingress expects
     // Format: {reaction-name}.drasi.{ip}.nip.io
     // For local testing with kind, we can use localhost
     this.hostname = `${this.reactionName}.drasi.localhost`;
-    
-    console.log(`IngressFixture: Using direct localhost access via kind extraPortMappings`);
+
+    console.log(`IngressFixture: Using localhost access on port ${this.localPort}`);
     console.log(`IngressFixture: Using hostname: ${this.hostname}`);
-    
+
     // Initialize SignalR connection through ingress
     await this.connectSignalR();
   }
@@ -60,7 +64,7 @@ class IngressFixture {
   
   async connectSignalR() {
     // Create SignalR connection through ingress via localhost
-    const hubUrl = `http://localhost/hub`;
+    const hubUrl = `http://localhost:${this.localPort}/hub`;
     
     this.signalr = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
@@ -97,7 +101,7 @@ class IngressFixture {
    * @returns {Promise} - axios response
    */
   async request(path = '/', options = {}) {
-    const url = `http://localhost${path}`;
+    const url = `http://localhost:${this.localPort}${path}`;
     
     // Set the Host header to match the ingress hostname
     const headers = {
@@ -117,7 +121,7 @@ class IngressFixture {
    * Get the base URL for manual testing
    */
   getTestUrl() {
-    return `http://localhost`;
+    return `http://localhost:${this.localPort}`;
   }
 
   /**
