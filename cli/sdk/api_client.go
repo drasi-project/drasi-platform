@@ -16,7 +16,6 @@ package sdk
 
 import (
 	"bytes"
-	"drasi.io/cli/output"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,6 +26,7 @@ import (
 	"time"
 
 	"drasi.io/cli/api"
+	"drasi.io/cli/output"
 )
 
 type ApiClient struct {

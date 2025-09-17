@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+  extraPortMappings:
+  - containerPort: 30080  # Maps to contour-envoy NodePort 30080
+    hostPort: 8001
+    listenAddress: "0.0.0.0"
+  - containerPort: 30443  # Maps to contour-envoy NodePort 30443  
+    hostPort: 443
+    listenAddress: "0.0.0.0"

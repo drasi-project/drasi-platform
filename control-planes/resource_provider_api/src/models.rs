@@ -118,6 +118,7 @@ pub struct SourceSpec {
 pub struct SourceStatus {
     pub available: bool,
     pub messages: Option<BTreeMap<String, String>>,
+    pub ingress_url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -167,6 +168,7 @@ pub struct ReactionSpec {
 pub struct ReactionStatus {
     pub available: bool,
     pub messages: Option<BTreeMap<String, String>>,
+    pub ingress_url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

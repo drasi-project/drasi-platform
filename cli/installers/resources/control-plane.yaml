@@ -75,6 +75,30 @@ spec:
                   name: drasi-config
                   key: DAPR_SIDECAR
                   optional: true
+            - name: INGRESS_CLASS_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: INGRESS_CLASS_NAME
+                  optional: true
+            - name: INGRESS_LOAD_BALANCER_SERVICE
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: INGRESS_LOAD_BALANCER_SERVICE
+                  optional: true
+            - name: INGRESS_LOAD_BALANCER_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: INGRESS_LOAD_BALANCER_NAMESPACE
+                  optional: true
+            - name: INGRESS_ANNOTATIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: INGRESS_ANNOTATIONS
+                  optional: true
           resources:
             limits:
               cpu: 200m
