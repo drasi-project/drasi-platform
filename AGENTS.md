@@ -61,6 +61,13 @@ The `typespec/` directory is the **single source of truth** for all inter-servic
 
 Failure to follow this workflow will cause data contract mismatches.
 
+### **OpenAPI Specification Sync**
+
+The `verify-openapi-spec` CI job ensures the OpenAPI specification is in sync with the code.
+-   **Location**: `control-planes/mgmt_api/openapi.yaml`
+-   **Generation Command**: `make -C control-planes/mgmt_api openapi-generate`
+-   **Rule**: If you modify API code, you **must** run the generation command and commit the updated `openapi.yaml`. Failure to do so will break the build.
+
 ## 3. Component Directory Guide
 
 -   **`cli/`**: Go CLI (`drasi`) for platform installation and management.
@@ -69,7 +76,7 @@ Failure to follow this workflow will cause data contract mismatches.
 -   **`reactions/`**: Rust microservices that act on query results. Contains built-in reactions and SDKs.
 -   **`sources/`**: Rust microservices that ingest data from external systems. Contains built-in sources and SDKs.
 -   **`typespec/`**: Source of truth for all data contracts.
--   **`e2e-tests/`**: Jest/TypeScript end-to-end tests.
+-   **`e2e-tests/`**: Jest end-to-end tests.
 
 ## 4. Build and Test
 
