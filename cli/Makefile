@@ -23,6 +23,15 @@ VERSION ?= latest
 
 DRASI_LOCATION ?= $(if $(filter $(OS),Windows_NT),$(shell $$Env:ProgramFiles)\drasi\,/usr/local/bin/)
 
+# Path to the OpenAPI specification file
+SPEC_FILE = ../control-planes/mgmt_api/openapi.yaml
+
+# Output path for the generated client
+GENERATED_CLIENT = sdk/generated/api.gen.go
+
+# Pin oapi-codegen version for reproducible builds and supply chain security
+OAPI_CODEGEN_VERSION = v2.5.1
+
 .PHONY: all
 all: fmt vet
 ifeq ($(IS_WINDOWS),true)
@@ -65,4 +74,30 @@ else
 	@echo "Installing the Drasi CLI"
 	cp ./bin/drasi $(DRASI_LOCATION)
 endif
+
+## generate-api-client: Generates the Drasi API client from the OpenAPI spec
+## Note: Some schemas with oneOf discriminators are excluded due to missing mappings in the spec.
+## These are defined manually in sdk/generated/types_extra.go
+.PHONY: generate-api-client
+generate-api-client:
+	@echo "--> Generating Drasi API client..."
+	@if [ ! -f "$(GOBIN)/oapi-codegen" ]; then \
+		echo "oapi-codegen not found at $(GOBIN)/oapi-codegen"; \
+		echo "Installing oapi-codegen@$(OAPI_CODEGEN_VERSION)..."; \
+		go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION); \
+	fi
+	@mkdir -p sdk/generated
+	$(GOBIN)/oapi-codegen --generate "types,client" --package="generated" \
+		--exclude-schemas "ConfigValueDto,ServiceIdentityDto,StorageSpecDto,ResultEventDto,ControlMessage" \
+		-o "$(GENERATED_CLIENT)" "$(SPEC_FILE)"
+	@echo "--> API client generated successfully at $(GENERATED_CLIENT)"
+	@echo "--> Note: Excluded schemas are defined in sdk/generated/types_extra.go"
+
+## verify-generated: Verifies that generated code is up to date with the OpenAPI spec
+## Use this in CI to catch drift between the spec and generated code
+.PHONY: verify-generated
+verify-generated: generate-api-client
+	@git diff --exit-code $(GENERATED_CLIENT) || \
+		(echo "ERROR: Generated code is out of date. Run 'make generate-api-client' and commit the changes." && exit 1)
+	@echo "--> Generated code is up to date"
 

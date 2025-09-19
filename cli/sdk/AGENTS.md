@@ -17,9 +17,9 @@ This directory contains the Software Development Kit (SDK) for the Drasi CLI. It
 
 ### `api_client.go`
 
--   **Purpose**: Provides a high-level client for interacting with the Drasi Management API. It encapsulates the logic for making HTTP requests to the various API endpoints.
+-   **Purpose**: Provides a high-level client for interacting with the Drasi Management API. It wraps a generated OpenAPI client and provides methods for CLI commands.
 -   **Key Components**:
-    -   `ApiClient` (struct): The client that communicates with the Drasi API, typically over a port-forward tunnel established by the `PlatformClient`.
+    -   `ApiClient` (struct): The client that communicates with the Drasi API, typically over a port-forward tunnel established by the `PlatformClient`. It wraps a generated client from the `generated/` subdirectory.
     -   **Methods**: It provides methods that map directly to the CLI commands and API capabilities:
         -   `Apply(...)`: Creates or updates resources (`drasi apply`).
         -   `Delete(...)`: Deletes resources (`drasi delete`).
@@ -27,7 +27,13 @@ This directory contains the Software Development Kit (SDK) for the Drasi CLI. It
         -   `ListResources(...)`: Lists all resources of a given kind (`drasi list`).
         -   `ReadyWait(...)`: Blocks until a resource is ready (`drasi wait`).
         -   `Watch(...)`: Streams real-time results from a query (`drasi watch`).
-    -   `kindRoutes` (map): A mapping from the user-friendly resource kind names (e.g., "query") to the actual API route paths (e.g., "continuousQueries").
+
+### `generated/`
+
+-   **Purpose**: Contains Go client code generated from the Management API's OpenAPI specification using `oapi-codegen`.
+-   **Key Files**:
+    -   `api.gen.go`: Auto-generated types and client methods. Do not edit manually; regenerate with `make generate-api-client`.
+    -   `types_extra.go`: Manually defined types for schemas that couldn't be auto-generated due to OpenAPI discriminator limitations.
 
 ## Subdirectories
 
