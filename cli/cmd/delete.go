@@ -25,7 +25,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewDeleteCommand() *cobra.Command {
+// deleteCmdOptions holds dependencies for the delete command
+type deleteCmdOptions struct {
+	platformClientFactory func(namespace string) (sdk.PlatformClient, error)
+	outputFactory         func() output.TaskOutput
+}
+
+// NewDeleteCommand creates the delete command with optional dependency injection
+func NewDeleteCommand(opts ...*deleteCmdOptions) *cobra.Command {
+	// Use the real implementation by default
+	opt := &deleteCmdOptions{
+		platformClientFactory: func(namespace string) (sdk.PlatformClient, error) {
+			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+			if err != nil {
+				return nil, err
+			}
+			return sdk.NewPlatformClient(reg)
+		},
+		outputFactory: output.NewTaskOutput,
+	}
+	// If options are provided (from tests), use them instead
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
+	}
 	var deleteCommand = &cobra.Command{
 		Use:   "delete [kind name] |",
 		Short: "Delete resources",
@@ -64,12 +86,7 @@ Usage examples:
 				return err
 			}
 
-			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
-			if err != nil {
-				return err
-			}
-
-			platformClient, err := sdk.NewPlatformClient(reg)
+			platformClient, err := opt.platformClientFactory(namespace)
 			if err != nil {
 				return err
 			}
@@ -80,7 +97,7 @@ Usage examples:
 			}
 			defer client.Close()
 
-			output := output.NewTaskOutput()
+			output := opt.outputFactory()
 			defer output.Close()
 
 			err = client.Delete(manifests, output)
