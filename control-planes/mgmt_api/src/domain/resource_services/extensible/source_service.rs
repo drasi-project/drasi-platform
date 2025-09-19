@@ -74,7 +74,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
         if let Some(config_schema) = config_schema {
             let raw_schema = match serde_json::to_value(config_schema) {
                 Ok(raw_schema) => raw_schema,
-                Err(e) => {
+                Err(_e) => {
                     return Err(DomainError::InvalidSpec {
                         message: "Invalid source config schema".to_string(),
                     });
@@ -83,7 +83,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
 
             let validation = match JSONSchema::compile(&raw_schema) {
                 Ok(validation) => validation,
-                Err(e) => {
+                Err(_e) => {
                     return Err(DomainError::InvalidSpec {
                         message: "Invalid source config schema".to_string(),
                     });
@@ -127,7 +127,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
                                         InlineValue::Boolean { value } => {
                                             serde_json::Value::Bool(value)
                                         }
-                                        InlineValue::List { value } => {
+                                        InlineValue::List { value: _ } => {
                                             serde_json::Value::Array(Vec::new())
                                         }
                                     },
@@ -144,7 +144,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
 
             let json_data_properties = match serde_json::to_value(new_spec_properties) {
                 Ok(json_data_properties) => json_data_properties,
-                Err(e) => {
+                Err(_e) => {
                     return Err(DomainError::JsonParseError {
                         message: format!("Unable to parse the properties for {}", kind),
                     })
@@ -194,7 +194,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
 
             let raw_schema = match serde_json::to_value(service_config_schema) {
                 Ok(raw_schema) => raw_schema,
-                Err(e) => {
+                Err(_e) => {
                     return Err(DomainError::InvalidSpec {
                         message: format!(
                             "Invalid service config schema for service {}",
@@ -206,7 +206,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
 
             let validation = match JSONSchema::compile(&raw_schema) {
                 Ok(validation) => validation,
-                Err(e) => {
+                Err(_e) => {
                     return Err(DomainError::InvalidSpec {
                         message: format!(
                             "Invalid service config schema for service {}",
@@ -260,7 +260,7 @@ impl ExtensibleSpecValidator<SourceSpec> for SourceSpecValidator {
                                         InlineValue::Boolean { value } => {
                                             serde_json::Value::Bool(value)
                                         }
-                                        InlineValue::List { value } => {
+                                        InlineValue::List { value: _ } => {
                                             serde_json::Value::Array(Vec::new())
                                         }
                                     },
