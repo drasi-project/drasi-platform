@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::domain::models::{ReactionSpec, ReactionStatus};
+use crate::domain::models::{ReactionSpec, ReactionStatus, Resource};
 
-use super::{ReactionSpecDto, ReactionStatusDto};
+use super::{ReactionDto, ReactionSpecDto, ReactionStatusDto};
 
 impl From<ReactionStatus> for ReactionStatusDto {
     fn from(status: ReactionStatus) -> Self {
@@ -64,6 +64,16 @@ impl From<ReactionSpec> for ReactionSpecDto {
                 .map(|(k, v)| (k, Some(v)))
                 .collect(),
             identity: spec.identity.map(|identity| identity.into()),
+        }
+    }
+}
+
+impl From<Resource<ReactionSpec, ReactionStatus>> for ReactionDto {
+    fn from(res: Resource<ReactionSpec, ReactionStatus>) -> Self {
+        Self {
+            id: res.id,
+            spec: res.spec.into(),
+            status: res.status.map(|s| s.into()),
         }
     }
 }

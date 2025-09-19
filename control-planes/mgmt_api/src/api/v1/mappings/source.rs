@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::domain::models::{SourceSpec, SourceStatus};
+use crate::domain::models::{Resource, SourceSpec, SourceStatus};
 
-use super::{SourceSpecDto, SourceStatusDto};
+use super::{SourceDto, SourceSpecDto, SourceStatusDto};
 
 impl From<SourceStatusDto> for SourceStatus {
     fn from(status: SourceStatusDto) -> Self {
@@ -62,6 +62,16 @@ impl From<SourceSpec> for SourceSpecDto {
                 .properties
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
             identity: spec.identity.map(|identity| identity.into()),
+        }
+    }
+}
+
+impl From<Resource<SourceSpec, SourceStatus>> for SourceDto {
+    fn from(res: Resource<SourceSpec, SourceStatus>) -> Self {
+        Self {
+            id: res.id,
+            spec: res.spec.into(),
+            status: res.status.map(|s| s.into()),
         }
     }
 }

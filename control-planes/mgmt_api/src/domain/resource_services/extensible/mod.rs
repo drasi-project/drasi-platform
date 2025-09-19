@@ -297,11 +297,13 @@ where
     }
 }
 
+type MergeSpecResult = (HashMap<String, ConfigValue>, HashMap<String, ServiceConfig>);
+
 fn merge_spec(
     source_properties: Option<&HashMap<String, ConfigValue>>,
     source_services: Option<&HashMap<String, ServiceConfig>>,
     schema_json: &ProviderSpec,
-) -> Result<(HashMap<String, ConfigValue>, HashMap<String, ServiceConfig>), DomainError> {
+) -> Result<MergeSpecResult, DomainError> {
     let mut properties = match source_properties {
         Some(properties) => properties.clone(),
         None => HashMap::new(),
