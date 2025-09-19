@@ -4,3 +4,8 @@ bin
 obj
 node_modules
 dist
+
+# Agent settings
+.claude/
+.gemini/
+.agents/
