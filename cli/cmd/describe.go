@@ -15,8 +15,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"drasi.io/cli/api"
 	"drasi.io/cli/sdk"
 	"drasi.io/cli/sdk/registry"
@@ -24,7 +22,27 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func NewDescribeCommand() *cobra.Command {
+// describeCmdOptions holds dependencies for the describe command
+type describeCmdOptions struct {
+	platformClientFactory func(namespace string) (sdk.PlatformClient, error)
+}
+
+// NewDescribeCommand creates the describe command with optional dependency injection
+func NewDescribeCommand(opts ...*describeCmdOptions) *cobra.Command {
+	// Use the real implementation by default
+	opt := &describeCmdOptions{
+		platformClientFactory: func(namespace string) (sdk.PlatformClient, error) {
+			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+			if err != nil {
+				return nil, err
+			}
+			return sdk.NewPlatformClient(reg)
+		},
+	}
+	// If options are provided (from tests), use them instead
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
+	}
 	var describeCommand = &cobra.Command{
 		Use:   "describe kind name",
 		Short: "Show the definition and status of a resource",
@@ -55,20 +73,14 @@ Usage examples:
 				return err
 			}
 
-			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
-			if err != nil {
-				return err
-			}
-
-			platformClient, err := sdk.NewPlatformClient(reg)
+			platformClient, err := opt.platformClientFactory(namespace)
 			if err != nil {
 				return err
 			}
 
 			client, err := platformClient.CreateDrasiClient()
 			if err != nil {
-				fmt.Println("Error: " + err.Error())
-				return nil
+				return err
 			}
 			defer client.Close()
 
@@ -81,7 +93,7 @@ Usage examples:
 				return err
 			}
 
-			fmt.Println(string(outp))
+			cmd.Println(string(outp))
 
 			return nil
 		},
