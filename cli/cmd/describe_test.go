@@ -15,14 +15,14 @@
 package cmd
 
 import (
+	"errors"
+	"testing"
+
 	"drasi.io/cli/api"
 	"drasi.io/cli/sdk"
 	"drasi.io/cli/testutil"
-	"errors"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
-
 
 func TestDescribeCommand(t *testing.T) {
 	t.Run("Success case - describe source", func(t *testing.T) {

@@ -15,15 +15,15 @@
 package cmd
 
 import (
+	"errors"
+	"testing"
+
 	"drasi.io/cli/api"
 	"drasi.io/cli/sdk"
 	"drasi.io/cli/testutil"
-	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
-
 
 func TestListCommand(t *testing.T) {
 	t.Run("Success case - list sources", func(t *testing.T) {
