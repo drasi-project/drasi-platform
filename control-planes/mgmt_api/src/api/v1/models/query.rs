@@ -14,8 +14,9 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum QueryLanguageDto {
     #[serde(rename = "Cypher")]
@@ -24,13 +25,13 @@ pub enum QueryLanguageDto {
     GQL,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct QuerySourceLabelDto {
     pub source_label: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct QuerySubscriptionDto {
     pub id: String,
@@ -39,21 +40,21 @@ pub struct QuerySubscriptionDto {
     pub pipeline: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryJoinKeyDto {
     pub label: String,
     pub property: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryJoinDto {
     pub id: String,
     pub keys: Vec<QueryJoinKeyDto>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct QuerySpecDto {
     #[serde(default = "default_container")]
@@ -70,7 +71,7 @@ pub(crate) fn default_container() -> String {
     "default".to_string()
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SourceMiddlewareConfigDto {
     pub kind: String,
@@ -80,7 +81,7 @@ pub struct SourceMiddlewareConfigDto {
     pub config: Map<String, Value>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct QuerySourcesDto {
     pub subscriptions: Vec<QuerySubscriptionDto>,
@@ -88,7 +89,7 @@ pub struct QuerySourcesDto {
     pub middleware: Option<Vec<SourceMiddlewareConfigDto>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryStatusDto {
     pub host_name: String,
@@ -97,14 +98,14 @@ pub struct QueryStatusDto {
     pub error_message: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewSpecDto {
     pub enabled: bool,
     pub retention_policy: RetentionPolicyDto,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum RetentionPolicyDto {
     #[serde(rename = "latest")]
@@ -127,4 +128,11 @@ impl Default for ViewSpecDto {
             retention_policy: RetentionPolicyDto::Latest,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+pub struct ContinuousQueryDto {
+    pub id: String,
+    pub spec: QuerySpecDto,
+    pub status: Option<QueryStatusDto>,
 }
