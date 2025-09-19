@@ -15,10 +15,11 @@
 use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use super::{ConfigValueDto, ServiceConfigDto, ServiceIdentityDto};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ReactionSpecDto {
     pub kind: String,
     pub tag: Option<String>,
@@ -28,9 +29,16 @@ pub struct ReactionSpecDto {
     pub identity: Option<ServiceIdentityDto>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub struct ReactionStatusDto {
     pub available: bool,
     pub messages: Option<BTreeMap<String, String>>,
     pub ingress_url: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+pub struct ReactionDto {
+    pub id: String,
+    pub spec: ReactionSpecDto,
+    pub status: Option<ReactionStatusDto>,
 }
