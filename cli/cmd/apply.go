@@ -17,15 +17,29 @@ package cmd
 import (
 	"errors"
 
-	"drasi.io/cli/output"
-
 	"drasi.io/cli/api"
+	"drasi.io/cli/output"
 	"drasi.io/cli/sdk"
-	"drasi.io/cli/sdk/registry"
 	"github.com/spf13/cobra"
 )
 
-func NewApplyCommand() *cobra.Command {
+// applyCmdOptions holds dependencies for the apply command
+type applyCmdOptions struct {
+	platformClientFactory func(namespace string) (sdk.PlatformClient, error)
+	outputFactory         func() output.TaskOutput
+}
+
+// NewApplyCommand creates the apply command with optional dependency injection
+func NewApplyCommand(opts ...*applyCmdOptions) *cobra.Command {
+	// Use the real implementation by default
+	opt := &applyCmdOptions{
+		platformClientFactory: defaultPlatformClientFactory,
+		outputFactory:         defaultOutputFactory,
+	}
+	// If options are provided (from tests), use them instead
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
+	}
 	var applyCommand = &cobra.Command{
 		Use:   "apply",
 		Short: "Create or update resources",
@@ -55,12 +69,7 @@ Usage examples:
 				return err
 			}
 
-			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
-			if err != nil {
-				return err
-			}
-
-			platformClient, err := sdk.NewPlatformClient(reg)
+			platformClient, err := opt.platformClientFactory(namespace)
 			if err != nil {
 				return err
 			}
@@ -71,7 +80,7 @@ Usage examples:
 			}
 			defer client.Close()
 
-			output := output.NewTaskOutput()
+			output := opt.outputFactory()
 			defer output.Close()
 
 			err = client.Apply(manifests, output)
