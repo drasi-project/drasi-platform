@@ -25,8 +25,8 @@ import io.drasi.DatabaseStrategy;
 import io.drasi.models.NodeMapping;
 import io.drasi.models.RelationalGraphMapping;
 import io.drasi.source.sdk.Reactivator;
+import io.drasi.source.sdk.SourceProxy;
 
-import org.checkerframework.checker.units.qual.t;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +90,7 @@ public class PostgreSql implements DatabaseStrategy {
     @Override
     public Configuration createConnectorConfig(Configuration baseConfig) {
         var publicationSlotName = "rg_" + baseConfig.getString("name");
-        return Configuration.create()
+        var result = Configuration.create()
                 // Start with the base configuration.
                 .with(baseConfig)
                 // Specify the Postgres connector class.
@@ -104,8 +104,22 @@ public class PostgreSql implements DatabaseStrategy {
                 // Name of replication slot for streaming changes from the database. Default is debezium. 
                 .with("slot.name", publicationSlotName)
                 // If started first time, start from beginning, else start from last stored LSN.
-                .with("snapshot.mode", "no_data")
-            .build();
+                .with("snapshot.mode", "no_data");
+
+        String identityType = SourceProxy.GetConfigValue("IDENTITY_TYPE");
+        if ("MicrosoftEntraWorkloadID".equals(identityType)) {
+
+            var tokenFetcher = new AzureIdentityTokenFetcher();
+            var accessToken = tokenFetcher.getToken();
+
+            result = result
+                .with("database.password", accessToken)
+                .with("database.sslmode", "require");
+
+            log.info("Using Azure Identity PostgreSQL Driver for authentication");
+        }
+
+        return result.build();
     }
 
     @Override
