@@ -30,7 +30,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
-    <version.debezium>2.7.3.Final</version.debezium>
+    <version.debezium>3.2.2.Final</version.debezium>
   </properties>
 
   <dependencies>
