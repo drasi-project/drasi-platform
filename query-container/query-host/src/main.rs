@@ -101,6 +101,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut middleware_registry = MiddlewareTypeRegistry::new();
     middleware_registry.register(Arc::new(drasi_middleware::map::MapFactory::new()));
     middleware_registry.register(Arc::new(drasi_middleware::unwind::UnwindFactory::new()));
+    middleware_registry.register(Arc::new(
+        drasi_middleware::relabel::RelabelMiddlewareFactory::new(),
+    ));
     middleware_registry.register(Arc::new(drasi_middleware::decoder::DecoderFactory::new()));
     middleware_registry.register(Arc::new(
         drasi_middleware::parse_json::ParseJsonFactory::new(),

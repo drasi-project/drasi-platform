@@ -22,7 +22,13 @@ use super::{
 };
 use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::{
-    api::core::v1::{ConfigMap, EnvVar, ServicePort, ServiceSpec},
+    api::{
+        core::v1::{ConfigMap, EnvVar, ServicePort, ServiceSpec},
+        networking::v1::{
+            HTTPIngressPath, HTTPIngressRuleValue, Ingress, IngressBackend, IngressRule,
+            IngressServiceBackend, IngressSpec, ServiceBackendPort,
+        },
+    },
     apimachinery::pkg::util::intstr::IntOrString,
 };
 use kube::core::ObjectMeta;
@@ -115,6 +121,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             };
 
             let mut k8s_services = BTreeMap::new();
+            let mut k8s_ingresses = BTreeMap::new();
             let mut ports = BTreeMap::new();
             if let Some(endpoints) = service_spec.endpoints {
                 for (endpoint_name, endpoint) in endpoints {
@@ -136,7 +143,81 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             k8s_services.insert(endpoint_name.clone(), service_spec);
                         }
                         EndpointSetting::External => {
-                            unimplemented!();
+                            let port = endpoint.target.parse::<i32>().unwrap();
+                            ports.insert(endpoint_name.clone(), port);
+
+                            // Create ClusterIP service for the ingress to target
+                            let service_spec = ServiceSpec {
+                                type_: Some("ClusterIP".to_string()),
+                                selector: Some(labels.clone()),
+                                ports: Some(vec![ServicePort {
+                                    name: Some(endpoint_name.clone()),
+                                    port,
+                                    target_port: Some(IntOrString::String(endpoint_name.clone())),
+                                    ..Default::default()
+                                }]),
+                                ..Default::default()
+                            };
+                            // Use just endpoint_name as key - ResourceReconciler will add reaction.id prefix
+                            let service_key = format!("{}-{}", service_name, endpoint_name);
+                            k8s_services.insert(service_key.clone(), service_spec);
+
+                            // Create Ingress resource with hostname-based routing
+                            let ingress_name = format!("{}-reaction-ingress", reaction.id);
+                            let mut annotations = BTreeMap::new();
+
+                            // Add configurable annotations from RuntimeConfig
+                            for (key, value) in &runtime_config.ingress_annotations {
+                                annotations.insert(key.clone(), value.clone());
+                            }
+
+                            // Generate hostname: <reaction-name>.drasi.PLACEHOLDER
+                            // The PLACEHOLDER will be replaced with actual IP during reconciliation
+                            let hostname = format!("{}.drasi.PLACEHOLDER", reaction.id);
+
+                            let ingress = Ingress {
+                                metadata: ObjectMeta {
+                                    name: Some(ingress_name.clone()),
+                                    labels: Some(labels.clone()),
+                                    annotations: if annotations.is_empty() {
+                                        None
+                                    } else {
+                                        Some(annotations)
+                                    },
+                                    ..Default::default()
+                                },
+                                spec: Some(IngressSpec {
+                                    ingress_class_name: Some(
+                                        runtime_config.ingress_class_name.clone(),
+                                    ),
+                                    rules: Some(vec![IngressRule {
+                                        host: Some(hostname),
+                                        http: Some(HTTPIngressRuleValue {
+                                            paths: vec![HTTPIngressPath {
+                                                path: Some("/".to_string()),
+                                                path_type: "Prefix".to_string(),
+                                                backend: IngressBackend {
+                                                    service: Some(IngressServiceBackend {
+                                                        name: format!(
+                                                            "{}-{}",
+                                                            reaction.id,
+                                                            service_key.clone()
+                                                        ),
+                                                        port: Some(ServiceBackendPort {
+                                                            number: Some(port),
+                                                            ..Default::default()
+                                                        }),
+                                                    }),
+                                                    ..Default::default()
+                                                },
+                                            }],
+                                        }),
+                                    }]),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            };
+                            k8s_ingresses.insert(ingress_name, ingress);
                         }
                     }
                 }
@@ -175,6 +256,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 services: k8s_services,
                 config_maps,
                 volume_claims: BTreeMap::new(),
+                ingresses: Some(k8s_ingresses),
                 pub_sub: Some(Component {
                     metadata: ObjectMeta {
                         name: Some(pub_sub_name.clone()),

@@ -14,11 +14,13 @@ public class ResultStream implements BootstrapStream {
     private static final Logger log = LoggerFactory.getLogger(ResultStream.class);
     private final BootstrapRequest request;
     private final Connection connection;
+    private final TableRegistry tableRegistry;
 
     private final Queue<TableCursor> cursors;
 
     public ResultStream(BootstrapRequest request) {
         try {
+            this.tableRegistry = new TableRegistry();
             this.connection = getConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -27,7 +29,12 @@ public class ResultStream implements BootstrapStream {
         this.cursors = new LinkedList<>();
 
         for (var table : request.getNodeLabels()) {
-            cursors.add(new TableCursor(table));
+            if (!tableRegistry.tableExists(table)) {
+                log.warn("Table {} is not registered", table);
+                continue;
+            }
+            String schemaName = tableRegistry.getSchemaName(table);
+            cursors.add(new TableCursor(schemaName, table));
         }
     }
 

@@ -1,6 +1,5 @@
 .PHONY: default docker-build kind-load
 
-CLUSTER_NAME ?= kind
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
 TAG_SUFFIX ?=
@@ -21,11 +20,10 @@ docker-build:
 	docker buildx build . -f Dockerfile.$(BUILD_CONFIG) -t $(IMAGE_PREFIX)/reaction-storedproc:$(DOCKER_TAG_VERSION) $(DOCKERX_OPTS)
 
 kind-load:
-	kind load docker-image $(IMAGE_PREFIX)/reaction-storedproc:$(DOCKER_TAG_VERSION) --name $(CLUSTER_NAME)
+	kind load docker-image $(IMAGE_PREFIX)/reaction-storedproc:$(DOCKER_TAG_VERSION) --name $(if $(CLUSTER_NAME),$(CLUSTER_NAME),kind)
 
-k3d-load: CLUSTER_NAME=k3s-default
 k3d-load:
-	k3d image import $(IMAGE_PREFIX)/reaction-storedproc:$(DOCKER_TAG_VERSION) -c $(CLUSTER_NAME)
+	k3d image import $(IMAGE_PREFIX)/reaction-storedproc:$(DOCKER_TAG_VERSION) -c $(if $(CLUSTER_NAME),$(CLUSTER_NAME),k3s-default)
 
 test:
 	@echo "No tests to run yet"
