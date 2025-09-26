@@ -14,6 +14,7 @@
 
 import { ViewItem } from "./types/ViewItem";
 import { IManagementClient } from "./management-client";
+import { parseChunked } from "@discoveryjs/json-ext";
 
 /**
  * Interface for retrieving current query results
@@ -93,46 +94,44 @@ export class ResultViewClient implements IResultViewClient {
         return;
       }
 
+      // Use parseChunked to stream and parse large JSON arrays
       const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+
+      async function* chunks() {
+        try {
+          while (true) {
+            if (abortSignal?.aborted) {
+              break;
+            }
+
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            yield value;
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      }
 
       try {
-        while (true) {
-          const { done, value } = await reader.read();
+        const result = await parseChunked(chunks());
 
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-
-          // Process complete JSON objects (one per line)
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-          for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (trimmedLine) {
-              try {
-                const viewItem: ViewItem = JSON.parse(trimmedLine);
-                yield viewItem;
-              } catch (parseError) {
-                console.warn(`Failed to parse view item:`, parseError, `Line: ${trimmedLine}`);
-              }
-            }
+        // If result is an array, yield each item
+        if (Array.isArray(result)) {
+          for (const item of result) {
+            if (abortSignal?.aborted) break;
+            yield item as ViewItem;
           }
+        } else {
+          // Single object
+          yield result as ViewItem;
         }
-
-        // Process any remaining data in buffer
-        if (buffer.trim()) {
-          try {
-            const viewItem: ViewItem = JSON.parse(buffer.trim());
-            yield viewItem;
-          } catch (parseError) {
-            console.warn(`Failed to parse final view item:`, parseError, `Buffer: ${buffer}`);
-          }
+      } catch (error) {
+        if (abortSignal?.aborted) {
+          return;
         }
-      } finally {
-        reader.releaseLock();
+        console.error(`Error parsing streaming JSON:`, error);
       }
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {

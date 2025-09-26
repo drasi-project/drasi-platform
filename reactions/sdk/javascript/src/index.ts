@@ -109,6 +109,10 @@ export class DrasiReaction<TQueryConfig = any> {
         return this.queryIds;
     }
 
+    public getQueryConfig(queryId: string): TQueryConfig | undefined {
+        return this.queryConfig.get(queryId);
+    }
+
     /**
      * Gets the ResultViewClient for querying current result data
      */
