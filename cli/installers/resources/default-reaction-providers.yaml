@@ -143,7 +143,7 @@ spec:
       image: reaction-signalr
       endpoints:
         gateway:
-          setting: internal
+          setting: external
           target: $signalr-portConfigKey
       config_schema:
         type: object

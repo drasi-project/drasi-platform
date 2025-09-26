@@ -121,6 +121,21 @@ async function installDrasi(version = "latest") {
   );
 }
 
+async function installDrasiIngress() {
+  
+  await waitForChildProcess(
+    cp.exec(`drasi env kube`),
+    "install",
+  );
+  
+  await waitForChildProcess(
+    cp.exec(`drasi ingress init --local-cluster`, {
+      encoding: "utf-8",
+    }),
+    "install",
+  );
+}
+
 /**
  * @param {cp.ChildProcess} childProcess
  * @param {string} logPrefix
@@ -208,3 +223,4 @@ exports.installDrasi = installDrasi;
 exports.tryLoadInfraImages = tryLoadInfraImages;
 exports.waitForChildProcess = waitForChildProcess;
 exports.waitFor = waitFor;
+exports.installDrasiIngress = installDrasiIngress;
