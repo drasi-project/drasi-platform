@@ -5,7 +5,9 @@ import {
     isInitializeRequest,
     SubscribeRequestSchema,
     UnsubscribeRequestSchema,
-    ListResourcesRequestSchema
+    ListResourcesRequestSchema,
+    ReadResourceRequestSchema,
+    ReadResourceResult
 } from '@modelcontextprotocol/sdk/types.js';
 import express from 'express';
 import { randomUUID } from 'node:crypto';
@@ -42,7 +44,7 @@ const myReaction = new DrasiReaction<QueryConfig>(onChangeEvent, {
 });
 
 
-// Add subscription and unsubscription handlers
+// Add subscription and unsubscribe handlers
 server.server.setRequestHandler(SubscribeRequestSchema, async (request, extra) => {
     const uri = request.params?.uri;
     if (!uri) {
@@ -61,13 +63,13 @@ server.server.setRequestHandler(SubscribeRequestSchema, async (request, extra) =
 server.server.setRequestHandler(UnsubscribeRequestSchema, async (request, extra) => {
     const uri = request.params?.uri;
     if (!uri) {
-        throw new Error("URI is required for unsubscription");
+        throw new Error("URI is required for unsubscribe");
     }
 
     if (extra.sessionId) {
         removeSubscription(extra.sessionId, uri);
     } else {
-        console.warn("No session ID available for unsubscription request");
+        console.warn("No session ID available for unsubscribe request");
     }
     
     return {};
@@ -81,6 +83,52 @@ server.server.setRequestHandler(ListResourcesRequestSchema, async (request, extr
             "name": id
         }))
     };
+});
+
+server.server.setRequestHandler(ReadResourceRequestSchema, async (request, extra) => {
+    const uri = request.params?.uri;
+    if (!uri) {
+        throw new Error("URI is required for reading resource");
+    }
+
+    // Extract query ID from URI format: drasi://query/{id}
+    const uriMatch = uri.match(/^drasi:\/\/query\/(.+)$/);
+    if (!uriMatch) {
+        throw new Error(`Invalid URI format: ${uri}. Expected format: drasi://query/{id}`);
+    }
+
+    const queryId = uriMatch[1];
+
+    // Verify the query exists
+    if (!myReaction.getQueryIds().includes(queryId)) {
+        throw new Error(`Query not found: ${queryId}`);
+    }
+
+    try {
+        // Get current results from the view client
+        const results = [];
+        for await (const viewItem of myReaction.resultViewClient.getCurrentResult(queryId)) {
+            console.log(`Fetched view item for query ${queryId}:`, viewItem);
+            if (viewItem.data) {
+                results.push(viewItem.data);
+            }
+        }
+
+        // Return as text content with JSON array
+        return {
+            contents: [
+                {
+                    uri: uri,
+                    mimeType: "application/json",
+                    text: JSON.stringify(results, null, 2)
+                }
+            ]
+        };
+    } catch (error) {
+        console.error(`Error reading resource for query ${queryId}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to read resource for query ${queryId}: ${errorMessage}`);
+    }
 });
 
 // Store transports by session ID to send notifications
