@@ -57,7 +57,7 @@ control-planes/
 make docker-build
 
 # Debug builds with shell access
-make docker-build-debug
+make docker-build BUILD_CONFIG=debug
 
 # Build specific component
 make -C mgmt_api docker-build
