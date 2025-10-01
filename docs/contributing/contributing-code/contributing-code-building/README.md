@@ -27,9 +27,9 @@ If you wish to override the default (latest) image tag, you can use the `DOCKER_
 make docker-build DOCKER_TAG_VERSION="v1"
 ```
 
-If you wish to build images that support opening a terminal, you can use the `docker-build-debug` target to build the images. 
+If you wish to build images that support opening a terminal, you can use the `docker-build BUILD_CONFIG=debug` target to build the images.
 ```sh
-make docker-build-debug
+make docker-build BUILD_CONFIG=debug
 ```
 
 If you are using Kind in your development workflow, you can load the built images to your kind cluster using the `kind-load` target:

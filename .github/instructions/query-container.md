@@ -50,7 +50,7 @@ query-container/
 make docker-build
 
 # Build debug versions
-make docker-build-debug
+make docker-build BUILD_CONFIG=debug
 
 # Build specific service
 make -C publish-api docker-build
