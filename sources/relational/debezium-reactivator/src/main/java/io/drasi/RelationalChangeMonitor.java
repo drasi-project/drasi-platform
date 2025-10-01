@@ -134,6 +134,8 @@ public class RelationalChangeMonitor implements ChangeMonitor {
                 .with("tombstones.on.delete", false)
                 // Used as a namespace for the connector storage.
                 .with("topic.prefix", cleanSourceId)
+
+                .with("errors.max.retries", "3")
             .build();
     }
 
@@ -141,7 +143,7 @@ public class RelationalChangeMonitor implements ChangeMonitor {
         final Properties props = config.asProperties();
         engine = DebeziumEngine.create(Json.class)
                 .using(props)
-                .using(OffsetCommitPolicy.always())
+                .using(OffsetCommitPolicy.always())                
                 .using((success, message, error) -> {
                     if (!success && error != null) {
                         log.error("Error in Debezium engine: {}", error.getMessage());
