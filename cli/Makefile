@@ -23,6 +23,12 @@ VERSION ?= latest
 
 DRASI_LOCATION ?= $(if $(filter $(OS),Windows_NT),$(shell $$Env:ProgramFiles)\drasi\,/usr/local/bin/)
 
+# Path to the OpenAPI specification file
+SPEC_FILE = ../control-planes/mgmt_api/openapi.yaml
+
+# Output path for the generated client
+GENERATED_CLIENT = sdk/generated/api.gen.go
+
 .PHONY: all
 all: fmt vet
 ifeq ($(IS_WINDOWS),true)
@@ -65,4 +71,16 @@ else
 	@echo "Installing the Drasi CLI"
 	cp ./bin/drasi $(DRASI_LOCATION)
 endif
+
+## generate-api-client: Generates the Drasi API client from the OpenAPI spec
+.PHONY: generate-api-client
+generate-api-client:
+	@echo "--> Generating Drasi API client..."
+	@if ! command -v oapi-codegen &> /dev/null; then \
+		echo "oapi-codegen not found. Please run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest"; \
+		exit 1; \
+	fi
+	@mkdir -p sdk/generated
+	oapi-codegen --generate "types,client" --package="generated" -o "$(GENERATED_CLIENT)" "$(SPEC_FILE)"
+	@echo "--> API client generated successfully at $(GENERATED_CLIENT)"
 
