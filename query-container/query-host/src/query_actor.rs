@@ -223,9 +223,18 @@ impl QueryActor {
         log::info!("Query configure - {}", self.query_id);
         let config = self.config.get().await;
 
-        if config.is_some() {
-            log::error!("Query {} already configured", self.query_id);
-            return (StatusCode::CONFLICT, "Query already configured").into_response();
+        // Allow idempotent reconfiguration to support calling `drasi apply` multiple times
+        let is_reconfiguring = config.is_some();
+
+        if is_reconfiguring {
+            log::info!("Query {} reconfiguring", self.query_id);
+
+            // Shutdown existing worker to prevent resource leaks
+            if let Some(w) = &self.worker.get().await {
+                w.delete();
+                w.shutdown();
+                self.worker.clear().await;
+            }
         }
 
         //todo: validation
@@ -241,17 +250,20 @@ impl QueryActor {
             }
         };
 
-        match self.register_reminder().await {
-            Ok(_) => {}
-            Err(e) => {
-                log::error!("Query {} Error registering reminder: {}", self.query_id, e);
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Error registering reminder",
-                )
-                    .into_response();
-            }
-        };
+        // Skip reminder registration on reconfiguration since it already exists in Dapr
+        if !is_reconfiguring {
+            match self.register_reminder().await {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("Query {} Error registering reminder: {}", self.query_id, e);
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Error registering reminder",
+                    )
+                        .into_response();
+                }
+            };
+        }
 
         match self.init_worker().await {
             Ok(_) => {}
