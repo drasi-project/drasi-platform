@@ -193,7 +193,7 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 	// Don't wait for LoadBalancer services in local clusters since they never get external IPs
 	installClient.Wait = !localCluster
 	installClient.CreateNamespace = true
-	installClient.Timeout = time.Duration(300) * time.Second
+	installClient.Timeout = time.Duration(600) * time.Second
 
 	// Configure Contour values
 	serviceType := "LoadBalancer"
