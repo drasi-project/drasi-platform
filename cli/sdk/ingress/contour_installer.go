@@ -157,6 +157,7 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 	pull.DestDir = dir
 
 	// Use Bitnami Contour chart from OCI registry
+	output.InfoTask("Contour-Install", "Pulling Contour Helm chart from OCI registry...")
 	_, err = pull.Run("oci://registry-1.docker.io/bitnamicharts/contour")
 	if err != nil {
 		output.FailTask("Contour-Install", fmt.Sprintf("Error pulling Contour chart: %v", err.Error()))
@@ -192,6 +193,7 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 	installClient.Namespace = "projectcontour"
 	// Always wait for pods to be ready. For local clusters with NodePort, Helm won't wait for LoadBalancer external IPs
 	installClient.Wait = true
+	installClient.WaitForJobs = true
 	installClient.CreateNamespace = true
 	installClient.Timeout = time.Duration(600) * time.Second
 
@@ -229,6 +231,7 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 		return fmt.Errorf("helm chart is nil")
 	}
 
+	output.InfoTask("Contour-Install", "Installing Contour Helm chart (this may take several minutes)...")
 	_, err = installClient.Run(helmChart, values)
 	if err != nil {
 		output.FailTask("Contour-Install", fmt.Sprintf("Error installing Contour: %v", err.Error()))
