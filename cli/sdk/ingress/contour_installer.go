@@ -81,6 +81,14 @@ func (ci *ContourInstaller) InstallWithOptions(drasiNamespace string, localClust
 func (ci *ContourInstaller) checkContourInstallation(output output.TaskOutput) (bool, error) {
 	output.AddTask("Contour-Check", "Checking for Contour...")
 
+	// First check if the namespace exists
+	_, err := ci.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "projectcontour", metav1.GetOptions{})
+	if err != nil {
+		// Namespace doesn't exist, so Contour is not installed
+		output.InfoTask("Contour-Check", "Contour not installed (namespace does not exist)")
+		return false, nil
+	}
+
 	podsClient := ci.kubeClient.CoreV1().Pods("projectcontour")
 
 	pods, err := podsClient.List(context.TODO(), metav1.ListOptions{
