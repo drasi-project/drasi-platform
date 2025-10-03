@@ -196,6 +196,8 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 	installClient.WaitForJobs = true
 	installClient.CreateNamespace = true
 	installClient.Timeout = time.Duration(600) * time.Second
+	// Disable hooks as pre-install hooks in Bitnami chart can timeout
+	installClient.DisableHooks = true
 
 	// Configure Contour values
 	serviceType := "LoadBalancer"
