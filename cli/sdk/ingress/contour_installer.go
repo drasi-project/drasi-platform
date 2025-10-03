@@ -190,8 +190,8 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 
 	installClient.ReleaseName = "contour"
 	installClient.Namespace = "projectcontour"
-	// Don't wait for LoadBalancer services in local clusters since they never get external IPs
-	installClient.Wait = !localCluster
+	// Always wait for pods to be ready. For local clusters with NodePort, Helm won't wait for LoadBalancer external IPs
+	installClient.Wait = true
 	installClient.CreateNamespace = true
 	installClient.Timeout = time.Duration(600) * time.Second
 
