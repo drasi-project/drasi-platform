@@ -81,6 +81,14 @@ func (ci *ContourInstaller) InstallWithOptions(drasiNamespace string, localClust
 func (ci *ContourInstaller) checkContourInstallation(output output.TaskOutput) (bool, error) {
 	output.AddTask("Contour-Check", "Checking for Contour...")
 
+	// First check if the namespace exists
+	_, err := ci.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "projectcontour", metav1.GetOptions{})
+	if err != nil {
+		// Namespace doesn't exist, so Contour is not installed
+		output.InfoTask("Contour-Check", "Contour not installed (namespace does not exist)")
+		return false, nil
+	}
+
 	podsClient := ci.kubeClient.CoreV1().Pods("projectcontour")
 
 	pods, err := podsClient.List(context.TODO(), metav1.ListOptions{
@@ -149,6 +157,7 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 	pull.DestDir = dir
 
 	// Use Bitnami Contour chart from OCI registry
+	output.InfoTask("Contour-Install", "Pulling Contour Helm chart from OCI registry...")
 	_, err = pull.Run("oci://registry-1.docker.io/bitnamicharts/contour")
 	if err != nil {
 		output.FailTask("Contour-Install", fmt.Sprintf("Error pulling Contour chart: %v", err.Error()))
@@ -182,10 +191,13 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 
 	installClient.ReleaseName = "contour"
 	installClient.Namespace = "projectcontour"
-	// Don't wait for LoadBalancer services in local clusters since they never get external IPs
-	installClient.Wait = !localCluster
+	// Always wait for pods to be ready. For local clusters with NodePort, Helm won't wait for LoadBalancer external IPs
+	installClient.Wait = true
+	installClient.WaitForJobs = true
 	installClient.CreateNamespace = true
-	installClient.Timeout = time.Duration(300) * time.Second
+	installClient.Timeout = time.Duration(600) * time.Second
+	// Disable hooks as pre-install hooks in Bitnami chart can timeout
+	installClient.DisableHooks = true
 
 	// Configure Contour values
 	serviceType := "LoadBalancer"
@@ -221,6 +233,7 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 		return fmt.Errorf("helm chart is nil")
 	}
 
+	output.InfoTask("Contour-Install", "Installing Contour Helm chart (this may take several minutes)...")
 	_, err = installClient.Run(helmChart, values)
 	if err != nil {
 		output.FailTask("Contour-Install", fmt.Sprintf("Error installing Contour: %v", err.Error()))
