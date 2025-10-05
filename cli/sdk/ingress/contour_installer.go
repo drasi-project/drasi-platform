@@ -29,6 +29,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/registry"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -64,7 +65,7 @@ func (ci *ContourInstaller) Install(drasiNamespace string, output output.TaskOut
 }
 
 func (ci *ContourInstaller) InstallWithOptions(drasiNamespace string, localCluster bool, output output.TaskOutput) error {
-	contourInstalled, err := ci.checkContourInstallation(output)
+	contourInstalled, err := ci.ensureContourInstallation(output)
 	if err != nil {
 		return err
 	}
@@ -78,16 +79,8 @@ func (ci *ContourInstaller) InstallWithOptions(drasiNamespace string, localClust
 	return nil
 }
 
-func (ci *ContourInstaller) checkContourInstallation(output output.TaskOutput) (bool, error) {
+func (ci *ContourInstaller) ensureContourInstallation(output output.TaskOutput) (bool, error) {
 	output.AddTask("Contour-Check", "Checking for Contour...")
-
-	// First check if the namespace exists
-	_, err := ci.kubeClient.CoreV1().Namespaces().Get(context.TODO(), "projectcontour", metav1.GetOptions{})
-	if err != nil {
-		// Namespace doesn't exist, so Contour is not installed
-		output.InfoTask("Contour-Check", "Contour not installed (namespace does not exist)")
-		return false, nil
-	}
 
 	podsClient := ci.kubeClient.CoreV1().Pods("projectcontour")
 
@@ -95,6 +88,11 @@ func (ci *ContourInstaller) checkContourInstallation(output output.TaskOutput) (
 		LabelSelector: "app.kubernetes.io/instance=contour",
 	})
 	if err != nil {
+		// If namespace doesn't exist, treat as not installed
+		if errors.IsNotFound(err) {
+			output.InfoTask("Contour-Check", "Contour not installed")
+			return false, nil
+		}
 		output.FailTask("Contour-Check", fmt.Sprintf("Error checking for Contour: %v", err.Error()))
 		return false, err
 	}
