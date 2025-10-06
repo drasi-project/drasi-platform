@@ -207,11 +207,19 @@ func (ci *ContourInstaller) installContour(localCluster bool, output output.Task
 
 	values := map[string]interface{}{
 		"contour": map[string]interface{}{
+			"image": map[string]interface{}{
+				"repository": "bitnamilegacy/contour",
+				"tag":        "1.32.1-debian-12-r0",
+			},
 			"configFileContents": map[string]interface{}{
 				"debug": false,
 			},
 		},
 		"envoy": map[string]interface{}{
+			"image": map[string]interface{}{
+				"repository": "bitnamilegacy/envoy",
+				"tag":        "1.34.5-debian-12-r0",
+			},
 			"service": serviceValues,
 		},
 	}
