@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-const axios = require('axios');
 const signalR = require("@microsoft/signalr");
-const portfinder = require('portfinder');
 const deployResources = require('./deploy-resources');
 const deleteResources = require('./delete-resources');
 
@@ -225,15 +223,7 @@ function signalrReactionManifest(queryIds) {
     // as a result, we prepend the name with 'signalr-' to ensure it is a valid name
     spec: {
       kind: "SignalR",
-      queries: queryIds.reduce((a, v) => ({ ...a, [v]: "" }), {}),
-      services: {
-        endpoints: {
-          service: {
-            setting: "external",
-            target: "8080"
-          }
-        }
-      }
+      queries: queryIds.reduce((a, v) => ({ ...a, [v]: "" }), {})
     },
   };
 
