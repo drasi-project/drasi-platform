@@ -70,14 +70,9 @@ class SignalRFixture {
         headers: {
           'Host': this.hostname  // Set Host header for ingress routing
         },
-        //transport: signalR.HttpTransportType.LongPolling, // Force long polling instead of WebSockets
-        //timeout: 30000, // Increase timeout to 30 seconds
-        //logLevel: signalR.LogLevel.Warning,
-        //keepAliveIntervalInMilliseconds: 30000,  // Send ping every 30s
-        //serverTimeoutInMilliseconds: 60000       // Expect response within 60s
+        transport: signalR.HttpTransportType.LongPolling, // Force long polling instead of WebSockets
       })
       .withAutomaticReconnect()
-      //.withAutomaticReconnect([0, 2000, 10000, 30000]) // Custom retry intervals
       .build();
 
     let self = this;

@@ -26,7 +26,7 @@ data:
             CONSTRAINT "RiskyImage_pkey" PRIMARY KEY ("Id")
         );
 
-        insert into "RiskyImage" ("Id", "Image", "Reason") values (1, 'drasidemo.azurecr.io/my-app:0.1', 'Security Risk');
+        insert into "RiskyImage" ("Id", "Image", "Reason") values (1, 'drasi.azurecr.io/my-app:0.1', 'Security Risk');
         insert into "RiskyImage" ("Id", "Image", "Reason") values (2, 'docker.io/library/redis:6.2.3-alpine', 'Compliance Issue');
 ---
 apiVersion: v1
@@ -160,7 +160,7 @@ metadata:
 spec:
   containers:
     - name: app
-      image: "drasidemo.azurecr.io/my-app:0.1"
+      image: "drasi.azurecr.io/my-app:0.1"
       imagePullPolicy: Always
 ---
 apiVersion: v1
@@ -170,5 +170,5 @@ metadata:
 spec:
   containers:
     - name: app
-      image: "drasidemo.azurecr.io/my-app:0.2"
+      image: "drasi.azurecr.io/my-app:0.2"
       imagePullPolicy: Always
