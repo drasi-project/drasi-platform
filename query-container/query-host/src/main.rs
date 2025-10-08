@@ -122,12 +122,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         id,
                         &query_container_id,
                         actor_client,
-                        dapr_client.clone(),
-                        source_client.clone(),
-                        stream_config.clone(),
-                        publisher.clone(),
-                        index_factory.clone(),
-                        middleware_registry.clone(),
+                        // dapr_client.clone(),
+                        // source_client.clone(),
+                        // stream_config.clone(),
+                        // publisher.clone(),
+                        // index_factory.clone(),
+                        // middleware_registry.clone(),
                     ))
                 }),
             )
