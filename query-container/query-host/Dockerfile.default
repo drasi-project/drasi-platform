@@ -39,7 +39,7 @@ RUN touch src/main.rs
 RUN cargo build --release
 RUN cargo install --path . --force
 
-FROM gcr.io/distroless/cc
+FROM gcr.io/distroless/cc-debian11
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
 USER root
