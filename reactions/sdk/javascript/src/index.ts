@@ -3,6 +3,8 @@ import { ChangeEvent } from "./types/ChangeEvent";
 import { ControlEvent } from "./types/ControlEvent";
 import { readdirSync, readFileSync, writeFileSync } from "fs";
 import { ReactionOptions } from "./options";
+import { ManagementClient, IManagementClient } from "./management-client";
+import { ResultViewClient, IResultViewClient } from "./result-view-client";
 
 export { ReactionOptions } from "./options";
 export { getConfigValue, parseJson, parseYaml } from "./utils";
@@ -12,6 +14,9 @@ export { RunningSignal } from "./types/RunningSignal";
 export { BootstrapStartedSignal } from "./types/BootstrapStartedSignal";
 export { BootstrapCompletedSignal } from "./types/BootstrapCompletedSignal";
 export { StoppedSignal } from "./types/StoppedSignal";
+export { ViewItem, ViewItemHeader } from "./types/ViewItem";
+export { IManagementClient, ManagementClient } from "./management-client";
+export { IResultViewClient, ResultViewClient } from "./result-view-client";
 
 /**
  * The function signature that is called when a change event is received.
@@ -52,6 +57,9 @@ export class DrasiReaction<TQueryConfig = any> {
     private configDirectory: string = process.env["QueryConfigPath"] ?? "/etc/queries";
     private queryConfig: Map<string, any> = new Map<string, TQueryConfig>();
     private parseQueryConfig: (queryId: string, config: string) => TQueryConfig | undefined;
+    private queryIds: string[] = [];
+    private managementClient: IManagementClient;
+    private _resultViewClient: IResultViewClient;
 
     /**
      * 
@@ -65,6 +73,8 @@ export class DrasiReaction<TQueryConfig = any> {
         this.daprServer = new DaprServer({
             serverPort: '80'
         });
+        this.managementClient = new ManagementClient();
+        this._resultViewClient = new ResultViewClient(this.managementClient);
     }
     
     /**
@@ -72,10 +82,8 @@ export class DrasiReaction<TQueryConfig = any> {
      */
     public async start() {
         try {
-            let queryIds = readdirSync(this.configDirectory);
-            for (let queryId of queryIds) {
-                if (!queryId || queryId.startsWith('.')) 
-                    continue;
+            this.queryIds = readdirSync(this.configDirectory).filter(q => q && !q.startsWith('.'));
+            for (let queryId of this.queryIds) {                
                 console.log(`Subscribing to query ${queryId}`);
                 await this.daprServer.pubsub.subscribe(this.pubSubName, `${queryId}-results`, this.onMessage.bind(this));
                 if (this.parseQueryConfig) {
@@ -95,6 +103,21 @@ export class DrasiReaction<TQueryConfig = any> {
 
     public async stop() {
         await this.daprServer.stop();
+    }
+
+    public getQueryIds(): string[] {
+        return this.queryIds;
+    }
+
+    public getQueryConfig(queryId: string): TQueryConfig | undefined {
+        return this.queryConfig.get(queryId);
+    }
+
+    /**
+     * Gets the ResultViewClient for querying current result data
+     */
+    public get resultViewClient(): IResultViewClient {
+        return this._resultViewClient;
     }
 
     async onMessage(data: any) {
