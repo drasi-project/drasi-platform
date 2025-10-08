@@ -69,6 +69,13 @@ public class ResultStream implements BootstrapStream {
     private static Connection getConnection() throws SQLException {
         switch (SourceProxy.GetConfigValue("connector")) {
             case "PostgreSQL":
+                // Check if Azure Identity should be used
+                String identityType = SourceProxy.GetConfigValue("IDENTITY_TYPE");
+                if ("MicrosoftEntraWorkloadID".equals(identityType)) {
+                    return AzureIdentityPostgreSQLConnection.getConnection();
+                }
+
+                // Default PostgreSQL connection with username/password
                 var propsPG = new Properties();
                 propsPG.setProperty("user", SourceProxy.GetConfigValue("user"));
                 propsPG.setProperty("password", SourceProxy.GetConfigValue("password"));

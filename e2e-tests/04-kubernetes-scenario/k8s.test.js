@@ -19,12 +19,12 @@ const fs = require("fs");
 const deployResources = require("../fixtures/deploy-resources");
 const deleteResources = require("../fixtures/delete-resources");
 const PortForward = require("../fixtures/port-forward");
-const IngressFixture = require("../fixtures/ingress-fixture");
+const SignalRFixture = require("../fixtures/signalr-fixture");
 const pg = require("pg");
 const cp = require("child_process");
 const { waitForChildProcess } = require("../fixtures/infrastructure");
 
-let ingressFixture = new IngressFixture("reaction1", ["risky-containers"]);
+let signalRFixture = new SignalRFixture(["risky-containers"]);
 let dbPortForward = new PortForward("devops-pg", 5432);
 
 let dbClient = new pg.Client({
@@ -68,14 +68,14 @@ beforeAll(async () => {
     );
     throw e;
   }
-  await ingressFixture.start();
+  await signalRFixture.start();
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
   await new Promise((r) => setTimeout(r, 5000));
 }, 240000);
 
 afterAll(async () => {
-  await ingressFixture.stop();
+  await signalRFixture.stop();
   await dbClient.end();
   dbPortForward.stop();
   const resources = yaml.loadAll(
@@ -85,37 +85,37 @@ afterAll(async () => {
 });
 
 test("scenario", async () => {
-  let initData = await ingressFixture.requestReload("risky-containers");
+  let initData = await signalRFixture.requestReload("risky-containers");
 
   expect(initData.length == 1).toBeTruthy();
-  expect(initData[0].image == "drasidemo.azurecr.io/my-app:0.1").toBeTruthy();
+  expect(initData[0].image == "drasi.azurecr.io/my-app:0.1").toBeTruthy();
 
-  let insertCondition = ingressFixture.waitForChange(
+  let insertCondition = signalRFixture.waitForChange(
     "risky-containers",
     (change) =>
       change.op == "i" &&
-      change.payload.after.image == "drasidemo.azurecr.io/my-app:0.2" &&
+      change.payload.after.image == "drasi.azurecr.io/my-app:0.2" &&
       change.payload.after.reason == "Critical Bug",
   );
 
   await dbClient.query(
-    `insert into "RiskyImage" ("Id", "Image", "Reason") values (101, 'drasidemo.azurecr.io/my-app:0.2', 'Critical Bug')`,
+    `insert into "RiskyImage" ("Id", "Image", "Reason") values (101, 'drasi.azurecr.io/my-app:0.2', 'Critical Bug')`,
   );
 
   expect(await insertCondition).toBeTruthy();
 
-  let updateCondition = ingressFixture.waitForChange(
+  let updateCondition = signalRFixture.waitForChange(
     "risky-containers",
     (change) =>
       change.op == "d" &&
-      change.payload.before.image == "drasidemo.azurecr.io/my-app:0.2" &&
+      change.payload.before.image == "drasi.azurecr.io/my-app:0.2" &&
       change.payload.before.reason == "Critical Bug",
     60000,
   );
 
   await waitForChildProcess(
     cp.exec(
-      "kubectl set image pod/my-app-2 app=drasidemo.azurecr.io/my-app:0.3",
+      "kubectl set image pod/my-app-2 app=drasi.azurecr.io/my-app:0.3",
       { encoding: "utf-8" },
     ),
   );
