@@ -33,6 +33,87 @@ permissions:
   packages: write
 
 jobs:
+  verify-openapi-spec:
+    name: Verify OpenAPI Specification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Generate OpenAPI Spec
+        run: make -C control-planes/mgmt_api openapi-generate
+
+      - name: Check for diff
+        run: |
+          if ! git diff --quiet HEAD control-planes/mgmt_api/openapi.yaml; then
+            echo "ERROR: The generated OpenAPI specification is out of date."
+            echo "Please run 'make -C control-planes/mgmt_api openapi-generate' and commit the changes."
+            exit 1
+          fi
+          echo "OpenAPI specification is up to date."
+
+  detect-breaking-api-changes:
+    name: Detect Breaking API Changes
+    runs-on: ubuntu-latest
+    # TODO: Enable this job after the initial OpenAPI PR is merged
+    # For now, skip it since there's no spec in main branch to compare against
+    if: false
+    # if: github.base_ref == 'main' && github.event_name == 'pull_request'
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Checkout base branch (main)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Generate OpenAPI Spec for PR
+        run: make -C control-planes/mgmt_api openapi-generate
+
+      - name: Generate OpenAPI Spec for main branch
+        run: |
+          cd main
+          make -C control-planes/mgmt_api openapi-generate
+
+      - name: Install openapi-diff
+        run: npm install -g openapi-diff
+
+      - name: Run openapi-diff
+        run: |
+          openapi-diff main/control-planes/mgmt_api/openapi.yaml control-planes/mgmt_api/openapi.yaml --fail-on-incompatible
+
   build-images:
     permissions:
       packages: write
