@@ -117,17 +117,3 @@ spec:
       i.ItemId AS Id, 
       i.Name as Name,
       i.Category as Category
----
-apiVersion: v1
-kind: Reaction
-name: reaction1
-spec:
-  kind: SignalR
-  queries:
-    query1:
-  services:
-    reaction:
-      endpoints:
-        service:
-          setting: external
-          target: "8080"
