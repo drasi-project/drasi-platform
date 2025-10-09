@@ -16,30 +16,11 @@ FROM rust:1.86-bullseye AS builder
 RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
 
 WORKDIR /usr/src
+COPY . .
+WORKDIR /usr/src
+RUN cargo install --path .
 
-# Copy Cargo.toml and git submodules to establish the dependency tree
-COPY Cargo.toml ./
-COPY drasi-core ./drasi-core
-COPY drasi-server-core ./drasi-server-core
-
-# Create a dummy main.rs to allow dependency compilation
-RUN mkdir -p src && echo "fn main() {}" > src/main.rs
-
-# Build dependencies only - this layer will be cached
-RUN cargo fetch
-RUN cargo build --release
-
-# Now copy the actual source code
-COPY src ./src
-
-# Force rebuild of query-host (dependencies are already cached)
-RUN touch src/main.rs
-
-# Build the final binary
-RUN cargo build --release
-RUN cargo install --path . --force
-
-FROM gcr.io/distroless/cc-debian11
+FROM gcr.io/distroless/cc
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
 USER root

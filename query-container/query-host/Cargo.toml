@@ -15,7 +15,7 @@ drasi-functions-gql = { path = "./drasi-core/functions-gql" }
 drasi-middleware = { path = "./drasi-core/middleware" }
 drasi-index-garnet = { path = "./drasi-core/index-garnet" }
 drasi-index-rocksdb = { path = "./drasi-core/index-rocksdb" }
-drasi-server-core = { path = "./drasi-server-core" }
+drasi-server-core = { path = "./drasi-core/server-core" }
 
 dapr = "=0.15.1"
 dapr-macros = {version = "=0.15.1", package = "dapr-macros"}
@@ -49,9 +49,3 @@ uuid = {version = "1.4.1", features = ["v4"]}
 
 [profile.release]
 lto = true
-
-# Patch drasi-server-core's drasi-core dependencies to use query-host's drasi-core
-[patch.crates-io]
-# These patches redirect drasi-server-core's drasi-core deps to use our local copy
-# This avoids the package collision between two different drasi-core paths
-
