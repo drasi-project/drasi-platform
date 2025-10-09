@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, hash::Hash, sync::Arc, time::Duration};
 
 use crate::{
     api::{QueryRequest, QuerySpec, QueryStatus},
@@ -40,7 +40,7 @@ use gethostname::gethostname;
 use serde_json::Value;
 use tokio::sync::RwLock;
 use tokio::task::{self, JoinHandle};
-use drasi_server_core::{config::DrasiServerCoreSettings, DrasiServerCore, RuntimeConfig};
+use drasi_server_core::{config::DrasiServerCoreSettings, DrasiServerCore, RuntimeConfig, bootstrap::{BootstrapProviderConfig, BootstrapProvider, BootstrapProviderFactory}};
 
 #[actor]
 pub struct QueryActor {
@@ -407,12 +407,18 @@ impl QueryActor {
             properties.insert("block_ms".to_string(),Value::from(5000));
             properties.insert("start_id".to_string(),">".into());
 
+            let bootstrap_provider = Some(BootstrapProviderConfig::Platform { 
+                query_api_url: Some(format!("http://{}-query-api:80", source.id).into()), 
+                timeout_seconds: Some(30), 
+                config: HashMap::new() 
+            });
+
             let source_config = drasi_server_core::config::SourceConfig {
                 id: source.id.clone(),
                 source_type: "platform".into(),
                 auto_start: true,
                 properties,
-                bootstrap_provider: None,
+                bootstrap_provider,
             };
             sources.push(source_config);
         }
@@ -434,12 +440,18 @@ impl QueryActor {
         queries.push(query_config);
 
         let mut reactions = Vec::new();
+        let mut properties:HashMap<String, serde_json::Value> = HashMap::new();
+        properties.insert("redis_url".to_string(),"redis://drasi-redis:6379".into());
+        properties.insert("pubsub_name".to_string(),"drasi-pubsub".into());
+        properties.insert("source_name".to_string(),"drasi-core".into());
+        properties.insert("max_stream_length".to_string(),Value::from(10000));
+        properties.insert("emit_control_events".to_string(),Value::Bool(true));
         let reaction_config = drasi_server_core::config::ReactionConfig {
             id: self.query_id.to_string(),
             reaction_type: "platform".into(),
             queries: vec![self.query_id.to_string()],
             auto_start: true,
-            properties: HashMap::new(),
+            properties,
         };
         reactions.push(reaction_config);
 
