@@ -86,9 +86,9 @@ jobs:
       matrix:
         include:
           - variant: ""
-            amd64_only_images: "ghcr.io/drasi-project/reaction-dataverse"
+            amd64_only_images: ""
           - variant: "-azure-linux"
-            amd64_only_images: "ghcr.io/drasi-project/reaction-dataverse"
+            amd64_only_images: ""
 
     steps:
       - name: Validate ${{ matrix.variant || 'default' }} variant architecture support
@@ -173,7 +173,6 @@ jobs:
             echo ""
             echo "Requirements:"
             echo "- Most images: amd64 + arm64 support required"
-            echo "- reaction-dataverse: amd64 support only required"
             exit 1
           fi
 
@@ -191,19 +190,19 @@ jobs:
           - arch: amd64
             runner: oracle-vm-8cpu-32gb-x86-64
             variant: ""
-            amd64_only_images: "ghcr.io/drasi-project/reaction-dataverse"
+            amd64_only_images: ""
           - arch: arm64
             runner: oracle-vm-8cpu-32gb-arm64
             variant: ""
-            amd64_only_images: "ghcr.io/drasi-project/reaction-dataverse"
+            amd64_only_images: ""
           - arch: amd64
             runner: oracle-vm-8cpu-32gb-x86-64
             variant: "-azure-linux"
-            amd64_only_images: "ghcr.io/drasi-project/reaction-dataverse"
+            amd64_only_images: ""
           - arch: arm64
             runner: oracle-vm-8cpu-32gb-arm64
             variant: "-azure-linux"
-            amd64_only_images: "ghcr.io/drasi-project/reaction-dataverse"
+            amd64_only_images: ""
 
     steps:
       - name: Test ${{ matrix.variant || 'default' }} image pull on ${{ matrix.arch }}
