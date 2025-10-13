@@ -143,12 +143,23 @@ Usage examples:
 
 				// Get configuration from the installer
 				installerConfig := ingressInstaller.GetIngressConfig()
-				config := &sdk.IngressConfig{
-					IngressClassName:   installerConfig.ClassName,
-					IngressService:     installerConfig.ServiceName,
-					IngressNamespace:   installerConfig.Namespace,
-					GatewayIPAddress:   "",
-					IngressAnnotations: annotationsMap, // Include annotations for Contour too
+				var config *sdk.IngressConfig
+				if localCluster {
+					config = &sdk.IngressConfig{
+						IngressClassName:   installerConfig.ClassName,
+						IngressService:     installerConfig.ServiceName,
+						IngressNamespace:   installerConfig.Namespace,
+						GatewayIPAddress:   "127.0.0.1",
+						IngressAnnotations: annotationsMap, // Include annotations for Contour too
+					}
+				} else {
+					config = &sdk.IngressConfig{
+						IngressClassName:   installerConfig.ClassName,
+						IngressService:     installerConfig.ServiceName,
+						IngressNamespace:   installerConfig.Namespace,
+						GatewayIPAddress:   "",
+						IngressAnnotations: annotationsMap, // Include annotations for Contour too
+					}
 				}
 				if err := k8sPlatformClient.UpdateIngressConfig(config, output); err != nil {
 					return err

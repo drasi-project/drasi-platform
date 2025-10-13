@@ -45,11 +45,11 @@ class SignalRFixture {
     this.localPort = parseInt(process.env.INGRESS_PORT) || 8001;
 
     // Generate the hostname that the ingress expects
-    // Format: {reaction-name}.drasi.{ip}.nip.io
-    // For local testing with kind, we can use localhost
-    this.hostname = `${this.reactionManifest.name}.drasi.localhost`;
+    // Format: {reaction-name}.drasi.127.0.0.1.nip.io
+    // This matches the format used by drasi ingress init --local-cluster
+    this.hostname = `${this.reactionManifest.name}.drasi.127.0.0.1.nip.io`;
 
-    console.log(`SignalRFixture: Using localhost access on port ${this.localPort}`);
+    console.log(`SignalRFixture: Using ingress access on port ${this.localPort}`);
     console.log(`SignalRFixture: Using hostname: ${this.hostname}`);
 
     // Initialize SignalR connection through ingress
