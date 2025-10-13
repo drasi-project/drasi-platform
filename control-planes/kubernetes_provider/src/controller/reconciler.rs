@@ -569,8 +569,8 @@ impl ResourceReconciler {
             let ip_suffix = match self.get_ingress_external_ip().await {
                 Some(ip) => format!("{}.nip.io", ip),
                 None => {
-                    log::warn!("Could not determine external IP, using localhost");
-                    "localhost".to_string()
+                    log::warn!("Could not determine external IP, using UNAVAILABLE");
+                    "UNAVAILABLE".to_string()
                 }
             };
 
@@ -608,9 +608,8 @@ impl ResourceReconciler {
                                     if ip_suffix != "UNAVAILABLE" {
                                         rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
                                     } else {
-                                        log::warn!("Could not determine external IP, using None");
-                                        rule.host = None;
-                                    }
+                                        log::warn!("Could not determine external IP, using UNAVAILABLE");
+                                        rule.host = Some("UNAVAILABLE".to_string());
                                 }
                             }
 

@@ -62,14 +62,12 @@ class SignalRFixture {
   }
   
   async connectSignalR() {
-    // Create SignalR connection through ingress via localhost
-    const hubUrl = `http://localhost:${this.localPort}/hub`;
-    
+    // Create SignalR connection through ingress using nip.io hostname
+    // nip.io automatically resolves *.127.0.0.1.nip.io to 127.0.0.1
+    const hubUrl = `http://${this.hostname}:${this.localPort}/hub`;
+
     this.signalr = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
-        headers: {
-          'Host': this.hostname  // Set Host header for ingress routing
-        },
         transport: signalR.HttpTransportType.LongPolling, // Force long polling instead of WebSockets
       })
       .withAutomaticReconnect()
