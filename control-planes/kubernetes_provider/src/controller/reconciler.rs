@@ -610,6 +610,7 @@ impl ResourceReconciler {
                                     } else {
                                         log::warn!("Could not determine external IP, using UNAVAILABLE");
                                         rule.host = Some("UNAVAILABLE".to_string());
+                                    }
                                 }
                             }
 
