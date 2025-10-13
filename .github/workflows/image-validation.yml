@@ -86,9 +86,7 @@ jobs:
       matrix:
         include:
           - variant: ""
-            amd64_only_images: ""
           - variant: "-azure-linux"
-            amd64_only_images: ""
 
     steps:
       - name: Validate ${{ matrix.variant || 'default' }} variant architecture support
@@ -98,9 +96,6 @@ jobs:
 
           IMAGE_TAG="${{ needs.get-version.outputs.image_tag }}${{ matrix.variant }}"
           echo "📋 Using image tag: $IMAGE_TAG"
-
-          # Images that only need amd64 support
-          AMD64_ONLY_IMAGES="${{ matrix.amd64_only_images }}"
 
           failed_images=()
 
@@ -132,34 +127,23 @@ jobs:
               arm64_support=true
             fi
 
-            # Check if this image is in the amd64-only list
-            if echo "$AMD64_ONLY_IMAGES" | grep -q "$image"; then
-              # For amd64-only images, only require amd64 support
-              if [[ "$amd64_support" == true ]]; then
-                echo "✅ $image:$IMAGE_TAG supports amd64 (amd64-only image)"
-              else
-                echo "❌ ERROR: $image:$IMAGE_TAG missing amd64 support"
-                failed_images+=("$image:$IMAGE_TAG (missing: amd64)")
-              fi
+            # All images require both amd64 and arm64
+            if [[ "$amd64_support" == true && "$arm64_support" == true ]]; then
+              echo "✅ $image:$IMAGE_TAG supports both amd64 and arm64"
             else
-              # For all other images, require both amd64 and arm64
-              if [[ "$amd64_support" == true && "$arm64_support" == true ]]; then
-                echo "✅ $image:$IMAGE_TAG supports both amd64 and arm64"
-              else
-                missing_archs=""
-                if [[ "$amd64_support" == false ]]; then
-                  missing_archs="amd64"
-                fi
-                if [[ "$arm64_support" == false ]]; then
-                  if [[ -n "$missing_archs" ]]; then
-                    missing_archs="$missing_archs, arm64"
-                  else
-                    missing_archs="arm64"
-                  fi
-                fi
-                echo "❌ ERROR: $image:$IMAGE_TAG missing support for: $missing_archs"
-                failed_images+=("$image:$IMAGE_TAG (missing: $missing_archs)")
+              missing_archs=""
+              if [[ "$amd64_support" == false ]]; then
+                missing_archs="amd64"
               fi
+              if [[ "$arm64_support" == false ]]; then
+                if [[ -n "$missing_archs" ]]; then
+                  missing_archs="$missing_archs, arm64"
+                else
+                  missing_archs="arm64"
+                fi
+              fi
+              echo "❌ ERROR: $image:$IMAGE_TAG missing support for: $missing_archs"
+              failed_images+=("$image:$IMAGE_TAG (missing: $missing_archs)")
             fi
           done
 
@@ -172,7 +156,7 @@ jobs:
             done
             echo ""
             echo "Requirements:"
-            echo "- Most images: amd64 + arm64 support required"
+            echo "- All images: amd64 + arm64 support required"
             exit 1
           fi
 
@@ -190,19 +174,15 @@ jobs:
           - arch: amd64
             runner: oracle-vm-8cpu-32gb-x86-64
             variant: ""
-            amd64_only_images: ""
           - arch: arm64
             runner: oracle-vm-8cpu-32gb-arm64
             variant: ""
-            amd64_only_images: ""
           - arch: amd64
             runner: oracle-vm-8cpu-32gb-x86-64
             variant: "-azure-linux"
-            amd64_only_images: ""
           - arch: arm64
             runner: oracle-vm-8cpu-32gb-arm64
             variant: "-azure-linux"
-            amd64_only_images: ""
 
     steps:
       - name: Test ${{ matrix.variant || 'default' }} image pull on ${{ matrix.arch }}
@@ -214,20 +194,9 @@ jobs:
           echo "📋 Using image tag: $IMAGE_TAG"
           echo "🖥️  Running on: ${{ matrix.runner }}"
 
-          # Images that only need amd64 support
-          AMD64_ONLY_IMAGES="${{ matrix.amd64_only_images }}"
-
           failed_pulls=()
-          skipped_images=()
 
           for image in $DRASI_IMAGES; do
-            # Skip reaction-dataverse on arm64 (amd64-only image)
-            if echo "$AMD64_ONLY_IMAGES" | grep -q "$image" && [[ "${{ matrix.arch }}" == "arm64" ]]; then
-              echo "⏭️  Skipping $image (amd64-only image, not available for arm64)"
-              skipped_images+=("$image")
-              continue
-            fi
-
             echo "📦 Pulling $image:$IMAGE_TAG on ${{ matrix.arch }}..."
 
             if docker pull  "${image}:${IMAGE_TAG}" > /dev/null 2>&1; then
@@ -241,11 +210,6 @@ jobs:
           done
 
           # Report results
-          if [ ${#skipped_images[@]} -gt 0 ]; then
-            echo ""
-            echo "⏭️  Skipped images (amd64-only): ${#skipped_images[@]}"
-          fi
-
           if [ ${#failed_pulls[@]} -gt 0 ]; then
             echo ""
             echo "❌ $VARIANT_NAME PULL TEST FAILED on ${{ matrix.arch }}: The following images could not be pulled:"
