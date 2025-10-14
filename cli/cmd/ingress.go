@@ -111,6 +111,11 @@ Usage examples:
 				}
 			}
 
+			// Necessary for WebSocket support with Contour
+			if ingressClassName == "contour" {
+				annotationsMap["projectcontour.io/websocket-routes"] = "/"
+			}
+
 			if useExisting {
 				output.InfoMessage("Configuring Drasi to use existing ingress controller")
 				output.InfoMessage(fmt.Sprintf("IngressClass: %s", ingressClassName))

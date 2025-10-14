@@ -608,7 +608,8 @@ impl ResourceReconciler {
                                     if ip_suffix != "UNAVAILABLE" {
                                         rule.host = Some(host.replace("PLACEHOLDER", &ip_suffix));
                                     } else {
-                                        rule.host = Some(host.replace("PLACEHOLDER", "0.0.0.0"));
+                                        log::warn!("Could not determine external IP, using 127.0.0.1");
+                                        rule.host = Some(host.replace("PLACEHOLDER", "127.0.0.1"));
                                     }
                                 }
                             }
