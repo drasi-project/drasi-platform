@@ -13,7 +13,7 @@
 # limitations under the License.
 
 FROM mcr.microsoft.com/azurelinux/base/rust:1.86 AS builder
-RUN tdnf update -y && tdnf install -y protobuf-devel cmake openssl-devel clang-devel jq libjq-dev
+RUN tdnf update -y && tdnf install -y protobuf-devel cmake openssl-devel clang-devel jq jq-devel oniguruma-devel
 
 WORKDIR /usr/src
 COPY . .
