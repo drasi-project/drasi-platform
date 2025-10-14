@@ -12,15 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.86-bullseye AS builder
-RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
+FROM mcr.microsoft.com/azurelinux/base/rust:1.86 AS builder
+RUN tdnf update -y && tdnf install -y protobuf-devel cmake openssl-devel clang-devel jq jq-devel oniguruma-devel
 
 WORKDIR /usr/src
 COPY . .
 WORKDIR /usr/src
+ENV JQ_LIB_DIR=/usr/lib64
 RUN cargo install --path .
 
 FROM gcr.io/distroless/cc
+COPY --from=builder /usr/lib64/libjq.so* /usr/lib64/
+COPY --from=builder /usr/lib64/libonig.so* /usr/lib64/
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
 USER root

@@ -111,6 +111,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     middleware_registry.register(Arc::new(
         drasi_middleware::promote::PromoteMiddlewareFactory::new(),
     ));
+    middleware_registry.register(Arc::new(
+        drasi_middleware::jq::JQFactory::new(),
+    ));
     let middleware_registry = Arc::new(middleware_registry);
 
     dapr_server
