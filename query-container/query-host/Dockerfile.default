@@ -25,6 +25,7 @@ FROM gcr.io/distroless/cc
 COPY --from=builder /usr/lib64/libjq.so* /usr/lib64/
 COPY --from=builder /usr/lib64/libonig.so* /usr/lib64/
 ENV RUST_BACKTRACE=1
+ENV JQ_LIB_DIR=/usr/lib64
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
 USER root
 CMD ["query-host"]
