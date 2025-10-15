@@ -20,7 +20,11 @@ COPY . .
 WORKDIR /usr/src
 RUN cargo install --path .
 
-FROM gcr.io/distroless/cc
+FROM debian:bullseye-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl1.1 \
+    && rm -rf /var/lib/apt/lists/*
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-host /usr/local/bin/query-host
 USER root

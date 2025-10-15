@@ -387,12 +387,7 @@ impl QueryActor {
         };
 
         let core_settings = DrasiServerCoreSettings {
-            host: "127.0.0.1".into(),
-            port: 8888,
-            log_level: "info".into(),
-            disable_persistence: true,
-            max_connections: 100,
-            shutdown_timeout_seconds: 300,
+            id: self.query_container_id.to_string(),
         };
 
         // Construct a SourceConfig defining a platform Source for each source in the QuerySpec
