@@ -17,6 +17,7 @@ using Drasi.Reaction.SDK.Services;
 using Drasi.Reactions.SignalR.Models.Unpacked;
 using Drasi.Reactions.SignalR.Services;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Azure.SignalR;
 using Microsoft.Extensions.Configuration;
@@ -73,6 +74,7 @@ public class Program
 
         hub.UseCors();
         hub.UseRouting();
+        hub.MapGet("/health", () => Results.Ok("Healthy"));
         hub.MapHub<QueryHub>("/hub");
         hub.Urls.Add($"http://0.0.0.0:{hub.Configuration.GetValue("HUB_PORT", "8080")}");
 
