@@ -31,8 +31,9 @@ class TableCursor {
     private void Init(Connection connection) throws SQLException {
         if (resultSet == null) {
             mapping = ReadMappingFromSchema(schemaName, tableName, connection);
-            var statement = connection.createStatement();
-
+            connection.setAutoCommit(false);
+            var statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            statement.setFetchSize(1000);
             String quote = SourceProxy.GetConfigValue("connector").equalsIgnoreCase("MySQL") ? "`" : "\"";
             var sanitizedTableName = tableName.replace(quote, "").replace(";", "");
             var fullyQualifiedTableName = schemaName != null ? quote + schemaName + quote + "." + quote + sanitizedTableName + quote : quote + sanitizedTableName + quote;
