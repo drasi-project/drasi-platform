@@ -14,6 +14,7 @@
 
 use serde::Deserialize;
 use serde::Serialize;
+use utoipa::ToSchema;
 
 use super::ConfigValueDto;
 
@@ -23,7 +24,7 @@ use super::ServiceIdentityDto;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(tag = "kind")]
 pub struct SourceSpecDto {
     pub kind: String,
@@ -32,9 +33,16 @@ pub struct SourceSpecDto {
     pub identity: Option<ServiceIdentityDto>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct SourceStatusDto {
     pub available: bool,
     pub messages: Option<BTreeMap<String, String>>,
     pub ingress_url: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+pub struct SourceDto {
+    pub id: String,
+    pub spec: SourceSpecDto,
+    pub status: Option<SourceStatusDto>,
 }

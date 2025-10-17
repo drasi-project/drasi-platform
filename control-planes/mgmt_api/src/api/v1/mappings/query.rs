@@ -14,12 +14,12 @@
 
 use crate::domain::models::{
     QueryJoin, QueryJoinKey, QueryLanguage, QuerySourceLabel, QuerySources, QuerySpec, QueryStatus,
-    QuerySubscription, RetentionPolicy, SourceMiddlewareConfig, ViewSpec,
+    QuerySubscription, Resource, RetentionPolicy, SourceMiddlewareConfig, ViewSpec,
 };
 
 use super::{
-    QueryJoinDto, QueryJoinKeyDto, QueryLanguageDto, QuerySourceLabelDto, QuerySourcesDto,
-    QuerySpecDto, QueryStatusDto, QuerySubscriptionDto, RetentionPolicyDto,
+    ContinuousQueryDto, QueryJoinDto, QueryJoinKeyDto, QueryLanguageDto, QuerySourceLabelDto,
+    QuerySourcesDto, QuerySpecDto, QueryStatusDto, QuerySubscriptionDto, RetentionPolicyDto,
     SourceMiddlewareConfigDto, ViewSpecDto,
 };
 
@@ -59,6 +59,16 @@ impl From<QuerySpec> for QuerySpecDto {
             sources: spec.sources.into(),
             storage_profile: spec.storage_profile,
             view: Some(spec.view.into()),
+        }
+    }
+}
+
+impl From<Resource<QuerySpec, QueryStatus>> for ContinuousQueryDto {
+    fn from(res: Resource<QuerySpec, QueryStatus>) -> Self {
+        Self {
+            id: res.id,
+            spec: res.spec.into(),
+            status: res.status.map(|s| s.into()),
         }
     }
 }
