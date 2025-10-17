@@ -41,6 +41,7 @@ const images = [
   "drasi-project/reaction-gremlin",
   "drasi-project/reaction-sync-dapr-statestore",
   "drasi-project/reaction-post-dapr-pubsub",
+  "drasi-project/reaction-sync-vectorstore",
 ];
 
 async function loadDrasiImages(clusterName, imageVersion = "latest") {
@@ -107,10 +108,12 @@ async function tryLoadInfraImages(clusterName) {
 }
 
 async function installDrasi(version = "latest") {
-  
+  // Set the environment to use kubernetes context BEFORE init
   await waitForChildProcess(
-    cp.exec(`drasi env kube`),
-    "install",
+    cp.exec("drasi env kube", {
+      encoding: "utf-8",
+    }),
+    "env-kube",
   );
   
   await waitForChildProcess(
