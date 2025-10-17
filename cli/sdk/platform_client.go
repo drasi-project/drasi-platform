@@ -15,6 +15,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"drasi.io/cli/output"
+	generated "drasi.io/cli/sdk/generated"
 	"drasi.io/cli/sdk/registry"
 	"github.com/phayes/freeport"
 	corev1 "k8s.io/api/core/v1"
@@ -37,7 +38,7 @@ type IngressConfig struct {
 }
 
 type PlatformClient interface {
-	CreateDrasiClient() (*ApiClient, error)
+	CreateDrasiClient() (DrasiClient, error)
 	CreateTunnel(resourceType string, resourceName string, localPort uint16) error
 	SetSecret(name string, key string, value []byte) error
 	DeleteSecret(name string, key string) error
@@ -101,7 +102,7 @@ func MakeKubernetesPlatformClient(configuration *registry.KubernetesConfig) (*Ku
 
 }
 
-func (t *KubernetesPlatformClient) CreateDrasiClient() (*ApiClient, error) {
+func (t *KubernetesPlatformClient) CreateDrasiClient() (DrasiClient, error) {
 	port, err := freeport.GetFreePort()
 	if err != nil {
 		return nil, err
@@ -121,6 +122,13 @@ func (t *KubernetesPlatformClient) CreateDrasiClient() (*ApiClient, error) {
 		Timeout: 30 * time.Second,
 	}
 	result.streamClient = &http.Client{}
+
+	// Initialize the generated OpenAPI client (required)
+	genClient, err := generated.NewClientWithResponses(result.prefix, generated.WithHTTPClient(result.client))
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize OpenAPI client: %w", err)
+	}
+	result.generatedClient = genClient
 
 	return &result, nil
 }
