@@ -1302,6 +1302,7 @@ dependencies = [
  "test-case",
  "testcontainers",
  "testcontainers-modules",
+ "thiserror 2.0.17",
  "tokio",
  "tokio-postgres",
  "tokio-stream",
