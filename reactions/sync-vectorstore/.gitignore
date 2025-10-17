@@ -1,0 +1,131 @@
+# Build outputs
+bin/
+obj/
+**/bin/
+**/obj/
+
+# Test results and coverage reports
+**/TestResults/
+**/CoverageReport/
+**/coverage-report/
+**/*.cobertura.xml
+**/coverage.*.xml
+coverage.json
+coverage.opencover.xml
+*.coverage
+coverage-report/
+TestResults/
+CoverageReport/
+
+# Visual Studio and IDE files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vscode/
+*.DotSettings.user
+
+# NuGet packages
+*.nupkg
+packages/
+*.nuget.props
+*.nuget.targets
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+*.bak
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Local environment files
+*.local
+.env
+.env.local
+appsettings.Development.json
+appsettings.Local.json
+
+# Debug files
+*.pdb
+launchSettings.json
+
+# Test files (individual test scripts not part of test project)
+test-*.cs
+!Drasi.Reactions.SyncSemanticKernelVectorStore.Tests/**/*.cs
+
+# Temporary documentation/analysis files
+ADAPTER_PATTERN_EXPLANATION.md
+SYNC_POINT_IMPLEMENTATION_SUMMARY.md
+
+# Azure deployment test projects
+AzureDeploymentTest/
+
+# Coverage report HTML files
+*.htm
+*.html
+!README.html
+Summary.txt
+
+# Test scenario temporary files
+test-scenario/*.local.yaml
+test-scenario/*.tmp.yaml
+
+# Build artifacts
+*.dll
+!Drasi.Reactions.SyncSemanticKernelVectorStore/bin/**/*.dll
+!Drasi.Reactions.SyncSemanticKernelVectorStore.Tests/bin/**/*.dll
+
+# MSBuild artifacts
+*.AssemblyInfo.cs
+*.GlobalUsings.g.cs
+*.MvcApplicationPartsAssemblyInfo.cs
+*.MvcApplicationPartsAssemblyInfo.cache
+*.AssemblyInfoInputs.cache
+*.assets.cache
+*.csproj.CoreCompileInputs.cache
+*.csproj.FileListAbsolute.txt
+*.genruntimeconfig.cache
+*.GeneratedMSBuildEditorConfig.editorconfig
+*.csproj.AssemblyReference.cache
+staticwebassets/
+*.Up2Date
+
+# Project asset files
+project.assets.json
+*.csproj.nuget.g.props
+*.csproj.nuget.g.targets
+*.csproj.nuget.dgspec.json
+project.nuget.cache
+
+# Local database files
+*.db
+*.db-shm
+*.db-wal
+
+# Rider
+.idea/
+*.sln.iml
+
+# User-specific files
+*.rsuser
+
+# Docker override files
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+
+# Kubernetes local configs
+*.local.yaml
+!reaction-provider.yaml
+!reaction-examples.yaml

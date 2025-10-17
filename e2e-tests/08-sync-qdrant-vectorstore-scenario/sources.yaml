@@ -1,0 +1,16 @@
+# Drasi PostgreSQL Source
+apiVersion: v1
+kind: Source
+name: qdrant-source
+spec:
+  kind: PostgreSQL
+  properties:
+    host: qdrant-postgres.default.svc.cluster.local
+    port: 5432
+    user: testuser
+    password: testpass
+    database: testdb
+    ssl: false
+    tables:
+      - public.products
+      - public.categories
