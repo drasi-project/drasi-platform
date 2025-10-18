@@ -17,10 +17,13 @@ using Drasi.Reaction.SDK.Services;
 using Drasi.Reactions.SignalR.Models.Unpacked;
 using Drasi.Reactions.SignalR.Services;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Azure.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
 namespace Drasi.Reactions.SignalR;
@@ -60,6 +63,16 @@ public class Program
             });
         }
 
+        // Add health checks for Dapr sidecar
+        var healthChecksBuilder = builder.Services.AddHealthChecks()
+            .AddCheck<DaprHealthCheck>("dapr_sidecar");
+
+        // Add Azure SignalR health check if configured
+        if (!string.IsNullOrEmpty(azConnStr))
+        {
+            healthChecksBuilder.AddCheck<AzureSignalRHealthCheck>("azure_signalr");
+        }
+
         var hub = builder.Build();
 
         if (!string.IsNullOrEmpty(azConnStr))
@@ -73,6 +86,7 @@ public class Program
 
         hub.UseCors();
         hub.UseRouting();
+        hub.MapHealthChecks("/health");
         hub.MapHub<QueryHub>("/hub");
         hub.Urls.Add($"http://0.0.0.0:{hub.Configuration.GetValue("HUB_PORT", "8080")}");
 

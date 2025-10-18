@@ -47,7 +47,7 @@ async function updateKindConfigWithAvailablePort() {
     console.log(`Found available port: ${availablePort}`);
 
     // Read the kind-config.yaml file
-    const configPath = path.join(__dirname, '..', 'kind-config.yaml');
+    const configPath = path.join(__dirname,'kind-config.yaml');
     let configContent = fs.readFileSync(configPath, 'utf8');
 
     // Replace the hostPort value with the available port
