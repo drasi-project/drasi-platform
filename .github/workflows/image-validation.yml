@@ -172,16 +172,16 @@ jobs:
       matrix:
         include:
           - arch: amd64
-            runner: oracle-vm-8cpu-32gb-x86-64
+            runner: oracle-vm-2cpu-8gb-x86-64
             variant: ""
           - arch: arm64
-            runner: oracle-vm-8cpu-32gb-arm64
+            runner: oracle-vm-2cpu-8gb-arm64
             variant: ""
           - arch: amd64
-            runner: oracle-vm-8cpu-32gb-x86-64
+            runner: oracle-vm-2cpu-8gb-x86-64
             variant: "-azure-linux"
           - arch: arm64
-            runner: oracle-vm-8cpu-32gb-arm64
+            runner: oracle-vm-2cpu-8gb-arm64
             variant: "-azure-linux"
 
     steps:
