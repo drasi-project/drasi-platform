@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::HashMap, hash::Hash, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use crate::{
     api::{QueryRequest, QuerySpec, QueryStatus},
@@ -40,7 +40,7 @@ use gethostname::gethostname;
 use serde_json::Value;
 use tokio::sync::RwLock;
 use tokio::task::{self, JoinHandle};
-use drasi_server_core::{bootstrap::{BootstrapProvider, BootstrapProviderConfig, BootstrapProviderFactory}, config::DrasiServerCoreSettings, DrasiServerCore, RuntimeConfig, Source};
+use drasi_server_core::{bootstrap::BootstrapProviderConfig, DrasiServerCore};
 
 #[actor]
 pub struct QueryActor {
@@ -426,7 +426,9 @@ impl QueryActor {
             sources: config.sources.subscriptions.iter().map(|s| s.id.clone()).collect(),
             auto_start: true,
             properties: HashMap::new(),
-            joins: None
+            joins: None,
+            bootstrap_buffer_size: 1000,
+            enable_bootstrap: true,
         });
 
         // Add the Platform Reaction
