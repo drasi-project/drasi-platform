@@ -74,6 +74,13 @@ public class AzureSignalRHealthCheck : IHealthCheck
                 return HealthCheckResult.Healthy(
                     $"Successfully connected to Azure SignalR Service at {endpoint}");
             }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                     response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                return HealthCheckResult.Unhealthy(
+                    $"Authentication failed for Azure SignalR Service: {response.StatusCode}. " +
+                    "Check connection string and access key configuration.");
+            }
             else
             {
                 return HealthCheckResult.Degraded(
