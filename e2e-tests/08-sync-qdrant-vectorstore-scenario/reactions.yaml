@@ -1,0 +1,55 @@
+# Qdrant Vector Store Reaction for simple query
+apiVersion: v1
+kind: Reaction
+name: qdrant-simple-reaction
+spec:
+  kind: SyncVectorStore
+  queries:
+    qdrant-products-query: |
+      {
+        "collectionName": "qdrant_products_simple",
+        "keyField": "id",
+        "documentTemplate": "Product: {{name}} - {{description}}",
+        "titleTemplate": "{{name}}",
+        "vectorField": "content_vector",
+        "createCollection": true
+      }
+  properties:
+    vectorStoreType: Qdrant
+    connectionString: "Endpoint=qdrant.default.svc.cluster.local:6334"
+    embeddingServiceType: AzureOpenAI
+    embeddingEndpoint: "${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}"  # Will be replaced during deployment
+    embeddingApiKey: "${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}"  # Will be replaced during deployment
+    embeddingModel: "${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}"  # Will be replaced during deployment
+    embeddingDimensions: 3072
+    distanceFunction: CosineSimilarity
+    indexKind: Hnsw
+    isFilterable: true
+---
+# Qdrant Vector Store Reaction for join query
+apiVersion: v1
+kind: Reaction
+name: qdrant-join-reaction
+spec:
+  kind: SyncVectorStore
+  queries:
+    qdrant-products-category-query: |
+      {
+        "collectionName": "qdrant_products_categories",
+        "keyField": "product_id",
+        "documentTemplate": "Product: {{product_name}} in {{category_name}}. {{product_description}}. Category: {{category_description}}",
+        "titleTemplate": "{{product_name}} - {{category_name}}",
+        "vectorField": "content_vector",
+        "createCollection": true
+      }
+  properties:
+    vectorStoreType: Qdrant
+    connectionString: "Endpoint=qdrant.default.svc.cluster.local:6334"
+    embeddingServiceType: AzureOpenAI
+    embeddingEndpoint: "${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}"  # Will be replaced during deployment
+    embeddingApiKey: "${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}"  # Will be replaced during deployment
+    embeddingModel: "${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}"  # Will be replaced during deployment
+    embeddingDimensions: 3072
+    distanceFunction: CosineSimilarity
+    indexKind: Hnsw
+    isFilterable: true
