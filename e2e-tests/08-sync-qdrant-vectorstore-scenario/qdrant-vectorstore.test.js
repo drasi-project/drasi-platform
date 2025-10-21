@@ -152,29 +152,39 @@ async function verifyDocumentInQdrant(port, collectionName, documentId) {
 }
 
 beforeAll(async () => {
+  // Check if Azure OpenAI credentials are available
+  const azureKey = process.env.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY;
+  const azureEndpoint = process.env.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT;
+  const azureModel = process.env.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL;
+
+  const hasSecrets = azureKey && azureEndpoint && azureModel;
+
+  if (!hasSecrets) {
+    console.warn(`
+┌─────────────────────────────────────────────────────────────────┐
+│ ⚠️  SKIPPING QDRANT VECTORSTORE E2E TESTS                       │
+├─────────────────────────────────────────────────────────────────┤
+│ Azure OpenAI credentials are not available.                     │
+│ This is expected for fork-based pull requests.                  │
+│                                                                  │
+│ These tests will run automatically when:                        │
+│  • PR is merged to main repository                              │
+│  • PR is created from a branch (not a fork)                     │
+│                                                                  │
+│ Missing environment variables:                                  │
+${!azureKey ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY                 │\n' : ''}${!azureEndpoint ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT            │\n' : ''}${!azureModel ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL     │\n' : ''}└─────────────────────────────────────────────────────────────────┘
+    `);
+    return; // Skip all setup
+  }
+
+  console.log(`Azure OpenAI configured: endpoint=${azureEndpoint}, model=${azureModel}`);
+
   // Load resources
   const infraResources = yaml.loadAll(fs.readFileSync(resourcesFilePath, 'utf8'));
   const sources = yaml.loadAll(fs.readFileSync(sourcesFilePath, 'utf8'));
   const queries = yaml.loadAll(fs.readFileSync(queriesFilePath, 'utf8'));
   const reactionProvider = yaml.loadAll(fs.readFileSync(reactionProviderFilePath, 'utf8'));
   const reactions = yaml.loadAll(fs.readFileSync(reactionsFilePath, 'utf8'));
-
-  // Replace Azure OpenAI configuration from environment variables
-  const azureKey = process.env.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY;
-  const azureEndpoint = process.env.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT;
-  const azureModel = process.env.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL;
-  
-  if (!azureKey) {
-    throw new Error("E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY environment variable is required");
-  }
-  if (!azureEndpoint) {
-    throw new Error("E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT environment variable is required");
-  }
-  if (!azureModel) {
-    throw new Error("E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL environment variable is required");
-  }
-  
-  console.log(`Azure OpenAI configured: endpoint=${azureEndpoint}, model=${azureModel}`);
   
   // Update secret in resources
   infraResources.forEach(resource => {
@@ -319,7 +329,12 @@ afterAll(async () => {
   }
 });
 
-describe("Qdrant Vector Store E2E Tests", () => {
+// Skip entire test suite if Azure OpenAI credentials are not available
+const describeOrSkip = process.env.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY
+  ? describe
+  : describe.skip;
+
+describeOrSkip("Qdrant Vector Store E2E Tests", () => {
   test("Initial state sync - Simple query", async () => {
     console.log("Verifying initial state sync for simple products query in Qdrant...");
 
