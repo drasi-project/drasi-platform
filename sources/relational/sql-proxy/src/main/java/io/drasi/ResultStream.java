@@ -104,6 +104,7 @@ public class ResultStream implements BootstrapStream {
                 propsSQL.setProperty("encrypt", SourceProxy.GetConfigValue("encrypt"));
                 propsSQL.setProperty("trustServerCertificate", SourceProxy.GetConfigValue("trustServerCertificate", "false"));
                 propsSQL.setProperty("authentication", SourceProxy.GetConfigValue("authentication", "NotSpecified"));
+                propsSQL.setProperty("responseBuffering", "adaptive");
 
                 return DriverManager.getConnection("jdbc:sqlserver://"  + SourceProxy.GetConfigValue("host") + ":" + SourceProxy.GetConfigValue("port") + ";databaseName=" + SourceProxy.GetConfigValue("database"), propsSQL);
             default:
