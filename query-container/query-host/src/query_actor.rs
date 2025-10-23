@@ -12,21 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use crate::{
     api::{QueryRequest, QuerySpec, QueryStatus},
-    // index_factory::IndexFactory,
-    models::{
-        // ChangeStreamConfig, 
-        QueryError, QueryLifecycle, QueryState},
-    // result_publisher::ResultPublisher,
-    // source_client::SourceClient,
+    index_factory::IndexFactory,
+    models::{ChangeStreamConfig, QueryError, QueryLifecycle, QueryState},
+    query_worker::QueryWorker,
+    result_publisher::ResultPublisher,
+    source_client::SourceClient,
 };
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use axum::{response::IntoResponse, Json};
-// use dapr::client::TonicClient;
+use dapr::client::TonicClient;
 use dapr::server::{
     actor::{
         context_client::{ActorContextClient, ActorStateOperation},
@@ -35,12 +34,10 @@ use dapr::server::{
     utils::DaprJson,
 };
 use dapr_macros::actor;
-// use drasi_core::middleware::MiddlewareTypeRegistry;
+use drasi_core::middleware::MiddlewareTypeRegistry;
 use gethostname::gethostname;
-use serde_json::Value;
 use tokio::sync::RwLock;
 use tokio::task::{self, JoinHandle};
-use drasi_server_core::{bootstrap::BootstrapProviderConfig, DrasiServerCore};
 
 #[actor]
 pub struct QueryActor {
@@ -49,15 +46,14 @@ pub struct QueryActor {
     lifecycle: Arc<QueryLifecycle>,
     config: OptionalValue<QuerySpec>,
     actor_client: ActorContextClient,
-    // dapr_client: dapr::Client<TonicClient>,
-    // source_client: Arc<SourceClient>,
-    // stream_config: Arc<ChangeStreamConfig>,
-    // publisher: Arc<ResultPublisher>,
-    // index_factory: Arc<IndexFactory>,
-    // middleware_registry: Arc<MiddlewareTypeRegistry>,
-    // worker: OptionalValue<Arc<QueryWorker>>,
+    dapr_client: dapr::Client<TonicClient>,
+    source_client: Arc<SourceClient>,
+    stream_config: Arc<ChangeStreamConfig>,
+    publisher: Arc<ResultPublisher>,
+    index_factory: Arc<IndexFactory>,
+    middleware_registry: Arc<MiddlewareTypeRegistry>,
+    worker: OptionalValue<Arc<QueryWorker>>,
     status_watcher: OptionalValue<Arc<JoinHandle<()>>>,
-    core: OptionalValue<Arc<DrasiServerCore>>,
 }
 
 #[async_trait]
@@ -113,37 +109,23 @@ impl Actor for QueryActor {
 
         match self.lifecycle.get_state() {
             QueryState::Configured | QueryState::Running => {
-                if let Err(err) = self.init_core().await {
+                if let Err(err) = self.init_worker().await {
                     log::error!(
-                        "Query {} failed to initialize core - {}",
+                        "Query {} failed to initialize worker - {}",
                         self.query_id,
                         err
                     );
                 }
-                // if let Err(err) = self.init_worker().await {
-                //     log::error!(
-                //         "Query {} failed to initialize worker - {}",
-                //         self.query_id,
-                //         err
-                //     );
-                // }                
             }
             QueryState::Bootstrapping => {
                 //todo: purge index
-                if let Err(err) = self.init_core().await {
+                if let Err(err) = self.init_worker().await {
                     log::error!(
-                        "Query {} failed to initialize core - {}",
+                        "Query {} failed to initialize worker - {}",
                         self.query_id,
                         err
                     );
                 }
-                // if let Err(err) = self.init_worker().await {
-                //     log::error!(
-                //         "Query {} failed to initialize worker - {}",
-                //         self.query_id,
-                //         err
-                //     );
-                // }                
             }
             QueryState::TerminalError(err) => {
                 log::warn!(
@@ -168,31 +150,19 @@ impl Actor for QueryActor {
             .get()
             .await
             .map_or(false, |c| c.transient.is_some_and(|f| f));
-        if let Some(c) = self.core.take().await {
+        if let Some(w) = self.worker.take().await {
             if transient {
-                _ = c.stop().await;
-                self.core.clear().await;
+                w.delete();
+                w.shutdown();
+                self.worker.clear().await;
                 _ = self.unregister_reminder().await;
                 self.config.clear().await;
                 self.lifecycle.change_state(QueryState::Deleted);
                 _ = self.persist_config().await;
             } else {
-                _ = c.stop().await;
+                w.shutdown_async().await;
             }
-        }        
-        // if let Some(w) = self.worker.take().await {
-        //     if transient {
-        //         w.delete();
-        //         w.shutdown();
-        //         self.worker.clear().await;
-        //         _ = self.unregister_reminder().await;
-        //         self.config.clear().await;
-        //         self.lifecycle.change_state(QueryState::Deleted);
-        //         _ = self.persist_config().await;
-        //     } else {
-        //         w.shutdown_async().await;
-        //     }
-        // }
+        }
 
         if let Some(w) = self.status_watcher.take().await {
             w.abort();
@@ -209,8 +179,7 @@ impl Actor for QueryActor {
                 self.query_id,
                 err
             );
-            self.init_core().await?;
-            // self.init_worker().await?;
+            self.init_worker().await?;
         }
         Ok(())
     }
@@ -226,12 +195,12 @@ impl QueryActor {
         query_id: &str,
         query_container_id: &str,
         actor_client: ActorContextClient,
-        // dapr_client: dapr::Client<TonicClient>,
-        // source_client: Arc<SourceClient>,
-        // stream_config: Arc<ChangeStreamConfig>,
-        // publisher: Arc<ResultPublisher>,
-        // index_factory: Arc<IndexFactory>,
-        // middleware_registry: Arc<MiddlewareTypeRegistry>,
+        dapr_client: dapr::Client<TonicClient>,
+        source_client: Arc<SourceClient>,
+        stream_config: Arc<ChangeStreamConfig>,
+        publisher: Arc<ResultPublisher>,
+        index_factory: Arc<IndexFactory>,
+        middleware_registry: Arc<MiddlewareTypeRegistry>,
     ) -> Self {
         Self {
             query_id: query_id.into(),
@@ -239,15 +208,14 @@ impl QueryActor {
             lifecycle: Arc::new(QueryLifecycle::new(QueryState::New)),
             config: OptionalValue::new(),
             actor_client,
-            // dapr_client,
-            // source_client,
-            // stream_config,
-            // publisher,
-            // index_factory,
-            // middleware_registry,
-            // worker: OptionalValue::new(),
+            dapr_client,
+            source_client,
+            stream_config,
+            publisher,
+            index_factory,
+            middleware_registry,
+            worker: OptionalValue::new(),
             status_watcher: OptionalValue::new(),
-            core: OptionalValue::new(),
         }
     }
 
@@ -285,29 +253,17 @@ impl QueryActor {
             }
         };
 
-        match self.init_core().await {
+        match self.init_worker().await {
             Ok(_) => {}
             Err(e) => {
-                log::error!("Query {} Error initializing core: {}", self.query_id, e);
+                log::error!("Query {} Error initializing worker: {}", self.query_id, e);
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "Error initializing core",
+                    "Error initializing worker",
                 )
                     .into_response();
             }
         };
-
-        // match self.init_worker().await {
-        //     Ok(_) => {}
-        //     Err(e) => {
-        //         log::error!("Query {} Error initializing worker: {}", self.query_id, e);
-        //         return (
-        //             StatusCode::INTERNAL_SERVER_ERROR,
-        //             "Error initializing worker",
-        //         )
-        //             .into_response();
-        //     }
-        // };
 
         log::info!("Query {} configured", self.query_id);
 
@@ -332,15 +288,11 @@ impl QueryActor {
 
     pub async fn deprovision(&self) -> impl IntoResponse {
         log::info!("Actor deprovision - {}", self.query_id);
-        if let Some(c) = &self.core.get().await {
-            _ = c.stop().await;
-            self.core.clear().await;
+        if let Some(w) = &self.worker.get().await {
+            w.delete();
+            w.shutdown();
+            self.worker.clear().await;
         }
-        // if let Some(w) = &self.worker.get().await {
-        //     w.delete();
-        //     w.shutdown();
-        //     self.worker.clear().await;
-        // }
         if let Err(e) = self.unregister_reminder().await {
             log::error!(
                 "Query {} Error unregistering reminder: {}",
@@ -364,12 +316,12 @@ impl QueryActor {
         Json(()).into_response()
     }
 
-    async fn init_core(&self) -> Result<(), ActorError> {
-        if let Some(c) = &self.core.get().await {
-            if c.is_running().await {
-                log::error!("Query {} core already running", self.query_id);
+    async fn init_worker(&self) -> Result<(), ActorError> {
+        if let Some(w) = &self.worker.get().await {
+            if !w.is_finished() {
+                log::error!("Query {} worker already running", self.query_id);
                 return Err(ActorError::MethodError(Box::new(QueryError::Other(
-                    "Query core already running".into(),
+                    "Query worker already running".into(),
                 ))));
             }
         }
@@ -386,133 +338,24 @@ impl QueryActor {
             }
         };
 
-        // Initialize builder with server ID
-        let mut builder = DrasiServerCore::builder()
-            .with_id(self.query_container_id.to_string());
+        let worker = QueryWorker::start(
+            self.query_container_id.clone(),
+            self.query_id.clone(),
+            config,
+            self.lifecycle.clone(),
+            self.source_client.clone(),
+            self.stream_config.clone(),
+            self.publisher.clone(),
+            self.index_factory.clone(),
+            self.middleware_registry.clone(),
+            self.dapr_client.clone(),
+        );
+        self.worker.set(Arc::new(worker)).await;
 
-        // Add Platform Sources for each Source Subscription
-        for source in &config.sources.subscriptions {
-            let mut properties:HashMap<String, serde_json::Value> = HashMap::new();
-            properties.insert("redis_url".to_string(),"redis://drasi-redis:6379".into());
-            properties.insert("stream_key".to_string(),format!("{}-change", source.id).into());
-            properties.insert("consumer_group".to_string(),self.query_container_id.as_ref().into());
-            properties.insert("consumer_name".to_string(),self.query_id.as_ref().into());
-            properties.insert("batch_size".to_string(),Value::from(10));
-            properties.insert("block_ms".to_string(),Value::from(5000));
-            properties.insert("start_id".to_string(),">".into());
-
-            builder = builder.add_source(drasi_server_core::config::SourceConfig {
-                id: source.id.clone(),
-                source_type: "platform".into(),
-                auto_start: true,
-                properties: properties,
-                bootstrap_provider: Some(BootstrapProviderConfig::Platform { 
-                    query_api_url: Some(format!("http://{}-query-api:80", source.id).into()), 
-                    timeout_seconds: Some(30), 
-                    config: HashMap::new() 
-                }),
-            });
-        };
-
-        // Add the Query
-        builder = builder.add_query(drasi_server_core::config::QueryConfig {
-            id: self.query_id.to_string(),
-            query: config.query.clone(),
-            query_language: match config.query_language {
-                Some(crate::api::QueryLanguage::Cypher) => drasi_server_core::config::QueryLanguage::Cypher,
-                Some(crate::api::QueryLanguage::GQL) => drasi_server_core::config::QueryLanguage::GQL,
-                None => drasi_server_core::config::QueryLanguage::Cypher,
-            },
-            sources: config.sources.subscriptions.iter().map(|s| s.id.clone()).collect(),
-            auto_start: true,
-            properties: HashMap::new(),
-            joins: None,
-            bootstrap_buffer_size: 1000,
-            enable_bootstrap: true,
-        });
-
-        // Add the Platform Reaction
-        let mut properties:HashMap<String, serde_json::Value> = HashMap::new();
-            properties.insert("redis_url".to_string(),"redis://drasi-redis:6379".into());
-            properties.insert("pubsub_name".to_string(),"drasi-pubsub".into());
-            properties.insert("source_name".to_string(),"drasi-core".into());
-            properties.insert("max_stream_length".to_string(),Value::from(10000));
-            properties.insert("emit_control_events".to_string(),Value::Bool(true));
-
-        builder = builder.add_reaction(drasi_server_core::config::ReactionConfig {
-            id: self.query_id.to_string(),
-            reaction_type: "platform".into(),
-            queries: vec![self.query_id.to_string()],
-            auto_start: true,
-            properties,
-        });
-
-        // Build and initialize (build() returns already-initialized instance)
-        let core = builder.build().await.map_err(|e| {
-            log::error!("Query {} Error building core: {}", self.query_id, e);
-            ActorError::MethodError(Box::new(QueryError::Other(
-                "Error building core".into(),
-            )))
-        })?;
-
-        // Start the server
-        core.start().await.map_err(|e| {
-            log::error!("Query {} Error starting core: {}", self.query_id, e);
-            ActorError::MethodError(Box::new(QueryError::Other(
-                "Error starting core".into(),
-            )))
-        })?;
-
-        // Store the core instance
-        self.core.set(Arc::new(core)).await;
-
-        self.lifecycle.change_state(QueryState::Running);
-
-        log::info!("Query {} core started", self.query_id);
+        log::info!("Query {} worker started", self.query_id);
 
         Ok(())
     }
-
-    // async fn init_worker(&self) -> Result<(), ActorError> {
-    //     if let Some(w) = &self.worker.get().await {
-    //         if !w.is_finished() {
-    //             log::error!("Query {} worker already running", self.query_id);
-    //             return Err(ActorError::MethodError(Box::new(QueryError::Other(
-    //                 "Query worker already running".into(),
-    //             ))));
-    //         }
-    //     }
-
-    //     let config = match self.config.get().await {
-    //         Some(c) => c,
-    //         None => {
-    //             log::error!("Query {} not configured", self.query_id);
-    //             self.lifecycle
-    //                 .change_state(QueryState::TerminalError("Not configured".into()));
-    //             return Err(ActorError::MethodError(Box::new(QueryError::Other(
-    //                 "Missing config".into(),
-    //             ))));
-    //         }
-    //     };
-
-    //     let worker = QueryWorker::start(
-    //         self.query_container_id.clone(),
-    //         self.query_id.clone(),
-    //         config,
-    //         self.lifecycle.clone(),
-    //         self.source_client.clone(),
-    //         self.stream_config.clone(),
-    //         self.publisher.clone(),
-    //         self.index_factory.clone(),
-    //         self.middleware_registry.clone(),
-    //         self.dapr_client.clone(),
-    //     );
-    //     self.worker.set(Arc::new(worker)).await;
-
-    //     log::info!("Query {} worker started", self.query_id);
-
-    //     Ok(())
-    // }
 
     async fn register_reminder(&self) -> Result<(), ActorError> {
         let mut client = self.actor_client.clone();
