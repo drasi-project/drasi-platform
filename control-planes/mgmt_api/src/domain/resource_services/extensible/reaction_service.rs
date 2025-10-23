@@ -77,7 +77,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
         if let Some(config_schema) = config_schema {
             let raw_schema = match serde_json::to_value(config_schema) {
                 Ok(raw_schema) => raw_schema,
-                Err(e) => {
+                Err(_e) => {
                     return Err(DomainError::InvalidSpec {
                         message: "Invalid config schema".to_string(),
                     });
@@ -86,7 +86,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
 
             let validation = match JSONSchema::compile(&raw_schema) {
                 Ok(validation) => validation,
-                Err(e) => {
+                Err(_e) => {
                     return Err(DomainError::InvalidSpec {
                         message: "Invalid config schema".to_string(),
                     });
@@ -130,7 +130,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                                         InlineValue::Boolean { value } => {
                                             serde_json::Value::Bool(value)
                                         }
-                                        InlineValue::List { value } => {
+                                        InlineValue::List { value: _ } => {
                                             serde_json::Value::Array(Vec::new())
                                         }
                                     },
@@ -147,7 +147,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
 
             let json_data_properties = match serde_json::to_value(new_spec_properties) {
                 Ok(json_data_properties) => json_data_properties,
-                Err(e) => {
+                Err(_e) => {
                     return Err(DomainError::JsonParseError {
                         message: format!("Unable to parse the properties for {}", kind),
                     })
@@ -180,7 +180,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
             }
         };
         // Check if the services defined in the source spec are defined in the schema
-        for (service_name, service_settings) in &services {
+        for service_name in services.keys() {
             if !defined_services.contains(service_name) {
                 return Err(DomainError::UndefinedSetting {
                     message: format!("Service {} is not defined in the schema", service_name),
@@ -209,7 +209,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
 
             let validation = match JSONSchema::compile(&raw_schema) {
                 Ok(validation) => validation,
-                Err(e) => {
+                Err(_e) => {
                     return Err(DomainError::InvalidSpec {
                         message: format!(
                             "Invalid service config schema for service {}",
@@ -263,7 +263,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                                         InlineValue::Boolean { value } => {
                                             serde_json::Value::Bool(value)
                                         }
-                                        InlineValue::List { value } => {
+                                        InlineValue::List { value: _ } => {
                                             serde_json::Value::Array(Vec::new())
                                         }
                                     },

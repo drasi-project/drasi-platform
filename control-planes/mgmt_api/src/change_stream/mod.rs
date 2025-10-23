@@ -47,6 +47,7 @@ pub trait SequentialChangeStream {
 
     /// Unsubscribes from all future messages.
     /// This will stop the background task that is buffering messages, and no further messages will be received on any future session.
+    #[allow(dead_code)]
     async fn unsubscribe(&self) -> Result<(), ChangeStreamError>;
 }
 
