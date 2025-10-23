@@ -17,6 +17,8 @@ docker-build:
 	$(MAKE) -C debezium/debezium-reaction $(MAKECMDGOALS)
 	$(MAKE) -C platform/result-reaction $(MAKECMDGOALS)
 	$(MAKE) -C power-platform/dataverse/dataverse-reaction $(MAKECMDGOALS)
+	$(MAKE) -C http $(MAKECMDGOALS)
+	$(MAKE) -C mcp $(MAKECMDGOALS)
 
 kind-load:
 	$(MAKE) -C platform/debug-reaction $(MAKECMDGOALS)
@@ -29,6 +31,8 @@ kind-load:
 	$(MAKE) -C debezium/debezium-reaction $(MAKECMDGOALS)
 	$(MAKE) -C platform/result-reaction $(MAKECMDGOALS)
 	$(MAKE) -C power-platform/dataverse/dataverse-reaction $(MAKECMDGOALS)
+	$(MAKE) -C http $(MAKECMDGOALS)
+	$(MAKE) -C mcp $(MAKECMDGOALS)
 
 k3d-load:
 	$(MAKE) -C platform/debug-reaction $(MAKECMDGOALS)
@@ -41,6 +45,8 @@ k3d-load:
 	$(MAKE) -C debezium/debezium-reaction $(MAKECMDGOALS)
 	$(MAKE) -C platform/result-reaction $(MAKECMDGOALS)
 	$(MAKE) -C power-platform/dataverse/dataverse-reaction $(MAKECMDGOALS)
+	$(MAKE) -C http $(MAKECMDGOALS)
+	$(MAKE) -C mcp $(MAKECMDGOALS)
 
 test:
 	$(MAKE) -C platform/debug-reaction $(MAKECMDGOALS)
@@ -53,6 +59,8 @@ test:
 	$(MAKE) -C debezium/debezium-reaction $(MAKECMDGOALS)
 	$(MAKE) -C platform/result-reaction $(MAKECMDGOALS)
 	$(MAKE) -C power-platform/dataverse/dataverse-reaction $(MAKECMDGOALS)
+	$(MAKE) -C http $(MAKECMDGOALS)
+	$(MAKE) -C mcp $(MAKECMDGOALS)
 
 lint-check:
 	$(MAKE) -C platform/debug-reaction $(MAKECMDGOALS)
@@ -65,3 +73,5 @@ lint-check:
 	$(MAKE) -C debezium/debezium-reaction $(MAKECMDGOALS)
 	$(MAKE) -C platform/result-reaction $(MAKECMDGOALS)
 	$(MAKE) -C power-platform/dataverse/dataverse-reaction $(MAKECMDGOALS)
+	$(MAKE) -C http $(MAKECMDGOALS)
+	$(MAKE) -C mcp $(MAKECMDGOALS)
