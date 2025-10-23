@@ -1,0 +1,225 @@
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Image Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to validate'
+        required: true
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Version tag to validate'
+        required: true
+        type: string
+
+env:
+  DRASI_IMAGES: >-
+    ghcr.io/drasi-project/query-container-query-host
+    ghcr.io/drasi-project/query-container-publish-api
+    ghcr.io/drasi-project/query-container-view-svc
+    ghcr.io/drasi-project/api
+    ghcr.io/drasi-project/kubernetes-provider
+    ghcr.io/drasi-project/source-change-router
+    ghcr.io/drasi-project/source-change-dispatcher
+    ghcr.io/drasi-project/source-query-api
+    ghcr.io/drasi-project/source-debezium-reactivator
+    ghcr.io/drasi-project/source-sql-proxy
+    ghcr.io/drasi-project/source-cosmosdb-reactivator
+    ghcr.io/drasi-project/source-gremlin-proxy
+    ghcr.io/drasi-project/source-dataverse-reactivator
+    ghcr.io/drasi-project/source-dataverse-proxy
+    ghcr.io/drasi-project/source-eventhub-reactivator
+    ghcr.io/drasi-project/source-eventhub-proxy
+    ghcr.io/drasi-project/source-kubernetes-reactivator
+    ghcr.io/drasi-project/source-kubernetes-proxy
+    ghcr.io/drasi-project/reaction-signalr
+    ghcr.io/drasi-project/reaction-dataverse
+    ghcr.io/drasi-project/reaction-debezium
+    ghcr.io/drasi-project/reaction-debug
+    ghcr.io/drasi-project/reaction-eventgrid
+    ghcr.io/drasi-project/reaction-gremlin
+    ghcr.io/drasi-project/reaction-result
+    ghcr.io/drasi-project/reaction-storage-queue
+    ghcr.io/drasi-project/reaction-storedproc
+    ghcr.io/drasi-project/reaction-sync-dapr-statestore
+    ghcr.io/drasi-project/reaction-post-dapr-pubsub
+    ghcr.io/drasi-project/reaction-http
+    ghcr.io/drasi-project/reaction-eventbridge
+
+permissions:
+  contents: read
+
+jobs:
+  get-version:
+    name: Get Release Version
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.get_version.outputs.IMAGE_TAG }}
+    
+    steps:
+      - name: Set version tag
+        id: get_version
+        run: |
+          echo "🔍 Using provided tag: ${{ inputs.tag }}"
+          echo "IMAGE_TAG=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+
+  multi-arch-validation:
+    name: Multi-Architecture Validation
+    runs-on: ubuntu-latest
+    needs: get-version
+    strategy:
+      matrix:
+        include:
+          - variant: ""
+          - variant: "-azure-linux"
+
+    steps:
+      - name: Validate ${{ matrix.variant || 'default' }} variant architecture support
+        run: |
+          VARIANT_NAME="${{ matrix.variant || 'default' }}"
+          echo "🔍 Validating $VARIANT_NAME variant multi-architecture support..."
+
+          IMAGE_TAG="${{ needs.get-version.outputs.image_tag }}${{ matrix.variant }}"
+          echo "📋 Using image tag: $IMAGE_TAG"
+
+          failed_images=()
+
+          for image in $DRASI_IMAGES; do
+            echo "📦 Checking $image:$IMAGE_TAG"
+
+            # Check if image exists and get manifest
+            if ! docker manifest inspect "${image}:${IMAGE_TAG}" > /dev/null 2>&1; then
+              echo "❌ ERROR: Failed to inspect $image:$IMAGE_TAG - image may not exist"
+              failed_images+=("$image:$IMAGE_TAG (not found)")
+              continue
+            fi
+
+            manifest=$(docker manifest inspect "${image}:${IMAGE_TAG}" 2>/dev/null)
+
+            # Check for amd64 and arm64 architectures
+            amd64_support=false
+            arm64_support=false
+
+            if echo "$manifest" | jq -e '.manifests[]? | select(.platform.architecture == "amd64")' > /dev/null 2>&1; then
+              amd64_support=true
+            elif echo "$manifest" | jq -e '.platform.architecture == "amd64"' > /dev/null 2>&1; then
+              amd64_support=true
+            fi
+
+            if echo "$manifest" | jq -e '.manifests[]? | select(.platform.architecture == "arm64")' > /dev/null 2>&1; then
+              arm64_support=true
+            elif echo "$manifest" | jq -e '.platform.architecture == "arm64"' > /dev/null 2>&1; then
+              arm64_support=true
+            fi
+
+            # All images require both amd64 and arm64
+            if [[ "$amd64_support" == true && "$arm64_support" == true ]]; then
+              echo "✅ $image:$IMAGE_TAG supports both amd64 and arm64"
+            else
+              missing_archs=""
+              if [[ "$amd64_support" == false ]]; then
+                missing_archs="amd64"
+              fi
+              if [[ "$arm64_support" == false ]]; then
+                if [[ -n "$missing_archs" ]]; then
+                  missing_archs="$missing_archs, arm64"
+                else
+                  missing_archs="arm64"
+                fi
+              fi
+              echo "❌ ERROR: $image:$IMAGE_TAG missing support for: $missing_archs"
+              failed_images+=("$image:$IMAGE_TAG (missing: $missing_archs)")
+            fi
+          done
+
+          # Fail the job if any images don't meet their architecture requirements
+          if [ ${#failed_images[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ VALIDATION FAILED: The following $VARIANT_NAME images do not meet architecture requirements:"
+            for failed_image in "${failed_images[@]}"; do
+              echo "  - $failed_image"
+            done
+            echo ""
+            echo "Requirements:"
+            echo "- All images: amd64 + arm64 support required"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ SUCCESS: All $VARIANT_NAME images meet their architecture requirements for version $IMAGE_TAG"
+
+  image-pull-test:
+    name: Image Pull Test
+    runs-on: ${{ matrix.runner }}
+    needs: [get-version, multi-arch-validation]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: oracle-vm-2cpu-8gb-x86-64
+            variant: ""
+          - arch: arm64
+            runner: oracle-vm-2cpu-8gb-arm64
+            variant: ""
+          - arch: amd64
+            runner: oracle-vm-2cpu-8gb-x86-64
+            variant: "-azure-linux"
+          - arch: arm64
+            runner: oracle-vm-2cpu-8gb-arm64
+            variant: "-azure-linux"
+
+    steps:
+      - name: Test ${{ matrix.variant || 'default' }} image pull on ${{ matrix.arch }}
+        run: |
+          VARIANT_NAME="${{ matrix.variant || 'default' }}"
+          echo "🔍 Testing $VARIANT_NAME image pull on ${{ matrix.arch }} architecture..."
+
+          IMAGE_TAG="${{ needs.get-version.outputs.image_tag }}${{ matrix.variant }}"
+          echo "📋 Using image tag: $IMAGE_TAG"
+          echo "🖥️  Running on: ${{ matrix.runner }}"
+
+          failed_pulls=()
+
+          for image in $DRASI_IMAGES; do
+            echo "📦 Pulling $image:$IMAGE_TAG on ${{ matrix.arch }}..."
+
+            if docker pull  "${image}:${IMAGE_TAG}" > /dev/null 2>&1; then
+              echo "✅ Successfully pulled $image:$IMAGE_TAG"
+              # Clean up to save space
+              docker rmi "${image}:${IMAGE_TAG}" > /dev/null 2>&1 || true
+            else
+              echo "❌ Failed to pull $image:$IMAGE_TAG"
+              failed_pulls+=("$image:$IMAGE_TAG")
+            fi
+          done
+
+          # Report results
+          if [ ${#failed_pulls[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ $VARIANT_NAME PULL TEST FAILED on ${{ matrix.arch }}: The following images could not be pulled:"
+            for failed_pull in "${failed_pulls[@]}"; do
+              echo "  - $failed_pull"
+            done
+            echo ""
+            echo "This indicates that the ${{ matrix.arch }} $VARIANT_NAME image layers are missing or corrupted."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ SUCCESS: All required $VARIANT_NAME images pulled successfully on ${{ matrix.arch }}"

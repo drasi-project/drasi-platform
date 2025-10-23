@@ -218,6 +218,11 @@ jobs:
             path: './reactions/aws/eventbridge-reaction', 
             name: 'reaction-eventbridge'
           },
+          {
+            label: 'SyncVectorStore',
+            path: './reactions/sync-vectorstore',
+            name: 'reaction-sync-vectorstore'
+          },
           { 
             label: 'MCP',
             path: './reactions/mcp', 
@@ -394,6 +399,16 @@ jobs:
         working-directory: e2e-tests
         env:
           DRASI_VERSION: ${{ matrix.variant.drasi_version }}
+          E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY: ${{ secrets.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY }}
+          E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT: ${{ secrets.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT }}
+          E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL: ${{ secrets.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL }}
         run: npm test
 
-  
+      - name: Report vectorstore test status
+        if: always()
+        run: |
+          if [ -z "${{ secrets.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY }}" ]; then
+            echo "::notice::Vectorstore tests were skipped (no OpenAI credentials available). This is expected for fork-based PRs."
+          else
+            echo "::notice::Vectorstore tests were executed with Azure OpenAI credentials."
+          fi
