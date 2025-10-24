@@ -47,9 +47,12 @@ use tokio::{
     time::Instant,
 };
 use tracing::{
-    dispatcher, 
-    // info_span, 
-    instrument, Dispatch, Instrument};
+    dispatcher,
+    // info_span,
+    instrument,
+    Dispatch,
+    Instrument,
+};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
