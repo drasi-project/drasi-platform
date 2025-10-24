@@ -209,6 +209,11 @@ jobs:
             name: 'reaction-post-dapr-pubsub'
           },
           { 
+            label: 'SyncVectorStore',
+            path: './reactions/sync-vectorstore', 
+            name: 'reaction-sync-vectorstore'
+          },
+          { 
             label: 'Http',
             path: './reactions/http', 
             name: 'reaction-http'
