@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.13.1" />
     <PackageReference Include="Dapr.AspNetCore" Version="1.13.1" />
     <PackageReference Include="Dapr.Client" Version="1.13.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
