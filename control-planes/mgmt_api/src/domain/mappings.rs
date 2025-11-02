@@ -320,12 +320,22 @@ impl From<QueryLanguage> for resource_provider_api::models::QueryLanguage {
     }
 }
 
+impl From<QueryRuntime> for resource_provider_api::models::QueryRuntime {
+    fn from(lang: QueryRuntime) -> resource_provider_api::models::QueryRuntime {
+        match lang {
+            QueryRuntime::Worker => resource_provider_api::models::QueryRuntime::Worker,
+            QueryRuntime::ServerCore => resource_provider_api::models::QueryRuntime::ServerCore,
+        }
+    }
+}
+
 impl From<QuerySpec> for resource_provider_api::models::QuerySpec {
     fn from(query_spec: QuerySpec) -> resource_provider_api::models::QuerySpec {
         resource_provider_api::models::QuerySpec {
             mode: query_spec.mode,
             query: query_spec.query,
             query_language: query_spec.query_language.map(|lang| lang.into()),
+            query_runtime: query_spec.query_runtime.map(|lang| lang.into()),
             sources: query_spec.sources.into(),
             storage_profile: query_spec.storage_profile,
             view: query_spec.view.into(),

@@ -105,13 +105,11 @@ pub struct QuerySpec {
     pub mode: String,
     pub query: String,
     pub query_language: Option<QueryLanguage>,
+    pub query_runtime: Option<QueryRuntime>,
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
     pub transient: Option<bool>,
-
-    #[serde(default)]
-    pub runtime: QueryRuntime,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

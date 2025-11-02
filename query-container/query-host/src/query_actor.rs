@@ -35,7 +35,7 @@ use dapr::server::{
 };
 use dapr_macros::actor;
 use drasi_core::middleware::MiddlewareTypeRegistry;
-use drasi_server_core::{bootstrap::BootstrapProviderConfig, DrasiServerCore};
+use drasi_server_core::{DrasiServerCore, bootstrap::BootstrapProviderConfig, channels::DispatchMode};
 use gethostname::gethostname;
 use tokio::sync::RwLock;
 use tokio::task::{self, JoinHandle};
@@ -375,17 +375,27 @@ impl QueryActor {
             }
         };
 
-        match config.runtime {
-            QueryRuntime::Worker => {
-                log::info!("Query {} initializing with Worker runtime", self.query_id);
+        match config.query_runtime {
+            Some(QueryRuntime::Worker) => {
+                log::info!(
+                    "Query {} initializing with Worker runtime", 
+                    self.query_id
+                );
                 self.init_worker().await
-            }
-            QueryRuntime::ServerCore => {
+            },
+            Some(QueryRuntime::ServerCore) => {
                 log::info!(
                     "Query {} initializing with ServerCore runtime",
                     self.query_id
                 );
                 self.init_core().await
+            },
+            None => {
+                log::info!(
+                    "Query {} initializing with default (Worker) runtime",
+                    self.query_id
+                );
+                self.init_worker().await
             }
         }
     }
@@ -505,7 +515,8 @@ impl QueryActor {
 
             builder = builder.add_source(drasi_server_core::config::SourceConfig {
                 id: source.id.clone(),
-                broadcast_channel_capacity: None,
+                dispatch_mode: Some(DispatchMode::Channel),
+                dispatch_buffer_capacity: Some(20000),
                 source_type: "platform".into(),
                 auto_start: true,
                 properties: properties,
@@ -520,8 +531,9 @@ impl QueryActor {
         // Add the Query
         builder = builder.add_query(drasi_server_core::config::QueryConfig {
             id: self.query_id.to_string(),
-            broadcast_channel_capacity: None,
-            priority_queue_capacity: None,
+            dispatch_mode: Some(DispatchMode::Channel),
+            dispatch_buffer_capacity: Some(10000),
+            priority_queue_capacity: Some(100000),
             query: config.query.clone(),
             query_language: match config.query_language {
                 Some(crate::api::QueryLanguage::Cypher) => drasi_server_core::config::QueryLanguage::Cypher,
@@ -572,6 +584,8 @@ impl QueryActor {
         self.runtime
             .set(QueryRuntimeInstance::ServerCore(Arc::new(core)))
             .await;
+
+        self.lifecycle.change_state(QueryState::Running);
 
         log::info!("Query {} core started", self.query_id);
 
