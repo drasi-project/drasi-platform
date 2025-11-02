@@ -4,6 +4,7 @@ bin
 obj
 node_modules
 dist
+target
 
 # Agent settings
 .claude/
