@@ -80,7 +80,7 @@ drasi://query/{queryId}
 
 1. Client connects to the MCP server via SSE
 2. Client subscribes to specific query resources using `resources/subscribe`
-3. When Drasi sends change events for subscribed queries, the server sends `notifications/{query}/added`, `notifications/{query}/updated` and `notifications/{query}/deleted` to clients
+3. When Drasi sends change events for subscribed queries, the server sends standardized `notifications/resources/updated` notifications with the resource URI, operation type, and data
 
 ## Development
 
@@ -108,5 +108,5 @@ This implementation follows the MCP specification and supports:
 - **Legacy SSE Transport** (2024-11-05): Backward compatibility support
 - **Session Management**: Proper session ID generation and tracking
 - **Resource Management**: Dynamic resource registration and subscription
-- **Real-time Notifications**: Both custom query-specific and standard MCP notifications
+- **Real-time Notifications**: Standard MCP `notifications/resources/updated` with structured payload containing URI, operation, and data
 - **Error Handling**: Comprehensive error responses with proper JSON-RPC format
