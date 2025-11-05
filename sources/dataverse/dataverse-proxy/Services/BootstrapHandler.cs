@@ -32,8 +32,8 @@ namespace DataverseProxy.Services
         {
             logger.LogInformation("Starting bootstrap process");
 
-            var dataverseUri = configuration.GetValue<string>("dataverseUri");
-            var managedIdentityClientId = configuration.GetValue<string?>("managedIdentityClientId");
+            var dataverseUri = configuration.GetValue<string>("endpoint");
+            var managedIdentityClientId = configuration.GetValue<string>("host");
 
             if (string.IsNullOrEmpty(dataverseUri))
             {

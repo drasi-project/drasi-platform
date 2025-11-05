@@ -35,7 +35,7 @@ namespace DataverseReactivator.Services
                 {
                     _logger.LogInformation($"Deprovisioning entity: {entity}");
 
-                    // Delete the delta token checkpoint for this entity
+                    // Remove stored delta token
                     await stateStore.Delete($"{entity}-deltatoken");
 
                     _logger.LogInformation($"Successfully deprovisioned entity: {entity}");

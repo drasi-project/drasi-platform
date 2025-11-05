@@ -34,6 +34,7 @@ namespace DataverseReactivator.Services
                     var id = upsert.NewOrUpdatedEntity.Id.ToString();
                     var labels = new HashSet<string> { upsert.NewOrUpdatedEntity.LogicalName };
 
+                    Console.WriteLine($"Upsert contents: {JsonSerializer.Serialize(upsert.NewOrUpdatedEntity)}");
                     var props = new JsonObject();
                     foreach (var attribute in upsert.NewOrUpdatedEntity.Attributes)
                     {
@@ -45,6 +46,7 @@ namespace DataverseReactivator.Services
                     // For Dataverse, we treat both new and updated items as INSERT/UPDATE
                     // The query engine will handle the distinction
                     operation = ChangeOp.INSERT;
+                    
                     break;
 
                 case ChangeType.RemoveOrDeleted:
@@ -52,6 +54,7 @@ namespace DataverseReactivator.Services
                     var deletedId = delete.RemovedItem.Id.ToString();
                     var deletedLabels = new HashSet<string> { delete.RemovedItem.LogicalName };
 
+                    Console.WriteLine($"Deleted contents: {JsonSerializer.Serialize(delete.RemovedItem)}");
                     element = new SourceElement(deletedId, deletedLabels, null);
                     operation = ChangeOp.DELETE;
                     break;
@@ -63,8 +66,46 @@ namespace DataverseReactivator.Services
             // Convert current time to nanoseconds for timestamp
             var timestampNs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000000;
 
-            // Use a simple incrementing LSN - this will be enhanced later with actual Dataverse change tracking
-            var lsn = timestampNs;
+            // Extract LSN from RowVersion (Dataverse's monotonically increasing version)
+            long lsn;
+            if (rawEvent.Type == ChangeType.NewOrUpdated)
+            {
+                var upsert = (NewOrUpdatedItem)rawEvent;
+                if (!string.IsNullOrEmpty(upsert.NewOrUpdatedEntity.RowVersion))
+                {
+                    lsn = long.Parse(upsert.NewOrUpdatedEntity.RowVersion);
+                }
+                else
+                {
+                    // Fallback to timestamp if RowVersion not available
+                    lsn = timestampNs;
+                }
+            }
+            else
+            {
+                // For deletes, RowVersion format is "number!timestamp" - extract just the number
+                var delete = (RemovedOrDeletedItem)rawEvent;
+                if (!string.IsNullOrEmpty(delete.RemovedItem.RowVersion))
+                {
+                    var rowVersion = delete.RemovedItem.RowVersion;
+                    var exclamationIndex = rowVersion.IndexOf('!');
+                    if (exclamationIndex > 0)
+                    {
+                        // Format: "2818084!11/05/2025 20:47:30" - extract "2818084"
+                        lsn = long.Parse(rowVersion.Substring(0, exclamationIndex));
+                    }
+                    else
+                    {
+                        // If no '!' separator, try parsing the whole string
+                        lsn = long.Parse(rowVersion);
+                    }
+                }
+                else
+                {
+                    // Fallback to timestamp
+                    lsn = timestampNs;
+                }
+            }
 
             return Task.FromResult(new SourceChange(
                 operation,

@@ -56,10 +56,7 @@ namespace DataverseReactivator.Services
         internal static ServiceClient BuildClient(IConfiguration configuration, ILogger logger)
         {
             var dataverseUri = configuration.GetValue<string>("endpoint");
-            Console.WriteLine("Dataverse URI: " + dataverseUri);
             var managedIdentityClientId = configuration.GetValue<string>("host");
-            // var managedIdentityClientId = configuration.GetValue<string?>("managedIdentityClientId");
-
             if (string.IsNullOrEmpty(dataverseUri))
             {
                 throw new InvalidOperationException("dataverseUri configuration is required");
@@ -136,7 +133,6 @@ namespace DataverseReactivator.Services
                         _logger.LogInformation($"Published change for entity {_entityName}");
                     }
 
-                    // Save new delta token
                     await _stateStore.Put($"{_entityName}-deltatoken", System.Text.Encoding.UTF8.GetBytes(newToken));
                     lastToken = newToken;
 
