@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-const axios = require('axios');
 const signalR = require("@microsoft/signalr");
-const portfinder = require('portfinder');
+const deployResources = require('./deploy-resources');
+const deleteResources = require('./delete-resources');
 
-class IngressFixture {
+class SignalRFixture {
   /**
-   * @param {string} reactionName - Name of the reaction to test via ingress
-   * @param {Array} queryIds - Array of query IDs to subscribe to
+   * @param {Array<string>} queryIds - Array of query IDs to subscribe to
    * @param {string} ingressServiceName - Name of the ingress service (default: contour-envoy)
    * @param {string} ingressNamespace - Namespace of the ingress service (default: projectcontour)
    */
-  constructor(reactionName, queryIds, ingressServiceName = 'contour-envoy', ingressNamespace = 'projectcontour') {
-    this.reactionName = reactionName;
+  constructor(queryIds, ingressServiceName = 'contour-envoy', ingressNamespace = 'projectcontour') {
+    this.reactionManifest = signalrReactionManifest(queryIds);
     this.queryIds = queryIds;
     this.ingressServiceName = ingressServiceName;
     this.ingressNamespace = ingressNamespace;
@@ -40,16 +39,18 @@ class IngressFixture {
   }
 
   async start() {
+    await deployResources([this.reactionManifest]);
+    await new Promise((r) => setTimeout(r, 10000));
     // Use the port that was configured in kind-config.yaml by cluster-setup.js
     this.localPort = parseInt(process.env.INGRESS_PORT) || 8001;
 
     // Generate the hostname that the ingress expects
-    // Format: {reaction-name}.drasi.{ip}.nip.io
-    // For local testing with kind, we can use localhost
-    this.hostname = `${this.reactionName}.drasi.localhost`;
+    // Format: {reaction-name}.drasi.127.0.0.1.nip.io
+    // This matches the format used by drasi ingress init --local-cluster
+    this.hostname = `${this.reactionManifest.name}.drasi.127.0.0.1.nip.io`;
 
-    console.log(`IngressFixture: Using localhost access on port ${this.localPort}`);
-    console.log(`IngressFixture: Using hostname: ${this.hostname}`);
+    console.log(`SignalRFixture: Using ingress access on port ${this.localPort}`);
+    console.log(`SignalRFixture: Using hostname: ${this.hostname}`);
 
     // Initialize SignalR connection through ingress
     await this.connectSignalR();
@@ -57,25 +58,19 @@ class IngressFixture {
 
   async stop() {
     await this.signalr?.stop();
-    // No port forward to stop
+    await deleteResources([this.reactionManifest]);
   }
   
   async connectSignalR() {
-    // Create SignalR connection through ingress via localhost
-    const hubUrl = `http://localhost:${this.localPort}/hub`;
-    
+    // Create SignalR connection through ingress using nip.io hostname
+    // nip.io automatically resolves *.127.0.0.1.nip.io to 127.0.0.1
+    const hubUrl = `http://${this.hostname}:${this.localPort}/hub`;
+
     this.signalr = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
-        headers: {
-          'Host': this.hostname  // Set Host header for ingress routing
-        },
         transport: signalR.HttpTransportType.LongPolling, // Force long polling instead of WebSockets
-        timeout: 30000, // Increase timeout to 30 seconds
-        logLevel: signalR.LogLevel.Warning,
-        keepAliveIntervalInMilliseconds: 30000,  // Send ping every 30s
-        serverTimeoutInMilliseconds: 60000       // Expect response within 60s
       })
-      .withAutomaticReconnect([0, 2000, 10000, 30000]) // Custom retry intervals
+      .withAutomaticReconnect()
       .build();
 
     let self = this;
@@ -88,47 +83,11 @@ class IngressFixture {
     for (let queryId of this.queryIds) {
       await this.signalr.invoke("subscribe", queryId);
     }
-    
-    console.log(`IngressFixture: SignalR connected through ingress for queries: ${this.queryIds.join(', ')}`);
+
+    console.log(`SignalRFixture: SignalR connected through ingress for queries: ${this.queryIds.join(', ')}`);
   }
-
-  /**
-   * Make an HTTP request through the ingress
-   * @param {string} path - The path to request (default: '/')
-   * @param {object} options - Additional axios options
-   * @returns {Promise} - axios response
-   */
-  async request(path = '/', options = {}) {
-    const url = `http://localhost:${this.localPort}${path}`;
-    
-    // Set the Host header to match the ingress hostname
-    const headers = {
-      'Host': this.hostname,
-      ...options.headers
-    };
-
-    return axios({
-      url,
-      headers,
-      timeout: 10000,
-      ...options
-    });
-  }
-
-  /**
-   * Get the base URL for manual testing
-   */
-  getTestUrl() {
-    return `http://localhost:${this.localPort}`;
-  }
-
-  /**
-   * Get the hostname used for the Host header
-   */
-  getHostname() {
-    return this.hostname;
-  }
-
+ 
+  
   /**
    * Wait for a change event that matches the predicate
    * @param {string} queryId - The query ID to listen for changes on
@@ -147,7 +106,7 @@ class IngressFixture {
   /**
    * Request reload data from the SignalR hub through ingress
    * @param {string} queryId - The query ID to reload
-   * @returns {Promise<Array>} - The reload data
+   * @returns {Promise<Array<any>>} - The reload data
    */
   async requestReload(queryId) {
     let reloadData = [];
@@ -184,7 +143,7 @@ class IngressFixture {
   async onEvent(queryId, data) {
     if (!this.changeListeners.has(queryId)) return;
 
-    console.info(`IngressFixture.onEvent ${queryId} ${JSON.stringify(data)}`);
+    console.info(`SignalRFixture.onEvent ${queryId} ${JSON.stringify(data)}`);
 
     let listeners = this.changeListeners.get(queryId);
     for (let listener of listeners) {
@@ -245,4 +204,23 @@ class ChangeListener {
   }
 }
 
-module.exports = IngressFixture;
+/**
+ * @param {Array<string>} queryIds
+ */
+function signalrReactionManifest(queryIds) {
+  let result = {
+    apiVersion: "v1",
+    kind: "Reaction",
+    name: `signalr-${crypto.randomUUID().toString()}`, 
+    // Sometimes the uuid will begin with a number, which is not allowed in k8s resource names
+    // as a result, we prepend the name with 'signalr-' to ensure it is a valid name
+    spec: {
+      kind: "SignalR",
+      queries: queryIds.reduce((a, v) => ({ ...a, [v]: "" }), {})
+    },
+  };
+
+  return result;
+}
+
+module.exports = SignalRFixture;

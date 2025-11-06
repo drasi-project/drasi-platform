@@ -1214,6 +1214,7 @@ dependencies = [
  "env_logger 0.10.2",
  "futures",
  "hashers",
+ "home",
  "k8s-openapi",
  "kube",
  "kube-derive",

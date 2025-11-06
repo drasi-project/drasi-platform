@@ -23,8 +23,8 @@ import (
 )
 
 var (
-	DAPR_RUNTIME_VERSION = "1.10.0"
-	DAPR_SIDECAR_VERSION = "1.9.0"
+	DAPR_RUNTIME_VERSION = "1.14.5"
+	DAPR_SIDECAR_VERSION = "1.14.5"
 )
 
 type Installer interface {
