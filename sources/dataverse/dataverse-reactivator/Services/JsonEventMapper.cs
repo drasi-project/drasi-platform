@@ -38,7 +38,34 @@ namespace DataverseReactivator.Services
                     var props = new JsonObject();
                     foreach (var attribute in upsert.NewOrUpdatedEntity.Attributes)
                     {
-                        var val = JsonSerializer.SerializeToNode(attribute.Value);
+                        JsonNode? val;
+
+                        // Special handling for Money (currency) objects - extract just the decimal value
+                        if (attribute.Value is Money money)
+                        {
+                            val = JsonValue.Create(money.Value);
+                            Console.WriteLine($"Attribute: {attribute.Key}, Money value extracted: {money.Value}");
+                        }
+                        else
+                        {
+                            val = JsonSerializer.SerializeToNode(attribute.Value);
+                            Console.WriteLine($"Attribute: {attribute.Key}, Value: {val?.ToJsonString()}");
+
+                            // Debug: Print lookup object details
+                            if (attribute.Value is EntityReference lookup)
+                            {
+                                Console.WriteLine($"  Lookup detected - Id: {lookup.Id}, LogicalName: {lookup.LogicalName}, Name: {lookup.Name}");
+                                if (lookup.KeyAttributes?.Count > 0)
+                                {
+                                    Console.WriteLine($"  KeyAttributes:");
+                                    foreach (var kvp in lookup.KeyAttributes)
+                                    {
+                                        Console.WriteLine($"    {kvp.Key}: {kvp.Value}");
+                                    }
+                                }
+                            }
+                        }
+
                         props.Add(attribute.Key, val);
                     }
 
