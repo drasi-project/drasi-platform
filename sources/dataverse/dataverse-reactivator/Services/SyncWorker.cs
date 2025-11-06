@@ -25,14 +25,21 @@ namespace DataverseReactivator.Services
 {
     class SyncWorker : BackgroundService
     {
+        private const int MinIntervalMs = 500; // Start at 0.5 seconds
+        private const int ThresholdMs = 5000; // 5 seconds - switch from slow to fast backoff
+        private const double SlowBackoffMultiplier = 1.2; // Slow increase under threshold
+        private const double FastBackoffMultiplier = 1.5; // Fast increase above threshold
         private readonly Channel<SourceChange> _channel;
         private readonly IStateStore _stateStore;
         private readonly IEventMapper _eventMapper;
         private readonly IConfiguration _configuration;
         private readonly ServiceClient _serviceClient;
         private readonly string _entityName;
-        private readonly int _intervalSeconds;
+        private readonly int _maxIntervalSeconds;
         private readonly ILogger _logger;
+
+        private int _currentIntervalMs;
+
 
         public SyncWorker(
             Channel<SourceChange> channel,
@@ -41,16 +48,17 @@ namespace DataverseReactivator.Services
             IConfiguration configuration,
             ILogger logger,
             string entityName,
-            int intervalSeconds)
+            int maxIntervalSeconds)
         {
             _channel = channel;
             _stateStore = stateStore;
             _eventMapper = eventMapper;
             _configuration = configuration;
             _entityName = entityName;
-            _intervalSeconds = intervalSeconds;
+            _maxIntervalSeconds = maxIntervalSeconds;
             _logger = logger;
             _serviceClient = BuildClient(configuration, logger);
+            _currentIntervalMs = MinIntervalMs; // Start with 500ms interval
         }
 
         internal static ServiceClient BuildClient(IConfiguration configuration, ILogger logger)
@@ -120,23 +128,52 @@ namespace DataverseReactivator.Services
             {
                 try
                 {
-                    _logger.LogInformation($"Polling for changes in entity: {_entityName}");
+                    _logger.LogInformation($"Polling for changes in entity: {_entityName} (interval: {_currentIntervalMs}ms)");
                     var (changes, newToken) = await GetChanges(lastToken, stoppingToken);
 
                     long reactivatorStartNs = (DateTimeOffset.UtcNow.Ticks - DateTimeOffset.UnixEpoch.Ticks) * 100;
                     _logger.LogInformation($"Got {changes.Count} changes for entity {_entityName}");
 
-                    foreach (var change in changes)
+                    if (changes.Count > 0)
                     {
-                        var sourceChange = await _eventMapper.MapEventAsync(change, reactivatorStartNs);
-                        await _channel.Writer.WriteAsync(sourceChange, stoppingToken);
-                        _logger.LogInformation($"Published change for entity {_entityName}");
+                        // Changes detected - reset to minimum interval for responsive polling
+                        _currentIntervalMs = MinIntervalMs;
+
+                        foreach (var change in changes)
+                        {
+                            var sourceChange = await _eventMapper.MapEventAsync(change, reactivatorStartNs);
+                            await _channel.Writer.WriteAsync(sourceChange, stoppingToken);
+                            _logger.LogInformation($"Published change for entity {_entityName}");
+                        }
+
+                        // Save the new delta token before continuing
+                        await _stateStore.Put($"{_entityName}-deltatoken", System.Text.Encoding.UTF8.GetBytes(newToken));
+                        lastToken = newToken;
+
+                        // Skip delay to poll immediately after processing changes
+                        continue;
+                    }
+                    else
+                    {
+                        // No changes - two-phase multiplicative backoff
+                        int previousInterval = _currentIntervalMs;
+
+                        // Use slow backoff under threshold, fast backoff above threshold
+                        double multiplier = _currentIntervalMs < ThresholdMs
+                            ? SlowBackoffMultiplier
+                            : FastBackoffMultiplier;
+
+                        _currentIntervalMs = Math.Min(
+                            (int)(_currentIntervalMs * multiplier),
+                            _maxIntervalSeconds * 1000
+                        );
+
                     }
 
                     await _stateStore.Put($"{_entityName}-deltatoken", System.Text.Encoding.UTF8.GetBytes(newToken));
                     lastToken = newToken;
 
-                    await Task.Delay(_intervalSeconds * 1000, stoppingToken);
+                    await Task.Delay(_currentIntervalMs, stoppingToken);
                 }
                 catch (TaskCanceledException)
                 {

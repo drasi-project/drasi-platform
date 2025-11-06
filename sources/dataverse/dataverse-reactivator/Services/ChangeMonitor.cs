@@ -21,12 +21,15 @@ namespace DataverseReactivator.Services;
 
 class ChangeMonitor : IChangeMonitor
 {
+    private const int SingleEntityMaxIntervalMs = 30000; // 30 seconds for 1 entity
+    private const int MinimumIntervalMs = 500; // 0.5 seconds minimum
+
     private readonly IStateStore _stateStore;
     private readonly IEventMapper _eventMapper;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ChangeMonitor> _logger;
     private readonly string[] _entityList;
-    private readonly int _intervalSeconds;
+    private readonly int _maxIntervalSeconds;
 
     public ChangeMonitor(IStateStore stateStore, IConfiguration configuration, IEventMapper eventMapper, ILogger<ChangeMonitor> logger)
     {
@@ -36,18 +39,33 @@ class ChangeMonitor : IChangeMonitor
         _configuration = configuration;
 
         var entities = _configuration.GetValue<string>("entities") ?? "";
-        var interval = _configuration.GetValue<string>("pollingIntervalSeconds") ?? "30";
 
         _entityList = entities.Split(',', StringSplitOptions.RemoveEmptyEntries);
-        _intervalSeconds = int.Parse(interval);
 
         if (_entityList.Length == 0)
         {
             throw new InvalidOperationException("entities configuration is required. Provide a comma-separated list of entity names.");
         }
 
+        // Calculate maximum interval based on entity count using square root scaling
+        // Examples: 1 entity = 30s, 5 entities = ~67s, 10 entities = ~95s
+        int calculatedMaxIntervalMs = (int)(SingleEntityMaxIntervalMs * Math.Sqrt(_entityList.Length));
+        calculatedMaxIntervalMs = Math.Max(MinimumIntervalMs, calculatedMaxIntervalMs);
+
+        // Allow user override via configuration
+        var configuredIntervalSeconds = _configuration.GetValue<int?>("maxInterval");
+        if (configuredIntervalSeconds.HasValue)
+        {
+            _maxIntervalSeconds = configuredIntervalSeconds.Value;
+            _logger.LogInformation($"Using configured maximum interval: {_maxIntervalSeconds} seconds");
+        }
+        else
+        {
+            _maxIntervalSeconds = calculatedMaxIntervalMs / 1000;
+            _logger.LogInformation($"Calculated maximum interval: {_maxIntervalSeconds} seconds (based on {_entityList.Length} entities)");
+        }
+
         _logger.LogInformation($"ChangeMonitor configured for entities: {string.Join(", ", _entityList)}");
-        _logger.LogInformation($"Polling interval: {_intervalSeconds} seconds");
     }
 
     public async IAsyncEnumerable<SourceChange> Monitor([EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -72,7 +90,7 @@ class ChangeMonitor : IChangeMonitor
                 _configuration,
                 _logger,
                 entity,
-                _intervalSeconds);
+                _maxIntervalSeconds);
 
             workers.Add(worker);
             tasks.Add(worker.StartAsync(cancellationToken));

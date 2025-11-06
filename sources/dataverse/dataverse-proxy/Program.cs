@@ -21,7 +21,6 @@ var proxy = new SourceProxyBuilder()
     .ConfigureServices(services =>
     {
         services.AddSingleton<IEventMapper, JsonEventMapper>();
-        // services.AddSingleton<ServiceClient>();
     })
     .Build();
 

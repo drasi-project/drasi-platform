@@ -37,6 +37,7 @@ namespace DataverseProxy.Services
                     foreach (var attribute in upsert.NewOrUpdatedEntity.Attributes)
                     {
                         var val = JsonSerializer.SerializeToNode(attribute.Value);
+
                         props.Add(attribute.Key, val);
                     }
 
