@@ -36,32 +36,27 @@ namespace DataverseProxy.Services
                     var props = new JsonObject();
                     foreach (var attribute in upsert.NewOrUpdatedEntity.Attributes)
                     {
-                        JsonNode? val;
+                        // Serialize all attribute values to JSON
+                        var val = JsonSerializer.SerializeToNode(attribute.Value);
 
-                        // Special handling for Money (currency) objects - extract just the decimal value
-                        if (attribute.Value is Money money)
+                        // Post-process: Extract "Value" properties from serialized Dataverse types
+                        // Handle multi-select choice: [{"Value":1},{"Value":2}] -> [1,2]
+                        if (val is JsonArray array && array.Count > 0 && array[0] is JsonObject firstItem && firstItem.ContainsKey("Value"))
                         {
-                            val = JsonValue.Create(money.Value);
-                            Console.WriteLine($"Attribute: {attribute.Key}, Money value extracted: {money.Value}");
-                        }
-                        else
-                        {
-                            val = JsonSerializer.SerializeToNode(attribute.Value);
-                            Console.WriteLine($"Attribute: {attribute.Key}, Value: {val?.ToJsonString()}");
-
-                            // Debug: Print lookup object details
-                            if (attribute.Value is EntityReference lookup)
+                            var values = new JsonArray();
+                            foreach (var item in array)
                             {
-                                Console.WriteLine($"  Lookup detected - Id: {lookup.Id}, LogicalName: {lookup.LogicalName}, Name: {lookup.Name}");
-                                if (lookup.KeyAttributes?.Count > 0)
+                                if (item is JsonObject itemObj && itemObj.ContainsKey("Value"))
                                 {
-                                    Console.WriteLine($"  KeyAttributes:");
-                                    foreach (var kvp in lookup.KeyAttributes)
-                                    {
-                                        Console.WriteLine($"    {kvp.Key}: {kvp.Value}");
-                                    }
+                                    values.Add(itemObj["Value"]?.DeepClone());
                                 }
                             }
+                            val = values;
+                        }
+                        // Handle single value types: {"Value":123} -> 123
+                        else if (val is JsonObject jsonObj && jsonObj.ContainsKey("Value") && jsonObj.Count <= 2) // Count <= 2 to allow ExtensionData
+                        {
+                            val = jsonObj["Value"]?.DeepClone();
                         }
 
                         props.Add(attribute.Key, val);
