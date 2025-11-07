@@ -23,6 +23,10 @@ limitations under the License. -->
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="dataverse-reactivator.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Drasi.Source.SDK" Version="0.1.8-alpha" />
     <PackageReference Include="Azure.Identity" Version="1.13.1" />
     <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.1.22" />

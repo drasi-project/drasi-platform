@@ -82,11 +82,24 @@ namespace DataverseReactivator.Services
                     credential = new DefaultAzureCredential();
                     break;
                 default:
-                    logger.LogInformation("Using DefaultAzureCredential with optional managed identity");
-                    credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+                    // Check if client secret credentials are provided for Azure Entra App Registration
+                    var tenantId = configuration.GetValue<string>("tenantId");
+                    var clientId = configuration.GetValue<string>("clientId");
+                    var clientSecret = configuration.GetValue<string>("clientSecret");
+
+                    if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
                     {
-                        ManagedIdentityClientId = managedIdentityClientId
-                    });
+                        logger.LogInformation("Using Azure Entra Application Registration with Client Secret (tenantId: {TenantId}, clientId: {ClientId})", tenantId, clientId);
+                        credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+                    }
+                    else
+                    {
+                        logger.LogInformation("Using DefaultAzureCredential with optional managed identity");
+                        credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+                        {
+                            ManagedIdentityClientId = managedIdentityClientId
+                        });
+                    }
                     break;
             }
 
