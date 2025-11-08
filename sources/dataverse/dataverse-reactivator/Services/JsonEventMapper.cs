@@ -39,8 +39,6 @@ namespace DataverseReactivator.Services
                     {
                         // Serialize all attribute values to JSON
                         var val = JsonSerializer.SerializeToNode(attribute.Value);
-
-                        // Post-process: Extract "Value" properties from serialized Dataverse types
                         // Handle multi-select choice: [{"Value":1},{"Value":2}] -> [1,2]
                         if (val is JsonArray array && array.Count > 0 && array[0] is JsonObject firstItem && firstItem.ContainsKey("Value"))
                         {
@@ -64,8 +62,6 @@ namespace DataverseReactivator.Services
                     }
 
                     element = new SourceElement(id, labels, props);
-                    // For Dataverse, we treat both new and updated items as INSERT/UPDATE
-                    // The query engine will handle the distinction
                     operation = ChangeOp.INSERT;
                     
                     break;
