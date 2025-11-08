@@ -102,6 +102,5 @@ class ChangeMonitor : IChangeMonitor
             yield return change;
         }
 
-        await Task.WhenAll(tasks);
     }
 }
