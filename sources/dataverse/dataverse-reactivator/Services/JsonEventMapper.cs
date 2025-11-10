@@ -62,8 +62,8 @@ namespace DataverseReactivator.Services
                     }
 
                     element = new SourceElement(id, labels, props);
-                    operation = ChangeOp.INSERT;
-                    
+                    operation = ChangeOp.UPDATE;
+
                     break;
 
                 case ChangeType.RemoveOrDeleted:
