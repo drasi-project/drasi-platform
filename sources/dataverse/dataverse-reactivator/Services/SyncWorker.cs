@@ -82,7 +82,6 @@ namespace DataverseReactivator.Services
                     credential = new DefaultAzureCredential();
                     break;
                 default:
-                    // Check if client secret credentials are provided for Azure Entra App Registration
                     var tenantId = configuration.GetValue<string>("tenantId");
                     var clientId = configuration.GetValue<string>("clientId");
                     var clientSecret = configuration.GetValue<string>("clientSecret");

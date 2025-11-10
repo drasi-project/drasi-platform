@@ -112,13 +112,11 @@ namespace DataverseReactivator.Services
                     }
                     else
                     {
-                        // If no '!' separator, try parsing the whole string
                         lsn = long.Parse(rowVersion);
                     }
                 }
                 else
                 {
-                    // Fallback to timestamp
                     lsn = timestampNs;
                 }
             }
