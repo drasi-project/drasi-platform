@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -28,7 +27,27 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewListCommand() *cobra.Command {
+// listCmdOptions holds dependencies for the list command
+type listCmdOptions struct {
+	platformClientFactory func(namespace string) (sdk.PlatformClient, error)
+}
+
+// NewListCommand creates the list command with optional dependency injection
+func NewListCommand(opts ...*listCmdOptions) *cobra.Command {
+	// Use the real implementation by default
+	opt := &listCmdOptions{
+		platformClientFactory: func(namespace string) (sdk.PlatformClient, error) {
+			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
+			if err != nil {
+				return nil, err
+			}
+			return sdk.NewPlatformClient(reg)
+		},
+	}
+	// If options are provided (from tests), use them instead
+	if len(opts) > 0 && opts[0] != nil {
+		opt = opts[0]
+	}
 	var listCommand = &cobra.Command{
 		Use:   "list [kind]",
 		Short: "Show a list of available resources",
@@ -57,20 +76,14 @@ Usage examples:
 				return err
 			}
 
-			reg, err := registry.LoadCurrentRegistrationWithNamespace(namespace)
-			if err != nil {
-				return err
-			}
-
-			platformClient, err := sdk.NewPlatformClient(reg)
+			platformClient, err := opt.platformClientFactory(namespace)
 			if err != nil {
 				return err
 			}
 
 			client, err := platformClient.CreateDrasiClient()
 			if err != nil {
-				fmt.Println("Error: " + err.Error())
-				return nil
+				return err
 			}
 			defer client.Close()
 
@@ -123,7 +136,7 @@ Usage examples:
 				items = append(items, item)
 			}
 
-			table := tablewriter.NewWriter(os.Stdout)
+			table := tablewriter.NewWriter(cmd.OutOrStdout())
 			headers := []string{}
 			for col := range statusFields {
 				headers = append(headers, col)
