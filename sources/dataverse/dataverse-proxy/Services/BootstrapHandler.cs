@@ -33,8 +33,8 @@ namespace DataverseProxy.Services
             logger.LogInformation("Starting bootstrap process");
 
             var dataverseUri = configuration.GetValue<string>("endpoint");
-            var managedIdentityClientId = configuration.GetValue<string>("host");
-
+            var managedIdentityClientId = configuration.GetValue<string>("AZURE_CLIENT_ID");
+            
             if (string.IsNullOrEmpty(dataverseUri))
             {
                 logger.LogWarning("No dataverseUri configured, skipping bootstrap");

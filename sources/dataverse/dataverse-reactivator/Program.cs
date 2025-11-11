@@ -16,6 +16,7 @@ using Drasi.Source.SDK;
 using Drasi.Source.SDK.Models;
 using DataverseReactivator.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.PowerPlatform.Dataverse.Client;
 
 
 var reactivator = new ReactivatorBuilder()
@@ -23,6 +24,12 @@ var reactivator = new ReactivatorBuilder()
     .ConfigureServices(services =>
     {
         services.AddSingleton<IEventMapper, JsonEventMapper>();
+        services.AddSingleton<ServiceClient>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var logger = sp.GetRequiredService<ILogger<SyncWorker>>();
+            return SyncWorker.BuildClient(configuration, logger);
+        });
     })
     .UseDeprovisionHandler<DeprovisionHandler>()
     .Build();

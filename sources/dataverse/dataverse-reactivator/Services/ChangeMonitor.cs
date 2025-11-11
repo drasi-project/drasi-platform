@@ -16,6 +16,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Drasi.Source.SDK;
 using Drasi.Source.SDK.Models;
+using Microsoft.PowerPlatform.Dataverse.Client;
 
 namespace DataverseReactivator.Services;
 
@@ -28,15 +29,17 @@ class ChangeMonitor : IChangeMonitor
     private readonly IEventMapper _eventMapper;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ChangeMonitor> _logger;
+    private readonly ServiceClient _serviceClient;
     private readonly string[] _entityList;
     private readonly int _maxIntervalSeconds;
 
-    public ChangeMonitor(IStateStore stateStore, IConfiguration configuration, IEventMapper eventMapper, ILogger<ChangeMonitor> logger)
+    public ChangeMonitor(IStateStore stateStore, IConfiguration configuration, IEventMapper eventMapper, ILogger<ChangeMonitor> logger, ServiceClient serviceClient)
     {
         _stateStore = stateStore;
         _eventMapper = eventMapper;
         _logger = logger;
         _configuration = configuration;
+        _serviceClient = serviceClient;
 
         var entities = _configuration.GetValue<string>("entities") ?? "";
 
@@ -89,6 +92,7 @@ class ChangeMonitor : IChangeMonitor
                 _eventMapper,
                 _configuration,
                 _logger,
+                _serviceClient,
                 entity,
                 _maxIntervalSeconds);
 

@@ -47,6 +47,7 @@ namespace DataverseReactivator.Services
             IEventMapper eventMapper,
             IConfiguration configuration,
             ILogger logger,
+            ServiceClient serviceClient,
             string entityName,
             int maxIntervalSeconds)
         {
@@ -57,7 +58,7 @@ namespace DataverseReactivator.Services
             _entityName = entityName;
             _maxIntervalSeconds = maxIntervalSeconds;
             _logger = logger;
-            _serviceClient = BuildClient(configuration, logger);
+            _serviceClient = serviceClient;
             _currentIntervalMs = MinIntervalMs; // Start with 500ms interval
         }
 
@@ -65,7 +66,6 @@ namespace DataverseReactivator.Services
         {
 
             var dataverseUri = configuration.GetValue<string>("endpoint");
-            var managedIdentityClientId = configuration.GetValue<string>("host");
             if (string.IsNullOrEmpty(dataverseUri))
             {
                 throw new InvalidOperationException("dataverseUri configuration is required");
@@ -80,7 +80,12 @@ namespace DataverseReactivator.Services
             {
                 case IdentityType.MicrosoftEntraWorkloadID:
                     logger.LogInformation("Using Microsoft Entra Workload ID");
-                    credential = new DefaultAzureCredential();
+                    var managedIdentityClientId = configuration.GetValue<string>("AZURE_CLIENT_ID");
+                    credential = new DefaultAzureCredential(
+                        new DefaultAzureCredentialOptions
+                        {
+                            ManagedIdentityClientId = managedIdentityClientId
+                        });
                     var serviceClient = new ServiceClient(
                         uri,
                         async (string instanceUri) =>
