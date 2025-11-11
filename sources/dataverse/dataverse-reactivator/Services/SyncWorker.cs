@@ -63,6 +63,7 @@ namespace DataverseReactivator.Services
 
         internal static ServiceClient BuildClient(IConfiguration configuration, ILogger logger)
         {
+
             var dataverseUri = configuration.GetValue<string>("endpoint");
             var managedIdentityClientId = configuration.GetValue<string>("host");
             if (string.IsNullOrEmpty(dataverseUri))
@@ -80,41 +81,31 @@ namespace DataverseReactivator.Services
                 case IdentityType.MicrosoftEntraWorkloadID:
                     logger.LogInformation("Using Microsoft Entra Workload ID");
                     credential = new DefaultAzureCredential();
-                    break;
+                    var serviceClient = new ServiceClient(
+                        uri,
+                        async (string instanceUri) =>
+                        {
+                            var token = await credential.GetTokenAsync(
+                                new Azure.Core.TokenRequestContext(new[] { dataverseScope }),
+                                default);
+                            return token.Token;
+                        },
+                        useUniqueInstance: false,
+                        logger: null);
+
+                    return serviceClient;
                 default:
-                    var tenantId = configuration.GetValue<string>("tenantId");
                     var clientId = configuration.GetValue<string>("clientId");
                     var clientSecret = configuration.GetValue<string>("clientSecret");
 
-                    if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
+                    if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
                     {
-                        logger.LogInformation("Using Azure Entra Application Registration with Client Secret (tenantId: {TenantId}, clientId: {ClientId})", tenantId, clientId);
-                        credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
-                    }
-                    else
-                    {
-                        logger.LogInformation("Using DefaultAzureCredential with optional managed identity");
-                        credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-                        {
-                            ManagedIdentityClientId = managedIdentityClientId
-                        });
+                        return new ServiceClient(new Uri(dataverseUri), clientId, clientSecret, false);
                     }
                     break;
             }
+            throw new InvalidOperationException("No valid authentication method found in configuration");
 
-            var serviceClient = new ServiceClient(
-                uri,
-                async (string instanceUri) =>
-                {
-                    var token = await credential.GetTokenAsync(
-                        new Azure.Core.TokenRequestContext(new[] { dataverseScope }),
-                        default);
-                    return token.Token;
-                },
-                useUniqueInstance: false,
-                logger: null);
-
-            return serviceClient;
         }
 
 

@@ -147,42 +147,34 @@ namespace DataverseProxy.Services
                     {
                         ManagedIdentityClientId = managedIdentityClientId
                     });
+
+                    var serviceClient = new ServiceClient(
+                        uri,
+                        async (string instanceUri) =>
+                        {
+                            var token = await credential.GetTokenAsync(
+                                new Azure.Core.TokenRequestContext(new[] { dataverseScope }),
+                                default);
+                            return token.Token;
+                        },
+                        useUniqueInstance: false,
+                        logger: null);
+
+                    return serviceClient;
                     break;
                 default:
-                    // Check if client secret credentials are provided for Azure Entra App Registration
-                    var tenantId = configuration.GetValue<string>("tenantId");
                     var clientId = configuration.GetValue<string>("clientId");
                     var clientSecret = configuration.GetValue<string>("clientSecret");
 
-                    if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
+                    if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
                     {
-                        logger.LogInformation("Using Azure Entra Application Registration with Client Secret (tenantId: {TenantId}, clientId: {ClientId})", tenantId, clientId);
-                        credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
-                    }
-                    else
-                    {
-                        logger.LogInformation("Using default Azure credential with optional managed identity");
-                        credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-                        {
-                            ManagedIdentityClientId = managedIdentityClientId
-                        });
+                        return new ServiceClient(new Uri(dataverseUri), clientId, clientSecret, false);
                     }
                     break;
+
             }
 
-            var serviceClient = new ServiceClient(
-                uri,
-                async (string instanceUri) =>
-                {
-                    var token = await credential.GetTokenAsync(
-                        new Azure.Core.TokenRequestContext(new[] { dataverseScope }),
-                        default);
-                    return token.Token;
-                },
-                useUniqueInstance: false,
-                logger: null);
-
-            return serviceClient;
+            throw new InvalidOperationException("No valid authentication method configured for Dataverse client.");
         }
     }
 }
