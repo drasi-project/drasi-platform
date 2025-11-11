@@ -80,6 +80,7 @@ env:
     {"label": "PostDaprPubSub", "path": "reactions/dapr/post-pubsub", "name": "reaction-post-dapr-pubsub", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "Http", "path": "reactions/http", "name": "reaction-http", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "StoredProc", "path": "reactions/sql/storedproc-reaction", "name": "reaction-storedproc", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "SyncVectorStore", "path": "reactions/sync-vectorstore", "name": "reaction-sync-vectorstore", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "MCP", "path": "reactions/mcp", "name": "reaction-mcp", "platforms": "linux/amd64,linux/arm64", "category": "reactions"}]'
 
 jobs:
