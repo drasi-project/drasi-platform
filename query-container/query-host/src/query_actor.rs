@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use crate::{
     api::{QueryRequest, QueryRuntime, QuerySpec, QueryStatus},
@@ -39,7 +39,6 @@ use drasi_server_core::{DrasiServerCore, bootstrap::BootstrapProviderConfig, cha
 use gethostname::gethostname;
 use tokio::sync::RwLock;
 use tokio::task::{self, JoinHandle};
-use serde_json::Value;
 
 /// Enum to hold either QueryWorker or DrasiServerCore runtime
 #[derive(Clone)]
@@ -504,27 +503,27 @@ impl QueryActor {
 
         // Add Platform Sources for each Source Subscription
         for source in &config.sources.subscriptions {
-            let mut properties:HashMap<String, serde_json::Value> = HashMap::new();
-            properties.insert("redis_url".to_string(),"redis://drasi-redis:6379".into());
-            properties.insert("stream_key".to_string(),format!("{}-change", source.id).into());
-            properties.insert("consumer_group".to_string(),self.query_container_id.as_ref().into());
-            properties.insert("consumer_name".to_string(),self.query_id.as_ref().into());
-            properties.insert("batch_size".to_string(),Value::from(10));
-            properties.insert("block_ms".to_string(),Value::from(5000));
-            properties.insert("start_id".to_string(),">".into());
-
             builder = builder.add_source(drasi_server_core::config::SourceConfig {
                 id: source.id.clone(),
                 dispatch_mode: Some(DispatchMode::Channel),
                 dispatch_buffer_capacity: Some(20000),
-                source_type: "platform".into(),
                 auto_start: true,
-                properties: properties,
-                bootstrap_provider: Some(BootstrapProviderConfig::Platform { 
-                    query_api_url: Some(format!("http://{}-query-api:80", source.id).into()), 
-                    timeout_seconds: Some(30), 
-                    config: HashMap::new() 
-                }),
+                config: drasi_server_core::config::SourceSpecificConfig::Platform(
+                    drasi_server_core::config::PlatformSourceConfig {
+                        redis_url: "redis://drasi-redis:6379".to_string(),
+                        stream_key: format!("{}-change", source.id),
+                        consumer_group: self.query_container_id.to_string(),
+                        consumer_name: Some(self.query_id.to_string()),
+                        batch_size: 10,
+                        block_ms: 5000,
+                    }
+                ),
+                bootstrap_provider: Some(BootstrapProviderConfig::Platform(
+                    drasi_server_core::bootstrap::PlatformBootstrapConfig {
+                        query_api_url: Some(format!("http://{}-query-api:80", source.id)),
+                        timeout_seconds: 30,
+                    }
+                )),
             });
         };
 
@@ -542,27 +541,29 @@ impl QueryActor {
             },
             sources: config.sources.subscriptions.iter().map(|s| s.id.clone()).collect(),
             auto_start: true,
-            properties: HashMap::new(),
             joins: None,
             bootstrap_buffer_size: 1000,
             enable_bootstrap: true,
         });
 
         // Add the Platform Reaction
-        let mut properties:HashMap<String, serde_json::Value> = HashMap::new();
-            properties.insert("redis_url".to_string(),"redis://drasi-redis:6379".into());
-            properties.insert("pubsub_name".to_string(),"drasi-pubsub".into());
-            properties.insert("source_name".to_string(),"drasi-core".into());
-            properties.insert("max_stream_length".to_string(),Value::from(10000));
-            properties.insert("emit_control_events".to_string(),Value::Bool(true));
-
         builder = builder.add_reaction(drasi_server_core::config::ReactionConfig {
             id: self.query_id.to_string(),
             priority_queue_capacity: None,
-            reaction_type: "platform".into(),
             queries: vec![self.query_id.to_string()],
             auto_start: true,
-            properties,
+            config: drasi_server_core::config::ReactionSpecificConfig::Platform(
+                drasi_server_core::config::PlatformReactionConfig {
+                    redis_url: "redis://drasi-redis:6379".to_string(),
+                    pubsub_name: Some("drasi-pubsub".to_string()),
+                    source_name: Some("drasi-core".to_string()),
+                    max_stream_length: Some(10000),
+                    emit_control_events: true,
+                    batch_enabled: false,
+                    batch_max_size: 10,
+                    batch_max_wait_ms: 1000,
+                }
+            ),
         });
 
         // Build and initialize (build() returns already-initialized instance)
