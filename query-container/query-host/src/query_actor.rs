@@ -595,7 +595,19 @@ impl QueryActor {
                 Some(crate::api::QueryLanguage::GQL) => drasi_server_core::config::QueryLanguage::GQL,
                 None => drasi_server_core::config::QueryLanguage::Cypher,
             },
-            sources: config.sources.subscriptions.iter().map(|s| s.id.clone()).collect(),
+            source_subscriptions: config.sources.subscriptions.iter().map(|s| {
+                drasi_server_core::config::SourceSubscriptionConfig {
+                    source_id: s.id.clone(),
+                    pipeline: s.pipeline.clone(),
+                }
+            }).collect(),
+            middleware: config.sources.middleware.iter().map(|m| {
+                drasi_core::models::SourceMiddlewareConfig {
+                    kind: Arc::from(m.kind.as_str()),
+                    name: Arc::from(m.name.as_str()),
+                    config: m.config.clone(),
+                }
+            }).collect(),
             auto_start: true,
             joins: None,
             bootstrap_buffer_size: 1000,
