@@ -1271,6 +1271,8 @@ dependencies = [
  "drasi-core",
  "drasi-functions-cypher",
  "drasi-functions-gql",
+ "drasi-index-garnet",
+ "drasi-index-rocksdb",
  "drasi-query-ast",
  "drasi-query-cypher",
  "drasi-query-gql",

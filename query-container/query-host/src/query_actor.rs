@@ -16,7 +16,7 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{
     api::{QueryRequest, QueryRuntime, QuerySpec, QueryStatus},
-    index_factory::IndexFactory,
+    index_factory::{IndexFactory, StorageSpec },
     models::{ChangeStreamConfig, QueryError, QueryLifecycle, QueryState},
     query_worker::QueryWorker,
     result_publisher::ResultPublisher,
@@ -35,7 +35,7 @@ use dapr::server::{
 };
 use dapr_macros::actor;
 use drasi_core::middleware::MiddlewareTypeRegistry;
-use drasi_server_core::{DrasiServerCore, bootstrap::BootstrapProviderConfig, channels::DispatchMode};
+use drasi_server_core::{DrasiServerCore, StorageBackendConfig, StorageBackendSpec, bootstrap::BootstrapProviderConfig, channels::DispatchMode};
 use gethostname::gethostname;
 use tokio::sync::RwLock;
 use tokio::task::{self, JoinHandle};
@@ -497,9 +497,65 @@ impl QueryActor {
             }
         };
 
+        // Convert the configured (or default) platform storage spec to drasi_server_core 
+        // storage backend config
+        let index_factory = self.index_factory.clone().ok_or_else(|| {
+            ActorError::MethodError(Box::new(QueryError::Other(
+                "Index factory not available for ServerCore runtime".into(),
+            )))
+        })?;
+
+        let storage_backend = match index_factory
+            .get_storage_spec(&config.storage_profile.clone())
+            .await
+        {
+            Ok(spec) => match spec {
+                StorageSpec::Memory {enable_archive} => {
+                    StorageBackendConfig {
+                        id: config.storage_profile.clone().unwrap_or_else(|| index_factory.default_store.clone()),
+                        spec: StorageBackendSpec::Memory { enable_archive },
+                    }
+                },
+                StorageSpec::Redis {
+                    connection_string,
+                    cache_size,
+                } => {
+                    StorageBackendConfig {
+                        id: config.storage_profile.clone().unwrap_or_else(|| index_factory.default_store.clone()),
+                        spec: StorageBackendSpec::Redis {
+                            connection_string,
+                            cache_size,
+                        },
+                    }
+                },
+                StorageSpec::RocksDb {
+                    enable_archive,
+                    direct_io,
+                } => {
+                    StorageBackendConfig {
+                        id: config.storage_profile.clone().unwrap_or_else(|| index_factory.default_store.clone()),
+                        spec: StorageBackendSpec::RocksDb {
+                            path: "/data".to_string(),
+                            enable_archive,
+                            direct_io,
+                        }
+                    }
+                }
+            },
+            Err(err) => {
+                log::error!("Error initializing index: {}", err);
+                self.lifecycle
+                    .change_state(QueryState::TransientError(err.to_string()));
+                return Err(ActorError::MethodError(Box::new(QueryError::Other(
+                    "Error initializing index".into(),
+                ))));
+            }
+        };
+
         // Initialize builder with server ID
         let mut builder = DrasiServerCore::builder()
-            .with_id(self.query_container_id.to_string());
+            .with_id(self.query_container_id.to_string())
+            .add_storage_backend(storage_backend);
 
         // Add Platform Sources for each Source Subscription
         for source in &config.sources.subscriptions {
@@ -544,6 +600,7 @@ impl QueryActor {
             joins: None,
             bootstrap_buffer_size: 1000,
             enable_bootstrap: true,
+            storage_backend: None,
         });
 
         // Add the Platform Reaction
