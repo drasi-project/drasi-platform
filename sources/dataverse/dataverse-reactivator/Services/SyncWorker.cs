@@ -19,7 +19,6 @@ using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
 using Drasi.Source.SDK;
 using Drasi.Source.SDK.Models;
-using Azure.Identity;
 
 namespace DataverseReactivator.Services
 {
@@ -62,56 +61,6 @@ namespace DataverseReactivator.Services
             _currentIntervalMs = MinIntervalMs; // Start with 500ms interval
         }
 
-        internal static ServiceClient BuildClient(IConfiguration configuration, ILogger logger)
-        {
-
-            var dataverseUri = configuration.GetValue<string>("endpoint");
-            if (string.IsNullOrEmpty(dataverseUri))
-            {
-                throw new InvalidOperationException("dataverseUri configuration is required");
-            }
-
-            var uri = new Uri(dataverseUri);
-            var dataverseScope = $"{uri.Scheme}://{uri.Host}/.default";
-
-            Azure.Core.TokenCredential credential;
-
-            switch (configuration.GetIdentityType())
-            {
-                case IdentityType.MicrosoftEntraWorkloadID:
-                    logger.LogInformation("Using Microsoft Entra Workload ID");
-                    var managedIdentityClientId = configuration.GetValue<string>("AZURE_CLIENT_ID");
-                    credential = new DefaultAzureCredential(
-                        new DefaultAzureCredentialOptions
-                        {
-                            ManagedIdentityClientId = managedIdentityClientId
-                        });
-                    var serviceClient = new ServiceClient(
-                        uri,
-                        async (string instanceUri) =>
-                        {
-                            var token = await credential.GetTokenAsync(
-                                new Azure.Core.TokenRequestContext(new[] { dataverseScope }),
-                                default);
-                            return token.Token;
-                        },
-                        useUniqueInstance: false,
-                        logger: null);
-
-                    return serviceClient;
-                default:
-                    var clientId = configuration.GetValue<string>("clientId");
-                    var clientSecret = configuration.GetValue<string>("clientSecret");
-
-                    if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
-                    {
-                        return new ServiceClient(new Uri(dataverseUri), clientId, clientSecret, false);
-                    }
-                    break;
-            }
-            throw new InvalidOperationException("No valid authentication method found in configuration");
-
-        }
 
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

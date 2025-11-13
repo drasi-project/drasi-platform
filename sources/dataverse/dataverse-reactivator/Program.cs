@@ -27,8 +27,8 @@ var reactivator = new ReactivatorBuilder()
         services.AddSingleton<ServiceClient>(sp =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
-            var logger = sp.GetRequiredService<ILogger<SyncWorker>>();
-            return SyncWorker.BuildClient(configuration, logger);
+            var logger = sp.GetRequiredService<ILogger<ServiceClient>>();
+            return ServiceClientFactory.BuildClient(configuration, logger);
         });
     })
     .UseDeprovisionHandler<DeprovisionHandler>()
