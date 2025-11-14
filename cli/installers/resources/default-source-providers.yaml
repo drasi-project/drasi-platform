@@ -219,6 +219,12 @@ spec:
         type: string
       maxInterval:
         type: integer
+      clientId:
+        type: string
+      clientSecret:
+        type: string
+      tenantId:
+        type: string
     required:
       - endpoint
       - entities
