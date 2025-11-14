@@ -1,4 +1,4 @@
-// Copyright 2024 The Drasi Authors.
+// Copyright 2025 The Drasi Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,49 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-﻿using Dapr.Client;
+using Drasi.Source.SDK;
+using Drasi.Source.SDK.Models;
+using DataverseReactivator.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.PowerPlatform.Dataverse.Client;
-using Reactivator.Services;
 
-Console.WriteLine("Starting up");
 
-var config = new ConfigurationBuilder()
-        .AddEnvironmentVariables()
-        .Build();
+var reactivator = new ReactivatorBuilder()
+    .UseChangeMonitor<ChangeMonitor>()
+    .ConfigureServices(services =>
+    {
+        services.AddSingleton<IEventMapper, JsonEventMapper>();
+        services.AddSingleton<ServiceClient>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var logger = sp.GetRequiredService<ILogger<ServiceClient>>();
+            return ServiceClientFactory.BuildClient(configuration, logger);
+        });
+    })
+    .UseDeprovisionHandler<DeprovisionHandler>()
+    .Build();
 
-var ev = Environment.GetEnvironmentVariables();
-
-var sourceId = config["SOURCE_ID"];
-var stateStoreName = config["StateStore"] ?? "drasi-state";
-var pubSubName = config["PubSub"] ?? "drasi-pubsub";
-var endpoint = config["endpoint"];
-var clientId = config["clientId"];
-var secret = config["secret"];
-var entityList = config["entities"]?.Split(",");
-var interval = config["interval"] ?? "60";
-
-var intervalSeconds = int.Parse(interval);
-
-Console.WriteLine($"Source ID: {sourceId}");
-
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDaprClient();
-
-builder.Services.AddSingleton<IChangePublisher>(sp => new ChangePublisher(sp.GetRequiredService<DaprClient>(), sourceId, pubSubName));
-builder.Services.AddSingleton<IDeltaTokenStore>(sp => new DaprDeltaTokenStore(sp.GetRequiredService<DaprClient>(), stateStoreName));
-builder.Services.AddSingleton<IEventMapper>(sp => new JsonEventMapper(sourceId));
-
-var uri = new Uri(endpoint);
-builder.Services.AddSingleton<IOrganizationServiceAsync>(sp => new ServiceClient(uri, clientId, secret, false));
-builder.Services.AddHostedService<HostedServiceContainer>();
-
-foreach (var entity in entityList)
-{
-    Console.WriteLine($"Adding consumer for entity {entity}");
-    builder.Services.AddSingleton(sp => new SyncWorker(sp.GetRequiredService<IChangePublisher>(), sp.GetRequiredService<IDeltaTokenStore>(), sp.GetRequiredService<IEventMapper>(), sp.GetRequiredService<IOrganizationServiceAsync>(), entity, intervalSeconds));
-}
-
-var app = builder.Build();
-
-app.Run("http://0.0.0.0:80");
-
+await reactivator.StartAsync();

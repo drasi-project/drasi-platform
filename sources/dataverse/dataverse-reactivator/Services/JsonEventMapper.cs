@@ -1,4 +1,4 @@
-// Copyright 2024 The Drasi Authors.
+// Copyright 2025 The Drasi Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,109 +12,121 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Reactivator.Services 
+namespace DataverseReactivator.Services
 {
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using System.Threading.Tasks;
     using Microsoft.Xrm.Sdk;
-    using Reactivator.Models;
+    using Drasi.Source.SDK.Models;
 
-    class JsonEventMapper(string sourceId) : IEventMapper
+    class JsonEventMapper() : IEventMapper
     {
-        private readonly string _sourceId = sourceId;
-
-        public Task<ChangeNotification> MapEventAsync(IChangedItem rawEvent, long reactivatorStartNs)
+        public Task<SourceChange> MapEventAsync(IChangedItem rawEvent, long reactivatorStartNs)
         {
-            var result = new ChangeNotification();
-            var data = new VertexState();
-            
+            SourceElement element;
+            ChangeOp operation;
+
             switch (rawEvent.Type)
             {
                 case ChangeType.NewOrUpdated:
                     var upsert = (NewOrUpdatedItem)rawEvent;
-                    data.Id = upsert.NewOrUpdatedEntity.Id.ToString();
-                    data.Label = upsert.NewOrUpdatedEntity.LogicalName;
-                    data.Labels = [upsert.NewOrUpdatedEntity.LogicalName];
+                    var id = upsert.NewOrUpdatedEntity.Id.ToString();
+                    var labels = new HashSet<string> { upsert.NewOrUpdatedEntity.LogicalName };
 
                     var props = new JsonObject();
                     foreach (var attribute in upsert.NewOrUpdatedEntity.Attributes)
                     {
-                        var val = JsonSerializer.SerializeToNode(attribute.Value);                        
+                        // Serialize all attribute values to JSON
+                        var val = JsonSerializer.SerializeToNode(attribute.Value);
+                        // Handle multi-select choice: [{"Value":1},{"Value":2}] -> [1,2]
+                        if (val is JsonArray array && array.Count > 0 && array[0] is JsonObject firstItem && firstItem.ContainsKey("Value"))
+                        {
+                            var values = new JsonArray();
+                            foreach (var item in array)
+                            {
+                                if (item is JsonObject itemObj && itemObj.ContainsKey("Value"))
+                                {
+                                    values.Add(itemObj["Value"]?.DeepClone());
+                                }
+                            }
+                            val = values;
+                        }
+                        // Handle single value types: {"Value":123} -> 123
+                        else if (val is JsonObject jsonObj && jsonObj.ContainsKey("Value") && jsonObj.Count <= 2) // Count <= 2 to allow ExtensionData
+                        {
+                            val = jsonObj["Value"]?.DeepClone();
+                        }
+
                         props.Add(attribute.Key, val);
                     }
-                    data.Properties = props;
 
-                    if (upsert.NewOrUpdatedEntity.Attributes.ContainsKey("modifiedon"))
-                    {
-                        var dt = upsert.NewOrUpdatedEntity.Attributes["modifiedon"];
-                        if (dt is DateTime time)
-                        {
-                            result.TimestampNanoseconds = (long)(time.ToUniversalTime().Ticks - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks) * 100;
-                            // result.TimestampMilliseconds = (long)(time.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalMilliseconds;
-                        }
-                        else if (dt is DateTimeOffset offset)
-                        {
-                            result.TimestampNanoseconds = (offset.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) * 100;
-                        }
-                    }
-                    else
-                    {
-                        result.TimestampNanoseconds = (DateTimeOffset.UtcNow.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) * 100;
-                    }
+                    element = new SourceElement(id, labels, props);
+                    operation = ChangeOp.UPDATE;
 
-                    result.Op = "u";
-                    result.Payload = new ChangePayload()
-                    {
-                        After = data,
-                        Source = new ChangeSource()
-                        {
-                            Db = _sourceId,
-                            Table = "node",
-                            TimestampNanoseconds = result.TimestampNanoseconds
-                        }
-                    };
                     break;
+
                 case ChangeType.RemoveOrDeleted:
                     var delete = (RemovedOrDeletedItem)rawEvent;
-                    data.Id = delete.RemovedItem.Id.ToString();
-                    data.Label = delete.RemovedItem.LogicalName;
-                    data.Labels = [delete.RemovedItem.LogicalName];
+                    var deletedId = delete.RemovedItem.Id.ToString();
+                    var deletedLabels = new HashSet<string> { delete.RemovedItem.LogicalName };
 
-                    if (delete.RemovedItem.KeyAttributes.ContainsKey("deletetime"))
+                    element = new SourceElement(deletedId, deletedLabels, null);
+                    operation = ChangeOp.DELETE;
+                    break;
+
+                default:
+                    throw new ArgumentException($"Unknown change type: {rawEvent.Type}");
+            }
+
+            // Convert current time to nanoseconds for timestamp
+            var timestampNs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000000;
+
+            // Extract LSN from RowVersion (Dataverse's monotonically increasing version)
+            long lsn;
+            if (rawEvent.Type == ChangeType.NewOrUpdated)
+            {
+                var upsert = (NewOrUpdatedItem)rawEvent;
+                if (!string.IsNullOrEmpty(upsert.NewOrUpdatedEntity.RowVersion))
+                {
+                    lsn = long.Parse(upsert.NewOrUpdatedEntity.RowVersion);
+                }
+                else
+                {
+                    // Fallback to timestamp if RowVersion not available
+                    lsn = timestampNs;
+                }
+            }
+            else
+            {
+                // For deletes, RowVersion format is "number!timestamp" - extract just the number
+                var delete = (RemovedOrDeletedItem)rawEvent;
+                if (!string.IsNullOrEmpty(delete.RemovedItem.RowVersion))
+                {
+                    var rowVersion = delete.RemovedItem.RowVersion;
+                    var exclamationIndex = rowVersion.IndexOf('!');
+                    if (exclamationIndex > 0)
                     {
-                        var dt = delete.RemovedItem.KeyAttributes["deletetime"];
-                        if (dt is DateTime time)
-                        {
-                            result.TimestampNanoseconds = (long)(time.ToUniversalTime().Ticks - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks) * 100;
-                        }
-                        else if (dt is DateTimeOffset offset)
-                        {
-                            result.TimestampNanoseconds = (offset.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) * 100;
-                        }
+                        // Format: "2818084!11/05/2025 20:47:30" - extract "2818084"
+                        lsn = long.Parse(rowVersion.Substring(0, exclamationIndex));
                     }
                     else
                     {
-                        result.TimestampNanoseconds = (DateTimeOffset.UtcNow.UtcTicks - DateTimeOffset.UnixEpoch.Ticks) * 100;
+                        lsn = long.Parse(rowVersion);
                     }
-
-                    result.Op = "d";
-                    result.Payload = new ChangePayload()
-                    {
-                        Before = data,
-                        Source = new ChangeSource()
-                        {
-                            Db = _sourceId,
-                            Table = "node",
-                            TimestampNanoseconds = result.TimestampNanoseconds
-                        }
-                    };
-                    break;
+                }
+                else
+                {
+                    lsn = timestampNs;
+                }
             }
 
-            result.ReactivatorStartNs = reactivatorStartNs;
-            result.ReactivatorEndNs = (DateTimeOffset.UtcNow.Ticks - DateTimeOffset.UnixEpoch.Ticks) * 100;
-            return Task.FromResult(result);
+            return Task.FromResult(new SourceChange(
+                operation,
+                element,
+                timestampNs,
+                reactivatorStartNs,
+                lsn));
         }
     }
 }

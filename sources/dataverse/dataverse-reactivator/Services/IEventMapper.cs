@@ -1,4 +1,4 @@
-// Copyright 2024 The Drasi Authors.
+// Copyright 2025 The Drasi Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,12 +13,12 @@
 // limitations under the License.
 
 using Microsoft.Xrm.Sdk;
-using Reactivator.Models;
+using Drasi.Source.SDK.Models;
 
-namespace Reactivator.Services
+namespace DataverseReactivator.Services
 {
     interface IEventMapper
     {
-        Task<ChangeNotification> MapEventAsync(IChangedItem rawEvent, long reactivatorStartNs);
+        Task<SourceChange> MapEventAsync(IChangedItem rawEvent, long reactivatorStartNs);
     }
 }
