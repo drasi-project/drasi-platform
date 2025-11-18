@@ -1,6 +1,6 @@
 # Drasi: Azure Storage Queue Reaction
 
-The Azure Storage Queue Reaction enqueues messages on [Azure Storage Queues](https://learn.microsoft.com/en-us/azure/storage/queues/storage-queues-introduction) in response to changes to the result set of a Drasi Continuous Query.  The output format can either be the packed format of the raw query output, an unpacked format where a single message represents one change to the result set, or a custom template format using Handlebars templates.
+The Azure Storage Queue Reaction enqueues messages on [Azure Storage Queues](https://learn.microsoft.com/en-us/azure/storage/queues/storage-queues-introduction) in response to changes to the result set of a Drasi Continuous Query.  The output format can either be the packed format of the raw query output, an unpacked format where a single message represents one change to the result set, or a custom template format using Handlebars templates with per-query configuration.
 
 ## Getting started
 
@@ -12,8 +12,7 @@ The reaction takes the following configuration properties:
 |-|-|
 | endpoint | Endpoint of the Storage Account queue service, in the form https://{account-name}.queue.core.windows.net, if not using connection string|
 | queueName | Name of Queue. It should already exist on your storage account. |
-| format | The output format for the messages that are enqueued. Can be `packed` for the raw query output, `unpacked` for a message per result set change, or `template` for custom formatted messages. |
-| template | (Required when format is `template`) A Handlebars template string used to format the output messages. |
+| format | The output format for the messages that are enqueued. Can be `packed` for the raw query output, `unpacked` for a message per result set change, or `template` for custom formatted messages using per-query templates. |
 
 ### Identity
 
@@ -82,7 +81,6 @@ spec:
   properties:    
     queueName: <Name of Queue>
     format: <packed | unpacked | template>
-    # template: <Handlebars template (required when format is template)>
   queries:
     query1:
     query2:
@@ -101,7 +99,6 @@ spec:
     endpoint: https://{account-name}.queue.core.windows.net
     queueName: <Name of Queue>
     format: <packed | unpacked | template>
-    # template: <Handlebars template (required when format is template)>
   queries:
     query1:
     query2:
@@ -194,20 +191,19 @@ The Unpacked format flattens all the changed result set items into one message p
 
 The Template format uses [Handlebars templates](https://handlebarsjs.com/) to format each change into a custom message structure. This provides maximum flexibility for integrating with downstream systems that expect specific message formats.
 
-When using the template format, you must provide a `template` property in the reaction configuration. The template has access to the following context variables:
+When using the template format, you configure templates per query with distinct templates for each change type (`added`, `updated`, `deleted`). Each template has access to the following context variables:
 
-**For change events:**
-- `operation`: The type of change - "insert", "update", or "delete"
-- `queryId`: The ID of the query that generated the change
-- `sequence`: The sequence number of the change event
-- `timestamp`: The source timestamp in milliseconds
-- `after`: The new/current state of the result (available for insert and update operations)
-- `before`: The previous state of the result (available for update and delete operations)
+**For added results:**
+- `after`: The new state of the result
 
-**For control signals:**
-- `queryId`: The ID of the query
-- `kind`: The kind of control signal
-- `timestamp`: The source timestamp in milliseconds
+**For updated results:**
+- `before`: The previous state of the result
+- `after`: The new state of the result
+
+**For deleted results:**
+- `before`: The previous state of the result
+
+**Note:** Template format is not supported for control signals. Control signals will be skipped when using template format.
 
 #### Example Configuration
 
@@ -223,66 +219,57 @@ spec:
   properties:    
     queueName: <Name of Queue>
     format: template
-    template: |
-      {
-        "type": "{{operation}}",
-        "query": "{{queryId}}",
-        {{#if after}}
-        "data": {
+  queries:
+    temperature-query:
+      added: |
+        {
+          "type": "added",
           "id": "{{after.id}}",
           "temperature": {{after.temperature}}
         }
-        {{/if}}
-        {{#if before}}
-        "previous": {
+      updated: |
+        {
+          "type": "updated",
+          "id": "{{after.id}}",
+          "temperature": {{after.temperature}},
+          "previousTemperature": {{before.temperature}}
+        }
+      deleted: |
+        {
+          "type": "deleted",
           "id": "{{before.id}}",
           "temperature": {{before.temperature}}
         }
-        {{/if}}
-      }
-  queries:
-    query1:
 ```
 
 #### Example Output
 
-For an insert operation:
+For an added result:
 ```json
 {
-  "type": "insert",
-  "query": "query1",
-  "data": {
-    "id": "10",
-    "temperature": 22
-  }
+  "type": "added",
+  "id": "10",
+  "temperature": 22
 }
 ```
 
-For an update operation:
+For an updated result:
 ```json
 {
-  "type": "update",
-  "query": "query1",
-  "data": {
-    "id": "11",
-    "temperature": 27
-  },
-  "previous": {
-    "id": "11",
-    "temperature": 25
-  }
+  "type": "updated",
+  "id": "11",
+  "temperature": 27,
+  "previousTemperature": 25
+}
 }
 ```
 
-For a delete operation:
+For a deleted result:
 ```json
 {
-  "type": "delete",
-  "query": "query1",
-  "previous": {
-    "id": "12",
-    "temperature": 30
-  }
+  "type": "deleted",
+  "id": "12",
+  "temperature": 30
 }
 ```
 

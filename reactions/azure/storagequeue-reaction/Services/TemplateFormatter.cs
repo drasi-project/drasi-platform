@@ -32,17 +32,19 @@ namespace Drasi.Reactions.StorageQueue.Services
             _handlebars = Handlebars.Create();
         }
 
-        public IEnumerable<string> Format(ChangeEvent evt, string template)
+        public IEnumerable<string> FormatAdded(IEnumerable<Dictionary<string, object>> addedResults, string template)
         {
             var result = new List<string>();
             var compiledTemplate = GetOrCreateTemplate(template);
 
-            // Process added results
-            foreach (var item in evt.AddedResults)
+            foreach (var item in addedResults)
             {
                 try
                 {
-                    var context = CreateChangeContext(evt, "insert", item, null);
+                    var context = new Dictionary<string, object?>
+                    {
+                        ["after"] = ProcessResultForHandlebars(item)
+                    };
                     var output = compiledTemplate(context);
                     result.Add(output);
                 }
@@ -52,12 +54,23 @@ namespace Drasi.Reactions.StorageQueue.Services
                 }
             }
 
-            // Process updated results
-            foreach (var item in evt.UpdatedResults)
+            return result;
+        }
+
+        public IEnumerable<string> FormatUpdated(IEnumerable<UpdatedResultElement> updatedResults, string template)
+        {
+            var result = new List<string>();
+            var compiledTemplate = GetOrCreateTemplate(template);
+
+            foreach (var item in updatedResults)
             {
                 try
                 {
-                    var context = CreateChangeContext(evt, "update", item.After, item.Before);
+                    var context = new Dictionary<string, object?>
+                    {
+                        ["before"] = ProcessResultForHandlebars(item.Before),
+                        ["after"] = ProcessResultForHandlebars(item.After)
+                    };
                     var output = compiledTemplate(context);
                     result.Add(output);
                 }
@@ -67,12 +80,22 @@ namespace Drasi.Reactions.StorageQueue.Services
                 }
             }
 
-            // Process deleted results
-            foreach (var item in evt.DeletedResults)
+            return result;
+        }
+
+        public IEnumerable<string> FormatDeleted(IEnumerable<Dictionary<string, object>> deletedResults, string template)
+        {
+            var result = new List<string>();
+            var compiledTemplate = GetOrCreateTemplate(template);
+
+            foreach (var item in deletedResults)
             {
                 try
                 {
-                    var context = CreateChangeContext(evt, "delete", null, item);
+                    var context = new Dictionary<string, object?>
+                    {
+                        ["before"] = ProcessResultForHandlebars(item)
+                    };
                     var output = compiledTemplate(context);
                     result.Add(output);
                 }
@@ -83,21 +106,6 @@ namespace Drasi.Reactions.StorageQueue.Services
             }
 
             return result;
-        }
-
-        public string FormatControlSignal(ControlEvent evt, string template)
-        {
-            try
-            {
-                var compiledTemplate = GetOrCreateTemplate(template);
-                var context = CreateControlSignalContext(evt);
-                return compiledTemplate(context);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to format control signal with template");
-                throw;
-            }
         }
 
         private HandlebarsTemplate<object, object> GetOrCreateTemplate(string template)
@@ -125,45 +133,6 @@ namespace Drasi.Reactions.StorageQueue.Services
             {
                 _cacheUpdateLock.Release();
             }
-        }
-
-        private Dictionary<string, object?> CreateChangeContext(
-            ChangeEvent evt, 
-            string operation, 
-            Dictionary<string, object>? after, 
-            Dictionary<string, object>? before)
-        {
-            var context = new Dictionary<string, object?>
-            {
-                ["operation"] = operation,
-                ["queryId"] = evt.QueryId,
-                ["sequence"] = evt.Sequence,
-                ["timestamp"] = evt.SourceTimeMs
-            };
-
-            if (after != null)
-            {
-                context["after"] = ProcessResultForHandlebars(after);
-            }
-
-            if (before != null)
-            {
-                context["before"] = ProcessResultForHandlebars(before);
-            }
-
-            return context;
-        }
-
-        private Dictionary<string, object?> CreateControlSignalContext(ControlEvent evt)
-        {
-            var context = new Dictionary<string, object?>
-            {
-                ["queryId"] = evt.QueryId,
-                ["kind"] = JsonSerializer.Serialize(evt.ControlSignal.Kind, ModelOptions.JsonOptions).Trim('"'),
-                ["timestamp"] = evt.SourceTimeMs
-            };
-
-            return context;
         }
 
         private Dictionary<string, object?> ProcessResultForHandlebars(Dictionary<string, object> result)

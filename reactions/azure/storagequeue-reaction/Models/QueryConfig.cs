@@ -12,15 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Drasi.Reaction.SDK.Models.QueryOutput;
-using Drasi.Reactions.StorageQueue.Models;
+namespace Drasi.Reactions.StorageQueue.Models;
 
-namespace Drasi.Reactions.StorageQueue.Services
+public class QueryConfig
 {
-    public interface ITemplateFormatter
-    {
-        IEnumerable<string> FormatAdded(IEnumerable<Dictionary<string, object>> addedResults, string template);
-        IEnumerable<string> FormatUpdated(IEnumerable<UpdatedResultElement> updatedResults, string template);
-        IEnumerable<string> FormatDeleted(IEnumerable<Dictionary<string, object>> deletedResults, string template);
-    }
+    public string? Added { get; set; }
+    public string? Updated { get; set; }
+    public string? Deleted { get; set; }
 }
