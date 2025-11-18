@@ -28,14 +28,18 @@ public class ChangeHandler : IChangeEventHandler
     private readonly QueueClient _queueClient;
     private readonly OutputFormat _format;
     private readonly IChangeFormatter _formatter;
+    private readonly ITemplateFormatter _templateFormatter;
     private readonly ILogger<ChangeHandler> _logger;
+    private readonly string? _template;
 
-    public ChangeHandler(QueueClient queueClient, IConfiguration config, IChangeFormatter changeFormatter, ILogger<ChangeHandler> logger)
+    public ChangeHandler(QueueClient queueClient, IConfiguration config, IChangeFormatter changeFormatter, ITemplateFormatter templateFormatter, ILogger<ChangeHandler> logger)
     {
         _queueClient = queueClient;
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _logger = logger;
         _formatter = changeFormatter;
+        _templateFormatter = templateFormatter;
+        _template = config.GetValue<string>("template");
     }
 
     public async Task HandleChange(ChangeEvent evt, object? queryConfig)
@@ -54,14 +58,20 @@ public class ChangeHandler : IChangeEventHandler
                     _logger.LogInformation("Sent message to queue: {messageId}", dzresp.Value.MessageId);
                 }
                 break;
+            case OutputFormat.Template:
+                if (string.IsNullOrEmpty(_template))
+                {
+                    throw new InvalidOperationException("Template format requires a template to be configured");
+                }
+                var formattedMessages = _templateFormatter.Format(evt, _template);
+                foreach (var message in formattedMessages)
+                {
+                    var tmplResp = await _queueClient.SendMessageAsync(message);
+                    _logger.LogInformation("Sent message to queue: {messageId}", tmplResp.Value.MessageId);
+                }
+                break;
             default:
                 throw new NotSupportedException("Invalid output format");
         }
     }
-}
-
-enum OutputFormat
-{
-    Packed,
-    Unpacked
 }

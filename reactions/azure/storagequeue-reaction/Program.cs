@@ -28,7 +28,8 @@ var reaction = new ReactionBuilder()
     .ConfigureServices((services) =>
     {
         services.AddSingleton<IChangeFormatter, ChangeFormatter>();
-        services.AddSingleton<QueueClient>(sp => 
+        services.AddSingleton<ITemplateFormatter, TemplateFormatter>();
+        services.AddSingleton<QueueClient>(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var logger = sp.GetRequiredService<ILogger<ReactionBuilder>>();

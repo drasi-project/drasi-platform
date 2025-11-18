@@ -28,13 +28,17 @@ public class ControlSignalHandler : IControlEventHandler
 {
     private readonly QueueClient _queueClient;
     private readonly OutputFormat _format;
+    private readonly ITemplateFormatter _templateFormatter;
     private readonly ILogger<ControlSignalHandler> _logger;
+    private readonly string? _template;
 
-    public ControlSignalHandler(QueueClient queueClient, IConfiguration config, ILogger<ControlSignalHandler> logger)
+    public ControlSignalHandler(QueueClient queueClient, IConfiguration config, ITemplateFormatter templateFormatter, ILogger<ControlSignalHandler> logger)
     {
         _queueClient = queueClient;
         _format = Enum.Parse<OutputFormat>(config.GetValue("Format", "packed") ?? "packed", true);
         _logger = logger;
+        _templateFormatter = templateFormatter;
+        _template = config.GetValue<string>("template");
     }
 
     public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
@@ -62,6 +66,15 @@ public class ControlSignalHandler : IControlEventHandler
                 };
                 var dzresp = await _queueClient.SendMessageAsync(notification.ToJson());
                 _logger.LogInformation($"Sent message to queue: {dzresp.Value.MessageId}");
+                break;
+            case OutputFormat.Template:
+                if (string.IsNullOrEmpty(_template))
+                {
+                    throw new InvalidOperationException("Template format requires a template to be configured");
+                }
+                var formattedMessage = _templateFormatter.FormatControlSignal(evt, _template);
+                var tmplResp = await _queueClient.SendMessageAsync(formattedMessage);
+                _logger.LogInformation($"Sent message to queue: {tmplResp.Value.MessageId}");
                 break;
             default:
                 throw new NotSupportedException("Invalid output format");
