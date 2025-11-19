@@ -104,6 +104,37 @@ public class ChangeHandler : IChangeEventHandler
                 }
             
                 break;
+
+            case OutputFormat.Template:
+                var templateResults = _formatter.Format(evt);
+                if (_eventGridSchema == EventGridSchema.EventGrid) {
+                    List<EventGridEvent> templateEvents = new List<EventGridEvent>();
+                    foreach (var templateNotification in templateResults)
+                    {
+                        EventGridEvent templateEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", templateNotification);
+                        templateEvents.Add(templateEvent);
+                    }
+                    var templateResp = await _publisherClient.SendEventsAsync(templateEvents);
+                    if (templateResp.IsError) 
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {templateResp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {templateResp.Content.ToString()}");
+                    }
+                } else if (_eventGridSchema == EventGridSchema.CloudEvents) {
+                    List<CloudEvent> templateCloudEvents = new List<CloudEvent>();
+                    foreach (var templateNotification in templateResults)
+                    {
+                        CloudEvent templateCloudEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", templateNotification);
+                        templateCloudEvents.Add(templateCloudEvent);
+                    }
+                    var templateCloudResp = await _publisherClient.SendEventsAsync(templateCloudEvents);
+                    if (templateCloudResp.IsError) 
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {templateCloudResp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {templateCloudResp.Content.ToString()}");
+                    }
+                }
+                break;
             default:
                 throw new NotSupportedException("Invalid output format");
         }
@@ -114,7 +145,8 @@ public class ChangeHandler : IChangeEventHandler
 enum OutputFormat
 {
     Packed,
-    Unpacked
+    Unpacked,
+    Template
 }
 
 enum EventGridSchema

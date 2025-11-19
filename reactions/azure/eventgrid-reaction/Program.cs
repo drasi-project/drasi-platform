@@ -26,7 +26,20 @@ var reaction = new ReactionBuilder()
                 .UseChangeEventHandler<ChangeHandler>()
                 .UseControlEventHandler<ControlSignalHandler>()
                 .ConfigureServices((services) => {
-                    services.AddSingleton<IChangeFormatter, ChangeFormatter>();
+                    services.AddSingleton<IChangeFormatter>(sp =>
+                    {
+                        var configuration = sp.GetRequiredService<IConfiguration>();
+                        var format = configuration.GetValue("format", "packed") ?? "packed";
+                        
+                        if (format.Equals("template", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return new TemplateChangeFormatter(configuration);
+                        }
+                        else
+                        {
+                            return new ChangeFormatter();
+                        }
+                    });
                     services.AddSingleton<EventGridPublisherClient>(sp =>
                     {
                         var configuration = sp.GetRequiredService<IConfiguration>();
