@@ -16,6 +16,7 @@ using Amazon.EventBridge;
 using Amazon.EventBridge.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 using Drasi.Reaction.SDK;
 
@@ -26,7 +27,21 @@ var reaction = new ReactionBuilder()
                    .UseControlEventHandler<ControlSignalHandler>()
                    .ConfigureServices((services) =>
                    {
-                      services.AddSingleton<IChangeFormatter, ChangeFormatter>();
+                      services.AddSingleton<IChangeFormatter>(sp =>
+                      {
+                          var configuration = sp.GetRequiredService<IConfiguration>();
+                          var format = configuration.GetValue("format", "packed")?.ToLower() ?? "packed";
+                          
+                          if (format == "handlebars")
+                          {
+                              var logger = sp.GetRequiredService<ILogger<HandlebarsChangeFormatter>>();
+                              return new HandlebarsChangeFormatter(configuration, logger);
+                          }
+                          else
+                          {
+                              return new ChangeFormatter();
+                          }
+                      });
                       services.AddSingleton<AmazonEventBridgeClient>(sp =>
                       {
                           var configuration = sp.GetRequiredService<IConfiguration>();
