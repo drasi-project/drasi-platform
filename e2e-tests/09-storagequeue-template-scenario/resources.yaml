@@ -1,0 +1,156 @@
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-data-init-postgres-sq
+data:
+  init.sql: >
+    CREATE TABLE "Item" (
+        "ItemId" integer NOT NULL,
+        "Name" character varying(100) NOT NULL,
+        "Category" character varying(10) NOT NULL,
+        "Temperature" integer NOT NULL
+    );
+
+    ALTER TABLE "Item" ADD CONSTRAINT pk_item_sq
+      PRIMARY KEY ("ItemId");
+
+    INSERT INTO "Item" ("ItemId", "Name", "Category", "Temperature") VALUES (1, 'Foo', '1', 20);
+    INSERT INTO "Item" ("ItemId", "Name", "Category", "Temperature") VALUES (2, 'Bar', '1', 25);
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-pg-config-sq
+  labels:
+    app: postgres-sq
+data:
+  POSTGRES_DB: test-db
+  POSTGRES_USER: test
+  POSTGRES_PASSWORD: test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-sq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-sq
+  template:
+    metadata:
+      labels:
+        app: postgres-sq
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          args: ["-c", "wal_level=logical"]
+          volumeMounts:
+          - name: init
+            mountPath: "/docker-entrypoint-initdb.d"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: test-pg-config-sq
+      volumes:
+        - name: init
+          configMap:
+            name: test-data-init-postgres-sq
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-sq
+  labels:
+    app: postgres-sq
+spec:
+  type: ClusterIP
+  ports:
+   - port: 5432
+  selector:
+   app: postgres-sq
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: azurite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: azurite
+  template:
+    metadata:
+      labels:
+        app: azurite
+    spec:
+      containers:
+        - name: azurite
+          image: mcr.microsoft.com/azure-storage/azurite:latest
+          args: ["azurite-queue", "--queueHost", "0.0.0.0"]
+          ports:
+            - containerPort: 10001
+              name: queue
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: azurite
+  labels:
+    app: azurite
+spec:
+  type: ClusterIP
+  ports:
+   - port: 10001
+     name: queue
+  selector:
+   app: azurite
+---
+apiVersion: v1
+kind: Source
+name: test-source-sq
+spec:
+  kind: PostgreSQL
+  properties:
+    host: postgres-sq.default.svc.cluster.local
+    port: 5432
+    user: test
+    password: test
+    database: test-db
+    ssl: false
+    tables:
+      - public.Item
+---
+apiVersion: v1
+kind: ContinuousQuery
+name: query-sq-template
+spec:
+  mode: query
+  sources:    
+    subscriptions:
+      - id: test-source-sq
+  query: > 
+    MATCH 
+      (i:Item {Category: '1'})
+    RETURN 
+      i.ItemId AS id, 
+      i.Name as name,
+      i.Category as category,
+      i.Temperature as temperature

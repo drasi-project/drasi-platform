@@ -25,6 +25,7 @@
     ]
   },
   "dependencies": {
+    "@azure/storage-queue": "^12.17.0",
     "@microsoft/signalr": "^7.0.2",
     "axios": "^1.11.0",
     "gremlin": "^3.7.3",
