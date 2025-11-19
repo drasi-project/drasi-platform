@@ -12,11 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Text.Json.Serialization;
+
 namespace Drasi.Reactions.StorageQueue.Models;
 
 public class QueryConfig
 {
+    [JsonPropertyName("added")]
     public string? Added { get; set; }
+    
+    [JsonPropertyName("updated")]
     public string? Updated { get; set; }
+    
+    [JsonPropertyName("deleted")]
     public string? Deleted { get; set; }
 }
