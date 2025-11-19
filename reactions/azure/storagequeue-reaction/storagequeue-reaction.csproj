@@ -10,6 +10,10 @@
     <DockerfileContext>.</DockerfileContext>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="StorageQueue.Tests/**" />
+  </ItemGroup>
+
   <ItemGroup>    
     <PackageReference Include="Azure.Identity" Version="1.13.1" />    
     <PackageReference Include="Azure.Storage.Queues" Version="12.22.0" />    
