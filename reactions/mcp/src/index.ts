@@ -239,8 +239,12 @@ async function notifyResourceUpdated(queryId: string, type: 'added' | 'updated' 
                 // Send notification through the MCP server
                 await transport.send({
                     jsonrpc: '2.0',
-                    method: `notifications/${queryId}/${type}`,
-                    params: data
+                    method: 'notifications/resources/updated',
+                    params: {
+                        uri: uri,
+                        operation: type,
+                        data: data
+                    }
                 });
                 console.log(`Sent ${type} notification for query ${queryId} to session ${sessionId}`);            
             } catch (error) {
