@@ -33,14 +33,26 @@ var reaction = new ReactionBuilder<QueryConfig>()
                       services.AddSingleton<AmazonEventBridgeClient>(sp =>
                       {
                           var configuration = sp.GetRequiredService<IConfiguration>();
+                          var serviceUrl = configuration.GetValue<string>("serviceUrl");
+                          
                           switch (configuration.GetIdentityType())
                           {
                             case IdentityType.AwsIamRole:
-                              return new AmazonEventBridgeClient();
+                              var roleConfig = new AmazonEventBridgeConfig();
+                              if (!string.IsNullOrEmpty(serviceUrl))
+                              {
+                                  roleConfig.ServiceURL = serviceUrl;
+                              }
+                              return new AmazonEventBridgeClient(roleConfig);
                             case IdentityType.AwsIamAccessKey:
                               var accessKey = configuration.GetAwsIamAccessKeyId();
                               var secretKey = configuration.GetAwsIamSecretKey();
-                              return new AmazonEventBridgeClient(accessKey, secretKey);
+                              var accessKeyConfig = new AmazonEventBridgeConfig();
+                              if (!string.IsNullOrEmpty(serviceUrl))
+                              {
+                                  accessKeyConfig.ServiceURL = serviceUrl;
+                              }
+                              return new AmazonEventBridgeClient(accessKey, secretKey, accessKeyConfig);
                             default:
                               Reaction<object>.TerminateWithError("Invalid Identity Type. Valid values are AwsIamRole and AwsIamAccessKey");
                               throw new Exception("Invalid Identity Type. Valid values are AwsIamRole and AwsIamAccessKey");

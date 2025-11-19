@@ -1,0 +1,37 @@
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+apiVersion: v1
+kind: Reaction
+name: test-eventbridge-handlebars
+spec:
+  kind: EventBridge
+  identity:
+    kind: AwsIamAccessKey
+    accessKeyId: test
+    secretAccessKey: test
+    region: us-east-1
+  queries:
+    product-query:
+      addedTemplate: |
+        Product {{after.ProductName}} added with {{after.Quantity}} units at ${{after.Price}}
+      updatedTemplate: |
+        Product {{after.ProductName}} updated: quantity changed from {{before.Quantity}} to {{after.Quantity}} units
+      deletedTemplate: |
+        Product {{before.ProductName}} (ID: {{before.ProductId}}) removed from inventory
+  properties: 
+    eventBusName: default
+    format: handlebars
+    serviceUrl: http://localstack.default.svc.cluster.local:4566

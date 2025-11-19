@@ -71,6 +71,7 @@ This table describes the other settings in the **spec** section of the Reaction 
 | queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. For Handlebars format, each query can have per-query configuration. |
 | properties.eventBusName| Name of the custom event bus that you wish to put events to. The default value is `default` |
 | properties.format | The output format for the messages that are enqueued. Can be **packed** for the raw query output, **unpacked** for a message per result set change, or **handlebars** for custom template-based formatting. The default value is **packed** |
+| properties.serviceUrl | (Optional) Custom endpoint URL for EventBridge service. Useful for testing with localstack or other AWS-compatible services. |
 
 
 ### Authenticate using AWS User Access Key
@@ -110,6 +111,7 @@ This table describes the other settings in the **spec** section of the Reaction 
 | queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. For Handlebars format, each query can have per-query configuration. |
 | properties.eventBusName| Name of the custom event bus that you wish to put events to. The default value is `default` |
 | properties.format | The output format for the messages that are enqueued. Can be **packed** for the raw query output, **unpacked** for a message per result set change, or **handlebars** for custom template-based formatting. The default value is **packed** |
+| properties.serviceUrl | (Optional) Custom endpoint URL for EventBridge service. Useful for testing with localstack or other AWS-compatible services. |
 
 
 #### Secret Configuration
