@@ -1,0 +1,155 @@
+# PostgreSQL ConfigMap for Initialization
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: eventgrid-test-db-init
+  namespace: default
+data:
+  init.sql: |
+    CREATE ROLE replication_group;
+    CREATE ROLE replication_user REPLICATION LOGIN;
+    GRANT replication_group TO testuser;
+    GRANT replication_group TO replication_user;
+
+    CREATE TABLE product (
+        product_id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2)
+    );
+    
+    ALTER TABLE product OWNER TO replication_group;
+
+    INSERT INTO product (name, description, price) VALUES
+    ('Laptop', 'High-performance laptop', 1200.00),
+    ('Mouse', 'Ergonomic wireless mouse', 25.00);
+    
+    -- Create a publication for the product table
+    CREATE PUBLICATION product_publication FOR TABLE product;
+    
+    -- Create a replication slot
+    SELECT pg_create_logical_replication_slot('product_slot', 'pgoutput');
+---
+# PostgreSQL Secret for Credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: eventgrid-test-db-credentials
+  namespace: default
+type: Opaque
+stringData:
+  POSTGRES_USER: testuser
+  POSTGRES_PASSWORD: testpassword
+---
+# PostgreSQL StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: eventgrid-test-db
+  namespace: default
+spec:
+  serviceName: eventgrid-test-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eventgrid-test-db
+  template:
+    metadata:
+      labels:
+        app: eventgrid-test-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        envFrom:
+        - secretRef:
+            name: eventgrid-test-db-credentials
+        env:
+        - name: POSTGRES_DB
+          value: testdb
+        args:
+        - -c
+        - wal_level=logical
+        - -c
+        - max_replication_slots=5
+        - -c
+        - max_wal_senders=10
+        volumeMounts:
+        - name: product-db-data
+          mountPath: /var/lib/postgresql/data
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "0.5"
+            memory: "512Mi"
+      volumes:
+      - name: product-db-data
+        emptyDir: {}
+      - name: init-script
+        configMap:
+          name: eventgrid-test-db-init
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: eventgrid-test-db
+  namespace: default
+spec:
+  ports:
+  - port: 5432
+  selector:
+    app: eventgrid-test-db
+---
+# Azure Event Grid Emulator Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eventgrid-emulator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eventgrid-emulator
+  template:
+    metadata:
+      labels:
+        app: eventgrid-emulator
+    spec:
+      containers:
+      - name: eventgrid
+        image: workleap/eventgrid-emulator:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "512Mi"
+          requests:
+            cpu: "0.1"
+            memory: "256Mi"
+---
+# Azure Event Grid Emulator Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: eventgrid-emulator-svc
+  namespace: default
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  selector:
+    app: eventgrid-emulator
