@@ -79,15 +79,6 @@ spec:
           - "unpacked"
           - "template"
         default: "packed"
-      addedTemplate:
-        type: string
-        description: "Handlebars template for added results (required when format is 'template')"
-      updatedTemplate:
-        type: string
-        description: "Handlebars template for updated results (optional when format is 'template')"
-      deletedTemplate:
-        type: string
-        description: "Handlebars template for deleted results (optional when format is 'template')"
     required:
       - eventGridUri
 ---

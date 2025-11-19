@@ -13,99 +13,77 @@
 // limitations under the License.
 
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.EventGrid.Models;
 using HandlebarsDotNet;
-using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 
 namespace Drasi.Reactions.EventGrid.Services
 {
-    public class TemplateChangeFormatter : IChangeFormatter
+    public class TemplateChangeFormatter
     {
         private readonly IHandlebars _handlebars;
-        private readonly HandlebarsTemplate<object, object>? _addedTemplate;
-        private readonly HandlebarsTemplate<object, object>? _updatedTemplate;
-        private readonly HandlebarsTemplate<object, object>? _deletedTemplate;
 
-        public TemplateChangeFormatter(IConfiguration config)
+        public TemplateChangeFormatter()
         {
             _handlebars = Handlebars.Create();
-            
-            var addedTemplateStr = config.GetValue<string>("addedTemplate");
-            if (!string.IsNullOrEmpty(addedTemplateStr))
-            {
-                _addedTemplate = _handlebars.Compile(addedTemplateStr);
-            }
-
-            var updatedTemplateStr = config.GetValue<string>("updatedTemplate");
-            if (!string.IsNullOrEmpty(updatedTemplateStr))
-            {
-                _updatedTemplate = _handlebars.Compile(updatedTemplateStr);
-            }
-
-            var deletedTemplateStr = config.GetValue<string>("deletedTemplate");
-            if (!string.IsNullOrEmpty(deletedTemplateStr))
-            {
-                _deletedTemplate = _handlebars.Compile(deletedTemplateStr);
-            }
         }
 
-        public IEnumerable<JsonElement> Format(ChangeEvent evt)
+        public IEnumerable<JsonElement> Format(ChangeEvent evt, QueryConfig? queryConfig)
         {
+            if (queryConfig == null)
+            {
+                return Enumerable.Empty<JsonElement>();
+            }
+
             var result = new List<JsonElement>();
 
             // Process added results
-            if (_addedTemplate != null)
+            if (!string.IsNullOrEmpty(queryConfig.Added))
             {
+                var addedTemplate = _handlebars.Compile(queryConfig.Added);
                 foreach (var added in evt.AddedResults)
                 {
                     var templateData = new
                     {
-                        queryId = evt.QueryId,
-                        sequence = evt.Sequence,
-                        sourceTimeMs = evt.SourceTimeMs,
                         after = added
                     };
 
-                    var output = _addedTemplate(templateData);
+                    var output = addedTemplate(templateData);
                     using var doc = JsonDocument.Parse(output);
                     result.Add(doc.RootElement.Clone());
                 }
             }
 
             // Process updated results
-            if (_updatedTemplate != null)
+            if (!string.IsNullOrEmpty(queryConfig.Updated))
             {
+                var updatedTemplate = _handlebars.Compile(queryConfig.Updated);
                 foreach (var updated in evt.UpdatedResults)
                 {
                     var templateData = new
                     {
-                        queryId = evt.QueryId,
-                        sequence = evt.Sequence,
-                        sourceTimeMs = evt.SourceTimeMs,
                         before = updated.Before,
                         after = updated.After
                     };
 
-                    var output = _updatedTemplate(templateData);
+                    var output = updatedTemplate(templateData);
                     using var doc = JsonDocument.Parse(output);
                     result.Add(doc.RootElement.Clone());
                 }
             }
 
             // Process deleted results
-            if (_deletedTemplate != null)
+            if (!string.IsNullOrEmpty(queryConfig.Deleted))
             {
+                var deletedTemplate = _handlebars.Compile(queryConfig.Deleted);
                 foreach (var deleted in evt.DeletedResults)
                 {
                     var templateData = new
                     {
-                        queryId = evt.QueryId,
-                        sequence = evt.Sequence,
-                        sourceTimeMs = evt.SourceTimeMs,
                         before = deleted
                     };
 
-                    var output = _deletedTemplate(templateData);
+                    var output = deletedTemplate(templateData);
                     using var doc = JsonDocument.Parse(output);
                     result.Add(doc.RootElement.Clone());
                 }
