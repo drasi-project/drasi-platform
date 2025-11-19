@@ -29,7 +29,6 @@ const SCENARIO_DIR = __dirname;
 const K8S_RESOURCES_FILE = path.join(SCENARIO_DIR, 'resources.yaml');
 const SOURCES_FILE = path.join(SCENARIO_DIR, 'sources.yaml');
 const QUERIES_FILE = path.join(SCENARIO_DIR, 'queries.yaml');
-const REACTION_PROVIDER_FILE = path.join(SCENARIO_DIR, 'reaction-provider.yaml');
 const REACTIONS_FILE = path.join(SCENARIO_DIR, 'reactions.yaml');
 
 const POSTGRES_SERVICE_NAME = 'eventgrid-test-db';
@@ -91,14 +90,12 @@ describe('EventGrid Template Reaction E2E Test', () => {
     const k8sResources = loadYaml(K8S_RESOURCES_FILE);
     const sourceResources = loadYaml(SOURCES_FILE);
     const queryResources = loadYaml(QUERIES_FILE);
-    const reactionProviderResources = loadYaml(REACTION_PROVIDER_FILE);
     const reactionResources = loadYaml(REACTIONS_FILE);
 
     const allResourceDefinitions = [
         ...k8sResources,
         ...sourceResources,
         ...queryResources,
-        ...reactionProviderResources,
         ...reactionResources,
     ];
 
@@ -121,11 +118,7 @@ describe('EventGrid Template Reaction E2E Test', () => {
             console.log("Deploying Drasi Query resources...");
             await deployResources(queryResources);
 
-            // 5. Deploy reaction provider
-            console.log("Deploying Drasi ReactionProvider resources...");
-            await deployResources(reactionProviderResources);
-
-            // 6. Deploy reaction
+            // 5. Deploy reaction
             console.log("Deploying Drasi Reaction resources...");
             await deployResources(reactionResources);
             console.log("All Drasi resources deployed.");

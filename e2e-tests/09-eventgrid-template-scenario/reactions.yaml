@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Reaction
 name: eventgrid-template-reaction
 spec:
-  kind: EventGrid-Test
+  kind: EventGrid
   eventGridUri: http://eventgrid-emulator-svc.default.svc.cluster.local:8080/api/events
   eventGridSchema: CloudEvents
   format: template
