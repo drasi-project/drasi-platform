@@ -12,51 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Drasi.Reactions.EventBridge.Models;
 using Drasi.Reactions.EventBridge.Models.Unpacked;
 using Drasi.Reaction.SDK.Models.QueryOutput;
 using HandlebarsDotNet;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 
 namespace Drasi.Reactions.EventBridge.Services
 {
-    public class HandlebarsChangeFormatter : IChangeFormatter
+    public class HandlebarsChangeFormatter
     {
         private readonly ILogger<HandlebarsChangeFormatter> _logger;
         private readonly IHandlebars _handlebars;
         private readonly Dictionary<string, HandlebarsTemplate<object, object>> _templateCache = new();
         private readonly SemaphoreSlim _cacheUpdateLock = new(1, 1);
-        private readonly string? _addedTemplate;
-        private readonly string? _updatedTemplate;
-        private readonly string? _deletedTemplate;
 
-        public HandlebarsChangeFormatter(IConfiguration config, ILogger<HandlebarsChangeFormatter> logger)
+        public HandlebarsChangeFormatter(ILogger<HandlebarsChangeFormatter> logger)
         {
             _logger = logger;
             _handlebars = Handlebars.Create();
-            _addedTemplate = config.GetValue<string>("addedTemplate");
-            _updatedTemplate = config.GetValue<string>("updatedTemplate");
-            _deletedTemplate = config.GetValue<string>("deletedTemplate");
-
-            if (string.IsNullOrEmpty(_addedTemplate) && string.IsNullOrEmpty(_updatedTemplate) && string.IsNullOrEmpty(_deletedTemplate))
-            {
-                _logger.LogWarning("No Handlebars templates configured. At least one of addedTemplate, updatedTemplate, or deletedTemplate should be provided.");
-            }
         }
 
-        public IEnumerable<ChangeNotification> Format(ChangeEvent evt)
+        public IEnumerable<ChangeNotification> Format(ChangeEvent evt, QueryConfig? queryConfig)
         {
             var result = new List<ChangeNotification>();
 
+            if (queryConfig == null)
+            {
+                _logger.LogWarning("No query config provided for Handlebars formatting");
+                return result;
+            }
+
             // Process added results
-            if (!string.IsNullOrEmpty(_addedTemplate))
+            if (!string.IsNullOrEmpty(queryConfig.AddedTemplate))
             {
                 foreach (var inputItem in evt.AddedResults)
                 {
                     try
                     {
-                        var template = GetOrCreateTemplate(_addedTemplate);
+                        var template = GetOrCreateTemplate(queryConfig.AddedTemplate);
                         var processedResult = ProcessResultForHandlebars(inputItem);
                         var formattedData = template(new { after = processedResult });
                         
@@ -85,13 +80,13 @@ namespace Drasi.Reactions.EventBridge.Services
             }
 
             // Process updated results
-            if (!string.IsNullOrEmpty(_updatedTemplate))
+            if (!string.IsNullOrEmpty(queryConfig.UpdatedTemplate))
             {
                 foreach (var inputItem in evt.UpdatedResults)
                 {
                     try
                     {
-                        var template = GetOrCreateTemplate(_updatedTemplate);
+                        var template = GetOrCreateTemplate(queryConfig.UpdatedTemplate);
                         var processedBefore = ProcessResultForHandlebars(inputItem.Before);
                         var processedAfter = ProcessResultForHandlebars(inputItem.After);
                         var formattedData = template(new { before = processedBefore, after = processedAfter });
@@ -122,13 +117,13 @@ namespace Drasi.Reactions.EventBridge.Services
             }
 
             // Process deleted results
-            if (!string.IsNullOrEmpty(_deletedTemplate))
+            if (!string.IsNullOrEmpty(queryConfig.DeletedTemplate))
             {
                 foreach (var inputItem in evt.DeletedResults)
                 {
                     try
                     {
-                        var template = GetOrCreateTemplate(_deletedTemplate);
+                        var template = GetOrCreateTemplate(queryConfig.DeletedTemplate);
                         var processedResult = ProcessResultForHandlebars(inputItem);
                         var formattedData = template(new { before = processedResult });
                         

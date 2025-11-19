@@ -68,12 +68,9 @@ This table describes the other settings in the **spec** section of the Reaction 
 |Property|Description|
 |-|-|
 | identity | Specifies the type of identity to use for authentication. For IRSA, the kind should be `AwsIamRole` and it has a required property called `roleArn`. Replace this with the ARN of your IAM Role.
-| queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. |
+| queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. For Handlebars format, each query can have per-query configuration. |
 | properties.eventBusName| Name of the custom event bus that you wish to put events to. The default value is `default` |
 | properties.format | The output format for the messages that are enqueued. Can be **packed** for the raw query output, **unpacked** for a message per result set change, or **handlebars** for custom template-based formatting. The default value is **packed** |
-| properties.addedTemplate | (Optional, for Handlebars format) Handlebars template for formatting added results. Available context: `{{after}}` |
-| properties.updatedTemplate | (Optional, for Handlebars format) Handlebars template for formatting updated results. Available context: `{{before}}` and `{{after}}` |
-| properties.deletedTemplate | (Optional, for Handlebars format) Handlebars template for formatting deleted results. Available context: `{{before}}` |
 
 
 ### Authenticate using AWS User Access Key
@@ -110,12 +107,9 @@ This table describes the other settings in the **spec** section of the Reaction 
 |Property|Description|
 |-|-|
 | identity | Specifies the type of identity to use for authentication. When using Access Key ID, the kind should be `AwsIamAccessKey`. It has three required fields: `accessKeyId`, `secretAccessKey` and `region`.
-| queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. |
+| queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. For Handlebars format, each query can have per-query configuration. |
 | properties.eventBusName| Name of the custom event bus that you wish to put events to. The default value is `default` |
 | properties.format | The output format for the messages that are enqueued. Can be **packed** for the raw query output, **unpacked** for a message per result set change, or **handlebars** for custom template-based formatting. The default value is **packed** |
-| properties.addedTemplate | (Optional, for Handlebars format) Handlebars template for formatting added results. Available context: `{{after}}` |
-| properties.updatedTemplate | (Optional, for Handlebars format) Handlebars template for formatting updated results. Available context: `{{before}}` and `{{after}}` |
-| properties.deletedTemplate | (Optional, for Handlebars format) Handlebars template for formatting deleted results. Available context: `{{before}}` |
 
 
 #### Secret Configuration
@@ -150,7 +144,7 @@ The Handlebars format allows you to customize the output using [Handlebars](http
 
 ### Handlebars Template Context
 
-When using Handlebars format, you can define templates for added, updated, and deleted results. Each template has access to different context:
+When using Handlebars format, you can define templates for added, updated, and deleted results **per query**. Each template has access to different context:
 
 - **addedTemplate**: Access to `{{after}}` - the newly added result
 - **updatedTemplate**: Access to `{{before}}` and `{{after}}` - the old and new versions of the result
@@ -169,15 +163,44 @@ spec:
     roleArn: arn:aws:iam::<iam-user-id>:role/<role-name>
   queries:
     product-inventory:
+      addedTemplate: |
+        New product added: {{after.productName}} with {{after.quantity}} units in stock
+      updatedTemplate: |
+        Product {{after.productName}} updated from {{before.quantity}} to {{after.quantity}} units
+      deletedTemplate: |
+        Product {{before.productName}} removed from inventory
   properties: 
     eventBusName: drasi-eventbus
     format: handlebars
-    addedTemplate: |
-      New product added: {{after.productName}} with {{after.quantity}} units in stock
-    updatedTemplate: |
-      Product {{after.productName}} updated from {{before.quantity}} to {{after.quantity}} units
-    deletedTemplate: |
-      Product {{before.productName}} removed from inventory
+```
+
+### Multiple Queries with Different Templates
+
+You can configure different templates for each query:
+
+```yaml
+kind: Reaction
+apiVersion: v1
+name: my-handlebars-reaction
+spec:
+  kind: EventBridge
+  identity:
+    kind: AwsIamRole
+    roleArn: arn:aws:iam::<iam-user-id>:role/<role-name>
+  queries:
+    product-inventory:
+      addedTemplate: |
+        New product: {{after.productName}}
+      updatedTemplate: |
+        Updated: {{after.productName}}
+    order-notifications:
+      addedTemplate: |
+        Order {{after.orderId}} created for customer {{after.customerId}}
+      updatedTemplate: |
+        Order {{after.orderId}} status changed to {{after.status}}
+  properties: 
+    eventBusName: drasi-eventbus
+    format: handlebars
 ```
 
 ### Handlebars Features
