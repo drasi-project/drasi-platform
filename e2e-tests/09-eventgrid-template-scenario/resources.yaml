@@ -125,7 +125,7 @@ spec:
     spec:
       containers:
       - name: eventgrid
-        image: workleap/eventgrid-emulator:latest
+        image: workleap/eventgridemulator:latest
         ports:
         - containerPort: 8080
           name: http
