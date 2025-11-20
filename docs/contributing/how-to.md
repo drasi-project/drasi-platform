@@ -19,6 +19,8 @@ We welcome and encourage users to contribute to the Drasi open-source project in
 
 * Test and report bugs: Assist in testing Drasi by [identifying and reporting bugs](./contributing-issues/). Detailed bug reports help us address issues promptly and enhance the software's quality.
 
+* Investigate issues: Help analyze and investigate reported issues using our [technical investigation framework](./technical-investigation-framework.md). See the [example investigation](./example-technical-investigation.md) for guidance on conducting thorough technical analysis.
+
 * Improve documentation: Enhance the project's [documentation](https://github.com/drasi-project/docs) by updating existing content, adding guides, or adding examples. Well-documented projects are easier to use and attract more users.
 
 * Spread the word: Share your positive experiences with Drasi through blog posts, talks, or social media. Promote the project to attract more users and contributors. Star the project on GitHub!
