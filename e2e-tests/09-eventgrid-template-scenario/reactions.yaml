@@ -7,7 +7,7 @@ spec:
   eventGridSchema: CloudEvents
   format: template
   queries:
-    product-updates-template:
+    product-updates-template: |
       added: |
         {
           "eventType": "ProductAdded",
@@ -31,3 +31,4 @@ spec:
           "productId": {{before.product_id}},
           "name": "{{before.name}}"
         }
+
