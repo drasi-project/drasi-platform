@@ -164,13 +164,12 @@ spec:
     kind: AwsIamRole
     roleArn: arn:aws:iam::<iam-user-id>:role/<role-name>
   queries:
-    product-inventory:
-      addedTemplate: |
-        New product added: {{after.productName}} with {{after.quantity}} units in stock
-      updatedTemplate: |
-        Product {{after.productName}} updated from {{before.quantity}} to {{after.quantity}} units
-      deletedTemplate: |
-        Product {{before.productName}} removed from inventory
+    product-inventory: |
+      {
+        "addedTemplate": "New product added: {{after.productName}} with {{after.quantity}} units in stock",
+        "updatedTemplate": "Product {{after.productName}} updated from {{before.quantity}} to {{after.quantity}} units",
+        "deletedTemplate": "Product {{before.productName}} removed from inventory"
+      }
   properties: 
     eventBusName: drasi-eventbus
     format: handlebars
@@ -190,16 +189,16 @@ spec:
     kind: AwsIamRole
     roleArn: arn:aws:iam::<iam-user-id>:role/<role-name>
   queries:
-    product-inventory:
-      addedTemplate: |
-        New product: {{after.productName}}
-      updatedTemplate: |
-        Updated: {{after.productName}}
-    order-notifications:
-      addedTemplate: |
-        Order {{after.orderId}} created for customer {{after.customerId}}
-      updatedTemplate: |
-        Order {{after.orderId}} status changed to {{after.status}}
+    product-inventory: |
+      {
+        "addedTemplate": "New product: {{after.productName}}",
+        "updatedTemplate": "Updated: {{after.productName}}"
+      }
+    order-notifications: |
+      {
+        "addedTemplate": "Order {{after.orderId}} created for customer {{after.customerId}}",
+        "updatedTemplate": "Order {{after.orderId}} status changed to {{after.status}}"
+      }
   properties: 
     eventBusName: drasi-eventbus
     format: handlebars
