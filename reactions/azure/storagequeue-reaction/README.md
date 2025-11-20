@@ -220,12 +220,26 @@ spec:
     queueName: <Name of Queue>
     format: template
   queries:
-    temperature-query: >
-      {
-        "added": "{\"type\": \"added\", \"id\": \"{{after.id}}\", \"temperature\": {{after.temperature}}}",
-        "updated": "{\"type\": \"updated\", \"id\": \"{{after.id}}\", \"temperature\": {{after.temperature}}, \"previousTemperature\": {{before.temperature}}}",
-        "deleted": "{\"type\": \"deleted\", \"id\": \"{{before.id}}\", \"temperature\": {{before.temperature}}}"
-      }
+    temperature-query:
+      added: |
+        {
+          "type": "added",
+          "id": "{{after.id}}",
+          "temperature": {{after.temperature}}
+        }
+      updated: |
+        {
+          "type": "updated",
+          "id": "{{after.id}}",
+          "temperature": {{after.temperature}},
+          "previousTemperature": {{before.temperature}}
+        }
+      deleted: |
+        {
+          "type": "deleted",
+          "id": "{{before.id}}",
+          "temperature": {{before.temperature}}
+        }
 ```
 
 #### Example Output
