@@ -160,7 +160,7 @@ pub struct ReactionSpec {
     pub tag: Option<String>,
     pub services: Option<HashMap<String, Service>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
-    pub queries: HashMap<String, Value>,
+    pub queries: HashMap<String, String>,
     pub identity: Option<ServiceIdentity>,
 }
 

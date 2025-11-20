@@ -40,7 +40,7 @@ impl From<ReactionSpecDto> for ReactionSpec {
             queries: spec
                 .queries
                 .into_iter()
-                .map(|(k, v)| (k, v.unwrap_or(serde_json::Value::Null)))
+                .map(|(k, v)| (k, v.unwrap_or_default()))
                 .collect(),
             identity: spec.identity.map(|identity| identity.into()),
         }

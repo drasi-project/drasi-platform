@@ -18,29 +18,12 @@ name: test-storagequeue-template
 spec:
   kind: StorageQueue
   queries: 
-    query-sq-template:
-      added: |
-        {
-          "type": "added",
-          "id": "{{after.id}}",
-          "name": "{{after.name}}",
-          "temperature": {{after.temperature}}
-        }
-      updated: |
-        {
-          "type": "updated",
-          "id": "{{after.id}}",
-          "name": "{{after.name}}",
-          "temperature": {{after.temperature}},
-          "previousTemperature": {{before.temperature}}
-        }
-      deleted: |
-        {
-          "type": "deleted",
-          "id": "{{before.id}}",
-          "name": "{{before.name}}",
-          "temperature": {{before.temperature}}
-        }
+    query-sq-template: >
+      {
+        "added": "{\"type\": \"added\", \"id\": \"{{after.id}}\", \"name\": \"{{after.name}}\", \"temperature\": {{after.temperature}}}",
+        "updated": "{\"type\": \"updated\", \"id\": \"{{after.id}}\", \"name\": \"{{after.name}}\", \"temperature\": {{after.temperature}}, \"previousTemperature\": {{before.temperature}}}",
+        "deleted": "{\"type\": \"deleted\", \"id\": \"{{before.id}}\", \"name\": \"{{before.name}}\", \"temperature\": {{before.temperature}}}"
+      }
   properties:
     endpoint: "http://azurite.default.svc.cluster.local:10001/devstoreaccount1"
     queueName: "test-queue"
