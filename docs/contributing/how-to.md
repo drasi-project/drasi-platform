@@ -2,6 +2,8 @@
 
 We welcome and encourage users to contribute to the Drasi open-source project in various ways. By joining our community, you can make a meaningful impact and help shape the future of this project. Here are some ways you can get involved:
 
+* Quick start: Check out the [codebase quick reference](./codebase-quick-reference.md) for a comprehensive overview of the repository structure, technologies, and common commands.
+
 * Learn how: Browse our guides for how to [install repository prerequisites](./contributing-code/contributing-code-prerequisites/), [build the code](./contributing-code/contributing-code-building/), [understand the code](./contributing-code/contributing-code-organization/), [write code for the project](./contributing-code/contributing-code-writing/), and [run tests](./contributing-code/contributing-code-tests/). This is essential knowledge for working with the repository.
 
 * Tackle small tasks: Start by addressing small issues or tasks labeled as ["good first issues"](https://github.com/drasi-project/drasi-platform/issues?q=is:issue+is:open+label:%22good+first+issue%22) This allows you to familiarize yourself with the project and make valuable contributions without a steep learning curve.
