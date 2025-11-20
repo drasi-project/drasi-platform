@@ -25,7 +25,7 @@ using Drasi.Reactions.EventBridge.Services;
 var reaction = new ReactionBuilder<QueryConfig>()
                    .UseChangeEventHandler<ChangeHandler>()
                    .UseControlEventHandler<ControlSignalHandler>()
-                   .UseJsonQueryConfig()
+                   .UseYamlQueryConfig()
                    .ConfigureServices((services) =>
                    {
                       services.AddSingleton<IChangeFormatter>(sp => new ChangeFormatter());

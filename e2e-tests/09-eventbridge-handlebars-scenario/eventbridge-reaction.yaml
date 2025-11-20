@@ -24,12 +24,10 @@ spec:
     secretAccessKey: test
     region: us-east-1
   queries:
-    product-query: |
-      {
-        "addedTemplate": "Product {{after.ProductName}} added with {{after.Quantity}} units at ${{after.Price}}",
-        "updatedTemplate": "Product {{after.ProductName}} updated: quantity changed from {{before.Quantity}} to {{after.Quantity}} units",
-        "deletedTemplate": "Product {{before.ProductName}} (ID: {{before.ProductId}}) removed from inventory"
-      }
+    product-query:
+      addedTemplate: "Product {{after.ProductName}} added with {{after.Quantity}} units at ${{after.Price}}"
+      updatedTemplate: "Product {{after.ProductName}} updated: quantity changed from {{before.Quantity}} to {{after.Quantity}} units"
+      deletedTemplate: "Product {{before.ProductName}} (ID: {{before.ProductId}}) removed from inventory"
   properties: 
     eventBusName: default
     format: handlebars
