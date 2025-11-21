@@ -34,6 +34,20 @@ pub enum QueryLanguage {
     GQL,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum QueryRuntime {
+    #[serde(rename = "Worker")]
+    Worker,
+    #[serde(rename = "ServerCore")]
+    ServerCore,
+}
+
+impl Default for QueryRuntime {
+    fn default() -> Self {
+        QueryRuntime::Worker
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct QueryRequest {
     pub id: String,
@@ -91,6 +105,7 @@ pub struct QuerySpec {
     pub mode: String,
     pub query: String,
     pub query_language: Option<QueryLanguage>,
+    pub query_runtime: Option<QueryRuntime>,
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,

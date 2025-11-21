@@ -13,12 +13,12 @@
 // limitations under the License.
 
 use crate::domain::models::{
-    QueryJoin, QueryJoinKey, QueryLanguage, QuerySourceLabel, QuerySources, QuerySpec, QueryStatus,
+    QueryJoin, QueryJoinKey, QueryLanguage, QueryRuntime, QuerySourceLabel, QuerySources, QuerySpec, QueryStatus,
     QuerySubscription, RetentionPolicy, SourceMiddlewareConfig, ViewSpec,
 };
 
 use super::{
-    QueryJoinDto, QueryJoinKeyDto, QueryLanguageDto, QuerySourceLabelDto, QuerySourcesDto,
+    QueryJoinDto, QueryJoinKeyDto, QueryLanguageDto, QueryRuntimeDto, QuerySourceLabelDto, QuerySourcesDto,
     QuerySpecDto, QueryStatusDto, QuerySubscriptionDto, RetentionPolicyDto,
     SourceMiddlewareConfigDto, ViewSpecDto,
 };
@@ -41,6 +41,7 @@ impl From<QuerySpecDto> for QuerySpec {
             mode: spec.mode,
             query: spec.query,
             query_language: spec.query_language.map(|lang| lang.into()),
+            query_runtime: spec.query_runtime.map(|lang| lang.into()),
             sources: spec.sources.into(),
             storage_profile: spec.storage_profile,
             view: spec.view.unwrap_or_default().into(),
@@ -56,6 +57,7 @@ impl From<QuerySpec> for QuerySpecDto {
             mode: spec.mode,
             query: spec.query,
             query_language: spec.query_language.map(|lang| lang.into()),
+            query_runtime: spec.query_runtime.map(|lang| lang.into()),
             sources: spec.sources.into(),
             storage_profile: spec.storage_profile,
             view: Some(spec.view.into()),
@@ -258,6 +260,24 @@ impl From<QueryLanguage> for QueryLanguageDto {
         match lang {
             QueryLanguage::Cypher => QueryLanguageDto::Cypher,
             QueryLanguage::GQL => QueryLanguageDto::GQL,
+        }
+    }
+}
+
+impl From<QueryRuntimeDto> for QueryRuntime {
+    fn from(lang: QueryRuntimeDto) -> Self {
+        match lang {
+            QueryRuntimeDto::Worker => QueryRuntime::Worker,
+            QueryRuntimeDto::ServerCore => QueryRuntime::ServerCore,
+        }
+    }
+}
+
+impl From<QueryRuntime> for QueryRuntimeDto {
+    fn from(lang: QueryRuntime) -> Self {
+        match lang {
+            QueryRuntime::Worker => QueryRuntimeDto::Worker,
+            QueryRuntime::ServerCore => QueryRuntimeDto::ServerCore,
         }
     }
 }

@@ -30,7 +30,7 @@ use drasi_index_rocksdb::element_index::{RocksDbElementIndex, RocksIndexOptions}
 use drasi_index_rocksdb::future_queue::RocksDbFutureQueue;
 use drasi_index_rocksdb::result_index::RocksDbResultIndex;
 
-enum StorageSpec {
+pub enum StorageSpec {
     Memory {
         enable_archive: bool,
     },
@@ -45,7 +45,7 @@ enum StorageSpec {
 }
 
 pub struct IndexFactory {
-    default_store: String,
+    pub default_store: String,
     storage_specs: BTreeMap<String, StorageSpec>,
 }
 
@@ -302,6 +302,27 @@ impl IndexFactory {
             StorageSpec::Redis { .. } => false,
             StorageSpec::RocksDb { .. } => false,
         }
+    }
+
+    pub async fn get_storage_spec(
+        &self,
+        store: &Option<String>
+    ) -> Result<StorageSpec, IndexError> {
+        let store = match store {
+            Some(store) => store,
+            None => &self.default_store,
+        };
+
+        let spec = match self.storage_specs.get(store) {
+            Some(spec) => spec,
+            None => return Err(IndexError::UnknownStore(store.to_string())),
+        };
+
+        Ok(match spec {
+            StorageSpec::Memory { enable_archive } => StorageSpec::Memory { enable_archive: *enable_archive },
+            StorageSpec::Redis { connection_string, cache_size } => StorageSpec::Redis { connection_string: connection_string.clone(), cache_size: *cache_size },
+            StorageSpec::RocksDb { enable_archive, direct_io } => StorageSpec::RocksDb { enable_archive: *enable_archive, direct_io: *direct_io },
+        })
     }
 }
 

@@ -1,0 +1,25 @@
+# Rust build artifacts - THIS IS THE BIGGEST WIN
+**/target/
+**/*.rs.bk
+
+# Git repositories (but allow .git files for submodule references)
+.git/
+**/.github/
+
+# IDE files
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+
+# macOS
+**/.DS_Store
+
+# Temporary files
+**/tmp/
+**/temp/
+**/*.tmp
+
+# Keep Cargo.lock files - needed for builds
+!**/Cargo.lock

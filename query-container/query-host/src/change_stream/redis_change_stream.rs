@@ -316,7 +316,7 @@ where
                 redis::Value::Data(data) => match String::from_utf8(data.to_vec()) {
                     Ok(data_str) => match data_str.parse::<u64>() {
                         Ok(parsed) => Some(parsed),
-                        Err(err) => {
+                        Err(_) => {
                             return Err(ChangeStreamError::MessageError {
                                 id: message.id.clone(),
                                 error: "Failed to parse enqueue_time".to_string(),
