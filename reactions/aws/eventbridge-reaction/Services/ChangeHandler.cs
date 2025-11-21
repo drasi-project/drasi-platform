@@ -23,8 +23,9 @@ using System;
 using System.Text.Json;
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.EventBridge.Models;
 
-public class ChangeHandler : IChangeEventHandler
+public class ChangeHandler : IChangeEventHandler<QueryConfig>
 {
     private readonly ILogger<ChangeHandler> _logger;
     private readonly AmazonEventBridgeClient _eventBridgeClient;
@@ -32,18 +33,20 @@ public class ChangeHandler : IChangeEventHandler
     private readonly string _eventBusName;
     private readonly OutputFormat _format;
 
-    private readonly IChangeFormatter _formatter;
+    private readonly IChangeFormatter? _formatter;
+    private readonly HandlebarsChangeFormatter? _handlebarsFormatter;
 
-    public ChangeHandler(AmazonEventBridgeClient eventBridgeClient, IChangeFormatter formatter, IConfiguration config, ILogger<ChangeHandler> logger)
+    public ChangeHandler(AmazonEventBridgeClient eventBridgeClient, IConfiguration config, ILogger<ChangeHandler> logger, IChangeFormatter? formatter = null, HandlebarsChangeFormatter? handlebarsFormatter = null)
     {
         _eventBridgeClient = eventBridgeClient;
         _logger = logger;
         _eventBusName = config.GetValue<string>("eventBusName") ?? "default";
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _formatter = formatter;
+        _handlebarsFormatter = handlebarsFormatter;
     }
 
-    public async Task HandleChange(ChangeEvent evt, object? queryConfig)
+    public async Task HandleChange(ChangeEvent evt, QueryConfig? queryConfig)
     {
         _logger.LogInformation("Processing change for query " + evt.QueryId);
         switch (_format)
@@ -76,6 +79,10 @@ public class ChangeHandler : IChangeEventHandler
 
                 break;
             case OutputFormat.Unpacked:
+                if (_formatter == null)
+                {
+                    throw new InvalidOperationException("Formatter not configured for Unpacked format");
+                }
                 var formattedResults = _formatter.Format(evt);
                 List<PutEventsRequestEntry> unpackedRequestEntries = new List<PutEventsRequestEntry>();
                 foreach (var result in formattedResults)
@@ -108,6 +115,44 @@ public class ChangeHandler : IChangeEventHandler
                 }
 
                 break;
+            case OutputFormat.Handlebars:
+                if (_handlebarsFormatter == null)
+                {
+                    throw new InvalidOperationException("Handlebars formatter not configured");
+                }
+                
+                var handlebarsResults = _handlebarsFormatter.Format(evt, queryConfig);
+                List<PutEventsRequestEntry> handlebarsRequestEntries = new List<PutEventsRequestEntry>();
+                foreach (var result in handlebarsResults)
+                {
+                    var handlebarsCloudEvent = new CloudEvent
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Type = "Drasi.ChangeEvent.Handlebars",
+                        Source = evt.QueryId,
+                        Data = result,
+                        Version = "1.0"
+                    };
+                    var handlebarsRequestEntry = new PutEventsRequestEntry()
+                    {
+                        Source = evt.QueryId,
+                        Detail = JsonSerializer.Serialize(handlebarsCloudEvent),
+                        DetailType = "Drasi.ChangeEvent.Handlebars",
+                        EventBusName = _eventBusName
+                    };
+                    handlebarsRequestEntries.Add(handlebarsRequestEntry);
+                }
+                var handlebarsResponse = await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()
+                {
+                    Entries = handlebarsRequestEntries
+                });
+
+                if (handlebarsResponse.FailedEntryCount > 0)
+                {
+                    _logger.LogError("Failed to send change event to EventBridge");
+                }
+
+                break;
             default:
                 throw new NotSupportedException("Invalid output format");
         }
@@ -118,5 +163,6 @@ public class ChangeHandler : IChangeEventHandler
 enum OutputFormat
 {
     Packed,
-    Unpacked
+    Unpacked,
+    Handlebars
 }
