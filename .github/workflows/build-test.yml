@@ -275,7 +275,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -296,6 +296,39 @@ jobs:
         with:
           name: cli
           path: cli/bin
+
+  test-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up Go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
+        with:
+          go-version: '1.22'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run unit tests
+        working-directory: cli
+        run: |
+          echo "Running unit tests..."
+          go test -v ./...
+
+      - name: Run tests with race detector
+        working-directory: cli
+        run: |
+          echo "Running tests with race detector..."
+          go test -race ./...
 
   test-source-sdks:
     runs-on: ubuntu-latest
