@@ -24,7 +24,7 @@ WORKDIR /usr/src/control-planes/mgmt_api
 COPY ./control-planes/mgmt_api/Cargo.toml .
 RUN cargo fetch
 COPY ./control-planes/mgmt_api .
-RUN cargo install --force --path .
+RUN cargo install --force --path . --bin mgmt_api
 
 FROM mcr.microsoft.com/azurelinux/distroless/base:3.0
 COPY --from=builder /usr/local/cargo/bin/mgmt_api /usr/local/bin/mgmt_api

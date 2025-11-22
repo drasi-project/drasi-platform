@@ -7,6 +7,22 @@ case ":${PATH}:" in
         ;;
 esac
 
+echo "Running pre-commit hook: Checking for API spec changes..."
+
+# Generate the latest spec based on the current code
+make -C control-planes/mgmt_api openapi-generate
+
+# Check if the generated spec file has unstaged changes
+if ! git diff --quiet HEAD control-planes/mgmt_api/openapi.yaml; then
+    echo "\nERROR: API specification is out of date."
+    echo "The OpenAPI spec has been regenerated based on your code changes."
+    echo "Please stage the updated file to include it in your commit:"
+    echo "\n    git add control-planes/mgmt_api/openapi.yaml\n"
+    exit 1
+fi
+
+echo "API spec is up to date."
+
 echo "Running cargo fmt for query container..."
 cargo fmt  --manifest-path ./query-container/Cargo.toml --check
 

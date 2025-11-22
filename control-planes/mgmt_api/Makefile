@@ -32,3 +32,22 @@ lint-check:
 	cargo fmt -- --check
 	cargo clippy --all-targets --all-features -- -D warnings -W clippy::print_stdout -A unused -A clippy::module_inception -A clippy::ptr_arg -A clippy::type_complexity
 
+# OpenAPI specification generation targets
+openapi-generate:
+	@echo "Generating OpenAPI spec for mgmt_api..."
+	@cargo run --bin generate-spec > openapi.yaml
+	@echo "Generated OpenAPI spec at openapi.yaml"
+
+# Validate the generated OpenAPI spec using swagger-cli
+openapi-validate: openapi-generate
+	@echo "Validating OpenAPI spec..."
+	@npx -y @apidevtools/swagger-cli validate openapi.yaml
+
+# Serve the spec with a standalone Swagger UI container
+openapi-serve: openapi-generate
+	@echo "Starting Swagger UI at http://localhost:8081"
+	@docker run --rm -p 8081:8080 \
+		-v $(CURDIR):/usr/share/nginx/html/specs \
+		-e SWAGGER_JSON=/specs/openapi.yaml \
+		swaggerapi/swagger-ui
+
