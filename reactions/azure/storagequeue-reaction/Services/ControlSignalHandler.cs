@@ -20,11 +20,12 @@ using System.Threading.Tasks;
 using Azure.Storage.Queues;
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.StorageQueue.Models;
 using Drasi.Reactions.StorageQueue.Models.Unpacked;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-public class ControlSignalHandler : IControlEventHandler
+public class ControlSignalHandler : IControlEventHandler<QueryConfig>
 {
     private readonly QueueClient _queueClient;
     private readonly OutputFormat _format;
@@ -37,7 +38,7 @@ public class ControlSignalHandler : IControlEventHandler
         _logger = logger;
     }
 
-    public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
+    public async Task HandleControlSignal(ControlEvent evt, QueryConfig? queryConfig)
     {
         switch (_format)
         {
@@ -62,6 +63,10 @@ public class ControlSignalHandler : IControlEventHandler
                 };
                 var dzresp = await _queueClient.SendMessageAsync(notification.ToJson());
                 _logger.LogInformation($"Sent message to queue: {dzresp.Value.MessageId}");
+                break;
+            case OutputFormat.Template:
+                // Template format is not supported for control signals
+                _logger.LogWarning("Template format is not supported for control signals, skipping");
                 break;
             default:
                 throw new NotSupportedException("Invalid output format");

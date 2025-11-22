@@ -5,6 +5,8 @@ VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "storagequeue-reaction", "storagequeue-reaction.csproj", "{78FB5720-8464-43CB-B127-AFAF850D894B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorageQueue.Tests", "StorageQueue.Tests\StorageQueue.Tests.csproj", "{B8C94D12-5A7E-4F2B-9E3D-1C2F3E4A5B6C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{78FB5720-8464-43CB-B127-AFAF850D894B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78FB5720-8464-43CB-B127-AFAF850D894B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78FB5720-8464-43CB-B127-AFAF850D894B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8C94D12-5A7E-4F2B-9E3D-1C2F3E4A5B6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8C94D12-5A7E-4F2B-9E3D-1C2F3E4A5B6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8C94D12-5A7E-4F2B-9E3D-1C2F3E4A5B6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8C94D12-5A7E-4F2B-9E3D-1C2F3E4A5B6C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
