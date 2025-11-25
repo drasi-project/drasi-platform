@@ -37,7 +37,7 @@ type IngressConfig struct {
 }
 
 type PlatformClient interface {
-	CreateDrasiClient() (*ApiClient, error)
+	CreateDrasiClient() (DrasiClient, error)
 	CreateTunnel(resourceType string, resourceName string, localPort uint16) error
 	SetSecret(name string, key string, value []byte) error
 	DeleteSecret(name string, key string) error
@@ -101,7 +101,7 @@ func MakeKubernetesPlatformClient(configuration *registry.KubernetesConfig) (*Ku
 
 }
 
-func (t *KubernetesPlatformClient) CreateDrasiClient() (*ApiClient, error) {
+func (t *KubernetesPlatformClient) CreateDrasiClient() (DrasiClient, error) {
 	port, err := freeport.GetFreePort()
 	if err != nil {
 		return nil, err
