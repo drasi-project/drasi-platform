@@ -10,5 +10,5 @@ spec:
     password: testpassword
     database: testdb
     ssl: false
-  tables:
-    product:
+    tables:
+      - public.product
