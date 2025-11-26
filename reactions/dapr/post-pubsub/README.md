@@ -6,6 +6,7 @@ This reaction forwards Drasi query results to Dapr PubSub topics. It allows mapp
 
 - Maps Drasi queries to Dapr PubSub topics
 - Supports both packed and unpacked event formats (unpacked is default, using Drasi native format)
+- **Handlebar template support** for customizing output format per change type (Added, Updated, Deleted)
 - Forwards both change events and control signals
 - Configurable per query
 - Validation of configurations at startup
@@ -21,6 +22,9 @@ The reaction is configured using JSON for each query. The configuration includes
 | `topicName` | Name of the topic to publish to | - | Yes |
 | `packed` | Whether to send events in packed format (`true`) or unpacked (`false`) | `false` | No |
 | `skipControlSignals` | Skip publishing control signals | `false` | No |
+| `addedResultsTemplate` | Handlebar template for formatting Added results | - | No |
+| `updatedResultsTemplate` | Handlebar template for formatting Updated results | - | No |
+| `deletedResultsTemplate` | Handlebar template for formatting Deleted results | - | No |
 
 ### Example Configuration
 
@@ -55,6 +59,45 @@ spec:
         "skipControlSignals": true
       }
 ```
+
+### Handlebar Template Configuration
+
+When you want to customize the output format, you can use Handlebar templates. Each template is applied to the corresponding change type, allowing you to define different output structures for Added, Updated, and Deleted results.
+
+```yaml
+kind: Reaction
+apiVersion: v1
+name: post-dapr-pubsub-templated
+spec:
+  kind: PostDaprPubSub
+  properties:
+    # No global properties needed for this reaction
+  queries:
+    templated-query: |
+      {
+        "pubsubName": "drasi-pubsub",
+        "topicName": "custom-events",
+        "addedResultsTemplate": "{\"event\": \"created\", \"id\": \"{{id}}\", \"name\": \"{{name}}\" }",
+        "updatedResultsTemplate": "{\"event\": \"modified\", \"id\": \"{{after.id}}\", \"oldName\": \"{{before.name}}\", \"newName\": \"{{after.name}}\" }",
+        "deletedResultsTemplate": "{\"event\": \"removed\", \"id\": \"{{id}}\" }"
+      }
+```
+
+#### Template Variables
+
+- **Added results template**: Has access to all fields from the added result directly (e.g., `{{id}}`, `{{name}}`).
+- **Updated results template**: Has access to `before` and `after` objects containing the previous and current values (e.g., `{{before.name}}`, `{{after.name}}`).
+- **Deleted results template**: Has access to all fields from the deleted result directly (e.g., `{{id}}`, `{{name}}`).
+
+#### Template Features
+
+Templates support standard Handlebar features including:
+- Variable interpolation: `{{fieldName}}`
+- Nested properties: `{{object.property}}`
+- Conditionals: `{{#if condition}}...{{/if}}`
+- Iteration: `{{#each items}}...{{/each}}`
+
+**Note**: When using templates, only the change types with configured templates will be published. For example, if you only configure `addedResultsTemplate`, only added results will be formatted and published using the template.
 
 ## Error Handling and Retries
 

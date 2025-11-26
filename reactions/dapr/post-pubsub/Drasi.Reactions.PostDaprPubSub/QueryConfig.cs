@@ -66,6 +66,37 @@ public class QueryConfig : IValidatableObject
     [JsonPropertyName("skipControlSignals")]
     public bool SkipControlSignals { get; set; } = false;
     
+    /// <summary>
+    /// Handlebar template for formatting Added results.
+    /// When specified, the template is applied to each added result before publishing.
+    /// </summary>
+    [JsonPropertyName("addedResultsTemplate")]
+    public string? AddedResultsTemplate { get; set; }
+    
+    /// <summary>
+    /// Handlebar template for formatting Updated results.
+    /// When specified, the template is applied to each updated result before publishing.
+    /// The template receives both 'before' and 'after' objects.
+    /// </summary>
+    [JsonPropertyName("updatedResultsTemplate")]
+    public string? UpdatedResultsTemplate { get; set; }
+    
+    /// <summary>
+    /// Handlebar template for formatting Deleted results.
+    /// When specified, the template is applied to each deleted result before publishing.
+    /// </summary>
+    [JsonPropertyName("deletedResultsTemplate")]
+    public string? DeletedResultsTemplate { get; set; }
+    
+    /// <summary>
+    /// Returns true if any template is configured.
+    /// </summary>
+    [JsonIgnore]
+    public bool HasTemplates => 
+        !string.IsNullOrEmpty(AddedResultsTemplate) || 
+        !string.IsNullOrEmpty(UpdatedResultsTemplate) || 
+        !string.IsNullOrEmpty(DeletedResultsTemplate);
+    
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         yield break;
