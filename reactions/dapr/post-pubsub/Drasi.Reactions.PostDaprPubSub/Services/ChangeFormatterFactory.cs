@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Drasi.Reactions.PostDaprPubSub.Services;
 
@@ -26,6 +27,14 @@ public interface IChangeFormatterFactory
     /// </summary>
     /// <returns>An appropriate change formatter</returns>
     IChangeFormatter GetFormatter();
+    
+    /// <summary>
+    /// Gets a formatter that uses Handlebars templates for formatting.
+    /// </summary>
+    /// <param name="templates">The template configuration</param>
+    /// <param name="queryId">The query ID for logging context</param>
+    /// <returns>A Handlebars-based change formatter</returns>
+    IChangeFormatter GetTemplateFormatter(TemplateConfig templates, string queryId);
 }
 
 /// <summary>
@@ -43,5 +52,11 @@ public class ChangeFormatterFactory : IChangeFormatterFactory
     public IChangeFormatter GetFormatter()
     {
         return _serviceProvider.GetRequiredService<DrasiChangeFormatter>();
+    }
+    
+    public IChangeFormatter GetTemplateFormatter(TemplateConfig templates, string queryId)
+    {
+        var logger = _serviceProvider.GetRequiredService<ILogger<HandlebarChangeFormatter>>();
+        return new HandlebarChangeFormatter(templates, queryId, logger);
     }
 }

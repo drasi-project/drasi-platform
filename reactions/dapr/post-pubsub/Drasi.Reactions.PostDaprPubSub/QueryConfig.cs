@@ -34,6 +34,33 @@ public enum OutputFormat
 }
 
 /// <summary>
+/// Template configuration for customizing output messages using Handlebars templates.
+/// </summary>
+public class TemplateConfig
+{
+    /// <summary>
+    /// Handlebars template for formatting added results.
+    /// Available context: { after, queryId }
+    /// </summary>
+    [JsonPropertyName("added")]
+    public string? Added { get; set; }
+    
+    /// <summary>
+    /// Handlebars template for formatting updated results.
+    /// Available context: { before, after, queryId }
+    /// </summary>
+    [JsonPropertyName("updated")]
+    public string? Updated { get; set; }
+    
+    /// <summary>
+    /// Handlebars template for formatting deleted results.
+    /// Available context: { before, queryId }
+    /// </summary>
+    [JsonPropertyName("deleted")]
+    public string? Deleted { get; set; }
+}
+
+/// <summary>
 /// Configuration for the PostDaprPubSub reaction.
 /// Maps Drasi queries to Dapr pubsub topics.
 /// </summary>
@@ -65,6 +92,13 @@ public class QueryConfig : IValidatableObject
     /// </summary>
     [JsonPropertyName("skipControlSignals")]
     public bool SkipControlSignals { get; set; } = false;
+    
+    /// <summary>
+    /// Handlebars templates for customizing output format.
+    /// When configured, overrides the default Drasi format for unpacked events.
+    /// </summary>
+    [JsonPropertyName("templates")]
+    public TemplateConfig? Templates { get; set; }
     
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

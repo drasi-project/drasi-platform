@@ -198,4 +198,92 @@ public class ChangeHandlerTests
             It.IsAny<CancellationToken>()
         ), Times.Exactly(2));
     }
+    
+    [Fact]
+    public async Task HandleChange_WithTemplates_UsesTemplateFormatter()
+    {
+        // Arrange
+        var templates = new TemplateConfig
+        {
+            Added = "{\"type\": \"insert\", \"id\": \"{{after.id}}\"}"
+        };
+        var evt = new ChangeEvent { 
+            QueryId = "test-query",
+            AddedResults = new[] { new Dictionary<string, object> { { "id", "1" } } }
+        };
+        var config = new QueryConfig { 
+            PubsubName = "test-pubsub", 
+            TopicName = "test-topic",
+            Format = OutputFormat.Unpacked,
+            Templates = templates
+        };
+        
+        var mockTemplateFormatter = new Mock<IChangeFormatter>();
+        var formattedElements = new[] { 
+            JsonDocument.Parse("{\"type\":\"insert\",\"id\":\"1\"}").RootElement 
+        };
+        
+        mockTemplateFormatter.Setup(f => f.Format(evt)).Returns(formattedElements);
+        _mockFormatterFactory.Setup(ff => ff.GetTemplateFormatter(templates, evt.QueryId))
+            .Returns(mockTemplateFormatter.Object);
+        
+        _mockDaprClient.Setup(dc => dc.PublishEventAsync(
+            config.PubsubName, 
+            config.TopicName, 
+            It.IsAny<JsonElement>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        
+        // Act
+        await _handler.HandleChange(evt, config);
+        
+        // Assert
+        _mockFormatterFactory.Verify(ff => ff.GetTemplateFormatter(templates, evt.QueryId), Times.Once);
+        mockTemplateFormatter.Verify(f => f.Format(evt), Times.Once);
+        _mockDaprClient.Verify(dc => dc.PublishEventAsync(
+            config.PubsubName,
+            config.TopicName,
+            It.IsAny<JsonElement>(),
+            It.IsAny<CancellationToken>()
+        ), Times.Once);
+    }
+    
+    [Fact]
+    public async Task HandleChange_WithEmptyTemplates_UsesDrasiFormatter()
+    {
+        // Arrange - Templates object exists but all templates are empty/null
+        var templates = new TemplateConfig(); // No templates set
+        var evt = new ChangeEvent { 
+            QueryId = "test-query",
+            AddedResults = new[] { new Dictionary<string, object> { { "id", "1" } } }
+        };
+        var config = new QueryConfig { 
+            PubsubName = "test-pubsub", 
+            TopicName = "test-topic",
+            Format = OutputFormat.Unpacked,
+            Templates = templates
+        };
+        
+        var mockFormatter = new Mock<IChangeFormatter>();
+        var formattedElements = new[] { 
+            JsonDocument.Parse("{\"test\":\"value\"}").RootElement 
+        };
+        
+        mockFormatter.Setup(f => f.Format(evt)).Returns(formattedElements);
+        _mockFormatterFactory.Setup(ff => ff.GetFormatter()).Returns(mockFormatter.Object);
+        
+        _mockDaprClient.Setup(dc => dc.PublishEventAsync(
+            config.PubsubName, 
+            config.TopicName, 
+            It.IsAny<JsonElement>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        
+        // Act
+        await _handler.HandleChange(evt, config);
+        
+        // Assert - Should use default formatter, not template formatter
+        _mockFormatterFactory.Verify(ff => ff.GetFormatter(), Times.Once);
+        _mockFormatterFactory.Verify(ff => ff.GetTemplateFormatter(It.IsAny<TemplateConfig>(), It.IsAny<string>()), Times.Never);
+    }
 }

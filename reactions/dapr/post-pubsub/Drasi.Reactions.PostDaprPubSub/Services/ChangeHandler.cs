@@ -67,7 +67,19 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
     
     private async Task PublishUnpackedEvents(ChangeEvent evt, QueryConfig queryConfig)
     {
-        var formatter = _formatterFactory.GetFormatter();
+        IChangeFormatter formatter;
+        
+        // Use template formatter if templates are configured
+        if (queryConfig.Templates != null && HasAnyTemplate(queryConfig.Templates))
+        {
+            formatter = _formatterFactory.GetTemplateFormatter(queryConfig.Templates, evt.QueryId);
+            _logger.LogDebug("Using Handlebars template formatter for query {QueryId}", evt.QueryId);
+        }
+        else
+        {
+            formatter = _formatterFactory.GetFormatter();
+        }
+        
         var events = formatter.Format(evt);
         
         foreach (var eventData in events)
@@ -77,5 +89,12 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
         
         _logger.LogDebug("Published {Count} unpacked events for query {QueryId}", 
             events.Count(), evt.QueryId);
+    }
+    
+    private static bool HasAnyTemplate(TemplateConfig templates)
+    {
+        return !string.IsNullOrEmpty(templates.Added) 
+            || !string.IsNullOrEmpty(templates.Updated) 
+            || !string.IsNullOrEmpty(templates.Deleted);
     }
 }
