@@ -29,7 +29,7 @@ var reaction = new ReactionBuilder<QueryConfig>()
                    .ConfigureServices((services) =>
                    {
                       services.AddSingleton<IChangeFormatter>(sp => new ChangeFormatter());
-                      services.AddSingleton<HandlebarsChangeFormatter>();
+                      services.AddSingleton<TemplateChangeFormatter>();
                       services.AddSingleton<AmazonEventBridgeClient>(sp =>
                       {
                           var configuration = sp.GetRequiredService<IConfiguration>();

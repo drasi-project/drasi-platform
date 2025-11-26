@@ -80,6 +80,7 @@ public class ControlSignalHandler: IControlEventHandler<QueryConfig>
 
                 break;
             case OutputFormat.Unpacked:
+            case OutputFormat.Template:
                 var notification = new ControlSignalNotification
                 {
                     Op = ControlSignalNotificationOp.X,

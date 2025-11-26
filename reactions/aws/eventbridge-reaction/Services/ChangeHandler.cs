@@ -34,16 +34,16 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
     private readonly OutputFormat _format;
 
     private readonly IChangeFormatter? _formatter;
-    private readonly HandlebarsChangeFormatter? _handlebarsFormatter;
+    private readonly TemplateChangeFormatter? _templateFormatter;
 
-    public ChangeHandler(AmazonEventBridgeClient eventBridgeClient, IConfiguration config, ILogger<ChangeHandler> logger, IChangeFormatter? formatter = null, HandlebarsChangeFormatter? handlebarsFormatter = null)
+    public ChangeHandler(AmazonEventBridgeClient eventBridgeClient, IConfiguration config, ILogger<ChangeHandler> logger, IChangeFormatter? formatter = null, TemplateChangeFormatter? templateFormatter = null)
     {
         _eventBridgeClient = eventBridgeClient;
         _logger = logger;
         _eventBusName = config.GetValue<string>("eventBusName") ?? "default";
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _formatter = formatter;
-        _handlebarsFormatter = handlebarsFormatter;
+        _templateFormatter = templateFormatter;
     }
 
     public async Task HandleChange(ChangeEvent evt, QueryConfig? queryConfig)
@@ -115,40 +115,47 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
                 }
 
                 break;
-            case OutputFormat.Handlebars:
-                if (_handlebarsFormatter == null)
+            case OutputFormat.Template:
+                if (_templateFormatter == null)
                 {
-                    throw new InvalidOperationException("Handlebars formatter not configured");
+                    throw new InvalidOperationException("Template formatter not configured");
                 }
                 
-                var handlebarsResults = _handlebarsFormatter.Format(evt, queryConfig);
-                List<PutEventsRequestEntry> handlebarsRequestEntries = new List<PutEventsRequestEntry>();
-                foreach (var result in handlebarsResults)
+                var templateResults = _templateFormatter.Format(evt, queryConfig);
+                List<PutEventsRequestEntry> templateRequestEntries = new List<PutEventsRequestEntry>();
+                foreach (var result in templateResults)
                 {
-                    var handlebarsCloudEvent = new CloudEvent
+                    var templateCloudEvent = new CloudEvent
                     {
                         Id = Guid.NewGuid().ToString(),
-                        Type = $"Drasi.ChangeEvent.{result.Op}",
+                        Type = "Drasi.ChangeEvent",
                         Source = evt.QueryId,
                         Data = result.Data,
                         Version = "1.0"
                     };
-                    var handlebarsRequestEntry = new PutEventsRequestEntry()
+                    
+                    // Add metadata as extension attributes if provided
+                    if (result.Metadata != null)
+                    {
+                        templateCloudEvent.Metadata = result.Metadata;
+                    }
+                    
+                    var templateRequestEntry = new PutEventsRequestEntry()
                     {
                         Source = evt.QueryId,
-                        Detail = JsonSerializer.Serialize(handlebarsCloudEvent),
-                        DetailType = $"Drasi.ChangeEvent.{result.Op}",
+                        Detail = JsonSerializer.Serialize(templateCloudEvent),
+                        DetailType = "Drasi.ChangeEvent",
                         EventBusName = _eventBusName
                     };
                     
-                    handlebarsRequestEntries.Add(handlebarsRequestEntry);
+                    templateRequestEntries.Add(templateRequestEntry);
                 }
-                var handlebarsResponse = await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()
+                var templateResponse = await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()
                 {
-                    Entries = handlebarsRequestEntries
+                    Entries = templateRequestEntries
                 });
 
-                if (handlebarsResponse.FailedEntryCount > 0)
+                if (templateResponse.FailedEntryCount > 0)
                 {
                     _logger.LogError("Failed to send change event to EventBridge");
                 }
@@ -165,5 +172,5 @@ enum OutputFormat
 {
     Packed,
     Unpacked,
-    Handlebars
+    Template
 }

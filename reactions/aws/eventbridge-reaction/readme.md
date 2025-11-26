@@ -1,5 +1,5 @@
 
-The AWS EventBridge Reaction generates [CloudEvents](https://cloudevents.io/) from Continous Query results and publishes them to an AWS EventBus. The output format can either be the packed format of the raw query output or an unpacked format, where a single CloudEvent represents one change to the result set.
+The AWS EventBridge Reaction generates [CloudEvents](https://cloudevents.io/) from Continous Query results and publishes them to an AWS EventBus. The output format can either be the packed format of the raw query output, an unpacked format where a single CloudEvent represents one change to the result set, or a template format that uses Handlebars templates for custom output.
 
 The EventBridge Reaction supports using either IAM roles for service accounts ([IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)) or IAM User keys.
 
@@ -68,9 +68,9 @@ This table describes the other settings in the **spec** section of the Reaction 
 |Property|Description|
 |-|-|
 | identity | Specifies the type of identity to use for authentication. For IRSA, the kind should be `AwsIamRole` and it has a required property called `roleArn`. Replace this with the ARN of your IAM Role.
-| queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. For Handlebars format, each query can have per-query configuration. |
+| queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. For template format, each query can have per-query configuration. |
 | properties.eventBusName| Name of the custom event bus that you wish to put events to. The default value is `default` |
-| properties.format | The output format for the messages that are enqueued. Can be **packed** for the raw query output, **unpacked** for a message per result set change, or **handlebars** for custom template-based formatting. The default value is **packed** |
+| properties.format | The output format for the messages that are enqueued. Can be **packed** for the raw query output, **unpacked** for a message per result set change, or **template** for custom template-based formatting. The default value is **packed** |
 | properties.serviceUrl | (Optional) Custom endpoint URL for EventBridge service. Useful for testing with localstack or other AWS-compatible services. |
 
 
@@ -108,9 +108,9 @@ This table describes the other settings in the **spec** section of the Reaction 
 |Property|Description|
 |-|-|
 | identity | Specifies the type of identity to use for authentication. When using Access Key ID, the kind should be `AwsIamAccessKey`. It has three required fields: `accessKeyId`, `secretAccessKey` and `region`.
-| queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. For Handlebars format, each query can have per-query configuration. |
+| queries | Specifies the set of **names** of the Continuous Queries the Reaction will subscribe to. For template format, each query can have per-query configuration. |
 | properties.eventBusName| Name of the custom event bus that you wish to put events to. The default value is `default` |
-| properties.format | The output format for the messages that are enqueued. Can be **packed** for the raw query output, **unpacked** for a message per result set change, or **handlebars** for custom template-based formatting. The default value is **packed** |
+| properties.format | The output format for the messages that are enqueued. Can be **packed** for the raw query output, **unpacked** for a message per result set change, or **template** for custom template-based formatting. The default value is **packed** |
 | properties.serviceUrl | (Optional) Custom endpoint URL for EventBridge service. Useful for testing with localstack or other AWS-compatible services. |
 
 
@@ -140,13 +140,13 @@ spec:
     AWS_REGION: <query-id>:
 ```
 
-## Using Handlebars Format
+## Using Template Format
 
 The Handlebars format allows you to customize the output using [Handlebars](https://handlebarsjs.com/) templates. This is useful when you need to transform query results into a specific format for downstream consumers.
 
-### Handlebars Template Context
+### Template Context
 
-When using Handlebars format, you can define templates for added, updated, and deleted results **per query**. Each template configuration has two properties:
+When using template format, you can define templates for added, updated, and deleted results **per query**. Each template configuration has two properties:
 
 - **template**: The Handlebars template string
 - **metadata**: Optional key-value pairs for event metadata
@@ -207,7 +207,7 @@ spec:
           action: "delete"
   properties: 
     eventBusName: drasi-eventbus
-    format: handlebars
+    format: template
 ```
 
 ### Multiple Queries with Different Templates
@@ -240,10 +240,10 @@ spec:
           {"eventType": "OrderStatusChanged", "orderId": {{after.order_id}}, "status": "{{after.status}}"}
   properties: 
     eventBusName: drasi-eventbus
-    format: handlebars
+    format: template
 ```
 
-### Handlebars Features
+### Template Features
 
 You can use all standard Handlebars features in your templates:
 
