@@ -34,9 +34,9 @@ namespace Drasi.Reactions.EventBridge.Services
             _handlebars = Handlebars.Create();
         }
 
-        public IEnumerable<ChangeNotification> Format(ChangeEvent evt, QueryConfig? queryConfig)
+        public IEnumerable<FormattedResult> Format(ChangeEvent evt, QueryConfig? queryConfig)
         {
-            var result = new List<ChangeNotification>();
+            var result = new List<FormattedResult>();
 
             if (queryConfig == null)
             {
@@ -45,31 +45,24 @@ namespace Drasi.Reactions.EventBridge.Services
             }
 
             // Process added results
-            if (!string.IsNullOrEmpty(queryConfig.AddedTemplate))
+            if (queryConfig.Added?.Template != null)
             {
                 foreach (var inputItem in evt.AddedResults)
                 {
                     try
                     {
-                        var template = GetOrCreateTemplate(queryConfig.AddedTemplate);
+                        var template = GetOrCreateTemplate(queryConfig.Added.Template);
                         var processedResult = ProcessResultForHandlebars(inputItem);
                         var formattedData = template(new { after = processedResult });
                         
-                        var outputItem = new ChangeNotification
+                        result.Add(new FormattedResult
                         {
-                            Op = ChangeNotificationOp.I,
-                            TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                            Payload = new PayloadClass()
-                            {
-                                Source = new SourceClass()
-                                {
-                                    QueryId = evt.QueryId,
-                                    TsMs = evt.SourceTimeMs
-                                },
-                                After = new Dictionary<string, object> { { "formatted", formattedData } }
-                            }
-                        };
-                        result.Add(outputItem);
+                            Op = "i",
+                            Data = formattedData,
+                            Metadata = queryConfig.Added.Metadata,
+                            QueryId = evt.QueryId,
+                            SourceTimeMs = evt.SourceTimeMs
+                        });
                     }
                     catch (Exception ex)
                     {
@@ -80,33 +73,25 @@ namespace Drasi.Reactions.EventBridge.Services
             }
 
             // Process updated results
-            if (!string.IsNullOrEmpty(queryConfig.UpdatedTemplate))
+            if (queryConfig.Updated?.Template != null)
             {
                 foreach (var inputItem in evt.UpdatedResults)
                 {
                     try
                     {
-                        var template = GetOrCreateTemplate(queryConfig.UpdatedTemplate);
+                        var template = GetOrCreateTemplate(queryConfig.Updated.Template);
                         var processedBefore = ProcessResultForHandlebars(inputItem.Before);
                         var processedAfter = ProcessResultForHandlebars(inputItem.After);
                         var formattedData = template(new { before = processedBefore, after = processedAfter });
                         
-                        var outputItem = new ChangeNotification
+                        result.Add(new FormattedResult
                         {
-                            Op = ChangeNotificationOp.U,
-                            TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                            Payload = new PayloadClass()
-                            {
-                                Source = new SourceClass()
-                                {
-                                    QueryId = evt.QueryId,
-                                    TsMs = evt.SourceTimeMs
-                                },
-                                Before = new Dictionary<string, object> { { "formatted", formattedData } },
-                                After = new Dictionary<string, object> { { "formatted", formattedData } }
-                            }
-                        };
-                        result.Add(outputItem);
+                            Op = "u",
+                            Data = formattedData,
+                            Metadata = queryConfig.Updated.Metadata,
+                            QueryId = evt.QueryId,
+                            SourceTimeMs = evt.SourceTimeMs
+                        });
                     }
                     catch (Exception ex)
                     {
@@ -117,31 +102,24 @@ namespace Drasi.Reactions.EventBridge.Services
             }
 
             // Process deleted results
-            if (!string.IsNullOrEmpty(queryConfig.DeletedTemplate))
+            if (queryConfig.Deleted?.Template != null)
             {
                 foreach (var inputItem in evt.DeletedResults)
                 {
                     try
                     {
-                        var template = GetOrCreateTemplate(queryConfig.DeletedTemplate);
+                        var template = GetOrCreateTemplate(queryConfig.Deleted.Template);
                         var processedResult = ProcessResultForHandlebars(inputItem);
                         var formattedData = template(new { before = processedResult });
                         
-                        var outputItem = new ChangeNotification
+                        result.Add(new FormattedResult
                         {
-                            Op = ChangeNotificationOp.D,
-                            TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                            Payload = new PayloadClass()
-                            {
-                                Source = new SourceClass()
-                                {
-                                    QueryId = evt.QueryId,
-                                    TsMs = evt.SourceTimeMs
-                                },
-                                Before = new Dictionary<string, object> { { "formatted", formattedData } }
-                            }
-                        };
-                        result.Add(outputItem);
+                            Op = "d",
+                            Data = formattedData,
+                            Metadata = queryConfig.Deleted.Metadata,
+                            QueryId = evt.QueryId,
+                            SourceTimeMs = evt.SourceTimeMs
+                        });
                     }
                     catch (Exception ex)
                     {
@@ -224,5 +202,14 @@ namespace Drasi.Reactions.EventBridge.Services
                 _ => element.GetRawText()
             };
         }
+    }
+
+    public class FormattedResult
+    {
+        public string Op { get; set; } = string.Empty;
+        public string Data { get; set; } = string.Empty;
+        public Dictionary<string, string>? Metadata { get; set; }
+        public string QueryId { get; set; } = string.Empty;
+        public long SourceTimeMs { get; set; }
     }
 }

@@ -18,12 +18,21 @@ namespace Drasi.Reactions.EventBridge.Models;
 
 public class QueryConfig
 {
-    [JsonPropertyName("addedTemplate")]
-    public string? AddedTemplate { get; set; }
+    [JsonPropertyName("added")]
+    public TemplateConfig? Added { get; set; }
 
-    [JsonPropertyName("updatedTemplate")]
-    public string? UpdatedTemplate { get; set; }
+    [JsonPropertyName("updated")]
+    public TemplateConfig? Updated { get; set; }
 
-    [JsonPropertyName("deletedTemplate")]
-    public string? DeletedTemplate { get; set; }
+    [JsonPropertyName("deleted")]
+    public TemplateConfig? Deleted { get; set; }
+}
+
+public class TemplateConfig
+{
+    [JsonPropertyName("template")]
+    public string? Template { get; set; }
+
+    [JsonPropertyName("metadata")]
+    public Dictionary<string, string>? Metadata { get; set; }
 }

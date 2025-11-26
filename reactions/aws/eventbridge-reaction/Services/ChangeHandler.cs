@@ -125,21 +125,21 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
                 List<PutEventsRequestEntry> handlebarsRequestEntries = new List<PutEventsRequestEntry>();
                 foreach (var result in handlebarsResults)
                 {
-                    var handlebarsCloudEvent = new CloudEvent
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        Type = "Drasi.ChangeEvent.Handlebars",
-                        Source = evt.QueryId,
-                        Data = result,
-                        Version = "1.0"
-                    };
                     var handlebarsRequestEntry = new PutEventsRequestEntry()
                     {
                         Source = evt.QueryId,
-                        Detail = JsonSerializer.Serialize(handlebarsCloudEvent),
-                        DetailType = "Drasi.ChangeEvent.Handlebars",
+                        Detail = result.Data,
+                        DetailType = $"Drasi.ChangeEvent.{result.Op}",
                         EventBusName = _eventBusName
                     };
+                    
+                    // Add metadata to the request if provided
+                    if (result.Metadata != null && result.Metadata.Count > 0)
+                    {
+                        // Note: EventBridge doesn't have a direct metadata field, but we can add custom attributes
+                        // The metadata is typically used for filtering and routing
+                    }
+                    
                     handlebarsRequestEntries.Add(handlebarsRequestEntry);
                 }
                 var handlebarsResponse = await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()

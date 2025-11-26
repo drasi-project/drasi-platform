@@ -146,11 +146,16 @@ The Handlebars format allows you to customize the output using [Handlebars](http
 
 ### Handlebars Template Context
 
-When using Handlebars format, you can define templates for added, updated, and deleted results **per query**. Each template has access to different context:
+When using Handlebars format, you can define templates for added, updated, and deleted results **per query**. Each template configuration has two properties:
 
-- **addedTemplate**: Access to `{{after}}` - the newly added result
-- **updatedTemplate**: Access to `{{before}}` and `{{after}}` - the old and new versions of the result
-- **deletedTemplate**: Access to `{{before}}` - the deleted result
+- **template**: The Handlebars template string
+- **metadata**: Optional key-value pairs for event metadata
+
+Each template type has access to different context:
+
+- **added**: Access to `{{after}}` - the newly added result
+- **updated**: Access to `{{before}}` and `{{after}}` - the old and new versions of the result
+- **deleted**: Access to `{{before}}` - the deleted result
 
 ### Example Configuration
 
@@ -164,10 +169,42 @@ spec:
     kind: AwsIamRole
     roleArn: arn:aws:iam::<iam-user-id>:role/<role-name>
   queries:
-    product-inventory:
-      addedTemplate: "New product added: {{after.productName}} with {{after.quantity}} units in stock"
-      updatedTemplate: "Product {{after.productName}} updated from {{before.quantity}} to {{after.quantity}} units"
-      deletedTemplate: "Product {{before.productName}} removed from inventory"
+    product-inventory: |
+      added:
+        template: |
+          {
+            "eventType": "ProductAdded",
+            "productId": {{after.product_id}},
+            "name": "{{after.name}}",
+            "description": "{{after.description}}",
+            "price": {{after.price}}
+          }
+        metadata:
+          category: "inventory"
+          action: "create"
+      updated:
+        template: |
+          {
+            "eventType": "ProductUpdated",
+            "productId": {{after.product_id}},
+            "name": "{{after.name}}",
+            "description": "{{after.description}}",
+            "price": {{after.price}},
+            "previousPrice": {{before.price}}
+          }
+        metadata:
+          category: "inventory"
+          action: "update"
+      deleted:
+        template: |
+          {
+            "eventType": "ProductDeleted",
+            "productId": {{before.product_id}},
+            "name": "{{before.name}}"
+          }
+        metadata:
+          category: "inventory"
+          action: "delete"
   properties: 
     eventBusName: drasi-eventbus
     format: handlebars
@@ -187,12 +224,20 @@ spec:
     kind: AwsIamRole
     roleArn: arn:aws:iam::<iam-user-id>:role/<role-name>
   queries:
-    product-inventory:
-      addedTemplate: "New product: {{after.productName}}"
-      updatedTemplate: "Updated: {{after.productName}}"
-    order-notifications:
-      addedTemplate: "Order {{after.orderId}} created for customer {{after.customerId}}"
-      updatedTemplate: "Order {{after.orderId}} status changed to {{after.status}}"
+    product-inventory: |
+      added:
+        template: |
+          {"eventType": "ProductAdded", "productId": {{after.product_id}}}
+      updated:
+        template: |
+          {"eventType": "ProductUpdated", "productId": {{after.product_id}}}
+    order-notifications: |
+      added:
+        template: |
+          {"eventType": "OrderCreated", "orderId": {{after.order_id}}, "customerId": {{after.customer_id}}}
+      updated:
+        template: |
+          {"eventType": "OrderStatusChanged", "orderId": {{after.order_id}}, "status": "{{after.status}}"}
   properties: 
     eventBusName: drasi-eventbus
     format: handlebars
