@@ -3,9 +3,10 @@ kind: Reaction
 name: eventgrid-template-reaction
 spec:
   kind: EventGrid
-  eventGridUri: http://eventgrid-emulator-svc.default.svc.cluster.local:8080/api/events
-  eventGridSchema: CloudEvents
-  format: template
+  properties: 
+    eventGridUri: http://eventgrid-emulator-svc.default.svc.cluster.local:8080/api/events
+    eventGridSchema: CloudEvents
+    format: template
   queries:
     product-updates-template: |
       added:
