@@ -29,6 +29,17 @@ import (
 	"drasi.io/cli/output"
 )
 
+// DrasiClient defines the interface for interacting with the Drasi Management API.
+type DrasiClient interface {
+	Apply(manifests *[]api.Manifest, output output.TaskOutput) error
+	Delete(manifests *[]api.Manifest, output output.TaskOutput) error
+	GetResource(kind string, name string) (*api.Resource, error)
+	ListResources(kind string) ([]api.Resource, error)
+	ReadyWait(manifests *[]api.Manifest, timeout int32, output output.TaskOutput) error
+	Watch(kind string, name string, output chan map[string]interface{}, initErr chan error)
+	Close()
+}
+
 type ApiClient struct {
 	stopCh       chan struct{}
 	port         int32
@@ -36,6 +47,9 @@ type ApiClient struct {
 	streamClient *http.Client
 	prefix       string
 }
+
+// Ensure ApiClient implements the new interface
+var _ DrasiClient = (*ApiClient)(nil)
 
 func (t *ApiClient) Apply(manifests *[]api.Manifest, output output.TaskOutput) error {
 	for _, mf := range *manifests {
