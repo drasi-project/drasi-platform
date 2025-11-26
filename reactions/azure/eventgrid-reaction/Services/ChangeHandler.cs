@@ -112,9 +112,9 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
                 var templateResults = _templateFormatter.Format(evt, queryConfig);
                 if (_eventGridSchema == EventGridSchema.EventGrid) {
                     List<EventGridEvent> templateEvents = new List<EventGridEvent>();
-                    foreach (var templateNotification in templateResults)
+                    foreach (var templateResult in templateResults)
                     {
-                        EventGridEvent templateEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", templateNotification);
+                        EventGridEvent templateEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", templateResult.Data);
                         templateEvents.Add(templateEvent);
                     }
                     var templateResp = await _publisherClient.SendEventsAsync(templateEvents);
@@ -125,9 +125,19 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
                     }
                 } else if (_eventGridSchema == EventGridSchema.CloudEvents) {
                     List<CloudEvent> templateCloudEvents = new List<CloudEvent>();
-                    foreach (var templateNotification in templateResults)
+                    foreach (var templateResult in templateResults)
                     {
-                        CloudEvent templateCloudEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", templateNotification);
+                        CloudEvent templateCloudEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", templateResult.Data);
+                        
+                        // Apply metadata as extension attributes if provided
+                        if (templateResult.Metadata != null)
+                        {
+                            foreach (var kvp in templateResult.Metadata)
+                            {
+                                templateCloudEvent.ExtensionAttributes[kvp.Key] = kvp.Value;
+                            }
+                        }
+                        
                         templateCloudEvents.Add(templateCloudEvent);
                     }
                     var templateCloudResp = await _publisherClient.SendEventsAsync(templateCloudEvents);

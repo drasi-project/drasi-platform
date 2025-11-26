@@ -17,27 +17,45 @@ using System.Text.Json.Serialization;
 namespace Drasi.Reactions.EventGrid.Models
 {
     /// <summary>
+    /// Configuration for a template with metadata for cloud events.
+    /// </summary>
+    public class TemplateConfig
+    {
+        /// <summary>
+        /// The Handlebars template string for formatting the event data.
+        /// </summary>
+        [JsonPropertyName("template")]
+        public string? Template { get; set; }
+
+        /// <summary>
+        /// Key-value pairs for cloud event metadata/extension attributes.
+        /// </summary>
+        [JsonPropertyName("metadata")]
+        public Dictionary<string, string>? Metadata { get; set; }
+    }
+
+    /// <summary>
     /// Configuration for templates per query per change type.
     /// Used when format is set to "template".
     /// </summary>
     public class QueryConfig
     {
         /// <summary>
-        /// Template for formatting added results.
+        /// Template configuration for formatting added results.
         /// </summary>
         [JsonPropertyName("added")]
-        public string? Added { get; set; }
+        public TemplateConfig? Added { get; set; }
 
         /// <summary>
-        /// Template for formatting updated results.
+        /// Template configuration for formatting updated results.
         /// </summary>
         [JsonPropertyName("updated")]
-        public string? Updated { get; set; }
+        public TemplateConfig? Updated { get; set; }
 
         /// <summary>
-        /// Template for formatting deleted results.
+        /// Template configuration for formatting deleted results.
         /// </summary>
         [JsonPropertyName("deleted")]
-        public string? Deleted { get; set; }
+        public TemplateConfig? Deleted { get; set; }
     }
 }

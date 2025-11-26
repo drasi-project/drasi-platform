@@ -8,27 +8,36 @@ spec:
   format: template
   queries:
     product-updates-template: |
-      added: |
-        {
-          "eventType": "ProductAdded",
-          "productId": {{after.product_id}},
-          "name": "{{after.name}}",
-          "description": "{{after.description}}",
-          "price": {{after.price}}
-        }
-      updated: |
-        {
-          "eventType": "ProductUpdated",
-          "productId": {{after.product_id}},
-          "name": "{{after.name}}",
-          "description": "{{after.description}}",
-          "price": {{after.price}},
-          "previousPrice": {{before.price}}
-        }
-      deleted: |
-        {
-          "eventType": "ProductDeleted",
-          "productId": {{before.product_id}},
-          "name": "{{before.name}}"
-        }
+      added:
+        template: |
+          {
+            "eventType": "ProductAdded",
+            "productId": {{after.product_id}},
+            "name": "{{after.name}}",
+            "description": "{{after.description}}",
+            "price": {{after.price}}
+          }
+        metadata:
+          changeType: added
+      updated:
+        template: |
+          {
+            "eventType": "ProductUpdated",
+            "productId": {{after.product_id}},
+            "name": "{{after.name}}",
+            "description": "{{after.description}}",
+            "price": {{after.price}},
+            "previousPrice": {{before.price}}
+          }
+        metadata:
+          changeType: updated
+      deleted:
+        template: |
+          {
+            "eventType": "ProductDeleted",
+            "productId": {{before.product_id}},
+            "name": "{{before.name}}"
+          }
+        metadata:
+          changeType: deleted
 

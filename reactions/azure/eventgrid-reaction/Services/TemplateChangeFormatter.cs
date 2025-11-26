@@ -19,6 +19,15 @@ using System.Text.Json;
 
 namespace Drasi.Reactions.EventGrid.Services
 {
+    /// <summary>
+    /// Represents a formatted template result with data and optional metadata.
+    /// </summary>
+    public class TemplateResult
+    {
+        public JsonElement Data { get; set; }
+        public Dictionary<string, string>? Metadata { get; set; }
+    }
+
     public class TemplateChangeFormatter
     {
         private readonly IHandlebars _handlebars;
@@ -28,19 +37,19 @@ namespace Drasi.Reactions.EventGrid.Services
             _handlebars = Handlebars.Create();
         }
 
-        public IEnumerable<JsonElement> Format(ChangeEvent evt, QueryConfig? queryConfig)
+        public IEnumerable<TemplateResult> Format(ChangeEvent evt, QueryConfig? queryConfig)
         {
             if (queryConfig == null)
             {
-                return Enumerable.Empty<JsonElement>();
+                return Enumerable.Empty<TemplateResult>();
             }
 
-            var result = new List<JsonElement>();
+            var result = new List<TemplateResult>();
 
             // Process added results
-            if (!string.IsNullOrEmpty(queryConfig.Added))
+            if (queryConfig.Added != null && !string.IsNullOrEmpty(queryConfig.Added.Template))
             {
-                var addedTemplate = _handlebars.Compile(queryConfig.Added);
+                var addedTemplate = _handlebars.Compile(queryConfig.Added.Template);
                 foreach (var added in evt.AddedResults)
                 {
                     var templateData = new
@@ -50,14 +59,18 @@ namespace Drasi.Reactions.EventGrid.Services
 
                     var output = addedTemplate(templateData);
                     using var doc = JsonDocument.Parse(output);
-                    result.Add(doc.RootElement.Clone());
+                    result.Add(new TemplateResult
+                    {
+                        Data = doc.RootElement.Clone(),
+                        Metadata = queryConfig.Added.Metadata
+                    });
                 }
             }
 
             // Process updated results
-            if (!string.IsNullOrEmpty(queryConfig.Updated))
+            if (queryConfig.Updated != null && !string.IsNullOrEmpty(queryConfig.Updated.Template))
             {
-                var updatedTemplate = _handlebars.Compile(queryConfig.Updated);
+                var updatedTemplate = _handlebars.Compile(queryConfig.Updated.Template);
                 foreach (var updated in evt.UpdatedResults)
                 {
                     var templateData = new
@@ -68,14 +81,18 @@ namespace Drasi.Reactions.EventGrid.Services
 
                     var output = updatedTemplate(templateData);
                     using var doc = JsonDocument.Parse(output);
-                    result.Add(doc.RootElement.Clone());
+                    result.Add(new TemplateResult
+                    {
+                        Data = doc.RootElement.Clone(),
+                        Metadata = queryConfig.Updated.Metadata
+                    });
                 }
             }
 
             // Process deleted results
-            if (!string.IsNullOrEmpty(queryConfig.Deleted))
+            if (queryConfig.Deleted != null && !string.IsNullOrEmpty(queryConfig.Deleted.Template))
             {
-                var deletedTemplate = _handlebars.Compile(queryConfig.Deleted);
+                var deletedTemplate = _handlebars.Compile(queryConfig.Deleted.Template);
                 foreach (var deleted in evt.DeletedResults)
                 {
                     var templateData = new
@@ -85,7 +102,11 @@ namespace Drasi.Reactions.EventGrid.Services
 
                     var output = deletedTemplate(templateData);
                     using var doc = JsonDocument.Parse(output);
-                    result.Add(doc.RootElement.Clone());
+                    result.Add(new TemplateResult
+                    {
+                        Data = doc.RootElement.Clone(),
+                        Metadata = queryConfig.Deleted.Metadata
+                    });
                 }
             }
 

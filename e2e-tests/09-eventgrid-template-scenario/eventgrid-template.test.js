@@ -199,6 +199,9 @@ describe('EventGrid Template Reaction E2E Test', () => {
         expect(cloudEvent.type).toBe('Drasi.ChangeEvent');
         expect(cloudEvent.source).toBe('product-updates-template');
         
+        // Verify metadata extension attributes
+        expect(cloudEvent.changetype).toBe('added');
+        
         const eventData = cloudEvent.data;
         expect(eventData.eventType).toBe('ProductAdded');
         expect(eventData.name).toBe(newProductName);
@@ -259,6 +262,9 @@ describe('EventGrid Template Reaction E2E Test', () => {
         expect(updateEvent.type).toBe('Drasi.ChangeEvent');
         expect(updateEvent.source).toBe('product-updates-template');
         
+        // Verify metadata extension attributes
+        expect(updateEvent.changetype).toBe('updated');
+        
         const eventData = updateEvent.data;
         expect(eventData.eventType).toBe('ProductUpdated');
         expect(eventData.name).toBe(productName);
@@ -315,6 +321,9 @@ describe('EventGrid Template Reaction E2E Test', () => {
         expect(deleteEvent).toBeDefined();
         expect(deleteEvent.type).toBe('Drasi.ChangeEvent');
         expect(deleteEvent.source).toBe('product-updates-template');
+        
+        // Verify metadata extension attributes
+        expect(deleteEvent.changetype).toBe('deleted');
         
         const eventData = deleteEvent.data;
         expect(eventData.eventType).toBe('ProductDeleted');
