@@ -12,10 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Reactivator.Services;
-public interface IDeltaTokenStore
-{
-    Task<string?> GetDeltaToken(string entityName);
-    Task SetDeltaToken(string entityName, string token);
-}
+package cmd
 
+import (
+	"bytes"
+	"github.com/spf13/cobra"
+)
+
+// executeCommand is a shared helper function to execute cobra commands and capture output
+func executeCommand(cmd *cobra.Command, args ...string) (string, error) {
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	cmd.SetArgs(args)
+	err := cmd.Execute()
+	return buf.String(), err
+}

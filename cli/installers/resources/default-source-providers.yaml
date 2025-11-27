@@ -215,19 +215,18 @@ spec:
     properties:
       endpoint:
         type: string
+      entities:
+        type: string
+      maxInterval:
+        type: integer
       clientId:
         type: string
-      secret:
+      clientSecret:
         type: string
-      entities:
-        type: array
-      interval:
-        type: integer
-        default: 60
+      tenantId:
+        type: string
     required:
       - endpoint
-      - clientId
-      - secret
       - entities
 ---
 apiVersion: v1
