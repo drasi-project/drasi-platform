@@ -198,6 +198,7 @@ spec:
         enum:
           - "packed"
           - "unpacked"
+          - "template"
         default: "packed"
     required:
       - queueName

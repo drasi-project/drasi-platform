@@ -1,6 +1,6 @@
 # Drasi: Azure Storage Queue Reaction
 
-The Azure Storage Queue Reaction enqueues messages on [Azure Storage Queues](https://learn.microsoft.com/en-us/azure/storage/queues/storage-queues-introduction) in response to changes to the result set of a Drasi Continuous Query.  The output format can either be the packed format of the raw query output or an unpacked format, where a single message represents one change to the result set.
+The Azure Storage Queue Reaction enqueues messages on [Azure Storage Queues](https://learn.microsoft.com/en-us/azure/storage/queues/storage-queues-introduction) in response to changes to the result set of a Drasi Continuous Query.  The output format can either be the packed format of the raw query output, an unpacked format where a single message represents one change to the result set, or a custom template format using Handlebars templates with per-query configuration.
 
 ## Getting started
 
@@ -12,7 +12,7 @@ The reaction takes the following configuration properties:
 |-|-|
 | endpoint | Endpoint of the Storage Account queue service, in the form https://{account-name}.queue.core.windows.net, if not using connection string|
 | queueName | Name of Queue. It should already exist on your storage account. |
-| format | The output format for the messages that are enqueued. The can either be `packed` for the raw query output or `unpacked` for a message per result set change. |
+| format | The output format for the messages that are enqueued. Can be `packed` for the raw query output, `unpacked` for a message per result set change, or `template` for custom formatted messages using per-query templates. |
 
 ### Identity
 
@@ -80,7 +80,7 @@ spec:
     connectionString: <Connection String of Azure Storage Account>
   properties:    
     queueName: <Name of Queue>
-    format: <packed | unpacked>
+    format: <packed | unpacked | template>
   queries:
     query1:
     query2:
@@ -98,7 +98,7 @@ spec:
   properties:
     endpoint: https://{account-name}.queue.core.windows.net
     queueName: <Name of Queue>
-    format: <packed | unpacked>
+    format: <packed | unpacked | template>
   queries:
     query1:
     query2:
@@ -184,6 +184,79 @@ The Unpacked format flattens all the changed result set items into one message p
             "temperature": 30
         }
     }
+}
+```
+
+### Template Format
+
+The Template format uses [Handlebars templates](https://handlebarsjs.com/) to format each change into a custom message structure. This provides maximum flexibility for integrating with downstream systems that expect specific message formats.
+
+When using the template format, you configure templates per query with distinct templates for each change type (`added`, `updated`, `deleted`). Each template has access to the following context variables:
+
+**For added results:**
+- `after`: The new state of the result
+
+**For updated results:**
+- `before`: The previous state of the result
+- `after`: The new state of the result
+
+**For deleted results:**
+- `before`: The previous state of the result
+
+**Note:** Template format is not supported for control signals. Control signals will be skipped when using template format.
+
+#### Example Configuration
+
+```yaml
+kind: Reaction
+apiVersion: v1
+name: my-reaction
+spec:
+  kind: StorageQueue
+  identity:
+    kind: ConnectionString
+    connectionString: <Connection String of Azure Storage Account>
+  properties:    
+    queueName: <Name of Queue>
+    format: template
+  queries:
+    temperature-query: |
+      added: |
+        {"type": "added", "id": "{{after.id}}", "temperature": {{after.temperature}}}
+      updated: |
+        {"type": "updated", "id": "{{after.id}}", "temperature": {{after.temperature}}, "previousTemperature": {{before.temperature}}}
+      deleted: |
+        {"type": "deleted", "id": "{{before.id}}", "temperature": {{before.temperature}}}
+```
+
+#### Example Output
+
+For an added result:
+```json
+{
+  "type": "added",
+  "id": "10",
+  "temperature": 22
+}
+```
+
+For an updated result:
+```json
+{
+  "type": "updated",
+  "id": "11",
+  "temperature": 27,
+  "previousTemperature": 25
+}
+}
+```
+
+For a deleted result:
+```json
+{
+  "type": "deleted",
+  "id": "12",
+  "temperature": 30
 }
 ```
 

@@ -17,18 +17,21 @@ using Azure.Identity;
 using Azure.Storage;
 using Azure.Storage.Queues;
 using Drasi.Reaction.SDK;
+using Drasi.Reactions.StorageQueue.Models;
 using Drasi.Reactions.StorageQueue.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-var reaction = new ReactionBuilder()
+var reaction = new ReactionBuilder<QueryConfig>()
+    .UseYamlQueryConfig()
     .UseChangeEventHandler<ChangeHandler>()
     .UseControlEventHandler<ControlSignalHandler>()
     .ConfigureServices((services) =>
     {
         services.AddSingleton<IChangeFormatter, ChangeFormatter>();
-        services.AddSingleton<QueueClient>(sp => 
+        services.AddSingleton<ITemplateFormatter, TemplateFormatter>();
+        services.AddSingleton<QueueClient>(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var logger = sp.GetRequiredService<ILogger<ReactionBuilder>>();
