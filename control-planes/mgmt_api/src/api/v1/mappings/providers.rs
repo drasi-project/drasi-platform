@@ -19,7 +19,8 @@ use crate::domain::models::{
 
 use super::{
     EndpointDto, EndpointSettingDto, JsonSchemaDto, ProviderServiceDto, ProviderSpecDto,
-    ResourceProviderDto, SchemaTypeDto, ServiceConfigDto, ServiceEndpointDto, ServiceIdentityDto,
+    ReactionProviderDto, ResourceProviderDto, SchemaTypeDto, ServiceConfigDto, ServiceEndpointDto,
+    ServiceIdentityDto, SourceProviderDto,
 };
 impl<TSpec, TSpecDto> From<ResourceProviderDto<TSpecDto>> for ResourceProvider<TSpec>
 where
@@ -227,6 +228,24 @@ impl From<ProviderSpec> for ProviderSpecDto {
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
             config_schema: provider_spec.config_schema.map(|schema| schema.into()),
+        }
+    }
+}
+
+impl From<ResourceProvider<ProviderSpec>> for SourceProviderDto {
+    fn from(res: ResourceProvider<ProviderSpec>) -> Self {
+        Self {
+            id: res.id,
+            spec: res.spec.into(),
+        }
+    }
+}
+
+impl From<ResourceProvider<ProviderSpec>> for ReactionProviderDto {
+    fn from(res: ResourceProvider<ProviderSpec>) -> Self {
+        Self {
+            id: res.id,
+            spec: res.spec.into(),
         }
     }
 }
