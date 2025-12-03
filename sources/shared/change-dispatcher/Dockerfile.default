@@ -13,8 +13,8 @@
 # limitations under the License.
 
 
-FROM mcr.microsoft.com/azurelinux/base/rust:1.86 AS builder
-RUN tdnf update -y && tdnf install -y protobuf-devel cmake openssl-devel clang-devel
+FROM rust:1.86-bullseye AS builder
+RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
 
 WORKDIR /usr/src
 COPY ./infrastructure ./infrastructure
@@ -27,7 +27,7 @@ COPY ./sources/shared/change-dispatcher .
 RUN cargo install --force --path .
 
     
-FROM mcr.microsoft.com/azurelinux/distroless/base:3.0
+FROM gcr.io/distroless/cc
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/change-dispatcher /usr/local/bin/change-dispatcher
 USER root

@@ -31,6 +31,15 @@ pub enum QueryLanguage {
     GQL,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::upper_case_acronyms)]
+pub enum QueryRuntime {
+    #[serde(rename = "Worker")]
+    Worker,
+    #[serde(rename = "ServerCore")]
+    ServerCore,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Resource<TSpec, TStatus> {
     pub id: String,
@@ -296,6 +305,7 @@ pub struct QuerySpec {
     pub mode: String,
     pub query: String,
     pub query_language: Option<QueryLanguage>,
+    pub query_runtime: Option<QueryRuntime>,
     pub sources: QuerySources,
     pub storage_profile: Option<String>,
     pub view: ViewSpec,
