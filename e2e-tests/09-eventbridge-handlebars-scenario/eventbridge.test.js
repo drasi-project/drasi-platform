@@ -55,7 +55,14 @@ beforeAll(async () => {
   });
 
   // Wait for services to be ready
-  await new Promise(r => setTimeout(r, 20000));
+  await new Promise(r => setTimeout(r, 10000));
+
+  // Deploy the reaction once for all tests
+  const reactionResources = yaml.loadAll(fs.readFileSync(__dirname + '/eventbridge-reaction.yaml', 'utf8'));
+  await deployResources(reactionResources);
+
+  // Wait for reaction to be ready
+  await new Promise(r => setTimeout(r, 10000));
 }, 180000);
 
 afterAll(async () => {
@@ -63,20 +70,14 @@ afterAll(async () => {
   dbPortForward.stop();
   localstackPortForward.stop();
 
-  const resources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
-  await deleteResources(resources);
-
   const reactionResources = yaml.loadAll(fs.readFileSync(__dirname + '/eventbridge-reaction.yaml', 'utf8'));
   await deleteResources(reactionResources);
+
+  const resources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
+  await deleteResources(resources);
 });
 
 test('Test EventBridge Handlebars Reaction - Added Product', async () => {
-  const reactionResources = yaml.loadAll(fs.readFileSync(__dirname + '/eventbridge-reaction.yaml', 'utf8'));
-  await deployResources(reactionResources);
-
-  // Wait for reaction to be ready
-  await new Promise(r => setTimeout(r, 10000));
-
   // Insert a new product
   await dbClient.query(`INSERT INTO "Product" ("ProductId", "ProductName", "Quantity", "Price") VALUES (3, 'Keyboard', 25, 79.99)`);
 
@@ -100,17 +101,9 @@ test('Test EventBridge Handlebars Reaction - Added Product', async () => {
       console.error('Test failed:', error);
       expect(false).toBeTruthy();
     });
-
-  await deleteResources(reactionResources);
 }, 180000);
 
 test('Test EventBridge Handlebars Reaction - Updated Product', async () => {
-  const reactionResources = yaml.loadAll(fs.readFileSync(__dirname + '/eventbridge-reaction.yaml', 'utf8'));
-  await deployResources(reactionResources);
-
-  // Wait for reaction to be ready
-  await new Promise(r => setTimeout(r, 10000));
-
   // Update existing product
   await dbClient.query(`UPDATE "Product" SET "Quantity" = 15 WHERE "ProductId" = 1`);
 
@@ -130,17 +123,9 @@ test('Test EventBridge Handlebars Reaction - Updated Product', async () => {
       console.error('Test failed:', error);
       expect(false).toBeTruthy();
     });
-
-  await deleteResources(reactionResources);
 }, 180000);
 
 test('Test EventBridge Handlebars Reaction - Deleted Product', async () => {
-  const reactionResources = yaml.loadAll(fs.readFileSync(__dirname + '/eventbridge-reaction.yaml', 'utf8'));
-  await deployResources(reactionResources);
-
-  // Wait for reaction to be ready
-  await new Promise(r => setTimeout(r, 10000));
-
   // Delete a product
   await dbClient.query(`DELETE FROM "Product" WHERE "ProductId" = 2`);
 
@@ -160,8 +145,6 @@ test('Test EventBridge Handlebars Reaction - Deleted Product', async () => {
       console.error('Test failed:', error);
       expect(false).toBeTruthy();
     });
-
-  await deleteResources(reactionResources);
 }, 180000);
 
 function waitForCondition(checkFn, interval = 1000, timeout = 30000) {
