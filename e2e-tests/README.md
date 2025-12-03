@@ -14,9 +14,11 @@ npm test
 
 ## Vectorstore Tests (Scenarios 07 & 08)
 
-Tests in `07-sync-inmemory-vectorstore-scenario` and `08-sync-qdrant-vectorstore-scenario` require Azure OpenAI credentials to generate embeddings.
+Tests in `07-sync-inmemory-vectorstore-scenario` and `08-sync-qdrant-vectorstore-scenario` test the vector store reaction pipeline with embeddings.
 
-### Running Vectorstore Tests Locally
+### Running with Azure OpenAI (Full Semantic Embeddings)
+
+For full semantic embedding testing, provide Azure OpenAI credentials:
 
 ```bash
 export E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY="your-azure-openai-key"
@@ -25,27 +27,60 @@ export E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL="text-embedding-3-large
 npm test
 ```
 
-### Fork-Based Pull Requests
+### Running without Azure OpenAI (Mock Embeddings)
 
-These tests are **automatically skipped** for fork-based pull requests (GitHub secrets are not available to forks for security reasons).
+When Azure OpenAI credentials are not available, the tests automatically deploy a **mock embedding service** that generates deterministic hash-based embeddings. This allows fork contributors to test the full vector store pipeline.
 
-When credentials are missing, you'll see a clear warning message:
+```bash
+# No environment variables needed - mock is used automatically
+npm test
+```
+
+You'll see this message when mock embeddings are being used:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ ⚠️  SKIPPING VECTORSTORE E2E TESTS                              │
+│ ℹ️  USING MOCK EMBEDDING SERVICE                                │
 ├─────────────────────────────────────────────────────────────────┤
 │ Azure OpenAI credentials are not available.                     │
-│ This is expected for fork-based pull requests.                  │
+│ Deploying mock embedding service for testing.                   │
 │                                                                  │
-│ These tests will run automatically when:                        │
-│  • PR is merged to main repository                              │
-│  • PR is created from a branch (not a fork)                     │
+│ This allows fork contributors to test the vector store pipeline │
+│ with deterministic (hash-based) embeddings.                     │
+│                                                                  │
+│ Note: Mock embeddings test the pipeline integration, not        │
+│ semantic quality. Real embeddings are tested when credentials   │
+│ are available.                                                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-This is **normal and expected** - your PR can still pass CI without these tests. The vectorstore tests will run automatically when:
-- Your PR is merged to the main repository
-- Your PR is created from a branch in the main repository (not a fork)
+### What Gets Tested
+
+| Aspect | Mock Embeddings | Real Embeddings |
+|--------|-----------------|-----------------|
+| Pipeline integration | ✅ | ✅ |
+| Document sync (add/update/delete) | ✅ | ✅ |
+| Vector store operations | ✅ | ✅ |
+| Embedding API integration | ✅ | ✅ |
+| Semantic similarity | ❌ | ✅ |
+| Embedding quality | ❌ | ✅ |
+
+### Fork-Based Pull Requests
+
+Fork contributors can now run the vectorstore tests! The mock embedding service is automatically deployed when Azure credentials are not available.
+
+- **Mock mode**: Tests the full pipeline with deterministic embeddings
+- **Real mode**: When credentials are available (main repo, non-fork branches), tests use actual Azure OpenAI
+
+## Mock Embedding Service
+
+The mock embedding service is located in `fixtures/mock-embedding-service/`. It:
+
+- Implements the Azure OpenAI embeddings API
+- Generates deterministic embeddings using SHA-256 hashing
+- Is automatically built, loaded into Kind, and deployed when needed
+- Cleans up after tests complete
+
+See `fixtures/mock-embedding-service/README.md` for technical details.
 
 ## Tools
 

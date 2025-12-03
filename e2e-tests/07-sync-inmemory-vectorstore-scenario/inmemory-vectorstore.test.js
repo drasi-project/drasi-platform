@@ -23,6 +23,11 @@ const PortForward = require("../fixtures/port-forward");
 const SignalrFixture = require("../fixtures/signalr-fixture");
 const { waitFor } = require('../fixtures/infrastructure');
 const cp = require('child_process');
+const {
+  setupMockEmbeddingService,
+  deleteMockEmbeddingService,
+  updateReactionsForMock
+} = require('../fixtures/deploy-mock-embedding');
 
 // Resource file paths
 const resourcesFilePath = __dirname + '/resources.yaml';
@@ -35,6 +40,7 @@ let resourcesToCleanup = [];
 let dbPortForward;
 let dbClient;
 let signalrFixture;
+let usingMockEmbeddings = false;
 
 /**
  * InMemory Vector Store Test Scope
@@ -114,51 +120,6 @@ async function verifyInitialLoad(reactionName, queryId, expectedCount) {
   }
 }
 
-// Helper to verify documents were upserted to vector store (via logs)
-// This is used for incremental changes AFTER initial bootstrap
-async function verifyDocumentUpsert(reactionName, queryId, expectedCount) {
-  try {
-    const deploymentName = `${reactionName}-reaction`;
-    const logs = cp.execSync(
-      `kubectl logs -n drasi-system deployment/${deploymentName} -c reaction --tail=500`,
-      { encoding: 'utf8' }
-    );
-    
-    // Look for upsert logs - matches ChangeEventHandler.cs lines 164-166
-    const upsertPattern = new RegExp(`Successfully upserted \\d+ documents for query ${queryId}`, 'g');
-    const upsertLogs = logs.match(upsertPattern) || [];
-    
-    console.log(`DEBUG: Found ${upsertLogs.length} upsert log entries for query ${queryId}`);
-    if (upsertLogs.length === 0) {
-      // Try to find any upsert logs to debug
-      const anyUpsertLogs = logs.match(/Successfully upserted \d+ documents/g) || [];
-      console.log(`DEBUG: Found ${anyUpsertLogs.length} total upsert logs (any query):`);
-      anyUpsertLogs.forEach(log => console.log(`  - ${log}`));
-      
-      // Also check for any errors
-      const errorLogs = logs.match(/ERROR|Failed to upsert|Exception/gi) || [];
-      if (errorLogs.length > 0) {
-        console.log(`DEBUG: Found ${errorLogs.length} potential error logs`);
-      }
-    }
-    
-    if (upsertLogs.length > 0) {
-      // Get the most recent upsert log
-      const lastLog = upsertLogs[upsertLogs.length - 1];
-      const match = lastLog.match(/upserted (\d+) documents/);
-      if (match) {
-        const count = parseInt(match[1]);
-        console.log(`Found upsert of ${count} documents for query ${queryId} (expected ${expectedCount})`);
-        return count === expectedCount;
-      }
-    }
-    return false;
-  } catch (error) {
-    console.error(`Error checking upsert logs: ${error.message}`);
-    return false;
-  }
-}
-
 // Helper to verify documents were deleted from vector store (via logs)
 async function verifyDocumentDeletion(reactionName, queryId, expectedCount) {
   try {
@@ -198,24 +159,31 @@ beforeAll(async () => {
   const hasSecrets = azureKey && azureEndpoint && azureModel;
 
   if (!hasSecrets) {
-    console.warn(`
+    console.log(`
 ┌─────────────────────────────────────────────────────────────────┐
-│ ⚠️  SKIPPING INMEMORY VECTORSTORE E2E TESTS                     │
+│ ℹ️  USING MOCK EMBEDDING SERVICE                                │
 ├─────────────────────────────────────────────────────────────────┤
 │ Azure OpenAI credentials are not available.                     │
-│ This is expected for fork-based pull requests.                  │
+│ Deploying mock embedding service for testing.                   │
 │                                                                  │
-│ These tests will run automatically when:                        │
-│  • PR is merged to main repository                              │
-│  • PR is created from a branch (not a fork)                     │
+│ This allows fork contributors to test the vector store pipeline │
+│ with deterministic (hash-based) embeddings.                     │
 │                                                                  │
-│ Missing environment variables:                                  │
-${!azureKey ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY                 │\n' : ''}${!azureEndpoint ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT            │\n' : ''}${!azureModel ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL     │\n' : ''}└─────────────────────────────────────────────────────────────────┘
+│ Note: Mock embeddings test the pipeline integration, not        │
+│ semantic quality. Real embeddings are tested when credentials   │
+│ are available.                                                   │
+└─────────────────────────────────────────────────────────────────┘
     `);
-    return; // Skip all setup
-  }
 
-  console.log(`Azure OpenAI configured: endpoint=${azureEndpoint}, model=${azureModel}`);
+    // Deploy mock embedding service
+    const mockReady = await setupMockEmbeddingService('drasi-test');
+    if (!mockReady) {
+      throw new Error('Failed to setup mock embedding service');
+    }
+    usingMockEmbeddings = true;
+  } else {
+    console.log(`Azure OpenAI configured: endpoint=${azureEndpoint}, model=${azureModel}`);
+  }
 
   // Load resources
   const infraResources = yaml.loadAll(fs.readFileSync(resourcesFilePath, 'utf8'));
@@ -233,18 +201,25 @@ ${!azureKey ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY                 �
     }
   });
   
-  // Update reactions with environment-specific values
-  reactions.forEach(reaction => {
-    if (reaction.spec?.properties?.embeddingApiKey === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}') {
-      reaction.spec.properties.embeddingApiKey = azureKey;
-    }
-    if (reaction.spec?.properties?.embeddingEndpoint === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}') {
-      reaction.spec.properties.embeddingEndpoint = azureEndpoint;
-    }
-    if (reaction.spec?.properties?.embeddingModel === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}') {
-      reaction.spec.properties.embeddingModel = azureModel;
-    }
-  });
+  // Update reactions with embedding service configuration
+  if (usingMockEmbeddings) {
+    // Use mock embedding service
+    console.log('Configuring reactions to use mock embedding service...');
+    updateReactionsForMock(reactions);
+  } else {
+    // Use real Azure OpenAI
+    reactions.forEach(reaction => {
+      if (reaction.spec?.properties?.embeddingApiKey === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}') {
+        reaction.spec.properties.embeddingApiKey = azureKey;
+      }
+      if (reaction.spec?.properties?.embeddingEndpoint === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}') {
+        reaction.spec.properties.embeddingEndpoint = azureEndpoint;
+      }
+      if (reaction.spec?.properties?.embeddingModel === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}') {
+        reaction.spec.properties.embeddingModel = azureModel;
+      }
+    });
+  }
 
   resourcesToCleanup = [...infraResources, ...sources, ...queries, ...reactionProvider, ...reactions];
 
@@ -314,14 +289,16 @@ afterAll(async () => {
     await deleteResources(resourcesToCleanup);
     console.log("Teardown complete.");
   }
+
+  // Clean up mock embedding service if it was deployed
+  if (usingMockEmbeddings) {
+    console.log("Cleaning up mock embedding service...");
+    await deleteMockEmbeddingService();
+  }
 });
 
-// Skip entire test suite if Azure OpenAI credentials are not available
-const describeOrSkip = process.env.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY
-  ? describe
-  : describe.skip;
-
-describeOrSkip("InMemory Vector Store Pipeline E2E Tests", () => {
+// Tests always run - either with real Azure OpenAI or mock embedding service
+describe("InMemory Vector Store Pipeline E2E Tests", () => {
   test("Initial state sync - Simple query (validates pipeline, not storage)", async () => {
     console.log("Verifying initial state sync pipeline for simple products query...");
 
