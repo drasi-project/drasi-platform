@@ -1,0 +1,66 @@
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+apiVersion: v1
+kind: Reaction
+name: test-eventbridge-handlebars
+spec:
+  kind: EventBridge
+  identity:
+    kind: AwsIamAccessKey
+    accessKeyId: test
+    secretAccessKey: test
+    region: us-east-1
+  queries:
+    product-query: |
+      added:
+        template: |
+          {
+            "eventType": "ProductAdded",
+            "productId": {{after.ProductId}},
+            "name": "{{after.ProductName}}",
+            "quantity": {{after.Quantity}},
+            "price": {{after.Price}}
+          }
+        metadata:
+          category: "inventory"
+          action: "create"
+      updated:
+        template: |
+          {
+            "eventType": "ProductUpdated",
+            "productId": {{after.ProductId}},
+            "name": "{{after.ProductName}}",
+            "quantity": {{after.Quantity}},
+            "previousQuantity": {{before.Quantity}},
+            "price": {{after.Price}}
+          }
+        metadata:
+          category: "inventory"
+          action: "update"
+      deleted:
+        template: |
+          {
+            "eventType": "ProductDeleted",
+            "productId": {{before.ProductId}},
+            "name": "{{before.ProductName}}"
+          }
+        metadata:
+          category: "inventory"
+          action: "delete"
+  properties: 
+    eventBusName: default
+    format: template
+    serviceUrl: http://localstack.default.svc.cluster.local:4566

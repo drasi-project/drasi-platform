@@ -21,19 +21,42 @@ using System.Text.Json.Serialization;
 public class CloudEvent
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     [JsonPropertyName("type")]
-    public string Type { get; set; }
+    public string Type { get; set; } = string.Empty;
 
     [JsonPropertyName("source")]
-    public string Source { get; set; }
+    public string Source { get; set; } = string.Empty;
 
     [JsonPropertyName("data")]
-    public object Data { get; set; }
+    public object Data { get; set; } = new object();
 
     [JsonPropertyName("specversion")]
     public string Version { get; set; } = "1.0";
 
+    /// <summary>
+    /// Metadata extension attributes for the cloud event.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, object>? ExtensionData { get; set; }
 
+    /// <summary>
+    /// Sets metadata as extension attributes.
+    /// </summary>
+    [JsonIgnore]
+    public Dictionary<string, string>? Metadata
+    {
+        set
+        {
+            if (value != null)
+            {
+                ExtensionData ??= new Dictionary<string, object>();
+                foreach (var kvp in value)
+                {
+                    ExtensionData[kvp.Key] = kvp.Value;
+                }
+            }
+        }
+    }
 }
