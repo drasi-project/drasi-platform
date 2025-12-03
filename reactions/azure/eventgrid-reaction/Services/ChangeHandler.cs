@@ -20,6 +20,7 @@ using Azure.Messaging;
 
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.EventGrid.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -27,25 +28,27 @@ using Drasi.Reactions.EventGrid.Models.Unpacked;
 
 
 
-public class ChangeHandler : IChangeEventHandler
+public class ChangeHandler : IChangeEventHandler<QueryConfig>
 {
     private readonly EventGridPublisherClient _publisherClient;
     private readonly OutputFormat _format;
     private readonly IChangeFormatter _formatter;
+    private readonly TemplateChangeFormatter _templateFormatter;
     private readonly ILogger<ChangeHandler> _logger;
 
     private readonly EventGridSchema _eventGridSchema;
 
-    public ChangeHandler(EventGridPublisherClient publisherClient,IConfiguration config, IChangeFormatter formatter, ILogger<ChangeHandler> logger)
+    public ChangeHandler(EventGridPublisherClient publisherClient, IConfiguration config, IChangeFormatter formatter, TemplateChangeFormatter templateFormatter, ILogger<ChangeHandler> logger)
     {
         _publisherClient = publisherClient;
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _formatter = formatter;
+        _templateFormatter = templateFormatter;
         _logger = logger;
         _eventGridSchema = Enum.Parse<EventGridSchema>(config.GetValue<string>("eventGridSchema"));
     }
 
-    public async Task HandleChange(ChangeEvent evt, object? queryConfig)
+    public async Task HandleChange(ChangeEvent evt, QueryConfig? queryConfig)
     {
         _logger.LogInformation("Processing " + evt.QueryId);
         switch(_format)
@@ -104,6 +107,47 @@ public class ChangeHandler : IChangeEventHandler
                 }
             
                 break;
+
+            case OutputFormat.Template:
+                var templateResults = _templateFormatter.Format(evt, queryConfig);
+                if (_eventGridSchema == EventGridSchema.EventGrid) {
+                    List<EventGridEvent> templateEvents = new List<EventGridEvent>();
+                    foreach (var templateResult in templateResults)
+                    {
+                        EventGridEvent templateEvent = new EventGridEvent(evt.QueryId, "Drasi.ChangeEvent", "1", templateResult.Data);
+                        templateEvents.Add(templateEvent);
+                    }
+                    var templateResp = await _publisherClient.SendEventsAsync(templateEvents);
+                    if (templateResp.IsError) 
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {templateResp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {templateResp.Content.ToString()}");
+                    }
+                } else if (_eventGridSchema == EventGridSchema.CloudEvents) {
+                    List<CloudEvent> templateCloudEvents = new List<CloudEvent>();
+                    foreach (var templateResult in templateResults)
+                    {
+                        CloudEvent templateCloudEvent = new CloudEvent(evt.QueryId, "Drasi.ChangeEvent", templateResult.Data);
+                        
+                        // Apply metadata as extension attributes if provided
+                        if (templateResult.Metadata != null)
+                        {
+                            foreach (var kvp in templateResult.Metadata)
+                            {
+                                templateCloudEvent.ExtensionAttributes[kvp.Key] = kvp.Value;
+                            }
+                        }
+                        
+                        templateCloudEvents.Add(templateCloudEvent);
+                    }
+                    var templateCloudResp = await _publisherClient.SendEventsAsync(templateCloudEvents);
+                    if (templateCloudResp.IsError) 
+                    {
+                        _logger.LogError($"Error sending message to Event Grid: {templateCloudResp.Content.ToString()}");
+                        throw new Exception($"Error sending message to Event Grid: {templateCloudResp.Content.ToString()}");
+                    }
+                }
+                break;
             default:
                 throw new NotSupportedException("Invalid output format");
         }
@@ -114,7 +158,8 @@ public class ChangeHandler : IChangeEventHandler
 enum OutputFormat
 {
     Packed,
-    Unpacked
+    Unpacked,
+    Template
 }
 
 enum EventGridSchema
