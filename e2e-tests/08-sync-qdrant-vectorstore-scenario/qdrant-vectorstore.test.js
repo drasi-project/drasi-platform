@@ -24,6 +24,11 @@ const SignalrFixture = require("../fixtures/signalr-fixture");
 const { waitFor } = require('../fixtures/infrastructure');
 const http = require('http');
 const crypto = require('crypto');
+const {
+  setupMockEmbeddingService,
+  deleteMockEmbeddingService,
+  updateReactionsForMock
+} = require('../fixtures/deploy-mock-embedding');
 
 // Resource file paths
 const resourcesFilePath = __dirname + '/resources.yaml';
@@ -38,6 +43,7 @@ let dbClient;
 let qdrantPortForward;
 let qdrantPort; // Store the port separately
 let signalrFixture;
+let usingMockEmbeddings = false;
 
 // Helper function to generate deterministic GUID from string key (matching C# SHA-256 logic)
 function generateDeterministicGuid(key) {
@@ -160,24 +166,31 @@ beforeAll(async () => {
   const hasSecrets = azureKey && azureEndpoint && azureModel;
 
   if (!hasSecrets) {
-    console.warn(`
+    console.log(`
 ┌─────────────────────────────────────────────────────────────────┐
-│ ⚠️  SKIPPING QDRANT VECTORSTORE E2E TESTS                       │
+│ ℹ️  USING MOCK EMBEDDING SERVICE                                │
 ├─────────────────────────────────────────────────────────────────┤
 │ Azure OpenAI credentials are not available.                     │
-│ This is expected for fork-based pull requests.                  │
+│ Deploying mock embedding service for testing.                   │
 │                                                                  │
-│ These tests will run automatically when:                        │
-│  • PR is merged to main repository                              │
-│  • PR is created from a branch (not a fork)                     │
+│ This allows fork contributors to test the vector store pipeline │
+│ with deterministic (hash-based) embeddings.                     │
 │                                                                  │
-│ Missing environment variables:                                  │
-${!azureKey ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY                 │\n' : ''}${!azureEndpoint ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT            │\n' : ''}${!azureModel ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL     │\n' : ''}└─────────────────────────────────────────────────────────────────┘
+│ Note: Mock embeddings test the pipeline integration, not        │
+│ semantic quality. Real embeddings are tested when credentials   │
+│ are available.                                                   │
+└─────────────────────────────────────────────────────────────────┘
     `);
-    return; // Skip all setup
-  }
 
-  console.log(`Azure OpenAI configured: endpoint=${azureEndpoint}, model=${azureModel}`);
+    // Deploy mock embedding service
+    const mockReady = await setupMockEmbeddingService('drasi-test');
+    if (!mockReady) {
+      throw new Error('Failed to setup mock embedding service');
+    }
+    usingMockEmbeddings = true;
+  } else {
+    console.log(`Azure OpenAI configured: endpoint=${azureEndpoint}, model=${azureModel}`);
+  }
 
   // Load resources
   const infraResources = yaml.loadAll(fs.readFileSync(resourcesFilePath, 'utf8'));
@@ -195,18 +208,25 @@ ${!azureKey ? '│  ✗ E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY                 �
     }
   });
   
-  // Update reactions with environment-specific values
-  reactions.forEach(reaction => {
-    if (reaction.spec?.properties?.embeddingApiKey === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}') {
-      reaction.spec.properties.embeddingApiKey = azureKey;
-    }
-    if (reaction.spec?.properties?.embeddingEndpoint === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}') {
-      reaction.spec.properties.embeddingEndpoint = azureEndpoint;
-    }
-    if (reaction.spec?.properties?.embeddingModel === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}') {
-      reaction.spec.properties.embeddingModel = azureModel;
-    }
-  });
+  // Update reactions with embedding service configuration
+  if (usingMockEmbeddings) {
+    // Use mock embedding service
+    console.log('Configuring reactions to use mock embedding service...');
+    updateReactionsForMock(reactions);
+  } else {
+    // Use real Azure OpenAI
+    reactions.forEach(reaction => {
+      if (reaction.spec?.properties?.embeddingApiKey === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY}') {
+        reaction.spec.properties.embeddingApiKey = azureKey;
+      }
+      if (reaction.spec?.properties?.embeddingEndpoint === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT}') {
+        reaction.spec.properties.embeddingEndpoint = azureEndpoint;
+      }
+      if (reaction.spec?.properties?.embeddingModel === '${E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL}') {
+        reaction.spec.properties.embeddingModel = azureModel;
+      }
+    });
+  }
 
   resourcesToCleanup = [...infraResources, ...sources, ...queries, ...reactionProvider, ...reactions];
 
@@ -327,14 +347,16 @@ afterAll(async () => {
     await deleteResources(resourcesToCleanup);
     console.log("Teardown complete.");
   }
+
+  // Clean up mock embedding service if it was deployed
+  if (usingMockEmbeddings) {
+    console.log("Cleaning up mock embedding service...");
+    await deleteMockEmbeddingService();
+  }
 });
 
-// Skip entire test suite if Azure OpenAI credentials are not available
-const describeOrSkip = process.env.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY
-  ? describe
-  : describe.skip;
-
-describeOrSkip("Qdrant Vector Store E2E Tests", () => {
+// Tests always run - either with real Azure OpenAI or mock embedding service
+describe("Qdrant Vector Store E2E Tests", () => {
   test("Initial state sync - Simple query", async () => {
     console.log("Verifying initial state sync for simple products query in Qdrant...");
 
