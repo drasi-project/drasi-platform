@@ -67,7 +67,7 @@ public class ChangeHandler : IChangeEventHandler<QueryConfig>
     
     private async Task PublishUnpackedEvents(ChangeEvent evt, QueryConfig queryConfig)
     {
-        var formatter = _formatterFactory.GetFormatter();
+        var formatter = _formatterFactory.GetFormatter(queryConfig);
         var events = formatter.Format(evt);
         
         foreach (var eventData in events)

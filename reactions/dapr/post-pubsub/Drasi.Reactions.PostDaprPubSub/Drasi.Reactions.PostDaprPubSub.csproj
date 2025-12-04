@@ -11,6 +11,7 @@
     <InternalsVisibleTo Include="Drasi.Reactions.PostDaprPubSub.Tests" />
     <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.8-alpha" />
     <PackageReference Include="Dapr.Client" Version="1.15.0" />
+    <PackageReference Include="Handlebars.Net" Version="2.1.6" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
   </ItemGroup>

@@ -106,7 +106,7 @@ public class ChangeHandlerTests
         };
         
         mockFormatter.Setup(f => f.Format(evt)).Returns(formattedElements);
-        _mockFormatterFactory.Setup(ff => ff.GetFormatter()).Returns(mockFormatter.Object);
+        _mockFormatterFactory.Setup(ff => ff.GetFormatter(config)).Returns(mockFormatter.Object);
         
         _mockDaprClient.Setup(dc => dc.PublishEventAsync(
             config.PubsubName, 
@@ -119,7 +119,7 @@ public class ChangeHandlerTests
         await _handler.HandleChange(evt, config);
         
         // Assert
-        _mockFormatterFactory.Verify(ff => ff.GetFormatter(), Times.Once);
+        _mockFormatterFactory.Verify(ff => ff.GetFormatter(config), Times.Once);
         mockFormatter.Verify(f => f.Format(evt), Times.Once);
         _mockDaprClient.Verify(dc => dc.PublishEventAsync(
             config.PubsubName,
@@ -178,7 +178,7 @@ public class ChangeHandlerTests
         };
         
         mockFormatter.Setup(f => f.Format(evt)).Returns(formattedElements);
-        _mockFormatterFactory.Setup(ff => ff.GetFormatter()).Returns(mockFormatter.Object);
+        _mockFormatterFactory.Setup(ff => ff.GetFormatter(config)).Returns(mockFormatter.Object);
         
         _mockDaprClient.Setup(dc => dc.PublishEventAsync(
             config.PubsubName, 

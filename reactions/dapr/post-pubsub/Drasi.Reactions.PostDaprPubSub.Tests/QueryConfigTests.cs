@@ -30,6 +30,10 @@ public class QueryConfigTests
         Assert.Equal(string.Empty, config.TopicName);
         Assert.Equal(OutputFormat.Unpacked, config.Format); // Default is unpacked
         Assert.False(config.SkipControlSignals);
+        Assert.Null(config.AddedResultsTemplate);
+        Assert.Null(config.UpdatedResultsTemplate);
+        Assert.Null(config.DeletedResultsTemplate);
+        Assert.False(config.HasTemplates);
     }
 
     [Fact]
@@ -118,5 +122,69 @@ public class QueryConfigTests
 
         // Assert
         Assert.Equal(OutputFormat.Packed, config.Format);
+    }
+    
+    [Fact]
+    public void QueryConfig_HasTemplates_ReturnsFalseWhenNoTemplates()
+    {
+        // Arrange, Act
+        var config = new QueryConfig();
+
+        // Assert
+        Assert.False(config.HasTemplates);
+    }
+    
+    [Fact]
+    public void QueryConfig_HasTemplates_ReturnsTrueWhenAddedResultsTemplateSet()
+    {
+        // Arrange, Act
+        var config = new QueryConfig
+        {
+            AddedResultsTemplate = "{\"id\": \"{{id}}\"}"
+        };
+
+        // Assert
+        Assert.True(config.HasTemplates);
+    }
+    
+    [Fact]
+    public void QueryConfig_HasTemplates_ReturnsTrueWhenUpdatedResultsTemplateSet()
+    {
+        // Arrange, Act
+        var config = new QueryConfig
+        {
+            UpdatedResultsTemplate = "{\"before\": \"{{before.id}}\", \"after\": \"{{after.id}}\"}"
+        };
+
+        // Assert
+        Assert.True(config.HasTemplates);
+    }
+    
+    [Fact]
+    public void QueryConfig_HasTemplates_ReturnsTrueWhenDeletedResultsTemplateSet()
+    {
+        // Arrange, Act
+        var config = new QueryConfig
+        {
+            DeletedResultsTemplate = "{\"deletedId\": \"{{id}}\"}"
+        };
+
+        // Assert
+        Assert.True(config.HasTemplates);
+    }
+    
+    [Fact]
+    public void QueryConfig_HasTemplates_ReturnsTrueWhenAllTemplatesSet()
+    {
+        // Arrange, Act
+        var config = new QueryConfig
+        {
+            AddedResultsTemplate = "{\"id\": \"{{id}}\"}",
+            UpdatedResultsTemplate = "{\"before\": \"{{before.id}}\", \"after\": \"{{after.id}}\"}",
+            DeletedResultsTemplate = "{\"deletedId\": \"{{id}}\"}"
+        };
+
+        // Assert
+        Assert.True(config.HasTemplates);
     }
 }
