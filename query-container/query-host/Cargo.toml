@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 drasi-core = { path = "./drasi-core/core" }
+drasi-lib = { path = "./drasi-core/lib" }
 drasi-query-cypher = { path = "./drasi-core/query-cypher" }
 drasi-query-gql = { path = "./drasi-core/query-gql" }
 drasi-query-ast = { path = "./drasi-core/query-ast" }
@@ -15,7 +16,9 @@ drasi-functions-gql = { path = "./drasi-core/functions-gql" }
 drasi-middleware = { path = "./drasi-core/middleware" }
 drasi-index-garnet = { path = "./drasi-core/index-garnet" }
 drasi-index-rocksdb = { path = "./drasi-core/index-rocksdb" }
-drasi-server-core = { path = "./drasi-core/server-core" }
+drasi-source-platform = { path = "./drasi-core/components/sources/platform" }
+drasi-reaction-platform = { path = "./drasi-core/components/reactions/platform" }
+drasi-bootstrap-platform = { path = "./drasi-core/components/bootstrappers/platform" }
 
 dapr = "=0.15.1"
 dapr-macros = {version = "=0.15.1", package = "dapr-macros"}

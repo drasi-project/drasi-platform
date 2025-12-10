@@ -35,16 +35,19 @@ use dapr::server::{
 };
 use dapr_macros::actor;
 use drasi_core::middleware::MiddlewareTypeRegistry;
-use drasi_server_core::{DrasiServerCore, StorageBackendConfig, StorageBackendSpec, bootstrap::BootstrapProviderConfig, channels::DispatchMode};
+use drasi_lib::{DrasiLib, StorageBackendConfig, StorageBackendSpec, DispatchMode, Query, QueryLanguage};
+use drasi_source_platform::PlatformSource;
+use drasi_reaction_platform::PlatformReactionBuilder;
+use drasi_bootstrap_platform::PlatformBootstrapProvider;
 use gethostname::gethostname;
 use tokio::sync::RwLock;
 use tokio::task::{self, JoinHandle};
 
-/// Enum to hold either QueryWorker or DrasiServerCore runtime
+/// Enum to hold either QueryWorker or DrasiLib runtime
 #[derive(Clone)]
 enum QueryRuntimeInstance {
     Worker(Arc<QueryWorker>),
-    ServerCore(Arc<DrasiServerCore>),
+    DrasiLib(Arc<DrasiLib>),
 }
 
 #[actor]
@@ -178,11 +181,11 @@ impl Actor for QueryActor {
                         w.shutdown_async().await;
                     }
                 }
-                QueryRuntimeInstance::ServerCore(core) => {
-                    // For ServerCore, we need to stop it gracefully
+                QueryRuntimeInstance::DrasiLib(core) => {
+                    // For DrasiLib, we need to stop it gracefully
                     if transient {
                         if let Err(e) = core.stop().await {
-                            log::error!("Error stopping ServerCore: {}", e);
+                            log::error!("Error stopping DrasiLib: {}", e);
                         }
                         self.runtime.clear().await;
                         _ = self.unregister_reminder().await;
@@ -191,7 +194,7 @@ impl Actor for QueryActor {
                         _ = self.persist_config().await;
                     } else {
                         if let Err(e) = core.stop().await {
-                            log::error!("Error stopping ServerCore: {}", e);
+                            log::error!("Error stopping DrasiLib: {}", e);
                         }
                     }
                 }
@@ -329,9 +332,9 @@ impl QueryActor {
                     w.shutdown();
                     self.runtime.clear().await;
                 }
-                QueryRuntimeInstance::ServerCore(core) => {
+                QueryRuntimeInstance::DrasiLib(core) => {
                     if let Err(e) = core.stop().await {
-                        log::error!("Error stopping ServerCore during deprovision: {}", e);
+                        log::error!("Error stopping DrasiLib during deprovision: {}", e);
                     }
                     self.runtime.clear().await;
                 }
@@ -377,17 +380,17 @@ impl QueryActor {
         match config.query_runtime {
             Some(QueryRuntime::Worker) => {
                 log::info!(
-                    "Query {} initializing with Worker runtime", 
+                    "Query {} initializing with Worker runtime",
                     self.query_id
                 );
                 self.init_worker().await
             },
             Some(QueryRuntime::ServerCore) => {
                 log::info!(
-                    "Query {} initializing with ServerCore runtime",
+                    "Query {} initializing with DrasiLib runtime",
                     self.query_id
                 );
-                self.init_core().await
+                self.init_drasi_lib().await
             },
             None => {
                 log::info!(
@@ -472,13 +475,13 @@ impl QueryActor {
         Ok(())
     }
 
-    async fn init_core(&self) -> Result<(), ActorError> {
+    async fn init_drasi_lib(&self) -> Result<(), ActorError> {
         if let Some(runtime_instance) = &self.runtime.get().await {
             match runtime_instance {
-                QueryRuntimeInstance::ServerCore(core) if core.is_running().await => {
-                    log::error!("Query {} ServerCore already running", self.query_id);
+                QueryRuntimeInstance::DrasiLib(core) if core.is_running().await => {
+                    log::error!("Query {} DrasiLib already running", self.query_id);
                     return Err(ActorError::MethodError(Box::new(QueryError::Other(
-                        "Query ServerCore already running".into(),
+                        "Query DrasiLib already running".into(),
                     ))));
                 }
                 _ => {}
@@ -497,11 +500,11 @@ impl QueryActor {
             }
         };
 
-        // Convert the configured (or default) platform storage spec to drasi_server_core 
+        // Convert the configured (or default) platform storage spec to drasi_lib
         // storage backend config
         let index_factory = self.index_factory.clone().ok_or_else(|| {
             ActorError::MethodError(Box::new(QueryError::Other(
-                "Index factory not available for ServerCore runtime".into(),
+                "Index factory not available for DrasiLib runtime".into(),
             )))
         })?;
 
@@ -510,37 +513,40 @@ impl QueryActor {
             .await
         {
             Ok(spec) => match spec {
-                StorageSpec::Memory {enable_archive} => {
-                    StorageBackendConfig {
-                        id: config.storage_profile.clone().unwrap_or_else(|| index_factory.default_store.clone()),
-                        spec: StorageBackendSpec::Memory { enable_archive },
-                    }
+                StorageSpec::Memory { enable_archive } => StorageBackendConfig {
+                    id: config
+                        .storage_profile
+                        .clone()
+                        .unwrap_or_else(|| index_factory.default_store.clone()),
+                    spec: StorageBackendSpec::Memory { enable_archive },
                 },
                 StorageSpec::Redis {
                     connection_string,
                     cache_size,
-                } => {
-                    StorageBackendConfig {
-                        id: config.storage_profile.clone().unwrap_or_else(|| index_factory.default_store.clone()),
-                        spec: StorageBackendSpec::Redis {
-                            connection_string,
-                            cache_size,
-                        },
-                    }
+                } => StorageBackendConfig {
+                    id: config
+                        .storage_profile
+                        .clone()
+                        .unwrap_or_else(|| index_factory.default_store.clone()),
+                    spec: StorageBackendSpec::Redis {
+                        connection_string,
+                        cache_size,
+                    },
                 },
                 StorageSpec::RocksDb {
                     enable_archive,
                     direct_io,
-                } => {
-                    StorageBackendConfig {
-                        id: config.storage_profile.clone().unwrap_or_else(|| index_factory.default_store.clone()),
-                        spec: StorageBackendSpec::RocksDb {
-                            path: "/data".to_string(),
-                            enable_archive,
-                            direct_io,
-                        }
-                    }
-                }
+                } => StorageBackendConfig {
+                    id: config
+                        .storage_profile
+                        .clone()
+                        .unwrap_or_else(|| index_factory.default_store.clone()),
+                    spec: StorageBackendSpec::RocksDb {
+                        path: "/data".to_string(),
+                        enable_archive,
+                        direct_io,
+                    },
+                },
             },
             Err(err) => {
                 log::error!("Error initializing index: {}", err);
@@ -552,115 +558,129 @@ impl QueryActor {
             }
         };
 
-        // Initialize builder with server ID
-        let mut builder = DrasiServerCore::builder()
+        // Initialize builder with server ID and storage backend
+        let mut builder = DrasiLib::builder()
             .with_id(self.query_container_id.to_string())
             .add_storage_backend(storage_backend);
 
         // Add Platform Sources for each Source Subscription
         for source in &config.sources.subscriptions {
-            builder = builder.add_source(drasi_server_core::config::SourceConfig {
-                id: source.id.clone(),
-                dispatch_mode: Some(DispatchMode::Channel),
-                dispatch_buffer_capacity: Some(20000),
-                auto_start: true,
-                config: drasi_server_core::config::SourceSpecificConfig::Platform(
-                    drasi_server_core::config::PlatformSourceConfig {
-                        redis_url: "redis://drasi-redis:6379".to_string(),
-                        stream_key: format!("{}-change", source.id),
-                        consumer_group: self.query_container_id.to_string(),
-                        consumer_name: Some(self.query_id.to_string()),
-                        batch_size: 10,
-                        block_ms: 5000,
-                    }
-                ),
-                bootstrap_provider: Some(BootstrapProviderConfig::Platform(
-                    drasi_server_core::bootstrap::PlatformBootstrapConfig {
-                        query_api_url: Some(format!("http://{}-query-api:80", source.id)),
-                        timeout_seconds: 30,
-                    }
-                )),
-            });
+            // Create platform bootstrap provider
+            let bootstrap_provider = PlatformBootstrapProvider::builder()
+                .with_query_api_url(format!("http://{}-query-api:80", source.id))
+                .with_timeout_seconds(30)
+                .build()
+                .map_err(|e| {
+                    log::error!("Error creating bootstrap provider: {}", e);
+                    ActorError::MethodError(Box::new(QueryError::Other(
+                        "Error creating bootstrap provider".into(),
+                    )))
+                })?;
+
+            // Create platform source with bootstrap provider
+            let platform_source = PlatformSource::builder(&source.id)
+                .with_redis_url("redis://drasi-redis:6379")
+                .with_stream_key(format!("{}-change", source.id))
+                .with_consumer_group(self.query_container_id.to_string())
+                .with_consumer_name(self.query_id.to_string())
+                .with_batch_size(10)
+                .with_block_ms(5000)
+                .with_dispatch_mode(DispatchMode::Channel)
+                .with_dispatch_buffer_capacity(20000)
+                .with_bootstrap_provider(bootstrap_provider)
+                .with_auto_start(true)
+                .build()
+                .map_err(|e| {
+                    log::error!("Error creating platform source: {}", e);
+                    ActorError::MethodError(Box::new(QueryError::Other(
+                        "Error creating platform source".into(),
+                    )))
+                })?;
+
+            builder = builder.with_source(platform_source);
+        }
+
+        // Build the Query configuration using the Query builder
+        let query_language = match config.query_language {
+            Some(crate::api::QueryLanguage::Cypher) => QueryLanguage::Cypher,
+            Some(crate::api::QueryLanguage::GQL) => QueryLanguage::GQL,
+            None => QueryLanguage::Cypher,
         };
 
-        // Add the Query
-        builder = builder.add_query(drasi_server_core::config::QueryConfig {
-            id: self.query_id.to_string(),
-            dispatch_mode: Some(DispatchMode::Channel),
-            dispatch_buffer_capacity: Some(10000),
-            priority_queue_capacity: Some(100000),
-            query: config.query.clone(),
-            query_language: match config.query_language {
-                Some(crate::api::QueryLanguage::Cypher) => drasi_server_core::config::QueryLanguage::Cypher,
-                Some(crate::api::QueryLanguage::GQL) => drasi_server_core::config::QueryLanguage::GQL,
-                None => drasi_server_core::config::QueryLanguage::Cypher,
-            },
-            source_subscriptions: config.sources.subscriptions.iter().map(|s| {
-                drasi_server_core::config::SourceSubscriptionConfig {
-                    source_id: s.id.clone(),
-                    pipeline: s.pipeline.clone(),
-                }
-            }).collect(),
-            middleware: config.sources.middleware.iter().map(|m| {
-                drasi_core::models::SourceMiddlewareConfig {
-                    kind: Arc::from(m.kind.as_str()),
-                    name: Arc::from(m.name.as_str()),
-                    config: m.config.clone(),
-                }
-            }).collect(),
-            auto_start: true,
-            joins: None,
-            bootstrap_buffer_size: 1000,
-            enable_bootstrap: true,
-            storage_backend: None,
-        });
+        let mut query_builder = match query_language {
+            QueryLanguage::Cypher => Query::cypher(&*self.query_id),
+            QueryLanguage::GQL => Query::gql(&*self.query_id),
+        };
+
+        query_builder = query_builder
+            .query(&config.query)
+            .with_dispatch_mode(DispatchMode::Channel)
+            .with_dispatch_buffer_capacity(10000)
+            .with_priority_queue_capacity(100000)
+            .with_bootstrap_buffer_size(1000)
+            .enable_bootstrap(true)
+            .auto_start(true);
+
+        // Add source subscriptions with pipelines
+        for sub in &config.sources.subscriptions {
+            query_builder =
+                query_builder.from_source_with_pipeline(sub.id.clone(), sub.pipeline.clone());
+        }
+
+        // Add middleware configurations
+        for m in &config.sources.middleware {
+            query_builder = query_builder.with_middleware(drasi_core::models::SourceMiddlewareConfig {
+                kind: Arc::from(m.kind.as_str()),
+                name: Arc::from(m.name.as_str()),
+                config: m.config.clone(),
+            });
+        }
+
+        builder = builder.with_query(query_builder.build());
 
         // Add the Platform Reaction
-        builder = builder.add_reaction(drasi_server_core::config::ReactionConfig {
-            id: self.query_id.to_string(),
-            priority_queue_capacity: None,
-            queries: vec![self.query_id.to_string()],
-            auto_start: true,
-            config: drasi_server_core::config::ReactionSpecificConfig::Platform(
-                drasi_server_core::config::PlatformReactionConfig {
-                    redis_url: "redis://drasi-redis:6379".to_string(),
-                    pubsub_name: Some("drasi-pubsub".to_string()),
-                    source_name: Some("drasi-core".to_string()),
-                    max_stream_length: Some(10000),
-                    emit_control_events: true,
-                    batch_enabled: false,
-                    batch_max_size: 10,
-                    batch_max_wait_ms: 1000,
-                }
-            ),
-        });
+        let platform_reaction = PlatformReactionBuilder::new(&*self.query_id)
+            .with_queries(vec![self.query_id.to_string()])
+            .with_redis_url("redis://drasi-redis:6379")
+            .with_pubsub_name("drasi-pubsub")
+            .with_source_name("drasi-core")
+            .with_max_stream_length(10000)
+            .with_emit_control_events(true)
+            .with_batch_enabled(false)
+            .with_batch_max_size(10)
+            .with_batch_max_wait_ms(1000)
+            .with_auto_start(true)
+            .build()
+            .map_err(|e| {
+                log::error!("Error creating platform reaction: {}", e);
+                ActorError::MethodError(Box::new(QueryError::Other(
+                    "Error creating platform reaction".into(),
+                )))
+            })?;
+
+        builder = builder.with_reaction(platform_reaction);
 
         // Build and initialize (build() returns already-initialized instance)
         let core = builder.build().await.map_err(|e| {
             log::error!("Query {} Error building core: {}", self.query_id, e);
-            ActorError::MethodError(Box::new(QueryError::Other(
-                "Error building core".into(),
-            )))
+            ActorError::MethodError(Box::new(QueryError::Other("Error building core".into())))
         })?;
 
         // Start the server
         core.start().await.map_err(|e| {
             log::error!("Query {} Error starting core: {}", self.query_id, e);
-            ActorError::MethodError(Box::new(QueryError::Other(
-                "Error starting core".into(),
-            )))
+            ActorError::MethodError(Box::new(QueryError::Other("Error starting core".into())))
         })?;
 
         self.runtime
-            .set(QueryRuntimeInstance::ServerCore(Arc::new(core)))
+            .set(QueryRuntimeInstance::DrasiLib(Arc::new(core)))
             .await;
 
         self.lifecycle.change_state(QueryState::Running);
 
-        log::info!("Query {} core started", self.query_id);
+        log::info!("Query {} DrasiLib started", self.query_id);
 
         Ok(())
-
     }
 
     async fn register_reminder(&self) -> Result<(), ActorError> {
