@@ -38,7 +38,7 @@ impl DaprPublisher {
             dapr_port: env::var("DAPR_HTTP_PORT")
                 .unwrap_or("3500".to_string())
                 .parse::<u16>()
-                .unwrap(),
+                .expect("DAPR_HTTP_PORT must be a valid u16"),
             pubsub: env::var("PUBSUB").unwrap_or("drasi-pubsub".to_string()),
             source_id: env::var("SOURCE_ID").expect("Source ID not specified"),
         }
@@ -70,11 +70,9 @@ impl Publisher for DaprPublisher {
         let response = request.send().await;
 
         match response {
-            Ok(r) => {
-                match r.error_for_status() {
-                    Ok(_) => Ok(()),
-                    Err(e) => return Err(Box::new(e)),
-                }
+            Ok(r) => match r.error_for_status() {
+                Ok(_) => Ok(()),
+                Err(e) => return Err(Box::new(e)),
             },
             Err(e) => Err(Box::new(e)),
         }

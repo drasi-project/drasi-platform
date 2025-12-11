@@ -23,6 +23,12 @@ pub struct MemoryStateStore {
     data: Arc<Mutex<HashMap<String, Vec<u8>>>>,
 }
 
+impl Default for MemoryStateStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MemoryStateStore {
     pub fn new() -> Self {
         MemoryStateStore {

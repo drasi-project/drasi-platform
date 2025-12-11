@@ -23,19 +23,19 @@ use tokio::sync::mpsc::UnboundedSender;
 #[tokio::main]
 async fn main() {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-    
+
     let kube_config = {
         match env::var("kubeConfig") {
             Ok(config) => {
-                let kc = Kubeconfig::from_yaml(&config).unwrap();
+                let kc = Kubeconfig::from_yaml(&config).expect("Failed to parse kubeconfig");
                 Config::from_custom_kubeconfig(kc, &KubeConfigOptions::default())
                     .await
-                    .unwrap()
+                    .expect("Failed to create kube config from kubeconfig")
             }
-            Err(_) => Config::infer().await.unwrap(),
+            Err(_) => Config::infer().await.expect("Failed to infer kube config"),
         }
     };
-    let kube_client = Client::try_from(kube_config.clone()).unwrap();
+    let kube_client = Client::try_from(kube_config.clone()).expect("Failed to create kube client");
 
     let proxy = SourceProxyBuilder::new()
         .with_stream_producer(my_stream)
