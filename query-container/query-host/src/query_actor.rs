@@ -16,7 +16,7 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{
     api::{QueryRequest, QueryRuntime, QuerySpec, QueryStatus},
-    index_factory::{IndexFactory, StorageSpec },
+    index_factory::{IndexFactory, StorageSpec},
     models::{ChangeStreamConfig, QueryError, QueryLifecycle, QueryState},
     query_worker::QueryWorker,
     result_publisher::ResultPublisher,
@@ -34,11 +34,13 @@ use dapr::server::{
     utils::DaprJson,
 };
 use dapr_macros::actor;
-use drasi_core::middleware::MiddlewareTypeRegistry;
-use drasi_lib::{DrasiLib, StorageBackendConfig, StorageBackendSpec, DispatchMode, Query, QueryLanguage};
-use drasi_source_platform::PlatformSource;
-use drasi_reaction_platform::PlatformReactionBuilder;
 use drasi_bootstrap_platform::PlatformBootstrapProvider;
+use drasi_core::middleware::MiddlewareTypeRegistry;
+use drasi_lib::{
+    DispatchMode, DrasiLib, Query, QueryLanguage, StorageBackendConfig, StorageBackendSpec,
+};
+use drasi_reaction_platform::PlatformReactionBuilder;
+use drasi_source_platform::PlatformSource;
 use gethostname::gethostname;
 use tokio::sync::RwLock;
 use tokio::task::{self, JoinHandle};
@@ -97,23 +99,19 @@ impl Actor for QueryActor {
                                 value: Some(match serde_json::to_vec(&state) {
                                     Ok(s) => s,
                                     Err(e) => {
-                                        log::error!(
-                                            "Query {} Error serializing status: {}",
-                                            qid,
-                                            e
-                                        );
+                                        log::error!("Query {qid} Error serializing status: {e}");
                                         continue;
                                     }
                                 }),
                             }])
                             .await;
                         match res {
-                            Ok(_) => log::info!("Query {} Status updated to {}", qid, state),
-                            Err(e) => log::error!("Query {} Error updating status: {}", qid, e),
+                            Ok(_) => log::info!("Query {qid} Status updated to {state}"),
+                            Err(e) => log::error!("Query {qid} Error updating status: {e}"),
                         }
                     }
                     Err(e) => {
-                        log::info!("status watcher closed - {}", e);
+                        log::info!("status watcher closed - {e}");
                         break;
                     }
                 }
@@ -126,9 +124,8 @@ impl Actor for QueryActor {
             QueryState::Configured | QueryState::Running => {
                 if let Err(err) = self.init().await {
                     log::error!(
-                        "Query {} failed to initialize runtime - {}",
-                        self.query_id,
-                        err
+                        "Query {} failed to initialize runtime - {err}",
+                        self.query_id
                     );
                 }
             }
@@ -136,17 +133,15 @@ impl Actor for QueryActor {
                 //todo: purge index
                 if let Err(err) = self.init().await {
                     log::error!(
-                        "Query {} failed to initialize runtime - {}",
-                        self.query_id,
-                        err
+                        "Query {} failed to initialize runtime - {err}",
+                        self.query_id
                     );
                 }
             }
             QueryState::TerminalError(err) => {
                 log::warn!(
-                    "Query {} in terminal state on activation - {}",
-                    self.query_id,
-                    err
+                    "Query {} in terminal state on activation - {err}",
+                    self.query_id
                 );
                 _ = self.unregister_reminder().await;
             }
@@ -164,7 +159,7 @@ impl Actor for QueryActor {
             .config
             .get()
             .await
-            .map_or(false, |c| c.transient.is_some_and(|f| f));
+            .is_some_and(|c| c.transient.is_some_and(|f| f));
 
         if let Some(runtime_instance) = self.runtime.take().await {
             match runtime_instance {
@@ -185,17 +180,15 @@ impl Actor for QueryActor {
                     // For DrasiLib, we need to stop it gracefully
                     if transient {
                         if let Err(e) = core.stop().await {
-                            log::error!("Error stopping DrasiLib: {}", e);
+                            log::error!("Error stopping DrasiLib: {e}");
                         }
                         self.runtime.clear().await;
                         _ = self.unregister_reminder().await;
                         self.config.clear().await;
                         self.lifecycle.change_state(QueryState::Deleted);
                         _ = self.persist_config().await;
-                    } else {
-                        if let Err(e) = core.stop().await {
-                            log::error!("Error stopping DrasiLib: {}", e);
-                        }
+                    } else if let Err(e) = core.stop().await {
+                        log::error!("Error stopping DrasiLib: {e}");
                     }
                 }
             }
@@ -209,12 +202,11 @@ impl Actor for QueryActor {
     }
 
     async fn on_reminder(&self, _reminder_name: &str, _data: Vec<u8>) -> Result<(), ActorError> {
-        log::info!("Query reminder {}", self.query_id);
+        log::info!("Query reminder {}", &self.query_id);
         if let QueryState::TransientError(err) = self.lifecycle.get_state() {
             log::info!(
-                "Query {} in transient error state on reminder - {}",
-                self.query_id,
-                err
+                "Query {} in transient error state on reminder - {err}",
+                self.query_id
             );
             self.init().await?;
         }
@@ -257,7 +249,7 @@ impl QueryActor {
     }
 
     pub async fn configure(&self, DaprJson(spec): DaprJson<QueryRequest>) -> impl IntoResponse {
-        log::info!("Query configure - {}", self.query_id);
+        log::info!("Query configure - {}", &self.query_id);
         let config = self.config.get().await;
 
         if config.is_some() {
@@ -272,7 +264,7 @@ impl QueryActor {
         match self.persist_config().await {
             Ok(_) => {}
             Err(e) => {
-                log::error!("Query {} Error persisting state: {}", self.query_id, e);
+                log::error!("Query {} Error persisting state: {e}", self.query_id);
                 return (StatusCode::INTERNAL_SERVER_ERROR, "Error persisting state")
                     .into_response();
             }
@@ -281,7 +273,7 @@ impl QueryActor {
         match self.register_reminder().await {
             Ok(_) => {}
             Err(e) => {
-                log::error!("Query {} Error registering reminder: {}", self.query_id, e);
+                log::error!("Query {} Error registering reminder: {e}", self.query_id);
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Error registering reminder",
@@ -293,7 +285,7 @@ impl QueryActor {
         match self.init().await {
             Ok(_) => {}
             Err(e) => {
-                log::error!("Query {} Error initializing runtime: {}", self.query_id, e);
+                log::error!("Query {} Error initializing runtime: {e}", self.query_id);
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Error initializing runtime",
@@ -308,12 +300,12 @@ impl QueryActor {
     }
 
     pub async fn reconcile(&self) -> impl IntoResponse {
-        log::info!("Query reconcile - {}", self.query_id);
+        log::info!("Query reconcile - {}", &self.query_id);
         Json(())
     }
 
     pub async fn get_status(&self) -> Json<QueryStatus> {
-        log::info!("Query get status - {}", self.query_id);
+        log::info!("Query get status - {}", &self.query_id);
 
         Json(QueryStatus {
             host_name: gethostname().to_str().unwrap_or_default().to_string(),
@@ -324,7 +316,7 @@ impl QueryActor {
     }
 
     pub async fn deprovision(&self) -> impl IntoResponse {
-        log::info!("Actor deprovision - {}", self.query_id);
+        log::info!("Actor deprovision - {}", &self.query_id);
         if let Some(runtime_instance) = &self.runtime.get().await {
             match runtime_instance {
                 QueryRuntimeInstance::Worker(w) => {
@@ -334,18 +326,14 @@ impl QueryActor {
                 }
                 QueryRuntimeInstance::DrasiLib(core) => {
                     if let Err(e) = core.stop().await {
-                        log::error!("Error stopping DrasiLib during deprovision: {}", e);
+                        log::error!("Error stopping DrasiLib during deprovision: {e}");
                     }
                     self.runtime.clear().await;
                 }
             }
         }
         if let Err(e) = self.unregister_reminder().await {
-            log::error!(
-                "Query {} Error unregistering reminder: {}",
-                self.query_id,
-                e
-            );
+            log::error!("Query {} Error unregistering reminder: {e}", self.query_id);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Error unregistering reminder",
@@ -356,7 +344,7 @@ impl QueryActor {
         self.config.clear().await;
         self.lifecycle.change_state(QueryState::Deleted);
         if let Err(e) = self.persist_config().await {
-            log::error!("Query {} Error persisting state: {}", self.query_id, e);
+            log::error!("Query {} Error persisting state: {e}", self.query_id);
             return (StatusCode::INTERNAL_SERVER_ERROR, "Error persisting state").into_response();
         }
 
@@ -379,19 +367,13 @@ impl QueryActor {
 
         match config.query_runtime {
             Some(QueryRuntime::Worker) => {
-                log::info!(
-                    "Query {} initializing with Worker runtime",
-                    self.query_id
-                );
+                log::info!("Query {} initializing with Worker runtime", self.query_id);
                 self.init_worker().await
-            },
+            }
             Some(QueryRuntime::ServerCore) => {
-                log::info!(
-                    "Query {} initializing with DrasiLib runtime",
-                    self.query_id
-                );
+                log::info!("Query {} initializing with DrasiLib runtime", self.query_id);
                 self.init_drasi_lib().await
-            },
+            }
             None => {
                 log::info!(
                     "Query {} initializing with default (Worker) runtime",
@@ -549,7 +531,7 @@ impl QueryActor {
                 },
             },
             Err(err) => {
-                log::error!("Error initializing index: {}", err);
+                log::error!("Error initializing index: {err}");
                 self.lifecycle
                     .change_state(QueryState::TransientError(err.to_string()));
                 return Err(ActorError::MethodError(Box::new(QueryError::Other(
@@ -567,11 +549,11 @@ impl QueryActor {
         for source in &config.sources.subscriptions {
             // Create platform bootstrap provider
             let bootstrap_provider = PlatformBootstrapProvider::builder()
-                .with_query_api_url(format!("http://{}-query-api:80", source.id))
+                .with_query_api_url(format!("http://{}-query-api:80", &source.id))
                 .with_timeout_seconds(30)
                 .build()
                 .map_err(|e| {
-                    log::error!("Error creating bootstrap provider: {}", e);
+                    log::error!("Error creating bootstrap provider: {e}");
                     ActorError::MethodError(Box::new(QueryError::Other(
                         "Error creating bootstrap provider".into(),
                     )))
@@ -580,7 +562,7 @@ impl QueryActor {
             // Create platform source with bootstrap provider
             let platform_source = PlatformSource::builder(&source.id)
                 .with_redis_url("redis://drasi-redis:6379")
-                .with_stream_key(format!("{}-change", source.id))
+                .with_stream_key(format!("{}-change", &source.id))
                 .with_consumer_group(self.query_container_id.to_string())
                 .with_consumer_name(self.query_id.to_string())
                 .with_batch_size(10)
@@ -591,7 +573,7 @@ impl QueryActor {
                 .with_auto_start(true)
                 .build()
                 .map_err(|e| {
-                    log::error!("Error creating platform source: {}", e);
+                    log::error!("Error creating platform source: {e}");
                     ActorError::MethodError(Box::new(QueryError::Other(
                         "Error creating platform source".into(),
                     )))
@@ -629,11 +611,12 @@ impl QueryActor {
 
         // Add middleware configurations
         for m in &config.sources.middleware {
-            query_builder = query_builder.with_middleware(drasi_core::models::SourceMiddlewareConfig {
-                kind: Arc::from(m.kind.as_str()),
-                name: Arc::from(m.name.as_str()),
-                config: m.config.clone(),
-            });
+            query_builder =
+                query_builder.with_middleware(drasi_core::models::SourceMiddlewareConfig {
+                    kind: Arc::from(m.kind.as_str()),
+                    name: Arc::from(m.name.as_str()),
+                    config: m.config.clone(),
+                });
         }
 
         builder = builder.with_query(query_builder.build());
@@ -652,7 +635,7 @@ impl QueryActor {
             .with_auto_start(true)
             .build()
             .map_err(|e| {
-                log::error!("Error creating platform reaction: {}", e);
+                log::error!("Error creating platform reaction: {e}");
                 ActorError::MethodError(Box::new(QueryError::Other(
                     "Error creating platform reaction".into(),
                 )))
@@ -662,13 +645,13 @@ impl QueryActor {
 
         // Build and initialize (build() returns already-initialized instance)
         let core = builder.build().await.map_err(|e| {
-            log::error!("Query {} Error building core: {}", self.query_id, e);
+            log::error!("Query {} Error building core: {e}", self.query_id);
             ActorError::MethodError(Box::new(QueryError::Other("Error building core".into())))
         })?;
 
         // Start the server
         core.start().await.map_err(|e| {
-            log::error!("Query {} Error starting core: {}", self.query_id, e);
+            log::error!("Query {} Error starting core: {e}", self.query_id);
             ActorError::MethodError(Box::new(QueryError::Other("Error starting core".into())))
         })?;
 
@@ -697,7 +680,7 @@ impl QueryActor {
         {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error registering reminder: {}", e);
+                log::error!("Error registering reminder: {e}");
                 Err(ActorError::MethodError(Box::new(e)))
             }
         }
@@ -708,7 +691,7 @@ impl QueryActor {
         match client.unregister_actor_reminder("ping").await {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error unregistering reminder: {}", e);
+                log::error!("Error unregistering reminder: {e}");
                 Err(ActorError::MethodError(Box::new(e)))
             }
         }
@@ -722,7 +705,7 @@ impl QueryActor {
             value: Some(match serde_json::to_vec(&config_value) {
                 Ok(s) => s,
                 Err(e) => {
-                    log::error!("Error serializing config: {}", e);
+                    log::error!("Error serializing config: {e}");
                     return Err(ActorError::SerializationError());
                 }
             }),
@@ -733,7 +716,7 @@ impl QueryActor {
         match result {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error persisting config: {}", e);
+                log::error!("Error persisting config: {e}");
                 Err(ActorError::CorruptedState)
             }
         }
@@ -749,14 +732,14 @@ impl QueryActor {
                     match serde_json::from_slice(&s.data) {
                         Ok(s) => s,
                         Err(e) => {
-                            log::error!("Error deserializing status: {}", e);
+                            log::error!("Error deserializing status: {e}");
                             return Err(ActorError::SerializationError());
                         }
                     }
                 }
             }),
             Err(e) => {
-                log::error!("Error reading status: {}", e);
+                log::error!("Error reading status: {e}");
                 return Err(ActorError::CorruptedState);
             }
         };
@@ -769,7 +752,7 @@ impl QueryActor {
                     let cfg: Option<QuerySpec> = match serde_json::from_slice(&s.data) {
                         Ok(s) => s,
                         Err(e) => {
-                            log::error!("Error deserializing config: {}", e);
+                            log::error!("Error deserializing config: {e}");
                             return Err(ActorError::SerializationError());
                         }
                     };
@@ -780,7 +763,7 @@ impl QueryActor {
                 }
             }
             Err(e) => {
-                log::error!("Error reading config: {}", e);
+                log::error!("Error reading config: {e}");
                 return Err(ActorError::CorruptedState);
             }
         };

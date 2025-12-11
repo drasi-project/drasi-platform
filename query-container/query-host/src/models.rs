@@ -70,15 +70,15 @@ impl QueryLifecycle {
     }
 
     pub fn get_state(&self) -> QueryState {
-        self.state.read().unwrap().clone()
+        self.state.read().expect("state lock poisoned").clone()
     }
 
     pub fn init_state(&self, state: QueryState) {
-        *self.state.write().unwrap() = state;
+        *self.state.write().expect("state lock poisoned") = state;
     }
 
     pub fn change_state(&self, state: QueryState) {
-        *self.state.write().unwrap() = state.clone();
+        *self.state.write().expect("state lock poisoned") = state.clone();
         _ = self.on_change_tx.send(state);
     }
 

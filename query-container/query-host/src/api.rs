@@ -34,18 +34,13 @@ pub enum QueryLanguage {
     GQL,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub enum QueryRuntime {
     #[serde(rename = "Worker")]
+    #[default]
     Worker,
     #[serde(rename = "ServerCore")]
     ServerCore,
-}
-
-impl Default for QueryRuntime {
-    fn default() -> Self {
-        QueryRuntime::Worker
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -513,7 +508,7 @@ pub enum ApiError {
 impl Display for ApiError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ApiError::BadRequest(msg) => write!(f, "Bad request: {}", msg),
+            ApiError::BadRequest(msg) => write!(f, "Bad request: {msg}"),
         }
     }
 }

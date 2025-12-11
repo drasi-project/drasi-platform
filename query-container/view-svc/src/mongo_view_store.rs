@@ -67,14 +67,18 @@ impl MongoViewStore {
             }
         });
 
-        result.gc_task.lock().unwrap().replace(gc_task);
+        result
+            .gc_task
+            .lock()
+            .expect("gc_task lock poisoned")
+            .replace(gc_task);
         Ok(result)
     }
 }
 
 impl Drop for MongoViewStore {
     fn drop(&mut self) {
-        let mut gc_task = self.gc_task.lock().unwrap();
+        let mut gc_task = self.gc_task.lock().expect("gc_task lock poisoned");
         if let Some(task) = gc_task.take() {
             task.abort();
         }
@@ -107,7 +111,7 @@ impl ViewStore for MongoViewStore {
                 log::debug!("created indexes: {:?}", r.index_names);
                 Ok(())
             }
-            Err(e) => return Err(ViewError::StoreError(Box::new(e))),
+            Err(e) => Err(ViewError::StoreError(Box::new(e))),
         }
     }
 
@@ -132,7 +136,7 @@ impl ViewStore for MongoViewStore {
             .drop(options::DropCollectionOptions::builder().build())
             .await
         {
-            Ok(r) => log::debug!("clear: {:?}", r),
+            Ok(r) => log::debug!("clear: {r:?}"),
             Err(e) => return Err(ViewError::StoreError(Box::new(e))),
         };
         Ok(())
@@ -187,7 +191,7 @@ impl ViewStore for MongoViewStore {
             };
 
             match response {
-                Ok(r) => log::debug!("remove: {:?}", r),
+                Ok(r) => log::debug!("remove: {r:?}"),
                 Err(e) => return Err(ViewError::StoreError(Box::new(e))),
             };
         }
@@ -230,7 +234,7 @@ impl ViewStore for MongoViewStore {
                 };
 
                 match response {
-                    Ok(r) => log::debug!("update before: {:?}", r),
+                    Ok(r) => log::debug!("update before: {r:?}"),
                     Err(e) => return Err(ViewError::StoreError(Box::new(e))),
                 };
             }
@@ -260,7 +264,7 @@ impl ViewStore for MongoViewStore {
                     .await;
 
                 match response {
-                    Ok(r) => log::debug!("update after: {:?}", r),
+                    Ok(r) => log::debug!("update after: {r:?}"),
                     Err(e) => return Err(ViewError::StoreError(Box::new(e))),
                 };
             }
@@ -288,7 +292,7 @@ impl ViewStore for MongoViewStore {
                 .await;
 
             match response {
-                Ok(r) => log::debug!("add: {:?}", r),
+                Ok(r) => log::debug!("add: {r:?}"),
                 Err(e) => return Err(ViewError::StoreError(Box::new(e))),
             };
         }
@@ -348,7 +352,7 @@ impl ViewStore for MongoViewStore {
 
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
+            .expect("SystemTime before UNIX EPOCH")
             .as_millis() as u64;
         let timestamp = timestamp.unwrap_or(now) as i64;
         let effective_at = std::cmp::min(metadata.ts, timestamp);
@@ -388,7 +392,7 @@ impl ViewStore for MongoViewStore {
                     },
                     Ok(ViewItem::Metadata(_)) => {},
                     Err(err) => {
-                        log::error!("error reading from view: {:?}", err);
+                        log::error!("error reading from view: {err:?}");
                     }
                 }
             }
@@ -517,7 +521,7 @@ async fn collect_garbage(store: Arc<MongoViewStore>) {
 
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
+        .expect("SystemTime before UNIX EPOCH")
         .as_millis() as i64;
 
     for (query_id, policy) in policy_snapshot {
@@ -527,7 +531,7 @@ async fn collect_garbage(store: Arc<MongoViewStore>) {
             RetentionPolicy::All => continue,
         };
 
-        log::info!("query {} garbage collection: {}", query_id, epoch);
+        log::info!("query {query_id} garbage collection: {epoch}");
 
         let collection = store.database.collection::<ViewItem>(&query_id);
 
@@ -541,8 +545,8 @@ async fn collect_garbage(store: Arc<MongoViewStore>) {
             .await;
 
         match del_response {
-            Ok(r) => log::info!("query {} garbage collection: {:?}", query_id, r),
-            Err(e) => log::error!("query {} garbage collection error: {:?}", query_id, e),
+            Ok(r) => log::info!("query {query_id} garbage collection: {r:?}"),
+            Err(e) => log::error!("query {query_id} garbage collection error: {e:?}"),
         };
     }
 }

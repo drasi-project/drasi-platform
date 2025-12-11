@@ -141,10 +141,14 @@ pub async fn start_view_service(view_store: Arc<dyn ViewStore>, port: u16) {
         .with_state(view_store.clone());
 
     // let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    let addr = format!("0.0.0.0:{}", port);
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    let addr = format!("0.0.0.0:{port}");
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .expect("Failed to bind to address");
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .await
+        .expect("Failed to start server");
 }
 
 async fn view_stream(
@@ -152,23 +156,19 @@ async fn view_stream(
     Path(query_id): Path<String>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let timestamp = match params.get("timestamp") {
-        Some(ts) => match ts.parse::<u64>() {
-            Ok(ts) => Some(ts),
-            Err(_) => None,
-        },
-        None => None,
-    };
+    let timestamp = params
+        .get("timestamp")
+        .and_then(|ts| ts.parse::<u64>().ok());
 
     match store.get_view(&query_id, timestamp).await {
         Ok(stream) => StreamBodyAs::json_array(stream).into_response(),
         Err(e) => match e {
             ViewError::NotFound => {
-                let body = format!("View `{}` not found", query_id);
+                let body = format!("View `{query_id}` not found");
                 (axum::http::StatusCode::NOT_FOUND, body).into_response()
             }
             _ => {
-                let body = format!("Error: {}", e);
+                let body = format!("Error: {e}");
                 (axum::http::StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
             }
         },

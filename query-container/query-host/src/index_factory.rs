@@ -61,11 +61,11 @@ impl IndexFactory {
         let mut storage_specs = BTreeMap::new();
         let mut store_index = 0;
 
-        while let Ok(store) = env::var(format!("STORE_{}", store_index)) {
-            let store_type = match env::var(format!("STORE_{}_TYPE", store_index)) {
+        while let Ok(store) = env::var(format!("STORE_{store_index}")) {
+            let store_type = match env::var(format!("STORE_{store_index}_TYPE")) {
                 Ok(store_type) => store_type,
                 Err(_) => {
-                    log::error!("STORE_{}_TYPE not set", store_index);
+                    log::error!("STORE_{store_index}_TYPE not set");
                     store_index += 1;
                     continue;
                 }
@@ -74,12 +74,11 @@ impl IndexFactory {
             match store_type.to_lowercase().as_str() {
                 "memory" => {
                     let enable_archive =
-                        match env::var(format!("STORE_{}_ENABLE_ARCHIVE", store_index)) {
+                        match env::var(format!("STORE_{store_index}_ENABLE_ARCHIVE")) {
                             Ok(enable_archive) => enable_archive.to_lowercase() == "true",
                             Err(_) => {
                                 log::warn!(
-                                    "STORE_{}_ENABLE_ARCHIVE not set, using false",
-                                    store_index
+                                    "STORE_{store_index}_ENABLE_ARCHIVE not set, using false"
                                 );
                                 false
                             }
@@ -89,16 +88,16 @@ impl IndexFactory {
                 }
                 "redis" => {
                     let connection_string =
-                        match env::var(format!("STORE_{}_CONNECTION_STRING", store_index)) {
+                        match env::var(format!("STORE_{store_index}_CONNECTION_STRING")) {
                             Ok(connection_string) => connection_string,
                             Err(_) => {
-                                log::error!("STORE_{}_CONNECTION_STRING not set", store_index);
+                                log::error!("STORE_{store_index}_CONNECTION_STRING not set");
                                 store_index += 1;
                                 continue;
                             }
                         };
 
-                    let cache_size = match env::var(format!("STORE_{}_CACHE_SIZE", store_index)) {
+                    let cache_size = match env::var(format!("STORE_{store_index}_CACHE_SIZE")) {
                         Ok(cache_size) => {
                             let size = cache_size.parse::<usize>().unwrap_or_default();
                             if size < 1 {
@@ -120,21 +119,20 @@ impl IndexFactory {
                 }
                 "rocksdb" => {
                     let enable_archive =
-                        match env::var(format!("STORE_{}_ENABLE_ARCHIVE", store_index)) {
+                        match env::var(format!("STORE_{store_index}_ENABLE_ARCHIVE")) {
                             Ok(enable_archive) => enable_archive.to_lowercase() == "true",
                             Err(_) => {
                                 log::warn!(
-                                    "STORE_{}_ENABLE_ARCHIVE not set, using false",
-                                    store_index
+                                    "STORE_{store_index}_ENABLE_ARCHIVE not set, using false"
                                 );
                                 false
                             }
                         };
 
-                    let direct_io = match env::var(format!("STORE_{}_DIRECT_IO", store_index)) {
+                    let direct_io = match env::var(format!("STORE_{store_index}_DIRECT_IO")) {
                         Ok(direct_io) => direct_io.to_lowercase() == "true",
                         Err(_) => {
-                            log::warn!("STORE_{}_DIRECT_IO not set, using false", store_index);
+                            log::warn!("STORE_{store_index}_DIRECT_IO not set, using false");
                             false
                         }
                     };
@@ -148,7 +146,7 @@ impl IndexFactory {
                     );
                 }
                 _ => {
-                    log::error!("STORE_{}_TYPE not supported", store_index);
+                    log::error!("STORE_{store_index}_TYPE not supported");
                     store_index += 1;
                     continue;
                 }
@@ -170,8 +168,12 @@ impl IndexFactory {
         let default_store = match env::var("DEFAULT_STORE") {
             Ok(store) => store,
             Err(_) => {
-                let def_store = storage_specs.first_entry().unwrap().key().clone();
-                log::warn!("DEFAULT_STORE not set, using {}", def_store);
+                let def_store = storage_specs
+                    .first_entry()
+                    .expect("storage_specs should not be empty")
+                    .key()
+                    .clone();
+                log::warn!("DEFAULT_STORE not set, using {def_store}");
                 def_store
             }
         };
@@ -233,7 +235,7 @@ impl IndexFactory {
                             match CachedElementIndex::new(element_index.clone(), *cache_size) {
                                 Ok(cached_index) => cached_index,
                                 Err(err) => {
-                                    log::error!("Failed to create cached element index: {}", err);
+                                    log::error!("Failed to create cached element index: {err}");
                                     return Err(IndexError::NotSupported);
                                 }
                             };
@@ -241,7 +243,7 @@ impl IndexFactory {
                         let result_index = match CachedResultIndex::new(result_index, *cache_size) {
                             Ok(cri) => Arc::new(cri),
                             Err(err) => {
-                                log::error!("Failed to create cached result index: {}", err);
+                                log::error!("Failed to create cached result index: {err}");
                                 return Err(IndexError::NotSupported);
                             }
                         };
@@ -306,7 +308,7 @@ impl IndexFactory {
 
     pub async fn get_storage_spec(
         &self,
-        store: &Option<String>
+        store: &Option<String>,
     ) -> Result<StorageSpec, IndexError> {
         let store = match store {
             Some(store) => store,
@@ -319,9 +321,23 @@ impl IndexFactory {
         };
 
         Ok(match spec {
-            StorageSpec::Memory { enable_archive } => StorageSpec::Memory { enable_archive: *enable_archive },
-            StorageSpec::Redis { connection_string, cache_size } => StorageSpec::Redis { connection_string: connection_string.clone(), cache_size: *cache_size },
-            StorageSpec::RocksDb { enable_archive, direct_io } => StorageSpec::RocksDb { enable_archive: *enable_archive, direct_io: *direct_io },
+            StorageSpec::Memory { enable_archive } => StorageSpec::Memory {
+                enable_archive: *enable_archive,
+            },
+            StorageSpec::Redis {
+                connection_string,
+                cache_size,
+            } => StorageSpec::Redis {
+                connection_string: connection_string.clone(),
+                cache_size: *cache_size,
+            },
+            StorageSpec::RocksDb {
+                enable_archive,
+                direct_io,
+            } => StorageSpec::RocksDb {
+                enable_archive: *enable_archive,
+                direct_io: *direct_io,
+            },
         })
     }
 }
