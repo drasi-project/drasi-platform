@@ -127,7 +127,7 @@ where
                 log::error!("Error configuring resource: {}", e);
                 return Err(DomainError::Internal { inner: Box::new(e) });
             }
-            r => r.unwrap(),
+            Ok(r) => r,
         };
 
         Ok(Resource {
@@ -157,7 +157,7 @@ where
                             .invoker
                             .invoke(
                                 Payload::None,
-                                format!("{}-{}", id, service_name).as_str(),
+                                format!("{id}-{service_name}").as_str(),
                                 "deprovision",
                                 None,
                             )
@@ -196,7 +196,7 @@ where
                 log::error!("Error deprovisioning resource: {}", e);
                 return Err(DomainError::Internal { inner: Box::new(e) });
             }
-            r => r.unwrap(),
+            Ok(r) => r,
         };
 
         self.repo.delete(id).await?;
@@ -422,8 +422,7 @@ fn merge_spec(
                     None => {
                         return Err(DomainError::InvalidSpec {
                             message: format!(
-                                "Unable to retrieve the service properties for {}",
-                                service_name
+                                "Unable to retrieve the service properties for {service_name}"
                             ),
                         })
                     }
@@ -516,7 +515,7 @@ fn merge_spec(
                                         }),
                                     },
                                     None => return Err(DomainError::InvalidSpec {
-                                        message: format!("Unable to retrieve the target port; {} is not defined", target),
+                                        message: format!("Unable to retrieve the target port; {target} is not defined"),
                                     }),
                                 }
                             },

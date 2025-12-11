@@ -170,7 +170,9 @@ impl From<ServiceConfig> for resource_provider_api::models::Service {
     fn from(service: ServiceConfig) -> resource_provider_api::models::Service {
         resource_provider_api::models::Service {
             replica: service.replica,
-            image: service.image.unwrap(),
+            image: service
+                .image
+                .expect("ServiceConfig image should be set before conversion"),
             external_image: service.external_image,
             endpoints: service
                 .endpoints

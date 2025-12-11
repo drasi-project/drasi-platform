@@ -174,7 +174,9 @@ impl SequentialChangeStream for RedisChangeStream {
             }
         } else {
             log::warn!("re-serving unack_item: {:?}", unack_item);
-            let message = unack_item.clone().unwrap();
+            let message = unack_item
+                .clone()
+                .expect("unack_item checked to be Some above");
             let message = deserialize_message::<T>(&message)?;
             Ok(Some(message))
         }
@@ -267,7 +269,7 @@ where
                 Err(err) => {
                     return Err(ChangeStreamError::MessageError {
                         id: message.id.clone(),
-                        error: format!("Failed to deserialize data: {:?}", err),
+                        error: format!("Failed to deserialize data: {err:?}"),
                     })
                 }
             },
@@ -297,7 +299,7 @@ where
                 }),
                 Err(err) => Err(ChangeStreamError::MessageError {
                     id: message.id.clone(),
-                    error: format!("Failed to deserialize data: {:?}", err),
+                    error: format!("Failed to deserialize data: {err:?}"),
                 }),
             },
             _ => Err(ChangeStreamError::MessageError {

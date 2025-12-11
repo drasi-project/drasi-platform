@@ -13,13 +13,13 @@
 // limitations under the License.
 
 use crate::domain::models::{
-    QueryJoin, QueryJoinKey, QueryLanguage, QueryRuntime, QuerySourceLabel, QuerySources, QuerySpec, QueryStatus,
-    QuerySubscription, RetentionPolicy, SourceMiddlewareConfig, ViewSpec,
+    QueryJoin, QueryJoinKey, QueryLanguage, QueryRuntime, QuerySourceLabel, QuerySources,
+    QuerySpec, QueryStatus, QuerySubscription, RetentionPolicy, SourceMiddlewareConfig, ViewSpec,
 };
 
 use super::{
-    QueryJoinDto, QueryJoinKeyDto, QueryLanguageDto, QueryRuntimeDto, QuerySourceLabelDto, QuerySourcesDto,
-    QuerySpecDto, QueryStatusDto, QuerySubscriptionDto, RetentionPolicyDto,
+    QueryJoinDto, QueryJoinKeyDto, QueryLanguageDto, QueryRuntimeDto, QuerySourceLabelDto,
+    QuerySourcesDto, QuerySpecDto, QueryStatusDto, QuerySubscriptionDto, RetentionPolicyDto,
     SourceMiddlewareConfigDto, ViewSpecDto,
 };
 

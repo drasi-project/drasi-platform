@@ -108,6 +108,7 @@ impl StandardSpecValidator<QuerySpec> for QuerySpecValidator {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::models::*;
@@ -239,7 +240,7 @@ mod tests {
                 assert!(message.contains("unknown"));
                 assert!(message.contains("sub1"));
             }
-            other => panic!("expected InvalidSpec, got: {:?}", other),
+            other => panic!("expected InvalidSpec, got: {other:?}"),
         }
     }
 }
