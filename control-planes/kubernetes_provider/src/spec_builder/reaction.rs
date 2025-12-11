@@ -106,7 +106,9 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 
             let app_port = match service_spec.dapr {
                 Some(ref dapr) => match dapr.get("app-port") {
-                    Some(ConfigValue::Inline { value }) => Some(value.parse::<u16>().unwrap()),
+                    Some(ConfigValue::Inline { value }) => {
+                        Some(value.parse::<u16>().expect("app-port must be a valid u16"))
+                    }
                     _ => None,
                 },
                 None => None,
@@ -127,7 +129,10 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 for (endpoint_name, endpoint) in endpoints {
                     match endpoint.setting {
                         EndpointSetting::Internal => {
-                            let port = endpoint.target.parse::<i32>().unwrap();
+                            let port = endpoint
+                                .target
+                                .parse::<i32>()
+                                .expect("endpoint target must be a valid i32");
                             ports.insert(endpoint_name.clone(), port);
                             let service_spec = ServiceSpec {
                                 type_: Some("ClusterIP".to_string()),
@@ -143,7 +148,10 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                             k8s_services.insert(endpoint_name.clone(), service_spec);
                         }
                         EndpointSetting::External => {
-                            let port = endpoint.target.parse::<i32>().unwrap();
+                            let port = endpoint
+                                .target
+                                .parse::<i32>()
+                                .expect("endpoint target must be a valid i32");
                             ports.insert(endpoint_name.clone(), port);
 
                             // Create ClusterIP service for the ingress to target
@@ -159,7 +167,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                 ..Default::default()
                             };
                             // Use just endpoint_name as key - ResourceReconciler will add reaction.id prefix
-                            let service_key = format!("{}-{}", service_name, endpoint_name);
+                            let service_key = format!("{service_name}-{endpoint_name}");
                             k8s_services.insert(service_key.clone(), service_spec);
 
                             // Create Ingress resource with hostname-based routing
@@ -232,7 +240,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 &service_name,
                 image.as_str(),
                 service_spec.external_image.unwrap_or(false),
-                replica.parse::<i32>().unwrap(),
+                replica.parse::<i32>().unwrap_or(1),
                 Some(app_port.unwrap_or(80)),
                 env.clone(),
                 Some(ports),
@@ -285,9 +293,9 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 }
 
 fn calc_hash<T: Serialize>(obj: &T) -> String {
-    let data = serde_json::to_vec(obj).unwrap();
+    let data = serde_json::to_vec(obj).expect("object serialization should not fail");
     let mut hash = SpookyHasher::default();
     data.hash(&mut hash);
     let hsh = hash.finish();
-    format!("{:02x}", hsh)
+    format!("{hsh:02x}")
 }

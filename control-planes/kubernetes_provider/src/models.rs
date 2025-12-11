@@ -138,7 +138,7 @@ impl RuntimeConfig {
 
         RuntimeConfig {
             image_prefix: match std::env::var("ACR") {
-                Ok(acr) => format!("{}/drasi-project/", acr),
+                Ok(acr) => format!("{acr}/drasi-project/"),
                 Err(_) => "drasi-project/".to_string(),
             },
             image_tag: match std::env::var("IMAGE_VERSION_TAG") {
