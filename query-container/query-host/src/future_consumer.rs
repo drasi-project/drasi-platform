@@ -41,12 +41,12 @@ impl FutureQueueConsumer for FutureConsumer {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let change = ChangeEvent::from_future_ref(future_ref, self.query_id.as_str());
         let data = serde_json::to_string(&change)
-            .map_err(|e| format!("Error serializing future change: {:?}", e))?;
+            .map_err(|e| format!("Error serializing future change: {e:?}"))?;
 
         self.publisher
             .publish(data, None, None)
             .await
-            .map_err(|e| format!("Error publishing future change: {:?}", e))?;
+            .map_err(|e| format!("Error publishing future change: {e:?}"))?;
 
         Ok(())
     }
@@ -65,7 +65,7 @@ impl FutureQueueConsumer for FutureConsumer {
     fn now(&self) -> u64 {
         SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
+            .expect("SystemTime before UNIX EPOCH")
             .as_secs()
             * 1000
     }

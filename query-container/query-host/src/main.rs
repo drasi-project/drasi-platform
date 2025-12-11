@@ -58,25 +58,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut dapr_server = dapr::server::DaprHttpServer::new().await;
 
     let query_container_id = match env::var_os("QUERY_NODE_ID") {
-        Some(val) => val.into_string().unwrap(),
+        Some(val) => val
+            .into_string()
+            .expect("QUERY_NODE_ID must be valid UTF-8"),
         None => panic!("QUERY_NODE_ID must be set"),
     };
 
     let dapr_host = "127.0.0.1";
 
     let dapr_http_port = match env::var_os("DAPR_HTTP_PORT") {
-        Some(val) => val.into_string().unwrap().parse::<u16>().unwrap(),
+        Some(val) => val
+            .into_string()
+            .expect("DAPR_HTTP_PORT must be valid UTF-8")
+            .parse::<u16>()
+            .expect("DAPR_HTTP_PORT must be a valid port number"),
         None => 3500,
     };
 
     let pubsub = match env::var_os("PUBSUB") {
-        Some(val) => val.into_string().unwrap(),
+        Some(val) => val.into_string().expect("PUBSUB must be valid UTF-8"),
         None => "drasi-pubsub".to_string(),
     };
 
     let stream_config = Arc::new(ChangeStreamConfig {
         redis_url: match env::var_os("REDIS_BROKER") {
-            Some(val) => val.into_string().unwrap(),
+            Some(val) => val.into_string().expect("REDIS_BROKER must be valid UTF-8"),
             None => "redis://drasi-redis:6379".to_string(),
         },
         buffer_size: 20,
@@ -85,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let index_factory = Arc::new(IndexFactory::new());
 
-    let actor_name = format!("{}.ContinuousQuery", query_container_id);
+    let actor_name = format!("{query_container_id}.ContinuousQuery");
     let source_client = Arc::new(SourceClient::new(reqwest::Client::new()));
     let publisher = Arc::new(ResultPublisher::new(
         dapr_host.into(),
@@ -124,11 +130,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         &query_container_id,
                         actor_client,
                         dapr_client.clone(),
-                        source_client.clone(),
-                        stream_config.clone(),
-                        publisher.clone(),
-                        index_factory.clone(),
-                        middleware_registry.clone(),
+                        Some(source_client.clone()),
+                        Some(stream_config.clone()),
+                        Some(publisher.clone()),
+                        Some(index_factory.clone()),
+                        Some(middleware_registry.clone()),
                     ))
                 }),
             )
@@ -139,8 +145,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .await;
 
-    let mut sigterm = tokio::signal::unix::signal(SignalKind::terminate()).unwrap();
-    let mut sigint = tokio::signal::unix::signal(SignalKind::interrupt()).unwrap();
+    let mut sigterm = tokio::signal::unix::signal(SignalKind::terminate())
+        .expect("Failed to create SIGTERM handler");
+    let mut sigint = tokio::signal::unix::signal(SignalKind::interrupt())
+        .expect("Failed to create SIGINT handler");
 
     dapr_server = dapr_server.with_graceful_shutdown(async move {
         select! {
@@ -155,7 +163,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match dapr_server.start(Some(3000)).await {
         Ok(_) => log::info!("Dapr server exited"),
-        Err(e) => log::error!("Dapr server exited with error {:?}", e),
+        Err(e) => log::error!("Dapr server exited with error {e:?}"),
     };
 
     drop(dapr_server);

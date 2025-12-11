@@ -162,6 +162,7 @@ impl Serialize for SourceChange {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use serde_json::json;
@@ -179,7 +180,14 @@ mod tests {
             .into_iter()
             .collect(),
         };
-        let mut change = SourceChange::new(ChangeOp::Create, node, 1234567890000000000, 1234500000123456789 ,1, None);
+        let mut change = SourceChange::new(
+            ChangeOp::Create,
+            node,
+            1234567890000000000,
+            1234500000123456789,
+            1,
+            None,
+        );
         let current_time = 1234567890001234567;
         change.set_reactivator_end_ns(current_time);
         let serialized = serde_json::to_string(&change).unwrap();
@@ -205,7 +213,7 @@ mod tests {
             "reactivatorStart_ns": 1234567890000000000u128,
             "reactivatorEnd_ns": current_time,
         });
-        println!("Serialized: {}", serialized);
+        eprintln!("Serialized: {serialized}");
         assert_eq!(
             serde_json::from_str::<Value>(&serialized).unwrap(),
             expected
@@ -227,7 +235,14 @@ mod tests {
             start_id: "2".to_string(),
             end_id: "3".to_string(),
         };
-        let mut change = SourceChange::new(ChangeOp::Create, relation, 1234567890000000000, 1234500000123456789, 1, None);
+        let mut change = SourceChange::new(
+            ChangeOp::Create,
+            relation,
+            1234567890000000000,
+            1234500000123456789,
+            1,
+            None,
+        );
         let current_time = 1234567890001234567;
         change.set_reactivator_end_ns(current_time);
         let serialized = serde_json::to_string(&change).unwrap();
@@ -274,7 +289,14 @@ mod tests {
             .into_iter()
             .collect(),
         };
-        let mut change = SourceChange::new(ChangeOp::Update, node, 1234567890000000000, 1234500000123456789, 1, None);
+        let mut change = SourceChange::new(
+            ChangeOp::Update,
+            node,
+            1234567890000000000,
+            1234500000123456789,
+            1,
+            None,
+        );
         let current_time = 1234567890001234567;
         change.set_reactivator_end_ns(current_time);
         let serialized = serde_json::to_string(&change).unwrap();
@@ -319,7 +341,14 @@ mod tests {
             .into_iter()
             .collect(),
         };
-        let mut change = SourceChange::new(ChangeOp::Delete, node,1234567890000000000, 1234500000123456789 , 1, None);
+        let mut change = SourceChange::new(
+            ChangeOp::Delete,
+            node,
+            1234567890000000000,
+            1234500000123456789,
+            1,
+            None,
+        );
         let current_time = 1234567890001234567;
         change.set_reactivator_end_ns(current_time);
         let serialized = serde_json::to_string(&change).unwrap();

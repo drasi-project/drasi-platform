@@ -108,6 +108,7 @@ impl StandardSpecValidator<QuerySpec> for QuerySpecValidator {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::models::*;
@@ -169,6 +170,7 @@ mod tests {
             mode: "continuous".to_string(),
             query: "SELECT *".to_string(),
             query_language: None,
+            query_runtime: None,
             sources: QuerySources {
                 subscriptions: vec![QuerySubscription {
                     id: "sub1".to_string(),
@@ -238,7 +240,7 @@ mod tests {
                 assert!(message.contains("unknown"));
                 assert!(message.contains("sub1"));
             }
-            other => panic!("expected InvalidSpec, got: {:?}", other),
+            other => panic!("expected InvalidSpec, got: {other:?}"),
         }
     }
 }

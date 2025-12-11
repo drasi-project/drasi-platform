@@ -61,7 +61,7 @@ impl From<ServiceConfigDto> for ServiceConfig {
             properties: service.properties.map(|properties| {
                 properties
                     .into_iter()
-                    .map(|(k, v)| (k, v.unwrap().into()))
+                    .filter_map(|(k, v)| v.map(|val| (k, val.into())))
                     .collect()
             }),
         }

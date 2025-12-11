@@ -19,6 +19,12 @@ use crate::models::SourceChange;
 
 pub struct DebugPublisher {}
 
+impl Default for DebugPublisher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DebugPublisher {
     pub fn new() -> Self {
         DebugPublisher {}
