@@ -1,13 +1,17 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Drasi Source",
-  "description": "A data source that provides events to continuous queries",
   "type": "object",
-  "required": ["apiVersion", "kind", "name", "spec"],
+  "required": [
+    "apiVersion",
+    "kind",
+    "name",
+    "spec"
+  ],
   "properties": {
     "apiVersion": {
       "type": "string",
-      "enum": ["v1"],
+      "enum": [
+        "v1"
+      ],
       "description": "API version of the resource"
     },
     "kind": {
@@ -22,7 +26,9 @@
     },
     "spec": {
       "type": "object",
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "properties": {
         "kind": {
           "type": "string",
@@ -33,7 +39,10 @@
           "oneOf": [
             {
               "type": "object",
-              "required": ["kind", "connectionString"],
+              "required": [
+                "kind",
+                "connectionString"
+              ],
               "properties": {
                 "kind": {
                   "type": "string",
@@ -46,7 +55,10 @@
             },
             {
               "type": "object",
-              "required": ["kind", "clientId"],
+              "required": [
+                "kind",
+                "clientId"
+              ],
               "properties": {
                 "kind": {
                   "type": "string",
@@ -60,7 +72,11 @@
             },
             {
               "type": "object",
-              "required": ["kind", "tenantId", "clientId"],
+              "required": [
+                "kind",
+                "tenantId",
+                "clientId"
+              ],
               "properties": {
                 "kind": {
                   "type": "string",
@@ -82,7 +98,10 @@
             },
             {
               "type": "object",
-              "required": ["kind", "accessKey"],
+              "required": [
+                "kind",
+                "accessKey"
+              ],
               "properties": {
                 "kind": {
                   "type": "string",
@@ -95,7 +114,10 @@
             },
             {
               "type": "object",
-              "required": ["kind", "roleArn"],
+              "required": [
+                "kind",
+                "roleArn"
+              ],
               "properties": {
                 "kind": {
                   "type": "string",
@@ -108,7 +130,12 @@
             },
             {
               "type": "object",
-              "required": ["kind", "accessKeyId", "secretAccessKey", "region"],
+              "required": [
+                "kind",
+                "accessKeyId",
+                "secretAccessKey",
+                "region"
+              ],
               "properties": {
                 "kind": {
                   "type": "string",
@@ -148,7 +175,10 @@
       "oneOf": [
         {
           "type": "object",
-          "required": ["kind", "value"],
+          "required": [
+            "kind",
+            "value"
+          ],
           "properties": {
             "kind": {
               "type": "string",
@@ -161,7 +191,11 @@
         },
         {
           "type": "object",
-          "required": ["kind", "name", "key"],
+          "required": [
+            "kind",
+            "name",
+            "key"
+          ],
           "properties": {
             "kind": {
               "type": "string",
@@ -203,11 +237,17 @@
           "description": "Endpoint configurations",
           "additionalProperties": {
             "type": "object",
-            "required": ["setting", "target"],
+            "required": [
+              "setting",
+              "target"
+            ],
             "properties": {
               "setting": {
                 "type": "string",
-                "enum": ["internal", "external"],
+                "enum": [
+                  "internal",
+                  "external"
+                ],
                 "description": "Endpoint visibility"
               },
               "target": {

@@ -1,13 +1,17 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Drasi ContinuousQuery",
-  "description": "A continuous query that processes data streams",
   "type": "object",
-  "required": ["apiVersion", "kind", "name", "spec"],
+  "required": [
+    "apiVersion",
+    "kind",
+    "name",
+    "spec"
+  ],
   "properties": {
     "apiVersion": {
       "type": "string",
-      "enum": ["v1"],
+      "enum": [
+        "v1"
+      ],
       "description": "API version of the resource"
     },
     "kind": {
@@ -22,11 +26,17 @@
     },
     "spec": {
       "type": "object",
-      "required": ["mode", "sources", "query"],
+      "required": [
+        "mode",
+        "sources",
+        "query"
+      ],
       "properties": {
         "mode": {
           "type": "string",
-          "enum": ["query"],
+          "enum": [
+            "query"
+          ],
           "description": "Query execution mode"
         },
         "container": {
@@ -36,7 +46,10 @@
         },
         "queryLanguage": {
           "type": "string",
-          "enum": ["Cypher", "GQL"],
+          "enum": [
+            "Cypher",
+            "GQL"
+          ],
           "description": "Query language to use",
           "default": "Cypher"
         },
@@ -46,7 +59,9 @@
         },
         "sources": {
           "type": "object",
-          "required": ["subscriptions"],
+          "required": [
+            "subscriptions"
+          ],
           "properties": {
             "subscriptions": {
               "type": "array",
@@ -54,7 +69,9 @@
               "minItems": 1,
               "items": {
                 "type": "object",
-                "required": ["id"],
+                "required": [
+                  "id"
+                ],
                 "properties": {
                   "id": {
                     "type": "string",
@@ -72,7 +89,9 @@
                     "description": "Filter by specific node labels",
                     "items": {
                       "type": "object",
-                      "required": ["sourceLabel"],
+                      "required": [
+                        "sourceLabel"
+                      ],
                       "properties": {
                         "sourceLabel": {
                           "type": "string",
@@ -86,7 +105,9 @@
                     "description": "Filter by specific relationship labels",
                     "items": {
                       "type": "object",
-                      "required": ["sourceLabel"],
+                      "required": [
+                        "sourceLabel"
+                      ],
                       "properties": {
                         "sourceLabel": {
                           "type": "string",
@@ -103,7 +124,10 @@
               "description": "Cross-source join definitions",
               "items": {
                 "type": "object",
-                "required": ["id", "keys"],
+                "required": [
+                  "id",
+                  "keys"
+                ],
                 "properties": {
                   "id": {
                     "type": "string",
@@ -115,7 +139,10 @@
                     "minItems": 1,
                     "items": {
                       "type": "object",
-                      "required": ["label", "property"],
+                      "required": [
+                        "label",
+                        "property"
+                      ],
                       "properties": {
                         "label": {
                           "type": "string",
@@ -136,7 +163,10 @@
               "description": "Middleware configurations",
               "items": {
                 "type": "object",
-                "required": ["kind", "name"],
+                "required": [
+                  "kind",
+                  "name"
+                ],
                 "properties": {
                   "kind": {
                     "type": "string",
@@ -159,7 +189,10 @@
         "view": {
           "type": "object",
           "description": "Materialized view configuration",
-          "required": ["enabled", "retentionPolicy"],
+          "required": [
+            "enabled",
+            "retentionPolicy"
+          ],
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -170,16 +203,23 @@
               "oneOf": [
                 {
                   "type": "string",
-                  "enum": ["latest", "all"],
+                  "enum": [
+                    "latest",
+                    "all"
+                  ],
                   "description": "Built-in retention policy"
                 },
                 {
                   "type": "object",
-                  "required": ["expire"],
+                  "required": [
+                    "expire"
+                  ],
                   "properties": {
                     "expire": {
                       "type": "object",
-                      "required": ["afterSeconds"],
+                      "required": [
+                        "afterSeconds"
+                      ],
                       "properties": {
                         "afterSeconds": {
                           "type": "integer",

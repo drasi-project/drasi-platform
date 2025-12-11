@@ -26,78 +26,33 @@ export class YamlSchemaProvider {
 
   activate(context: vscode.ExtensionContext) {
     this.configureYamlExtension();
-    
-    context.subscriptions.push(
-      vscode.workspace.onDidOpenTextDocument(this.handleDocument.bind(this)),
-      vscode.workspace.onDidChangeTextDocument(e => this.handleDocument(e.document))
-    );
-  }
-
-  private async handleDocument(document: vscode.TextDocument) {
-    if (document.languageId !== 'yaml') {
-      return;
-    }
-    
-    const kind = this.detectResourceKind(document.getText());
-    
-    if (kind) {
-      await this.associateSchema(document, kind);
-    }
-  }
-
-  private detectResourceKind(content: string): string | null {
-    try {
-      const docs = yaml.parseAllDocuments(content);
-      for (const doc of docs) {
-        if (doc.has('kind') && doc.has('apiVersion')) {
-          return doc.get('kind') as string;
-        }
-      }
-    } catch (e) {
-      // Ignore parse errors
-    }
-    return null;
-  }
-
-  private async associateSchema(document: vscode.TextDocument, kind: string) {
-    const config = vscode.workspace.getConfiguration('yaml', document.uri);
-    const schemas = config.get<any>('schemas') || {};
-    
-    const schemaUri = this.getSchemaUri(kind);
-    if (schemaUri) {
-      schemas[schemaUri.toString()] = [document.uri.toString()];
-      await config.update('schemas', schemas, vscode.ConfigurationTarget.WorkspaceFolder);
-    }
-  }
-
-  private getSchemaUri(kind: string): vscode.Uri | null {
-    const schemaMap: Record<string, string> = {
-      'ContinuousQuery': 'schemas/continuous-query.schema.json',
-      'Source': 'schemas/source.schema.json',
-      'Reaction': 'schemas/reaction.schema.json'
-    };
-    
-    const schemaPath = schemaMap[kind];
-    return schemaPath ? vscode.Uri.joinPath(this.extensionUri, schemaPath) : null;
   }
 
   private configureYamlExtension() {
     const config = vscode.workspace.getConfiguration('yaml');
-    const schemas = config.get<any>('schemas') || {};
     
-    const querySchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/continuous-query.schema.json').toString();
-    const sourceSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/source.schema.json').toString();
-    const reactionSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/reaction.schema.json').toString();
+    // Disable validation (our custom provider handles it)
+    config.update('validate', false, vscode.ConfigurationTarget.Global);
     
-    if (!schemas[querySchemaUri]) {
-      schemas[querySchemaUri] = ['**/*query*.yaml', '**/*query*.yml'];
-    }
-    if (!schemas[sourceSchemaUri]) {
-      schemas[sourceSchemaUri] = ['**/*source*.yaml', '**/*source*.yml'];
-    }
-    if (!schemas[reactionSchemaUri]) {
-      schemas[reactionSchemaUri] = ['**/*reaction*.yaml', '**/*reaction*.yml'];
-    }
+    // CLEAR ALL existing schema registrations first
+    config.update('schemas', {}, vscode.ConfigurationTarget.Global);
+    
+    // Register ONLY the union schema
+    const unionSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/drasi-resources.schema.json').toString();
+    
+    const schemas: any = {};
+    schemas[unionSchemaUri] = [
+      '**/*query*.yaml', 
+      '**/*query*.yml',
+      '**/*source*.yaml', 
+      '**/*source*.yml',
+      '**/*reaction*.yaml', 
+      '**/*reaction*.yml',
+      '**/resources.yaml',
+      '**/resources.yml',
+      '**/*drasi*.yaml',
+      '**/*drasi*.yml'
+    ];
     
     config.update('schemas', schemas, vscode.ConfigurationTarget.Global);
   }
