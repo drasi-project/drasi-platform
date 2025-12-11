@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(clippy::unwrap_used)]
+
 use cloudevents::event::{EventBuilder, EventBuilderV10};
 use std::{env, time::Duration};
 
@@ -314,7 +316,7 @@ async fn stops_buffering_on_drop() {
             .xadd(
                 &query_container_id,
                 "*",
-                &[("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {i}}}"))],
             )
             .await
             .unwrap();

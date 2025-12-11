@@ -46,10 +46,7 @@ pub trait StateStore {
 }
 
 pub fn get_config_value(key: &str) -> Option<String> {
-    match env::var(key) {
-        Ok(s) => Some(s),
-        Err(_) => None,
-    }
+    env::var(key).ok()
 }
 
 async fn shutdown_signal() {

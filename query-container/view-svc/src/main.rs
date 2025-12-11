@@ -54,20 +54,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut dapr_server = dapr::server::DaprHttpServer::new().await;
 
     let query_container_id = match env::var_os("QUERY_NODE_ID") {
-        Some(val) => val.into_string().unwrap(),
+        Some(val) => val
+            .into_string()
+            .expect("QUERY_NODE_ID must be valid UTF-8"),
         None => panic!("QUERY_NODE_ID must be set"),
     };
 
     let stream_config = Arc::new(ChangeStreamConfig {
         redis_url: match env::var_os("REDIS_BROKER") {
-            Some(val) => val.into_string().unwrap(),
+            Some(val) => val.into_string().expect("REDIS_BROKER must be valid UTF-8"),
             None => "redis://drasi-redis:6379".to_string(),
         },
         buffer_size: 20,
         fetch_batch_size: 5,
     });
 
-    let actor_name = format!("{}.View", query_container_id);
+    let actor_name = format!("{query_container_id}.View");
 
     let view_store = view_store_factory::from_env().await?;
 
@@ -91,8 +93,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .await;
 
-    let mut sigterm = tokio::signal::unix::signal(SignalKind::terminate()).unwrap();
-    let mut sigint = tokio::signal::unix::signal(SignalKind::interrupt()).unwrap();
+    let mut sigterm = tokio::signal::unix::signal(SignalKind::terminate())
+        .expect("Failed to create SIGTERM handler");
+    let mut sigint = tokio::signal::unix::signal(SignalKind::interrupt())
+        .expect("Failed to create SIGINT handler");
 
     dapr_server = dapr_server.with_graceful_shutdown(async move {
         select! {
@@ -107,7 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match dapr_server.start(Some(8080)).await {
         Ok(_) => log::info!("Dapr server exited"),
-        Err(e) => log::error!("Dapr server exited with error {:?}", e),
+        Err(e) => log::error!("Dapr server exited with error {e:?}"),
     };
 
     drop(dapr_server);

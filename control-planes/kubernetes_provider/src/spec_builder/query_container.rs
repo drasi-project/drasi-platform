@@ -104,7 +104,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
 
         for (store_index, (name, storage_spec)) in source.spec.storage.into_iter().enumerate() {
             env.insert(
-                format!("STORE_{}", store_index),
+                format!("STORE_{store_index}"),
                 ConfigValue::Inline {
                     value: name.clone(),
                 },
@@ -113,14 +113,14 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
             match storage_spec {
                 resource_provider_api::models::StorageSpec::Memory { enable_archive } => {
                     env.insert(
-                        format!("STORE_{}_TYPE", store_index),
+                        format!("STORE_{store_index}_TYPE"),
                         ConfigValue::Inline {
                             value: "Memory".to_string(),
                         },
                     );
 
                     env.insert(
-                        format!("STORE_{}_ENABLE_ARCHIVE", store_index),
+                        format!("STORE_{store_index}_ENABLE_ARCHIVE"),
                         ConfigValue::Inline {
                             value: enable_archive.to_string(),
                         },
@@ -131,20 +131,20 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                     cache_size,
                 } => {
                     env.insert(
-                        format!("STORE_{}_TYPE", store_index),
+                        format!("STORE_{store_index}_TYPE"),
                         ConfigValue::Inline {
                             value: "Redis".to_string(),
                         },
                     );
 
                     env.insert(
-                        format!("STORE_{}_CONNECTION_STRING", store_index),
+                        format!("STORE_{store_index}_CONNECTION_STRING"),
                         connection_string,
                     );
 
                     if let Some(cache_size) = cache_size {
                         env.insert(
-                            format!("STORE_{}_CACHE_SIZE", store_index),
+                            format!("STORE_{store_index}_CACHE_SIZE"),
                             ConfigValue::Inline {
                                 value: cache_size.to_string(),
                             },
@@ -183,21 +183,21 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
                     persistent_volumes.insert(pv_name.clone(), "/data".into());
 
                     env.insert(
-                        format!("STORE_{}_TYPE", store_index),
+                        format!("STORE_{store_index}_TYPE"),
                         ConfigValue::Inline {
                             value: "RocksDb".to_string(),
                         },
                     );
 
                     env.insert(
-                        format!("STORE_{}_ENABLE_ARCHIVE", store_index),
+                        format!("STORE_{store_index}_ENABLE_ARCHIVE"),
                         ConfigValue::Inline {
                             value: enable_archive.to_string(),
                         },
                     );
 
                     env.insert(
-                        format!("STORE_{}_DIRECT_IO", store_index),
+                        format!("STORE_{store_index}_DIRECT_IO"),
                         ConfigValue::Inline {
                             value: direct_io.to_string(),
                         },

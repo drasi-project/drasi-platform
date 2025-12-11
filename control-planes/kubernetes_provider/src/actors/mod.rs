@@ -159,7 +159,9 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
         if let Err(e) = client
             .execute_actor_state_transaction(vec![ActorStateOperation::Upsert {
                 key: format!("{}-platform-specs", self.resource_type),
-                value: Some(serde_json::to_vec(&specs).unwrap()),
+                value: Some(
+                    serde_json::to_vec(&specs).expect("specs serialization should not fail"),
+                ),
             }])
             .await
         {

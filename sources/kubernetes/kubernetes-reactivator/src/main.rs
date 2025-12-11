@@ -30,7 +30,7 @@ use tokio::{pin, sync::mpsc::Sender, task::JoinHandle};
 #[tokio::main]
 async fn main() {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-    
+
     let reactivator = ReactivatorBuilder::new()
         .with_stream_producer(my_stream)
         .with_deprovision_handler(deprovision)
@@ -48,15 +48,15 @@ async fn my_stream(
     let kube_config = {
         match env::var("kubeConfig") {
             Ok(config) => {
-                let kc = Kubeconfig::from_yaml(&config).unwrap();
+                let kc = Kubeconfig::from_yaml(&config).expect("Failed to parse kubeconfig");
                 Config::from_custom_kubeconfig(kc, &KubeConfigOptions::default())
                     .await
-                    .unwrap()
+                    .expect("Failed to create kube config from kubeconfig")
             }
-            Err(_) => Config::infer().await.unwrap(),
+            Err(_) => Config::infer().await.expect("Failed to infer kube config"),
         }
     };
-    let kube_client = Client::try_from(kube_config.clone()).unwrap();
+    let kube_client = Client::try_from(kube_config.clone()).expect("Failed to create kube client");
 
     let (tx, mut rx) = tokio::sync::mpsc::channel::<SourceChange>(1);
 
@@ -260,12 +260,32 @@ where
 
                 // Since we do not have a timestamp for the source change, we will use the reactivator start time
                 // as the timestamp for the source change
-                match tx.send(SourceChange::new(op, node,reactivator_start_ns,  reactivator_start_ns,0, None)).await {
+                match tx
+                    .send(SourceChange::new(
+                        op,
+                        node,
+                        reactivator_start_ns,
+                        reactivator_start_ns,
+                        0,
+                        None,
+                    ))
+                    .await
+                {
                     Ok(_) => log::info!("sent node change for {} {}", label, id),
                     Err(e) => log::error!("failed to send node change for {} {}: {}", label, id, e),
                 }
                 for owner in owners {
-                    match tx.send(SourceChange::new(op, owner,reactivator_start_ns, reactivator_start_ns, 0, None)).await {
+                    match tx
+                        .send(SourceChange::new(
+                            op,
+                            owner,
+                            reactivator_start_ns,
+                            reactivator_start_ns,
+                            0,
+                            None,
+                        ))
+                        .await
+                    {
                         Ok(_) => log::info!("sent relation change for {} {}", label, id),
                         Err(e) => log::error!(
                             "failed to send relation change for {} {}: {}",

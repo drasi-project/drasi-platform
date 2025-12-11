@@ -85,7 +85,12 @@ impl DaprStateManager {
         );
 
         let mut request_headers = reqwest::header::HeaderMap::new();
-        request_headers.insert("Content-Type", "application/json".parse().unwrap());
+        request_headers.insert(
+            "Content-Type",
+            "application/json"
+                .parse()
+                .expect("valid content-type header"),
+        );
 
         let response = self
             .client
@@ -140,7 +145,7 @@ impl DaprStateManager {
 pub async fn wait_for_dapr_start(port: u16) -> Result<(), Box<dyn std::error::Error>> {
     let mut attempt = 0;
     loop {
-        let url = format!("http://localhost:{}/v1.0/healthz/outbound", port);
+        let url = format!("http://localhost:{port}/v1.0/healthz/outbound");
         let response = reqwest::get(&url).await;
 
         match response {

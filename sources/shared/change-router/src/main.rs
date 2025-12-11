@@ -176,12 +176,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(listener) => listener,
         Err(e) => {
             return Err(Box::<dyn std::error::Error>::from(format!(
-                "Error binding to address: {:?}",
-                e
+                "Error binding to address: {e:?}"
             )));
         }
     };
-    axum::serve(listener, subscriber_server).await.unwrap();
+    axum::serve(listener, subscriber_server)
+        .await
+        .expect("axum server failed");
 
     Ok(())
 }

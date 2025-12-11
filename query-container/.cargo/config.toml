@@ -1,0 +1,5 @@
+[build]
+rustflags = ["-L", "/opt/homebrew/opt/oniguruma/lib"]
+
+[env]
+JQ_LIB_DIR = "/opt/homebrew/Cellar/jq/1.8.1/lib"

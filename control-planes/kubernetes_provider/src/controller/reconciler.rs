@@ -75,10 +75,11 @@ impl ResourceReconciler {
             .selector
             .match_labels
             .as_ref()
-            .unwrap()
+            .expect("deployment selector match_labels required")
             .clone();
 
-        let client = kube::Client::try_from(kube_config).unwrap();
+        let client =
+            kube::Client::try_from(kube_config).expect("failed to create kube client from config");
 
         Self {
             deployment_hash: calc_deployment_hash(&spec),
@@ -120,7 +121,7 @@ impl ResourceReconciler {
 
                     let label_selector = deployment_labels
                         .iter()
-                        .map(|(k, v)| format!("{}={}", k, v))
+                        .map(|(k, v)| format!("{k}={v}"))
                         .collect::<Vec<String>>()
                         .join(",");
 
@@ -288,7 +289,11 @@ impl ResourceReconciler {
         log::info!("Reconciling components {}", self.spec.resource_id);
 
         if let Some(pub_sub) = &self.spec.pub_sub {
-            let name = &pub_sub.metadata.name.clone().unwrap();
+            let name = &pub_sub
+                .metadata
+                .name
+                .clone()
+                .expect("pub_sub metadata name required");
             match self.component_api.get(name).await {
                 Ok(current) => {
                     if current.spec != pub_sub.spec {
@@ -345,7 +350,11 @@ impl ResourceReconciler {
         match self.deployment_api.get(&name).await {
             Ok(current) => {
                 self.update_deployment_status(&current).await;
-                let current_hash = current.metadata.annotations.unwrap()["drasi/spechash"].clone();
+                let current_hash = current
+                    .metadata
+                    .annotations
+                    .expect("deployment annotations required")["drasi/spechash"]
+                    .clone();
                 if current_hash != self.deployment_hash {
                     log::info!("Updating deployment {}", name);
                     let pp = PatchParams::default();
@@ -422,8 +431,11 @@ impl ResourceReconciler {
 
             match self.service_api.get(name).await {
                 Ok(current) => {
-                    let current_hash =
-                        current.metadata.annotations.unwrap()["drasi/spechash"].clone();
+                    let current_hash = current
+                        .metadata
+                        .annotations
+                        .expect("service annotations required")["drasi/spechash"]
+                        .clone();
                     if current_hash != self.deployment_hash {
                         log::info!("Updating service {}", name);
                         let pp = PostParams::default();
@@ -567,7 +579,7 @@ impl ResourceReconciler {
             log::info!("Reconciling ingresses {}", self.spec.resource_id);
 
             let ip_suffix = match self.get_ingress_external_ip().await {
-                Some(ip) => format!("{}.nip.io", ip),
+                Some(ip) => format!("{ip}.nip.io"),
                 None => {
                     log::warn!("Could not determine external IP, using UNAVAILABLE");
                     "UNAVAILABLE".to_string()
@@ -682,11 +694,18 @@ impl ResourceReconciler {
                 self.service_account_hash.clone(),
             );
 
-            let name = service_account.metadata.name.clone().unwrap();
+            let name = service_account
+                .metadata
+                .name
+                .clone()
+                .expect("service account name required");
             match self.account_api.get(&name).await {
                 Ok(current) => {
-                    let current_hash =
-                        current.metadata.annotations.unwrap()["drasi/spechash"].clone();
+                    let current_hash = current
+                        .metadata
+                        .annotations
+                        .expect("service account annotations required")["drasi/spechash"]
+                        .clone();
                     if current_hash != self.service_account_hash {
                         log::info!("Updating service account {}", name);
                         let pp = PostParams::default();
@@ -760,22 +779,25 @@ impl ResourceReconciler {
 fn calc_deployment_hash(spec: &KubernetesSpec) -> String {
     let mut hash = SpookyHasher::default();
 
-    let dep_data = serde_json::to_vec(&spec.deployment).unwrap();
+    let dep_data =
+        serde_json::to_vec(&spec.deployment).expect("deployment serialization should not fail");
     dep_data.hash(&mut hash);
 
-    let cm_data = serde_json::to_vec(&spec.config_maps).unwrap();
+    let cm_data =
+        serde_json::to_vec(&spec.config_maps).expect("config_maps serialization should not fail");
     cm_data.hash(&mut hash);
 
     let hsh = hash.finish();
-    format!("{:02x}", hsh)
+    format!("{hsh:02x}")
 }
 
 fn calc_service_account_hash(spec: &KubernetesSpec) -> String {
     let mut hash = SpookyHasher::default();
 
-    let sa_data = serde_json::to_vec(&spec.service_account).unwrap();
+    let sa_data = serde_json::to_vec(&spec.service_account)
+        .expect("service_account serialization should not fail");
     sa_data.hash(&mut hash);
 
     let hsh = hash.finish();
-    format!("{:02x}", hsh)
+    format!("{hsh:02x}")
 }

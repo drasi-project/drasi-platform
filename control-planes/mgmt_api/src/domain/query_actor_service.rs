@@ -24,7 +24,7 @@ impl QueryActorService {
 
         let _: () = match mut_dapr
             .invoke_actor(
-                format!("{}.ContinuousQuery", spec.container),
+                format!("{}.ContinuousQuery", &spec.container),
                 id.to_string(),
                 "configure",
                 request,
@@ -48,7 +48,7 @@ impl QueryActorService {
 
         let _: () = match mut_dapr
             .invoke_actor::<String, &str, (), ()>(
-                format!("{}.ContinuousQuery", container),
+                format!("{container}.ContinuousQuery"),
                 id.to_string(),
                 "deprovision",
                 (),
@@ -76,7 +76,7 @@ impl QueryActorService {
         loop {
             match mut_dapr
                 .invoke_actor::<String, &str, (), QueryStatus>(
-                    format!("{}.ContinuousQuery", container),
+                    format!("{container}.ContinuousQuery"),
                     id.to_string(),
                     "getStatus",
                     (),

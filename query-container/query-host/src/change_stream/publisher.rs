@@ -33,8 +33,7 @@ impl Publisher {
             Ok(client) => client,
             Err(e) => {
                 return Err(PublishError::ConnectionError(format!(
-                    "Error connecting to redis: {}",
-                    e
+                    "Error connecting to redis: {e}"
                 )))
             }
         };
@@ -43,8 +42,7 @@ impl Publisher {
             Ok(connection) => connection,
             Err(e) => {
                 return Err(PublishError::ConnectionError(format!(
-                    "Error connecting to redis: {}",
-                    e
+                    "Error connecting to redis: {e}"
                 )))
             }
         };
@@ -62,7 +60,7 @@ impl Publisher {
         let mut items = Vec::with_capacity(4);
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
+            .expect("SystemTime before UNIX EPOCH")
             .as_nanos()
             .to_string();
         items.push(("data", data));
@@ -76,13 +74,12 @@ impl Publisher {
 
         let _: redis::Value = match connection.xadd(&self.topic, "*", &items).await {
             Ok(ret) => {
-                log::debug!("Publish result: {:?}", ret);
+                log::debug!("Publish result: {ret:?}");
                 ret
             }
             Err(e) => {
                 return Err(PublishError::Other(format!(
-                    "Error publishing to topic: {}",
-                    e
+                    "Error publishing to topic: {e}"
                 )))
             }
         };

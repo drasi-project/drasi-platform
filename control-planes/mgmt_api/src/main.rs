@@ -50,7 +50,7 @@ async fn main() -> Result<(), std::io::Error> {
     let dapr_http_port = std::env::var("DAPR_HTTP_PORT")
         .unwrap_or_else(|_| "3500".to_string())
         .parse::<u16>()
-        .unwrap();
+        .expect("DAPR_HTTP_PORT must be a valid u16");
 
     // Introduce delay so that dapr grpc port is assigned before app tries to connect
     std::thread::sleep(std::time::Duration::new(5, 0));
@@ -59,7 +59,9 @@ async fn main() -> Result<(), std::io::Error> {
     let dapr_client = dapr::Client::<dapr::client::TonicClient>::connect(addr)
         .await
         .expect("Unable to connect to Dapr");
-    let mongo_client = mongodb::Client::with_uri_str(&mongo_uri).await.unwrap();
+    let mongo_client = mongodb::Client::with_uri_str(&mongo_uri)
+        .await
+        .expect("Unable to connect to MongoDB");
 
     log::info!("starting HTTP server at http://localhost:8080");
     //wait for the schema to be populated before starting the server

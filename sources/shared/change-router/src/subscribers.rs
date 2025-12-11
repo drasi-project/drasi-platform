@@ -29,17 +29,26 @@ impl Subscriber {
     }
 
     pub fn add_labels(&self, labels: Vec<&str>, query_node_id: &str, query_id: &str) {
-        let mut subscriber_map = self.subscriber_map.lock().unwrap();
+        let mut subscriber_map = self
+            .subscriber_map
+            .lock()
+            .expect("subscriber_map lock poisoned");
         subscriber_map.add_labels(labels, query_node_id, query_id);
     }
 
     pub fn get_label_map(&self) -> HashMap<String, HashSet<String>> {
-        let subscriber_map = self.subscriber_map.lock().unwrap();
+        let subscriber_map = self
+            .subscriber_map
+            .lock()
+            .expect("subscriber_map lock poisoned");
         subscriber_map.label_map.clone()
     }
 
     pub fn get_subscribers_for_labels(&self, labels: Vec<&str>) -> Option<Vec<String>> {
-        let subscriber_map = self.subscriber_map.lock().unwrap();
+        let subscriber_map = self
+            .subscriber_map
+            .lock()
+            .expect("subscriber_map lock poisoned");
 
         subscriber_map.get_subscribers_for_labels(labels).clone()
     }

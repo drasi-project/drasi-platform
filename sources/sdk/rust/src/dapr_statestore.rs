@@ -36,7 +36,9 @@ impl DaprStateStore {
         let client = {
             let mut attempt = 0;
             loop {
-                match Client::<dapr::client::TonicClient>::connect("https://127.0.0.1".to_string()).await {
+                match Client::<dapr::client::TonicClient>::connect("https://127.0.0.1".to_string())
+                    .await
+                {
                     Ok(client) => break client,
                     Err(e) => {
                         attempt += 1;
@@ -69,7 +71,7 @@ impl StateStore for DaprStateStore {
         let response = dapr_client
             .get_state(self.store_name.as_str(), id, None)
             .await?;
-        if response.data.len() == 0 {
+        if response.data.is_empty() {
             return Ok(None);
         }
         Ok(Some(response.data))
@@ -100,7 +102,7 @@ async fn wait_for_dapr_start() -> Result<(), Box<dyn std::error::Error>> {
     let http_port: u16 = std::env::var("DAPR_HTTP_PORT")?.parse()?;
     let mut attempt = 0;
     loop {
-        let url = format!("http://localhost:{}/v1.0/healthz/outbound", http_port);
+        let url = format!("http://localhost:{http_port}/v1.0/healthz/outbound");
         let response = reqwest::get(&url).await;
 
         match response {

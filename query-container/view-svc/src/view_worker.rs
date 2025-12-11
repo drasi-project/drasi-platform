@@ -69,14 +69,14 @@ impl ViewWorker {
         let query_id2 = query_id.clone();
 
         let inner_handle = tokio::spawn(async move {
-            log::info!("View {} worker starting", query_id);
+            log::info!("View {query_id} worker starting");
 
             if let Err(err) = store.init_view(&query_id, config.retention_policy).await {
-                log::error!("Error initializing view: {}", err);
+                log::error!("Error initializing view: {err}");
                 return ShutdownReason::Error;
             }
 
-            let topic = format!("{}-results", query_id);
+            let topic = format!("{query_id}-results");
 
             let change_stream = match RedisChangeStream::new(
                 &stream_config.redis_url,
@@ -90,7 +90,7 @@ impl ViewWorker {
             {
                 Ok(cs) => cs,
                 Err(err) => {
-                    log::error!("Error creating change stream: {}", err);
+                    log::error!("Error creating change stream: {err}");
                     return ShutdownReason::Error;
                 }
             };
@@ -111,13 +111,13 @@ impl ViewWorker {
                     cmd = command_rx.recv() => {
                             match cmd {
                                 Some(Command::Shutdown) => {
-                                    log::info!("View {} worker shutting down", query_id);
+                                    log::info!("View {query_id} worker shutting down");
                                     return ShutdownReason::Deactivated;
                                 },
                                 Some(Command::Reconfigure(new_config)) => {
-                                    log::info!("View {} worker reconfigure", query_id);
+                                    log::info!("View {query_id} worker reconfigure");
                                     if let Err(err) = store.set_retention_policy(&query_id, new_config.retention_policy).await {
-                                        log::error!("Error setting retention policy: {}", err);
+                                        log::error!("Error setting retention policy: {err}");
                                     }
                                 },
                                 None => {
@@ -129,7 +129,7 @@ impl ViewWorker {
                     msg = change_stream.recv::<ResultEvent>() => {
                         match msg {
                             Err(err) => {
-                                log::error!("Error polling stream consumer: {}", err);
+                                log::error!("Error polling stream consumer: {err}");
                                 break;
                             },
                             Ok(msg) => {
@@ -146,25 +146,25 @@ impl ViewWorker {
                                         match evt.data {
                                             ResultEvent::Change(change_evt) => {
                                                 if let Err(err) = store.record_change(&query_id, change_evt).await {
-                                                    log::error!("Error recording change: {}", err);
+                                                    log::error!("Error recording change: {err}");
                                                     return ShutdownReason::Error;
                                                 }
                                             },
                                             ResultEvent::Control(control_evt) => {
-                                                log::info!("Control event for {}: {:?}", query_id, control_evt);
+                                                log::info!("Control event for {query_id}: {control_evt:?}");
                                                 match control_evt.control_signal {
                                                     ControlSignal::BootstrapStarted => {
                                                         if let Err(err) = store.delete_view(&query_id).await {
-                                                            log::error!("Error deleting view {}: {}", query_id, err);
+                                                            log::error!("Error deleting view {query_id}: {err}");
                                                             return ShutdownReason::Error;
                                                         }
                                                     },
                                                     ControlSignal::QueryDeleted => {
-                                                        log::info!("Query {} deleted", query_id);
+                                                        log::info!("Query {query_id} deleted");
                                                         match store.delete_view(&query_id).await {
-                                                            Ok(_) => log::info!("View {} deleted", query_id),
+                                                            Ok(_) => log::info!("View {query_id} deleted"),
                                                             Err(err) => {
-                                                                log::error!("Error deleting view {}: {}", query_id, err);
+                                                                log::error!("Error deleting view {query_id}: {err}");
                                                                 return ShutdownReason::Error;
                                                             },
                                                         }
@@ -177,7 +177,7 @@ impl ViewWorker {
                                         };
 
                                         if let Err(err) = change_stream.ack(&evt_id).await {
-                                            log::error!("Error acknowledging message: {}", err);
+                                            log::error!("Error acknowledging message: {err}");
                                         }
 
                                         msg_latency.record(msg_process_start.elapsed().as_nanos() as f64, &metric_attributes);
@@ -195,12 +195,12 @@ impl ViewWorker {
             let reason = match inner_handle.await {
                 Ok(r) => r,
                 Err(err) => {
-                    log::error!("Error in worker: {}", err);
+                    log::error!("Error in worker: {err}");
                     ShutdownReason::Error
                 }
             };
-            log::info!("View {} worker finished", query_id2);
-            state_tx.send(WorkerState::Shutdown(reason)).unwrap();
+            log::info!("View {query_id2} worker finished");
+            let _ = state_tx.send(WorkerState::Shutdown(reason));
             _ = is_complete_tx.send(());
         });
 
@@ -215,7 +215,7 @@ impl ViewWorker {
     pub fn reconfigure(&self, config: ViewSpec) {
         match self.commander.send(Command::Reconfigure(config)) {
             Ok(_) => log::info!("Reconfigure command sent"),
-            Err(err) => log::error!("Error sending Reconfigure command: {}", err),
+            Err(err) => log::error!("Error sending Reconfigure command: {err}"),
         }
     }
 
@@ -226,7 +226,7 @@ impl ViewWorker {
 
         match self.commander.send(Command::Shutdown) {
             Ok(_) => log::info!("Shutdown command sent"),
-            Err(err) => log::error!("Error sending shutdown command: {}", err),
+            Err(err) => log::error!("Error sending shutdown command: {err}"),
         }
 
         if let Some(rx) = self.is_complete.lock().await.take() {

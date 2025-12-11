@@ -44,7 +44,10 @@ pub fn apply_identity(spec: &mut KubernetesSpec, identity: &ServiceIdentity) {
             spec.service_account_name = Some(service_account_name);
         }
     }
-    let service_account = spec.service_account.as_mut().unwrap(); //asserted above
+    let service_account = spec
+        .service_account
+        .as_mut()
+        .expect("service_account asserted above");
 
     let mut env_vars = BTreeMap::new();
     let id_type;

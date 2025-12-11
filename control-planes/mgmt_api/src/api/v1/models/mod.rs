@@ -248,7 +248,7 @@ impl ControlMessage {
     }
 
     pub fn to_json(&self) -> String {
-        serde_json::to_string(self).unwrap()
+        serde_json::to_string(self).expect("ControlMessage serialization should not fail")
     }
 }
 

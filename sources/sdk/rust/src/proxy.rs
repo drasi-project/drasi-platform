@@ -33,7 +33,8 @@ use crate::{
     telemetry::init_tracer,
 };
 
-pub type BootstrapStream = Pin<Box<dyn Stream<Item = Result<SourceElement, BootstrapError>> + Send + Sync>>;
+pub type BootstrapStream =
+    Pin<Box<dyn Stream<Item = Result<SourceElement, BootstrapError>> + Send + Sync>>;
 
 #[derive(Error, Debug)]
 pub enum BootstrapError {
@@ -44,9 +45,9 @@ pub enum BootstrapError {
     InternalError(String),
 }
 
-impl Into<axum::Error> for BootstrapError {
-    fn into(self) -> axum::Error {
-        axum::Error::new(self)
+impl From<BootstrapError> for axum::Error {
+    fn from(val: BootstrapError) -> Self {
+        axum::Error::new(val)
     }
 }
 
@@ -57,7 +58,7 @@ where
 {
     stream_producer: fn(Context, BootstrapRequest) -> Response,
     port: u16,
-    context: Context
+    context: Context,
 }
 
 impl<Response, Context> SourceProxy<Response, Context>
@@ -71,33 +72,35 @@ where
                 log::error!("Panic occurred: {}", message);
                 if let Ok(mut file) = OpenOptions::new()
                     .create(true)
+                    .truncate(true)
                     .write(true)
                     .open("/dev/termination-log")
                 {
-                    let _ = writeln!(file, "Panic occurred: {}", message);
+                    let _ = writeln!(file, "Panic occurred: {message}");
                 }
             } else if let Some(message) = info.payload().downcast_ref::<&str>() {
                 log::error!("Panic occurred: {}", message);
                 if let Ok(mut file) = OpenOptions::new()
                     .create(true)
+                    .truncate(true)
                     .write(true)
                     .open("/dev/termination-log")
                 {
-                    let _ = writeln!(file, "Panic occurred: {}", message);
+                    let _ = writeln!(file, "Panic occurred: {message}");
                 }
             }
         }));
 
         log::info!("Starting proxy");
-        _ = init_tracer(format!(
+        init_tracer(format!(
             "{}-proxy",
             env::var("SOURCE_ID").expect("SOURCE_ID required")
         ))
-        .unwrap();
+        .expect("Failed to initialize tracer");
 
         let app_state = Arc::new(AppState::<Response, Context> {
             stream_producer: self.stream_producer,
-            context: self.context.clone()
+            context: self.context.clone(),
         });
 
         let app = Router::new()
@@ -114,7 +117,7 @@ where
         let listener = match TcpListener::bind(&addr).await {
             Ok(listener) => listener,
             Err(e) => {
-                panic!("Error binding to address: {:?}", e);
+                panic!("Error binding to address: {e:?}");
             }
         };
 
@@ -140,6 +143,16 @@ where
     stream_producer: Option<fn(Context, BootstrapRequest) -> Response>,
     port: Option<u16>,
     context: Option<Context>,
+}
+
+impl<Response, Context> Default for SourceProxyBuilder<Response, Context>
+where
+    Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
+    Context: Send + Sync + Clone + 'static,
+{
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<Response, Context> SourceProxyBuilder<Response, Context>
@@ -168,17 +181,14 @@ where
         self
     }
 
-    pub fn with_context(
-        mut self,
-        context: Context
-    ) -> Self {
+    pub fn with_context(mut self, context: Context) -> Self {
         self.context = Some(context);
         self
     }
 
     pub fn build(self) -> SourceProxy<Response, Context> {
         SourceProxy {
-            stream_producer: self.stream_producer.unwrap(),
+            stream_producer: self.stream_producer.expect("stream_producer is required"),
             port: self.port.unwrap_or(80),
             context: match self.context {
                 Some(s) => s,
@@ -192,12 +202,10 @@ impl<Response> SourceProxyBuilder<Response, ()>
 where
     Response: Future<Output = Result<BootstrapStream, BootstrapError>> + Send + Sync,
 {
-    pub fn without_context(
-        mut self
-    ) -> Self {
+    pub fn without_context(mut self) -> Self {
         self.context = Some(());
         self
-    }    
+    }
 }
 
 struct AppState<Response, Context>

@@ -36,7 +36,7 @@ impl SourceClient {
         query_id: String,
         subscription: QuerySubscription,
     ) -> Result<impl Stream<Item = Result<SourceChange, BootstrapError>>, BootstrapError> {
-        let app_id = format!("{}-query-api", subscription.id);
+        let app_id = format!("{}-query-api", &subscription.id);
         let data = json!({
             "queryNodeId": query_container_id,
             "queryId": query_id,
@@ -45,7 +45,7 @@ impl SourceClient {
         });
         let resp = match self
             .client
-            .post(format!("http://{}/subscription", app_id))
+            .post(format!("http://{app_id}/subscription"))
             .json(&data)
             .send()
             .await
@@ -62,14 +62,11 @@ impl SourceClient {
         if !resp.status().is_success() {
             return Err(BootstrapError::fetch_failed(
                 subscription.id.to_string(),
-                Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "{} {}",
-                        resp.status(),
-                        resp.text().await.unwrap_or_default()
-                    ),
-                )),
+                Box::new(std::io::Error::other(format!(
+                    "{} {}",
+                    resp.status(),
+                    resp.text().await.unwrap_or_default()
+                ))),
             ));
         }
 
@@ -91,13 +88,12 @@ impl SourceClient {
         query_id: String,
         subscription_id: String,
     ) -> Result<(), UnsubscriptionError> {
-        let app_id = format!("{}-query-api", subscription_id);
+        let app_id = format!("{subscription_id}-query-api");
 
         let resp = match self
             .client
             .delete(format!(
-                "http://{}/subscription/{}/{}",
-                app_id, query_container_id, query_id
+                "http://{app_id}/subscription/{query_container_id}/{query_id}"
             ))
             .send()
             .await
@@ -105,16 +101,14 @@ impl SourceClient {
             Ok(resp) => resp,
             Err(e) => {
                 return Err(UnsubscriptionError::UnsubscribeFailed(format!(
-                    "Failed to unsubscribe from app '{}': {}",
-                    app_id, e
+                    "Failed to unsubscribe from app '{app_id}': {e}"
                 )))
             }
         };
 
         if !resp.status().is_success() {
             return Err(UnsubscriptionError::UnsubscribeFailed(format!(
-                "Failed to unsubscribe from query node '{}': {}",
-                query_id,
+                "Failed to unsubscribe from query node '{query_id}': {}",
                 resp.text().await.unwrap_or_default()
             )));
         }
@@ -154,7 +148,12 @@ mod v2 {
                         },
                         properties: (&self.properties).into(),
                         in_node: ElementReference::new(source_id, start_id.as_str()),
-                        out_node: ElementReference::new(source_id, self.end_id.unwrap().as_str()),
+                        out_node: ElementReference::new(
+                            source_id,
+                            self.end_id
+                                .expect("end_id should be present for relations")
+                                .as_str(),
+                        ),
                     },
                 },
                 None => SourceChange::Insert {

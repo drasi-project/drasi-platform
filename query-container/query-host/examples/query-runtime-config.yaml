@@ -1,0 +1,75 @@
+# Example Query Configuration with Runtime Selection
+# This file demonstrates how to configure queries with different runtime options
+
+# Query using Worker runtime (default, backward compatible)
+---
+id: "example-query-worker"
+spec:
+  mode: "continuous"
+  query: "MATCH (n:Person) RETURN n.name, n.age"
+  queryLanguage: "Cypher"
+  runtime: "Worker"  # Explicit Worker runtime selection
+  sources:
+    subscriptions:
+      - id: "source1"
+        nodes:
+          - sourceLabel: "Person"
+        relations: []
+        pipeline: []
+    joins: []
+    middleware: []
+  storageProfile: "memory"
+  view:
+    enabled: true
+    retentionPolicy: "latest"
+  transient: false
+
+# Query using ServerCore runtime (new, self-contained)
+---
+id: "example-query-servercore"
+spec:
+  mode: "continuous"
+  query: "MATCH (n:Product)-[:SOLD_IN]->(s:Store) RETURN n.name, s.location"
+  queryLanguage: "Cypher"
+  runtime: "ServerCore"  # Use ServerCore runtime
+  sources:
+    subscriptions:
+      - id: "source1"
+        nodes:
+          - sourceLabel: "Product"
+          - sourceLabel: "Store"
+        relations:
+          - sourceLabel: "SOLD_IN"
+        pipeline: []
+    joins: []
+    middleware: []
+  storageProfile: "memory"
+  view:
+    enabled: true
+    retentionPolicy: "latest"
+  transient: false
+
+# Query with default runtime (Worker) - backward compatible
+---
+id: "example-query-default"
+spec:
+  mode: "continuous"
+  query: "MATCH (n:Order) WHERE n.total > 100 RETURN n"
+  queryLanguage: "Cypher"
+  # runtime field omitted - defaults to "Worker"
+  sources:
+    subscriptions:
+      - id: "source1"
+        nodes:
+          - sourceLabel: "Order"
+        relations: []
+        pipeline: []
+    joins: []
+    middleware: []
+  storageProfile: "memory"
+  view:
+    enabled: true
+    retentionPolicy:
+      expire:
+        afterSeconds: 3600
+  transient: false

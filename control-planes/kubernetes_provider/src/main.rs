@@ -48,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let kube_config = Config::infer().await?;
 
-    let cpus = std::thread::available_parallelism().unwrap();
+    let cpus = std::thread::available_parallelism().expect("failed to get available parallelism");
     log::info!("available cpus: {}", cpus);
 
     //test kubernetes connection

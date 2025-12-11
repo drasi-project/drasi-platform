@@ -34,7 +34,12 @@ fn add_kind_field_to_schema(schema: Value) -> Result<Value, DomainError> {
     let kind_property = serde_json::json!({
         "type": "string"
     });
-    let mut schema = schema.as_object().unwrap().clone();
+    let mut schema = schema
+        .as_object()
+        .ok_or_else(|| DomainError::InvalidSpec {
+            message: "Schema must be a JSON object".to_string(),
+        })?
+        .clone();
     schema.insert("kind".to_string(), kind_property);
     Ok(Value::Object(schema))
 }

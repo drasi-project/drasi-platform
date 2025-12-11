@@ -102,7 +102,7 @@ where
                 log::error!("Error configuring resource: {}", e);
                 return Err(DomainError::Internal { inner: Box::new(e) });
             }
-            r => r.unwrap(),
+            Ok(r) => r,
         };
 
         Ok(Resource {
@@ -130,7 +130,7 @@ where
                 log::error!("Error deprovisioning resource: {}", e);
                 return Err(DomainError::Internal { inner: Box::new(e) });
             }
-            r => r.unwrap(),
+            Ok(r) => r,
         };
 
         self.repo.delete(id).await?;

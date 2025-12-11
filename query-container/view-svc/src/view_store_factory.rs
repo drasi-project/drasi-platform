@@ -35,8 +35,7 @@ pub async fn from_env() -> Result<Arc<dyn ViewStore>, ViewError> {
             Ok(store)
         }
         _ => Err(ViewError::Other(format!(
-            "Unknown view store type {}",
-            store_type
+            "Unknown view store type {store_type}"
         ))),
     }
 }

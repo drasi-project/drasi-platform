@@ -171,7 +171,9 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
         for (service_name, service_spec) in services {
             let app_port = match service_spec.dapr {
                 Some(ref dapr) => match dapr.get("app-port") {
-                    Some(ConfigValue::Inline { value }) => Some(value.parse::<u16>().unwrap()),
+                    Some(ConfigValue::Inline { value }) => {
+                        Some(value.parse::<u16>().expect("app-port must be a valid u16"))
+                    }
                     _ => None,
                 },
                 None => None,
@@ -216,7 +218,10 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 for (endpoint_name, endpoint) in endpoints {
                     match endpoint.setting {
                         EndpointSetting::Internal => {
-                            let port = endpoint.target.parse::<i32>().unwrap();
+                            let port = endpoint
+                                .target
+                                .parse::<i32>()
+                                .expect("endpoint target must be a valid i32");
                             let service_spec = ServiceSpec {
                                 type_: Some("ClusterIP".to_string()),
                                 selector: Some(hashmap![
@@ -236,7 +241,10 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                             k8s_services.insert(endpoint_name.clone(), service_spec);
                         }
                         EndpointSetting::External => {
-                            let port = endpoint.target.parse::<i32>().unwrap();
+                            let port = endpoint
+                                .target
+                                .parse::<i32>()
+                                .expect("endpoint target must be a valid i32");
 
                             // Create ClusterIP service for the ingress to route to
                             let service_spec = ServiceSpec {

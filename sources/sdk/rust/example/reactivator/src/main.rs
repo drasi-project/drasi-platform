@@ -1,15 +1,20 @@
-use std::{sync::Arc, time::{SystemTime, UNIX_EPOCH}};
+use std::{
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
-use drasi_source_sdk::{stream, ChangeOp, ChangeStream, DebugPublisher, MemoryStateStore, ReactivatorBuilder, ReactivatorError, SourceChange, SourceElement, StateStore};
+use drasi_source_sdk::{
+    stream, ChangeOp, ChangeStream, DebugPublisher, MemoryStateStore, ReactivatorBuilder,
+    ReactivatorError, SourceChange, SourceElement, StateStore,
+};
 use serde_json::{Map, Value};
-
 
 #[tokio::main]
 async fn main() {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-    
+
     let reactivator = ReactivatorBuilder::new()
-        .with_stream_producer(my_stream)        
+        .with_stream_producer(my_stream)
         .with_deprovision_handler(deprovision)
         .without_context()
         .build()
@@ -18,27 +23,33 @@ async fn main() {
     reactivator.start().await;
 }
 
-async fn my_stream(_context: (), state_store: Arc<dyn StateStore + Send + Sync>) -> Result<ChangeStream, ReactivatorError> {
-    
-    let mut cursor = match state_store.get("cursor").await.unwrap() {
-        Some(cursor) => u64::from_be_bytes(cursor.try_into().unwrap()),
+async fn my_stream(
+    _context: (),
+    state_store: Arc<dyn StateStore + Send + Sync>,
+) -> Result<ChangeStream, ReactivatorError> {
+    let mut cursor = match state_store
+        .get("cursor")
+        .await
+        .expect("Failed to get cursor from state store")
+    {
+        Some(cursor) => u64::from_be_bytes(cursor.try_into().expect("cursor should be 8 bytes")),
         None => 0,
-    };    
-    
+    };
+
     let result = stream! {
-        let start_location_id = "Location-A";        
+        let start_location_id = "Location-A";
 
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-            let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+            let time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_nanos();
 
             cursor += 1;
-            let vehicle_id = format!("vehicle-{}", cursor);
+            let vehicle_id = format!("vehicle-{cursor}");
             let vehicle_node = SourceElement::Node {
                 id: vehicle_id.clone(),
                 labels: vec!["Vehicle".to_string()],
                 properties: vec![
-                    ("name".to_string(), Value::String(format!("Vehicle {}", cursor))),
+                    ("name".to_string(), Value::String(format!("Vehicle {cursor}"))),
                 ].into_iter().collect(),
             };
 
@@ -46,7 +57,7 @@ async fn my_stream(_context: (), state_store: Arc<dyn StateStore + Send + Sync>)
 
             cursor += 1;
             let vehicle_location_relation = SourceElement::Relation {
-                id: format!("vehicle-loc-{}", cursor),
+                id: format!("vehicle-loc-{cursor}"),
                 start_id: vehicle_id,
                 end_id: start_location_id.to_string(),
                 labels: vec!["LOCATED_AT".to_string()],
@@ -55,9 +66,9 @@ async fn my_stream(_context: (), state_store: Arc<dyn StateStore + Send + Sync>)
 
             yield SourceChange::new(ChangeOp::Create, vehicle_location_relation, time, time, cursor, None);
 
-            state_store.put("cursor", cursor.to_be_bytes().to_vec()).await.unwrap();
+            state_store.put("cursor", cursor.to_be_bytes().to_vec()).await.expect("Failed to save cursor to state store");
         }
-        
+
     };
 
     Ok(Box::pin(result))

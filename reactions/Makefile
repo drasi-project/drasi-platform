@@ -18,6 +18,8 @@ docker-build:
 	$(MAKE) -C debezium/debezium-reaction $(MAKECMDGOALS)
 	$(MAKE) -C platform/result-reaction $(MAKECMDGOALS)
 	$(MAKE) -C power-platform/dataverse/dataverse-reaction $(MAKECMDGOALS)
+	$(MAKE) -C http $(MAKECMDGOALS)
+	$(MAKE) -C mcp $(MAKECMDGOALS)
 
 docker-build-debug:
 	$(MAKE) -C signalr/signalr-reaction $(MAKECMDGOALS)

@@ -24,6 +24,15 @@ pub enum QueryLanguageDto {
     GQL,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[allow(clippy::upper_case_acronyms)]
+pub enum QueryRuntimeDto {
+    #[serde(rename = "Worker")]
+    Worker,
+    #[serde(rename = "ServerCore")]
+    ServerCore,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct QuerySourceLabelDto {
@@ -61,6 +70,7 @@ pub struct QuerySpecDto {
     pub mode: String,
     pub query: String,
     pub query_language: Option<QueryLanguageDto>,
+    pub query_runtime: Option<QueryRuntimeDto>,
     pub sources: QuerySourcesDto,
     pub storage_profile: Option<String>,
     pub view: Option<ViewSpecDto>,

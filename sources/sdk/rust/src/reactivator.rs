@@ -59,7 +59,20 @@ where
     port: Option<u16>,
 }
 
-impl<Response, DeprovisionResponse, Context> ReactivatorBuilder<Response, DeprovisionResponse, Context>
+impl<Response, DeprovisionResponse, Context> Default
+    for ReactivatorBuilder<Response, DeprovisionResponse, Context>
+where
+    Context: Send + Sync,
+    Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send,
+    DeprovisionResponse: Future<Output = ()> + Send + 'static,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<Response, DeprovisionResponse, Context>
+    ReactivatorBuilder<Response, DeprovisionResponse, Context>
 where
     Context: Send + Sync,
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send,
@@ -97,10 +110,7 @@ where
         self
     }
 
-    pub fn with_context(
-        mut self,
-        context: Context
-    ) -> Self {
+    pub fn with_context(mut self, context: Context) -> Self {
         self.context = Some(context);
         self
     }
@@ -117,15 +127,15 @@ where
         self.port = Some(port);
         self
     }
-
 }
 
-impl<Response, DeprovisionResponse, Context> ReactivatorBuilder<Response, DeprovisionResponse, Context>
+impl<Response, DeprovisionResponse, Context>
+    ReactivatorBuilder<Response, DeprovisionResponse, Context>
 where
     Context: Send + Sync,
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send,
     DeprovisionResponse: Future<Output = ()> + Send + 'static,
-{ 
+{
     pub async fn build(self) -> Reactivator<Context, Response, DeprovisionResponse> {
         Reactivator {
             stream_fn: self.stream_producer.expect("Stream producer is required"),
@@ -134,7 +144,11 @@ where
                 .unwrap_or_else(|| Box::new(DaprPublisher::new())),
             state_store: match self.state_store {
                 Some(ss) => ss,
-                None => Arc::new(DaprStateStore::connect().await.unwrap()),
+                None => Arc::new(
+                    DaprStateStore::connect()
+                        .await
+                        .expect("Failed to connect to Dapr state store"),
+                ),
             },
             context: match self.context {
                 Some(s) => s,
@@ -150,13 +164,11 @@ impl<Response, DeprovisionResponse> ReactivatorBuilder<Response, DeprovisionResp
 where
     Response: Future<Output = Result<ChangeStream, ReactivatorError>> + Send,
     DeprovisionResponse: Future<Output = ()> + Send + 'static,
-{ 
-    pub fn without_context(
-        mut self
-    ) -> Self {
+{
+    pub fn without_context(mut self) -> Self {
         self.context = Some(());
         self
-    }    
+    }
 }
 
 pub struct Reactivator<Context, Response, DeprovisionResponse>
@@ -185,31 +197,37 @@ where
                 log::error!("Panic occurred: {} \n{:?}", message, info.location());
                 if let Ok(mut file) = OpenOptions::new()
                     .create(true)
+                    .truncate(true)
                     .write(true)
                     .open("/dev/termination-log")
                 {
-                    let _ = writeln!(file, "Panic occurred: {}", message);
+                    let _ = writeln!(file, "Panic occurred: {message}");
                 }
             } else if let Some(message) = info.payload().downcast_ref::<&str>() {
                 log::error!("Panic occurred: {} \n{:?}", message, info.location());
                 if let Ok(mut file) = OpenOptions::new()
                     .create(true)
+                    .truncate(true)
                     .write(true)
                     .open("/dev/termination-log")
                 {
-                    let _ = writeln!(file, "Panic occurred: {}", message);
+                    let _ = writeln!(file, "Panic occurred: {message}");
                 }
             }
         }));
         log::info!("Starting reactivator");
         let source_id = env::var("SOURCE_ID").expect("SOURCE_ID required");
-        _ = init_tracer(format!("{}-reactivator", source_id.clone())).unwrap();
+        init_tracer(format!("{}-reactivator", source_id.clone()))
+            .expect("Failed to initialize tracer");
 
         log::info!("Initialized tracing");
 
-        let producer = self.stream_fn;        
+        let producer = self.stream_fn;
         let state_store = self.state_store.clone();
-        let mut stream = producer(self.context, state_store.clone()).await.unwrap().fuse();
+        let mut stream = producer(self.context, state_store.clone())
+            .await
+            .expect("Failed to create change stream")
+            .fuse();
         let port = self.port.unwrap_or(80);
         let deprovision_handler = self.deprovision_handler;
 
@@ -228,7 +246,7 @@ where
             let listener = match TcpListener::bind(&addr).await {
                 Ok(listener) => listener,
                 Err(e) => {
-                    panic!("Error binding to address: {:?}", e);
+                    panic!("Error binding to address: {e:?}");
                 }
             };
 
@@ -256,11 +274,11 @@ where
                                 let now = std::time::SystemTime::now();
                                 now.duration_since(std::time::UNIX_EPOCH)
                                     .expect("Time went backwards")
-                                    .as_nanos() as u128
+                                    .as_nanos()
                             };
                             data.set_reactivator_end_ns(reactivator_end_ns);
                             if let Err(err) = self.publisher.publish(data).instrument(span).await {
-                                panic!("Error publishing: {}", err)
+                                panic!("Error publishing: {err}")
                             }
                         },
                         None => {

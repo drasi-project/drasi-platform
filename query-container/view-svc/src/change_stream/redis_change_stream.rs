@@ -50,10 +50,10 @@ impl RedisChangeStream {
             .xgroup_create_mkstream::<&str, &str, &str, String>(topic, group_id, "$")
             .await
         {
-            Ok(res) => log::info!("Created consumer group: {:?}", res),
+            Ok(res) => log::info!("Created consumer group: {res:?}"),
             Err(err) => match err.kind() {
                 redis::ErrorKind::ExtensionError => log::info!("Consumer group already exists"),
-                _ => log::error!("Consumer group create error: {:?} {:?}", err, err.kind()),
+                _ => log::error!("Consumer group create error: {err:?} {:?}", err.kind()),
             },
         };
 
@@ -87,7 +87,7 @@ impl RedisChangeStream {
                 {
                     Ok(items) => items,
                     Err(err) => {
-                        log::error!("Error reading from redis: {:?}", err);
+                        log::error!("Error reading from redis: {err:?}");
                         continue;
                     }
                 };
@@ -122,7 +122,7 @@ impl RedisChangeStream {
                                 }
                             },
                             Err(err) => {
-                                log::error!("Error reading from redis: {:?}", err);
+                                log::error!("Error reading from redis: {err:?}");
                                 continue;
                             }
                         }
@@ -162,8 +162,8 @@ impl SequentialChangeStream for RedisChangeStream {
                 None => Ok(None),
             }
         } else {
-            log::warn!("re-serving unack_item: {:?}", unack_item);
-            let message = unack_item.clone().unwrap();
+            log::warn!("re-serving unack_item: {unack_item:?}");
+            let message = unack_item.clone().expect("unack_item should be Some");
             let message = deserialize_message::<T>(&message)?;
             Ok(Some(message))
         }
@@ -176,14 +176,13 @@ impl SequentialChangeStream for RedisChangeStream {
                 if item.id == id {
                     let mut connection = self.connection.lock().await;
                     log::debug!(
-                        "processing ack : {}, {}, {:?}",
+                        "processing ack : {}, {}, {id:?}",
                         &self.topic,
-                        &self.group_id,
-                        id
+                        &self.group_id
                     );
                     let _: i64 = match connection.xack(&self.topic, &self.group_id, &[id]).await {
                         Ok(res) => {
-                            log::debug!("ack response: {:?}", res);
+                            log::debug!("ack response: {res:?}");
                             res
                         }
                         Err(err) => return Err(err.into()),
@@ -206,7 +205,7 @@ impl SequentialChangeStream for RedisChangeStream {
             .await
         {
             Ok(res) => {
-                log::debug!("unsubscribe response: {:?}", res);
+                log::debug!("unsubscribe response: {res:?}");
                 res
             }
             Err(err) => return Err(err.into()),
@@ -256,7 +255,7 @@ where
                 Err(err) => {
                     return Err(ChangeStreamError::MessageError {
                         id: message.id.clone(),
-                        error: format!("Failed to deserialize data: {:?}", err),
+                        error: format!("Failed to deserialize data: {err:?}"),
                     })
                 }
             },
@@ -286,7 +285,7 @@ where
                 }),
                 Err(err) => Err(ChangeStreamError::MessageError {
                     id: message.id.clone(),
-                    error: format!("Failed to deserialize data: {:?}", err),
+                    error: format!("Failed to deserialize data: {err:?}"),
                 }),
             },
             _ => Err(ChangeStreamError::MessageError {

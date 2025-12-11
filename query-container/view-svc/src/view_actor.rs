@@ -49,7 +49,7 @@ pub struct ViewActor {
 impl Actor for ViewActor {
     #[tracing::instrument(skip_all, fields(query_id=self.query_id.as_ref()), err)]
     async fn on_activate(&self) -> Result<(), ActorError> {
-        log::info!("View activated {}", self.query_id);
+        log::info!("View activated {}", &self.query_id);
         if self.read_config().await? {
             self.init_worker().await?;
         }
@@ -59,7 +59,7 @@ impl Actor for ViewActor {
 
     #[tracing::instrument(skip_all, fields(query_id=self.query_id.as_ref()), err)]
     async fn on_deactivate(&self) -> Result<(), ActorError> {
-        log::info!("View deactivated {}", self.query_id);
+        log::info!("View deactivated {}", &self.query_id);
         if let Some(w) = self.worker.take().await {
             w.shutdown().await;
         }
@@ -68,33 +68,33 @@ impl Actor for ViewActor {
     }
 
     async fn on_reminder(&self, _reminder_name: &str, _data: Vec<u8>) -> Result<(), ActorError> {
-        log::info!("View reminder {}", self.query_id);
+        log::info!("View reminder {}", &self.query_id);
 
         //perform housing keeping based on worker state
         if let Some(worker) = self.worker.get().await {
             match worker.state() {
                 WorkerState::Running => {
-                    log::info!("View worker running {}", self.query_id);
+                    log::info!("View worker running {}", &self.query_id);
                     Ok(())
                 }
                 WorkerState::Shutdown(reason) => {
-                    log::info!("View worker shutdown {}", self.query_id);
+                    log::info!("View worker shutdown {}", &self.query_id);
                     match reason {
                         ShutdownReason::Error => {
-                            log::info!("View worker error {}", self.query_id);
+                            log::info!("View worker error {}", &self.query_id);
                             log::info!("Restarting worker");
                             self.init_worker().await?;
                             Ok(())
                         }
                         ShutdownReason::Deactivated => {
-                            log::info!("View worker deactivated {}", self.query_id);
+                            log::info!("View worker deactivated {}", &self.query_id);
                             Ok(())
                         }
                     }
                 }
             }
         } else {
-            log::info!("View worker not running {}", self.query_id);
+            log::info!("View worker not running {}", &self.query_id);
             Ok(())
         }
     }
@@ -122,9 +122,9 @@ impl ViewActor {
     }
 
     pub async fn configure(&self, DaprJson(spec): DaprJson<ViewSpec>) -> impl IntoResponse {
-        log::info!("{} configure", self.query_id);
+        log::info!("{} configure", &self.query_id);
         if let Err(err) = self.write_config(spec).await {
-            log::error!("Error writing config: {}", err);
+            log::error!("Error writing config: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error writing config",
@@ -133,7 +133,7 @@ impl ViewActor {
         };
 
         if let Err(err) = self.register_reminder().await {
-            log::error!("Error registering reminder: {}", err);
+            log::error!("Error registering reminder: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error registering reminder",
@@ -142,7 +142,7 @@ impl ViewActor {
         }
 
         if let Err(err) = self.init_worker().await {
-            log::error!("Error initializing worker: {}", err);
+            log::error!("Error initializing worker: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error initializing worker",
@@ -154,9 +154,9 @@ impl ViewActor {
     }
 
     pub async fn deprovision(&self) -> impl IntoResponse {
-        log::info!("{} deprovision", self.query_id);
+        log::info!("{} deprovision", &self.query_id);
         if let Err(err) = self.unregister_reminder().await {
-            log::error!("Error unregistering reminder: {}", err);
+            log::error!("Error unregistering reminder: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error unregistering reminder",
@@ -169,7 +169,7 @@ impl ViewActor {
         }
 
         if let Err(err) = self.store.delete_view(&self.query_id).await {
-            log::error!("Error deleting view: {}", err);
+            log::error!("Error deleting view: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error deleting view",
@@ -184,7 +184,7 @@ impl ViewActor {
         let config = match self.config.get().await {
             Some(c) => c,
             None => {
-                log::error!("{} not configured", self.query_id);
+                log::error!("{} not configured", &self.query_id);
                 return Err(ActorError::MethodError(Box::new(ViewError::Other(
                     "Missing config".into(),
                 ))));
@@ -194,7 +194,7 @@ impl ViewActor {
         if let Some(w) = &self.worker.get().await {
             if !w.is_finished() {
                 w.reconfigure(config);
-                log::info!("{} worker reconfigured", self.query_id);
+                log::info!("{} worker reconfigured", &self.query_id);
                 return Ok(());
             }
         }
@@ -222,7 +222,7 @@ impl ViewActor {
                             Ok(true)
                         }
                         Err(e) => {
-                            log::error!("Error deserializing config: {}", e);
+                            log::error!("Error deserializing config: {e}");
                             Err(ActorError::SerializationError())
                         }
                     }
@@ -232,7 +232,7 @@ impl ViewActor {
                 }
             }
             Err(e) => {
-                log::error!("Error reading config: {}", e);
+                log::error!("Error reading config: {e}");
                 Err(ActorError::CorruptedState)
             }
         }
@@ -247,7 +247,7 @@ impl ViewActor {
             value: Some(match serde_json::to_vec(&config) {
                 Ok(s) => s,
                 Err(e) => {
-                    log::error!("Error serializing config: {}", e);
+                    log::error!("Error serializing config: {e}");
                     return Err(ActorError::SerializationError());
                 }
             }),
@@ -258,7 +258,7 @@ impl ViewActor {
         match result {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error persisting config: {}", e);
+                log::error!("Error persisting config: {e}");
                 Err(ActorError::CorruptedState)
             }
         }
@@ -278,7 +278,7 @@ impl ViewActor {
         {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error registering reminder: {}", e);
+                log::error!("Error registering reminder: {e}");
                 Err(ActorError::MethodError(Box::new(e)))
             }
         }
@@ -289,7 +289,7 @@ impl ViewActor {
         match client.unregister_actor_reminder("ping").await {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error unregistering reminder: {}", e);
+                log::error!("Error unregistering reminder: {e}");
                 Err(ActorError::MethodError(Box::new(e)))
             }
         }

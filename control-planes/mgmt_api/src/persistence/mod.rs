@@ -63,8 +63,8 @@ where
     async fn get(&self, id: &str) -> Result<T, DomainError> {
         match self.collection.find_one(doc! { "_id": id }, None).await {
             Ok(Some(doc)) => {
-                //let id = doc.get_str("_id").unwrap().to_string();
-                let spec: T = bson::from_document(doc).unwrap();
+                let spec: T = bson::from_document(doc)
+                    .map_err(|e| DomainError::Internal { inner: Box::new(e) })?;
                 Ok(spec)
             }
             Ok(None) => Err(DomainError::NotFound),
@@ -73,7 +73,8 @@ where
     }
 
     async fn set(&self, id: &str, spec: &T) -> Result<(), DomainError> {
-        let mut doc = bson::to_document(spec).unwrap();
+        let mut doc =
+            bson::to_document(spec).map_err(|e| DomainError::Internal { inner: Box::new(e) })?;
         doc.insert("_id", id);
 
         let options = ReplaceOptions::builder().upsert(true).build();
@@ -95,13 +96,39 @@ where
     }
 
     async fn list(&self) -> Vec<(String, T)> {
-        let mut cursor = self.collection.find(None, None).await.unwrap();
+        let mut cursor = match self.collection.find(None, None).await {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("Failed to query collection: {e}");
+                return Vec::new();
+            }
+        };
         let mut result = Vec::new();
-        while let Some(doc) = cursor.try_next().await.unwrap() {
-            let id = doc.get_str("_id").unwrap().to_string();
-            let item: T = bson::from_document(doc).unwrap();
-
-            result.push((id, item));
+        loop {
+            match cursor.try_next().await {
+                Ok(Some(doc)) => {
+                    let id = match doc.get_str("_id") {
+                        Ok(id) => id.to_string(),
+                        Err(e) => {
+                            log::error!("Failed to get _id from document: {e}");
+                            continue;
+                        }
+                    };
+                    let item: T = match bson::from_document(doc) {
+                        Ok(item) => item,
+                        Err(e) => {
+                            log::error!("Failed to deserialize document: {e}");
+                            continue;
+                        }
+                    };
+                    result.push((id, item));
+                }
+                Ok(None) => break,
+                Err(e) => {
+                    log::error!("Failed to iterate cursor: {e}");
+                    break;
+                }
+            }
         }
 
         result

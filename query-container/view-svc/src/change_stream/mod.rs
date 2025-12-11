@@ -52,12 +52,12 @@ pub trait SequentialChangeStream {
 impl Display for ChangeStreamError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ChangeStreamError::IOError(o) => write!(f, "IOError: {}", o),
+            ChangeStreamError::IOError(o) => write!(f, "IOError: {o}"),
             ChangeStreamError::MessageError { id, error } => {
-                write!(f, "MessageError: {}, {}", id, error)
+                write!(f, "MessageError: {id}, {error}")
             }
             ChangeStreamError::AckOutOfSequence => write!(f, "AckOutOfSequence"),
-            ChangeStreamError::Other(o) => write!(f, "Other: {}", o),
+            ChangeStreamError::Other(o) => write!(f, "Other: {o}"),
         }
     }
 }
