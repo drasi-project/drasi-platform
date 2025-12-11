@@ -20,6 +20,7 @@ import { DrasiExplorer } from './drasi-explorer';
 import { DrasiClient } from './drasi-client';
 import { CodeLensProvider } from './codelens-provider';
 import { ConfigurationRegistry } from './sdk/config';
+import { YamlSchemaProvider } from './yaml-schema-provider';
 
 let drasiClient: DrasiClient | undefined = undefined;
 
@@ -36,6 +37,10 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
         vscode.languages.registerCodeLensProvider({ language: 'yaml' }, new CodeLensProvider(context.extensionUri, drasiClient))
     );
+	
+	// Register YAML schema provider for intellisense
+	const schemaProvider = new YamlSchemaProvider(context.extensionUri);
+	schemaProvider.activate(context);
 	
 }
 

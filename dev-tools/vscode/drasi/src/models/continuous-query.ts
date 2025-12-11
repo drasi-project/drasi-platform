@@ -16,17 +16,65 @@
 
 import { Resource } from "./resource";
 
-
 export interface ContinuousQuery extends Resource<ContinuousQuerySpec> {  
 }
 
 export interface ContinuousQuerySpec {
-
+  mode: string;
+  container?: string;
+  query: string;
+  queryLanguage?: 'Cypher' | 'GQL';
+  sources: ContinuousQuerySources;
+  storageProfile?: string;
+  view?: ViewSpec;
 }
+
+export interface ContinuousQuerySources {
+  subscriptions: QuerySubscription[];
+  joins?: QueryJoin[];
+  middleware?: SourceMiddlewareConfig[];
+}
+
+export interface QuerySubscription {
+  id: string;
+  pipeline?: string[];
+  nodes?: QuerySourceLabel[];
+  relations?: QuerySourceLabel[];
+}
+
+export interface QuerySourceLabel {
+  sourceLabel: string;
+}
+
+export interface QueryJoin {
+  id: string;
+  keys: QueryJoinKey[];
+}
+
+export interface QueryJoinKey {
+  label: string;
+  property: string;
+}
+
+export interface SourceMiddlewareConfig {
+  kind: string;
+  name: string;
+  [key: string]: any;
+}
+
+export interface ViewSpec {
+  enabled: boolean;
+  retentionPolicy: RetentionPolicy;
+}
+
+export type RetentionPolicy = 
+  | 'latest' 
+  | 'all' 
+  | { expire: { afterSeconds: number } };
 
 export interface ContinuousQueryStatus {
   hostName: string;
   status: string;
   container: string;
-  errorMessage: string[];
+  errorMessage?: string;
 }

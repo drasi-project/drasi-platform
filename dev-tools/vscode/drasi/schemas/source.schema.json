@@ -1,0 +1,228 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Drasi Source",
+  "description": "A data source that provides events to continuous queries",
+  "type": "object",
+  "required": ["apiVersion", "kind", "name", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "enum": ["v1"],
+      "description": "API version of the resource"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Source",
+      "description": "Resource type"
+    },
+    "name": {
+      "type": "string",
+      "description": "Unique name for the source",
+      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+    },
+    "spec": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "Source provider type (e.g., PostgreSQL, CosmosDB, Kubernetes)"
+        },
+        "identity": {
+          "description": "Authentication configuration",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["kind", "connectionString"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "ConnectionString"
+                },
+                "connectionString": {
+                  "$ref": "#/definitions/configValue"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["kind", "clientId"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "MicrosoftEntraWorkloadID"
+                },
+                "clientId": {
+                  "type": "string",
+                  "description": "Microsoft Entra Workload ID client ID"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["kind", "tenantId", "clientId"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "MicrosoftEntraApplication"
+                },
+                "tenantId": {
+                  "$ref": "#/definitions/configValue"
+                },
+                "clientId": {
+                  "$ref": "#/definitions/configValue"
+                },
+                "secret": {
+                  "$ref": "#/definitions/configValue"
+                },
+                "certificate": {
+                  "$ref": "#/definitions/configValue"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["kind", "accessKey"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "AccessKey"
+                },
+                "accessKey": {
+                  "$ref": "#/definitions/configValue"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["kind", "roleArn"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "AwsIamRole"
+                },
+                "roleArn": {
+                  "$ref": "#/definitions/configValue"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["kind", "accessKeyId", "secretAccessKey", "region"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "AwsIamAccessKey"
+                },
+                "accessKeyId": {
+                  "$ref": "#/definitions/configValue"
+                },
+                "secretAccessKey": {
+                  "$ref": "#/definitions/configValue"
+                },
+                "region": {
+                  "$ref": "#/definitions/configValue"
+                }
+              }
+            }
+          ]
+        },
+        "properties": {
+          "type": "object",
+          "description": "Provider-specific configuration",
+          "additionalProperties": true
+        },
+        "services": {
+          "type": "object",
+          "description": "Service configurations",
+          "additionalProperties": {
+            "$ref": "#/definitions/serviceConfig"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "configValue": {
+      "description": "Configuration value that can be inline or from a secret",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "Inline"
+            },
+            "value": {
+              "description": "Inline value (string, number, boolean, or list)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "name", "key"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "Secret"
+            },
+            "name": {
+              "type": "string",
+              "description": "Secret name"
+            },
+            "key": {
+              "type": "string",
+              "description": "Key within the secret"
+            }
+          }
+        },
+        {
+          "type": "string",
+          "description": "Simple string value"
+        },
+        {
+          "type": "number",
+          "description": "Simple numeric value"
+        },
+        {
+          "type": "boolean",
+          "description": "Simple boolean value"
+        }
+      ]
+    },
+    "serviceConfig": {
+      "type": "object",
+      "properties": {
+        "properties": {
+          "type": "object",
+          "description": "Service-specific properties"
+        },
+        "endpoints": {
+          "type": "object",
+          "description": "Endpoint configurations",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["setting", "target"],
+            "properties": {
+              "setting": {
+                "type": "string",
+                "enum": ["internal", "external"],
+                "description": "Endpoint visibility"
+              },
+              "target": {
+                "type": "string",
+                "description": "Target endpoint address"
+              }
+            }
+          }
+        },
+        "dapr": {
+          "type": "object",
+          "description": "Dapr configuration",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}
