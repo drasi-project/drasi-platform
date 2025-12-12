@@ -18,7 +18,7 @@ on:
   push:
     branches: ['*']
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "feature-lib" ]
 
 jobs:
   lint_check:

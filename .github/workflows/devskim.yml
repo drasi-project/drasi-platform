@@ -18,7 +18,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "feature-lib" ]
   schedule:
     - cron: '30 0 * * 0' #runs every Sunday at 00:30 UTC
 
