@@ -91,10 +91,7 @@ impl ResultService {
                 if !r.status().is_success() {
                     log::error!("Error getting view: {}", r.status());
                     return Err(DomainError::Internal {
-                        inner: Box::new(std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            "Error getting view",
-                        )),
+                        inner: Box::new(std::io::Error::other("Error getting view")),
                     });
                 }
                 r.json_array_stream::<api::ViewElement>(usize::MAX)

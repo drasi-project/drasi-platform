@@ -1,7 +1,11 @@
 [package]
 name = "mgmt_api"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
+
+[[bin]]
+name = "generate-spec"
+path = "src/bin/generate-spec.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,6 +14,8 @@ resource_provider_api = { path = "../resource_provider_api" }
 drasi-comms-abstractions = { path = "../../infrastructure/comms-abstractions" }
 drasi-comms-dapr = { path = "../../infrastructure/comms-dapr" }
 dapr = "=0.15.1"
+utoipa = { version = "4", features = ["actix_extras", "chrono", "yaml"] }
+utoipa-swagger-ui = { version = "6", features = ["actix-web"] }
 async-stream = "0.3.5"
 async-trait = "0.1"
 actix = "0.13"
