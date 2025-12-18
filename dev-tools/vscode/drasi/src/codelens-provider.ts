@@ -62,7 +62,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
         return codeLenses;
     }
 
-    async runQuery(query: Resource<ContinuousQuery>) {
+    async runQuery(query: ContinuousQuery) {
         if (!query) {
             return;
         }

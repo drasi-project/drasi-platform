@@ -20,6 +20,8 @@ import { DrasiExplorer } from './drasi-explorer';
 import { DrasiClient } from './drasi-client';
 import { CodeLensProvider } from './codelens-provider';
 import { ConfigurationRegistry } from './sdk/config';
+import { YamlSchemaProvider } from './yaml-schema-provider';
+import { DrasiYamlDiagnosticProvider } from './drasi-yaml-diagnostic-provider';
 
 let drasiClient: DrasiClient | undefined = undefined;
 
@@ -36,6 +38,14 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
         vscode.languages.registerCodeLensProvider({ language: 'yaml' }, new CodeLensProvider(context.extensionUri, drasiClient))
     );
+	
+	// Register YAML schema provider
+	const schemaProvider = new YamlSchemaProvider(context.extensionUri);
+	schemaProvider.activate(context);
+	
+	// Register custom diagnostic provider for proper multi-document validation
+	const diagnosticProvider = new DrasiYamlDiagnosticProvider(context.extensionUri);
+	diagnosticProvider.activate(context);
 	
 }
 
