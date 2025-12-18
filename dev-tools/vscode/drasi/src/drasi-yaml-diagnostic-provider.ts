@@ -26,6 +26,12 @@ export class DrasiYamlDiagnosticProvider {
   private schemas: Map<string, any> = new Map();
   private extensionUri: vscode.Uri;
 
+  // This provider handles multi-document YAML files correctly by:
+  // 1. Parsing all documents in the file (yaml.parseAllDocuments)
+  // 2. Detecting each document's kind (ContinuousQuery, Source, Reaction)
+  // 3. Applying the appropriate schema to each document independently
+  // 4. Tracking line offsets to report errors at the correct positions
+
   constructor(extensionUri: vscode.Uri) {
     this.extensionUri = extensionUri;
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection('drasi-yaml');

@@ -15,7 +15,6 @@
  */
 
 import * as vscode from 'vscode';
-import * as yaml from 'yaml';
 
 export class YamlSchemaProvider {
   private extensionUri: vscode.Uri;
@@ -31,31 +30,27 @@ export class YamlSchemaProvider {
   private configureYamlExtension() {
     const config = vscode.workspace.getConfiguration('yaml');
     
-    // Disable validation (our custom provider handles it)
-    config.update('validate', false, vscode.ConfigurationTarget.Global);
+    // Use the union schema that handles all Drasi resource types
+    // This schema uses conditional logic (allOf/if/then) to apply the correct
+    // schema based on the 'kind' field, which works for multi-document files
+    const unionSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/drasi-resources.schema.json').toString();
     
-    // CLEAR ALL existing schema registrations first
-    config.update('schemas', {}, vscode.ConfigurationTarget.Global);
+    const existingSchemas = config.get<any>('schemas') || {};
     
-    // Register individual schemas for each resource type
-    const cqSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/continuous-query.schema.json').toString();
-    const sourceSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/source.schema.json').toString();
-    const reactionSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/reaction.schema.json').toString();
-    
-    const schemas: any = {};
-    schemas[cqSchemaUri] = [
+    const schemas: any = { ...existingSchemas };
+    schemas[unionSchemaUri] = [
       '**/*query*.yaml', 
-      '**/*query*.yml'
-    ];
-    schemas[sourceSchemaUri] = [
+      '**/*query*.yml',
       '**/*source*.yaml', 
-      '**/*source*.yml'
-    ];
-    schemas[reactionSchemaUri] = [
+      '**/*source*.yml',
       '**/*reaction*.yaml', 
-      '**/*reaction*.yml'
+      '**/*reaction*.yml',
+      '**/resources.yaml',
+      '**/resources.yml',
+      '**/*drasi*.yaml',
+      '**/*drasi*.yml'
     ];
     
-    config.update('schemas', schemas, vscode.ConfigurationTarget.Global);
+    config.update('schemas', schemas, vscode.ConfigurationTarget.Workspace);
   }
 }
