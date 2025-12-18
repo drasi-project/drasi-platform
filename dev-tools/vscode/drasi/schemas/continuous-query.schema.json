@@ -1,4 +1,8 @@
 {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://drasi.io/schemas/v1/continuous-query.schema.json",
+  "title": "Drasi ContinuousQuery",
+  "description": "A continuous query that processes data streams",
   "type": "object",
   "required": [
     "apiVersion",

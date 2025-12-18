@@ -37,21 +37,23 @@ export class YamlSchemaProvider {
     // CLEAR ALL existing schema registrations first
     config.update('schemas', {}, vscode.ConfigurationTarget.Global);
     
-    // Register ONLY the union schema
-    const unionSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/drasi-resources.schema.json').toString();
+    // Register individual schemas for each resource type
+    const cqSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/continuous-query.schema.json').toString();
+    const sourceSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/source.schema.json').toString();
+    const reactionSchemaUri = vscode.Uri.joinPath(this.extensionUri, 'schemas/reaction.schema.json').toString();
     
     const schemas: any = {};
-    schemas[unionSchemaUri] = [
+    schemas[cqSchemaUri] = [
       '**/*query*.yaml', 
-      '**/*query*.yml',
+      '**/*query*.yml'
+    ];
+    schemas[sourceSchemaUri] = [
       '**/*source*.yaml', 
-      '**/*source*.yml',
+      '**/*source*.yml'
+    ];
+    schemas[reactionSchemaUri] = [
       '**/*reaction*.yaml', 
-      '**/*reaction*.yml',
-      '**/resources.yaml',
-      '**/resources.yml',
-      '**/*drasi*.yaml',
-      '**/*drasi*.yml'
+      '**/*reaction*.yml'
     ];
     
     config.update('schemas', schemas, vscode.ConfigurationTarget.Global);

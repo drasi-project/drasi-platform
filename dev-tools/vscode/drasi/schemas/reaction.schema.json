@@ -1,4 +1,8 @@
 {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://drasi.io/schemas/v1/reaction.schema.json",
+  "title": "Drasi Reaction",
+  "description": "A reaction that responds to continuous query results",
   "type": "object",
   "required": [
     "apiVersion",

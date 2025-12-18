@@ -33,26 +33,7 @@ The extension provides comprehensive YAML intellisense based on JSON schemas der
 
 ### Syntax Highlighting
 - Standard YAML syntax highlighting maintained
-- Intellisense provides validation and auto-completion for Cypher queries
-
-### Supported Resource Types
-
-**ContinuousQuery**:
-- Full schema support for query specifications
-- Cypher and GQL query language support
-- Source subscriptions with middleware pipelines
-- Cross-source joins configuration
-- Materialized view settings with retention policies
-
-**Source**:
-- Provider-specific configurations
-- Multiple identity types (ConnectionString, Entra ID, AWS IAM, etc.)
-- Service configurations and endpoints
-
-**Reaction**:
-- Query subscriptions
-- Provider configurations
-- Identity and authentication settings
+- Intellisense provides validation and auto-completion for Drasi resources
 
 ## Getting Started
 
@@ -71,13 +52,6 @@ The extension provides comprehensive YAML intellisense based on JSON schemas der
 3. Use the **Drasi Explorer** to interact with live resources in your Kubernetes cluster.
 4. Right-click on resources in the explorer or use CodeLens actions to apply, debug, or validate resources.
 5. Start typing in a YAML file - intellisense will automatically activate for Drasi resources.
-
-### Example YAML File
-
-See `example-drasi-resources.yaml` in the extension directory for a complete example demonstrating:
-- ContinuousQuery with Cypher query, joins, and middleware
-- Source with identity configuration
-- Reaction with webhook settings
 
 ## Development
 

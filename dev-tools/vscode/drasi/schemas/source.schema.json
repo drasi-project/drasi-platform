@@ -1,4 +1,8 @@
 {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://drasi.io/schemas/v1/source.schema.json",
+  "title": "Drasi Source",
+  "description": "A data source that provides events to continuous queries",
   "type": "object",
   "required": [
     "apiVersion",
