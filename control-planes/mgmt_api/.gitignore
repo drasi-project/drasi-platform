@@ -1,1 +1,4 @@
 /target
+openapitools.json
+# Allow src/bin for Rust binary sources
+!/src/bin/

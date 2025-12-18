@@ -15,10 +15,11 @@
 use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use super::ConfigValueDto;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum StorageSpecDto {
     #[serde(rename_all = "camelCase")]
@@ -40,7 +41,7 @@ pub enum StorageSpecDto {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryContainerSpecDto {
     pub query_host_count: u16,
@@ -49,8 +50,15 @@ pub struct QueryContainerSpecDto {
     pub default_store: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub struct QueryContainerStatusDto {
     pub available: bool,
     pub messages: Option<BTreeMap<String, String>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+pub struct QueryContainerDto {
+    pub id: String,
+    pub spec: QueryContainerSpecDto,
+    pub status: Option<QueryContainerStatusDto>,
 }

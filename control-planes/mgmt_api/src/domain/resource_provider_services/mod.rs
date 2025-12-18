@@ -16,8 +16,6 @@ use std::sync::Arc;
 
 use crate::persistence::ResourceSpecRepository;
 use async_trait::async_trait;
-use dapr::client::TonicClient;
-use serde_json::Value;
 
 use super::models::ProviderSpec;
 use super::models::{DomainError, ResourceProvider};
@@ -29,15 +27,6 @@ pub use reaction_provider_service::ReactionProviderDomainService;
 pub use reaction_provider_service::ReactionProviderDomainServiceImpl;
 pub use source_provider_service::SourceProviderDomainService;
 pub use source_provider_service::SourceProviderDomainServiceImpl;
-
-fn add_kind_field_to_schema(schema: Value) -> Result<Value, DomainError> {
-    let kind_property = serde_json::json!({
-        "type": "string"
-    });
-    let mut schema = schema.as_object().unwrap().clone();
-    schema.insert("kind".to_string(), kind_property);
-    Ok(Value::Object(schema))
-}
 
 #[async_trait]
 pub trait SchemaValidator {
@@ -64,7 +53,6 @@ pub trait ResourceProviderDomainService<TMarker> {
 }
 
 pub struct ResourceProviderDomainServiceImpl<TMarker> {
-    dapr_client: dapr::Client<TonicClient>,
     repo: Arc<dyn ResourceSpecRepository<ProviderSpec> + Send + Sync>,
     validators: Vec<Box<dyn SchemaValidator + Send + Sync>>,
     _marker: std::marker::PhantomData<TMarker>,

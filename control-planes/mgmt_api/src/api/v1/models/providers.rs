@@ -16,16 +16,17 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::ToSchema;
 
 use super::ConfigValueDto;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ProviderSpecDto {
     pub services: HashMap<String, ProviderServiceDto>,
     pub config_schema: Option<JsonSchemaDto>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ProviderServiceDto {
     pub image: String,
     #[serde(rename = "externalImage")]
@@ -37,20 +38,26 @@ pub struct ProviderServiceDto {
     pub deprovision_handler: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ServiceEndpointDto {
     pub setting: EndpointSettingDto,
     pub target: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ServiceConfigDto {
     pub endpoints: Option<HashMap<String, EndpointDto>>,
     pub dapr: Option<HashMap<String, ConfigValueDto>>,
+    // Note: Using `HashMap<String, Option<ConfigValueDto>>` directly as a field type causes utoipa 4.x to fail schema generation,
+    // resulting in a panic or invalid OpenAPI output. Utoipa 4.x does not currently support HashMap values that are Option types,
+    // which is required here to represent nullable property values. The `#[schema(value_type = Option<HashMap<String, Value>>)]` attribute is used
+    // as a workaround to instruct utoipa to treat this field as a map of arbitrary JSON values in the generated schema.
+    // This allows us to represent a map of arbitrary key-value configuration where values may be null.
+    #[schema(value_type = Option<HashMap<String, Value>>)]
     pub properties: Option<HashMap<String, Option<ConfigValueDto>>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(tag = "kind")]
 pub enum ServiceIdentityDto {
     MicrosoftEntraWorkloadID {
@@ -90,20 +97,20 @@ pub enum ServiceIdentityDto {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub struct EndpointDto {
     pub setting: EndpointSettingDto,
     pub target: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum EndpointSettingDto {
     Internal,
     External,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct JsonSchemaDto {
     #[serde(rename = "$schema", skip_serializing_if = "Option::is_none")]
@@ -147,7 +154,7 @@ pub struct JsonSchemaDto {
     pub default: Option<Value>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum SchemaTypeDto {
     Object,
@@ -157,4 +164,16 @@ pub enum SchemaTypeDto {
     Integer,
     Boolean,
     Null,
+}
+
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+pub struct SourceProviderDto {
+    pub id: String,
+    pub spec: ProviderSpecDto,
+}
+
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+pub struct ReactionProviderDto {
+    pub id: String,
+    pub spec: ProviderSpecDto,
 }
