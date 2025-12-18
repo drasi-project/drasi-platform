@@ -27,3 +27,11 @@ spec:
         "packed": false,
         "skipControlSignals": true
       }
+    templated-query: |
+      {
+        "pubsubName": "drasi-pubsub",
+        "topicName": "custom-events",
+        "addedResultsTemplate": "{\"event\": \"created\", \"id\": \"{{id}}\", \"name\": \"{{name}}\" }",
+        "updatedResultsTemplate": "{\"event\": \"modified\", \"id\": \"{{after.id}}\", \"oldName\": \"{{before.name}}\", \"newName\": \"{{after.name}}\" }",
+        "deletedResultsTemplate": "{\"event\": \"removed\", \"id\": \"{{id}}\" }"
+      }
