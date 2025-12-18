@@ -15,6 +15,7 @@
 namespace Drasi.Reactions.EventGrid.Services;
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.EventGrid.Models;
 using Azure.Messaging.EventGrid;
 using Azure.Messaging;
 // using Azure.Messaging.CloudEvents;
@@ -25,7 +26,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Drasi.Reactions.EventGrid.Models.Unpacked;
 
-public class ControlSignalHandler: IControlEventHandler
+public class ControlSignalHandler: IControlEventHandler<QueryConfig>
 {
     private readonly EventGridPublisherClient _publisherClient;
     private readonly OutputFormat _format;
@@ -42,7 +43,7 @@ public class ControlSignalHandler: IControlEventHandler
         _eventGridSchema = Enum.Parse<EventGridSchema>(config.GetValue<string>("eventGridSchema") ?? "CloudEvents", true);
     }
 
-    public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
+    public async Task HandleControlSignal(ControlEvent evt, QueryConfig? queryConfig)
     {
         switch (_format)
         {
@@ -86,6 +87,7 @@ public class ControlSignalHandler: IControlEventHandler
                 }
                 break;
             case OutputFormat.Unpacked:
+            case OutputFormat.Template:
                 var notification = new ControlSignalNotification
                 {
                     Op = ControlSignalNotificationOp.X,

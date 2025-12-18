@@ -1,4 +1,4 @@
-// Copyright 2024 The Drasi Authors.
+// Copyright 2025 The Drasi Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod constants;
-pub mod continuous_queries;
-pub mod debug;
-pub mod mappings;
-pub mod models;
-pub mod openapi;
-pub mod query_containers;
-pub mod reaction_providers;
-pub mod reactions;
-pub mod source_providers;
-pub mod sources;
-
-pub use openapi::ApiDoc;
+/// The maximum timeout in seconds that a client can request for a ready-wait check.
+pub const MAX_READY_WAIT_TIMEOUT_SECS: u64 = 300;

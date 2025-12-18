@@ -16,41 +16,44 @@ use serde::de::{self, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 use std::str::FromStr;
+use utoipa::ToSchema;
 use void::Void;
 
 mod providers;
 mod query;
 mod query_container;
 mod reaction;
+mod result;
 mod source;
 
 pub use providers::*;
 pub use query::*;
 pub use query_container::*;
 pub use reaction::*;
+pub use result::*;
 pub use source::*;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ResourceDto<TSpec, TStatus> {
     pub id: String,
     pub spec: TSpec,
     pub status: Option<TStatus>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ResourceProviderDto<TSpec> {
     pub id: String,
     pub spec: TSpec,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, ToSchema)]
 #[serde(tag = "kind")]
 pub enum ConfigValueDto {
     Inline { value: InlineValueDto },
     Secret { name: String, key: String },
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, ToSchema)]
 pub enum InlineValueDto {
     String { value: String },
     Integer { value: i64 },
@@ -225,7 +228,7 @@ impl<'de> Deserialize<'de> for ConfigValueDto {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ReadyWaitParams {
     #[serde(default = "default_ready_timeout")]
     pub timeout: u64,
@@ -235,7 +238,7 @@ fn default_ready_timeout() -> u64 {
     60
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 #[serde(tag = "kind")]
 pub enum ControlMessage {
     #[serde(rename = "error")]
@@ -252,7 +255,7 @@ impl ControlMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ErrorMessage {
     pub message: String,
 }

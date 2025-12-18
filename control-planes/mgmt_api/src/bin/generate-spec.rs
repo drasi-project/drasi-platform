@@ -1,4 +1,4 @@
-// Copyright 2024 The Drasi Authors.
+// Copyright 2025 The Drasi Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod constants;
-pub mod continuous_queries;
-pub mod debug;
-pub mod mappings;
-pub mod models;
-pub mod openapi;
-pub mod query_containers;
-pub mod reaction_providers;
-pub mod reactions;
-pub mod source_providers;
-pub mod sources;
+use mgmt_api::api::v1::ApiDoc;
+use utoipa::OpenApi;
 
-pub use openapi::ApiDoc;
+fn main() {
+    // Generate the OpenAPI specification as YAML
+    let openapi = ApiDoc::openapi();
+    let yaml = openapi
+        .to_yaml()
+        .expect("Failed to serialize OpenAPI spec to YAML");
+
+    // Print to stdout so it can be redirected to a file
+    // This is a binary meant to output to stdout, so we allow println here
+    #[allow(clippy::print_stdout)]
+    {
+        println!("{}", yaml);
+    }
+}
