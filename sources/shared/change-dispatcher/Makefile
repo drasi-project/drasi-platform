@@ -31,4 +31,3 @@ test:
 lint-check:
 	cargo fmt -- --check
 	cargo clippy --all-targets --all-features
-
