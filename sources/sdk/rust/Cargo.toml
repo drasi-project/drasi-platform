@@ -9,6 +9,18 @@ keywords = ["drasi"]
 categories = ["database"]
 readme = "readme.md"    
 
+[lints.rust]
+warnings = "deny"
+
+[lints.clippy]
+print_stdout = "warn"
+unwrap_used = "warn"
+uninlined_format_args = "warn"
+module_inception = "allow"
+ptr_arg = "allow"
+type_complexity = "allow"
+large_enum_variant = "allow"
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.133"

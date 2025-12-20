@@ -9,5 +9,17 @@ resolver = "2"
 [workspace.package]
 version = "0.2.0"
 
+[workspace.lints.rust]
+warnings = "deny"
+
+[workspace.lints.clippy]
+print_stdout = "warn"
+unwrap_used = "warn"
+uninlined_format_args = "warn"
+module_inception = "allow"
+ptr_arg = "allow"
+type_complexity = "allow"
+large_enum_variant = "allow"
+
 [profile.release]
 lto = true
