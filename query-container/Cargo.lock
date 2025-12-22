@@ -1114,6 +1114,7 @@ dependencies = [
  "serde_json",
  "serial_test",
  "shared-tests",
+ "tempfile",
  "tokio",
  "tracing",
  "uuid 0.8.2",
