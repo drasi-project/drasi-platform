@@ -1130,8 +1130,6 @@ dependencies = [
  "drasi-core",
  "drasi-functions-cypher",
  "drasi-functions-gql",
- "drasi-index-garnet",
- "drasi-index-rocksdb",
  "drasi-middleware",
  "drasi-query-ast",
  "drasi-query-cypher",
@@ -3318,6 +3316,7 @@ dependencies = [
  "futures",
  "log",
  "redis 0.23.3",
+ "thiserror 1.0.69",
  "tokio",
  "tracing-subscriber",
 ]

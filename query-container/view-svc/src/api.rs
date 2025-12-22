@@ -15,7 +15,6 @@
 use std::{
     collections::HashMap,
     fmt::{Display, Formatter},
-    net::SocketAddr,
     sync::Arc,
 };
 
@@ -110,10 +109,10 @@ pub struct ResultChangeEvent {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ResultControlEvent {
-    pub query_id: String,
+    // pub query_id: String,
     pub sequence: u64,
     pub source_time_ms: u64,
-    pub metadata: Option<Map<String, Value>>,
+    // pub metadata: Option<Map<String, Value>>,
     pub control_signal: ControlSignal,
 }
 

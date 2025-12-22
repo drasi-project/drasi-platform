@@ -323,11 +323,6 @@ where
         lock.clone()
     }
 
-    async fn clear(&self) {
-        let mut lock = self.value.write().await;
-        lock.take();
-    }
-
     async fn take(&self) -> Option<T> {
         let mut lock = self.value.write().await;
         lock.take()

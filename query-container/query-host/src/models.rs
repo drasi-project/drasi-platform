@@ -103,24 +103,8 @@ pub struct ChangeStreamConfig {
 
 #[derive(Error, Debug)]
 pub enum QueryError {
-    #[error("Bootstrap failure: {0}")]
-    BootstrapFailure(BootstrapError),
-
-    #[error("Parse error: {0}")]
-    ParseError(Box<dyn Error>),
-
     #[error("{0}")]
     Other(String),
-}
-
-impl QueryError {
-    pub fn bootstrap_failure(e: BootstrapError) -> Self {
-        QueryError::BootstrapFailure(e)
-    }
-
-    pub fn parse_error(e: Box<dyn Error>) -> Self {
-        QueryError::ParseError(e)
-    }
 }
 
 #[derive(Error, Debug)]

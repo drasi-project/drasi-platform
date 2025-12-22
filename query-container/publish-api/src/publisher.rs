@@ -13,12 +13,14 @@
 // limitations under the License.
 
 use std::time::SystemTime;
-
+use thiserror::Error;
 use redis::{aio::MultiplexedConnection, AsyncCommands};
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum PublishError {
+    #[error("Connection error: {0}")]    
     ConnectionError(String),
+    #[error("{0}")]    
     Other(String),
 }
 

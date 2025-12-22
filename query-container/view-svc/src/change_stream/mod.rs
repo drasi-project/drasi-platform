@@ -33,6 +33,7 @@ pub enum ChangeStreamError {
     Other(String),
 }
 
+#[allow(dead_code)]
 #[async_trait]
 pub trait SequentialChangeStream {
     /// Receives a message from the stream and deserializes it. If the previous message has not been acked, this will return that message.
