@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use serde::Serialize;
 use thiserror::Error;
 
 pub struct ChangeStreamConfig {
