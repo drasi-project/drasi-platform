@@ -69,7 +69,7 @@ use crate::{
 
 enum Command {
     Shutdown,
-    Delete
+    Delete,
 }
 
 /// A background worker that runs a single query

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use redis::{aio::MultiplexedConnection, AsyncCommands};
 use std::time::SystemTime;
 use thiserror::Error;
-use redis::{aio::MultiplexedConnection, AsyncCommands};
 
 #[derive(Debug, Error)]
 pub enum PublishError {
