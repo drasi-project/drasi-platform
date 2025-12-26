@@ -21,12 +21,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using Drasi.Reactions.EventGrid.Services;
+using Drasi.Reactions.EventGrid.Models;
 
-var reaction = new ReactionBuilder()
+var reaction = new ReactionBuilder<QueryConfig>()
                 .UseChangeEventHandler<ChangeHandler>()
                 .UseControlEventHandler<ControlSignalHandler>()
+                .UseYamlQueryConfig()
                 .ConfigureServices((services) => {
                     services.AddSingleton<IChangeFormatter, ChangeFormatter>();
+                    services.AddSingleton<TemplateChangeFormatter>();
                     services.AddSingleton<EventGridPublisherClient>(sp =>
                     {
                         var configuration = sp.GetRequiredService<IConfiguration>();

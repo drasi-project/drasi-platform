@@ -19,6 +19,7 @@ mod providers;
 mod query;
 mod query_container;
 mod reaction;
+mod result;
 mod source;
 
 impl<TSpec, TStatus, TSpecDto, TStatusDto> From<ResourceDto<TSpecDto, TStatusDto>>
