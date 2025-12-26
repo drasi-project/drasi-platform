@@ -12,6 +12,7 @@
     <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.17" />
     <PackageReference Include="AWSSDK.SecurityToken" Version="3.7.401.29" />
     <PackageReference Include="Drasi.Reaction.SDK" Version="0.1.8-alpha" />
+    <PackageReference Include="Handlebars.Net" Version="2.1.6" />
   </ItemGroup>
 
 </Project>

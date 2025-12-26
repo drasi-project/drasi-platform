@@ -23,8 +23,9 @@ using System;
 using System.Text.Json;
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.EventBridge.Models;
 
-public class ChangeHandler : IChangeEventHandler
+public class ChangeHandler : IChangeEventHandler<QueryConfig>
 {
     private readonly ILogger<ChangeHandler> _logger;
     private readonly AmazonEventBridgeClient _eventBridgeClient;
@@ -32,18 +33,20 @@ public class ChangeHandler : IChangeEventHandler
     private readonly string _eventBusName;
     private readonly OutputFormat _format;
 
-    private readonly IChangeFormatter _formatter;
+    private readonly IChangeFormatter? _formatter;
+    private readonly TemplateChangeFormatter? _templateFormatter;
 
-    public ChangeHandler(AmazonEventBridgeClient eventBridgeClient, IChangeFormatter formatter, IConfiguration config, ILogger<ChangeHandler> logger)
+    public ChangeHandler(AmazonEventBridgeClient eventBridgeClient, IConfiguration config, ILogger<ChangeHandler> logger, IChangeFormatter? formatter = null, TemplateChangeFormatter? templateFormatter = null)
     {
         _eventBridgeClient = eventBridgeClient;
         _logger = logger;
         _eventBusName = config.GetValue<string>("eventBusName") ?? "default";
         _format = Enum.Parse<OutputFormat>(config.GetValue("format", "packed") ?? "packed", true);
         _formatter = formatter;
+        _templateFormatter = templateFormatter;
     }
 
-    public async Task HandleChange(ChangeEvent evt, object? queryConfig)
+    public async Task HandleChange(ChangeEvent evt, QueryConfig? queryConfig)
     {
         _logger.LogInformation("Processing change for query " + evt.QueryId);
         switch (_format)
@@ -76,6 +79,10 @@ public class ChangeHandler : IChangeEventHandler
 
                 break;
             case OutputFormat.Unpacked:
+                if (_formatter == null)
+                {
+                    throw new InvalidOperationException("Formatter not configured for Unpacked format");
+                }
                 var formattedResults = _formatter.Format(evt);
                 List<PutEventsRequestEntry> unpackedRequestEntries = new List<PutEventsRequestEntry>();
                 foreach (var result in formattedResults)
@@ -108,6 +115,52 @@ public class ChangeHandler : IChangeEventHandler
                 }
 
                 break;
+            case OutputFormat.Template:
+                if (_templateFormatter == null)
+                {
+                    throw new InvalidOperationException("Template formatter not configured");
+                }
+                
+                var templateResults = _templateFormatter.Format(evt, queryConfig);
+                List<PutEventsRequestEntry> templateRequestEntries = new List<PutEventsRequestEntry>();
+                foreach (var result in templateResults)
+                {
+                    var templateCloudEvent = new CloudEvent
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Type = "Drasi.ChangeEvent",
+                        Source = evt.QueryId,
+                        Data = result.Data,
+                        Version = "1.0"
+                    };
+                    
+                    // Add metadata as extension attributes if provided
+                    if (result.Metadata != null)
+                    {
+                        templateCloudEvent.Metadata = result.Metadata;
+                    }
+                    
+                    var templateRequestEntry = new PutEventsRequestEntry()
+                    {
+                        Source = evt.QueryId,
+                        Detail = JsonSerializer.Serialize(templateCloudEvent),
+                        DetailType = "Drasi.ChangeEvent",
+                        EventBusName = _eventBusName
+                    };
+                    
+                    templateRequestEntries.Add(templateRequestEntry);
+                }
+                var templateResponse = await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()
+                {
+                    Entries = templateRequestEntries
+                });
+
+                if (templateResponse.FailedEntryCount > 0)
+                {
+                    _logger.LogError("Failed to send change event to EventBridge");
+                }
+
+                break;
             default:
                 throw new NotSupportedException("Invalid output format");
         }
@@ -118,5 +171,6 @@ public class ChangeHandler : IChangeEventHandler
 enum OutputFormat
 {
     Packed,
-    Unpacked
+    Unpacked,
+    Template
 }

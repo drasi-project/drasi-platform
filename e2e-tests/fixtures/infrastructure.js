@@ -42,6 +42,7 @@ const images = [
   "drasi-project/reaction-sync-dapr-statestore",
   "drasi-project/reaction-post-dapr-pubsub",
   "drasi-project/reaction-sync-vectorstore",
+  "drasi-project/reaction-eventbridge",
   "drasi-project/reaction-eventgrid",
 ];
 
