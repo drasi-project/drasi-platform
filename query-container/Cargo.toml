@@ -11,6 +11,7 @@ version = "0.2.0"
 
 [workspace.lints.rust]
 warnings = "deny"
+unused = "allow"
 
 [workspace.lints.clippy]
 print_stdout = "warn"

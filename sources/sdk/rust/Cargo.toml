@@ -11,6 +11,7 @@ readme = "readme.md"
 
 [lints.rust]
 warnings = "deny"
+unused = "allow"
 
 [lints.clippy]
 print_stdout = "warn"

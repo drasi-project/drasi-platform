@@ -5,6 +5,7 @@ edition = "2021"
 
 [lints.rust]
 warnings = "deny"
+unused = "allow"
 
 [lints.clippy]
 print_stdout = "warn"
