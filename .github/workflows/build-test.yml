@@ -522,7 +522,7 @@ jobs:
         if: always()
         run: |
           if [ -z "${{ secrets.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY }}" ]; then
-            echo "::notice::Vectorstore tests were skipped (no OpenAI credentials available). This is expected for fork-based PRs."
+            echo "::notice::Vectorstore tests ran with mock embedding service (no Azure OpenAI credentials available). Pipeline integration is tested, but not semantic embedding quality."
           else
-            echo "::notice::Vectorstore tests were executed with Azure OpenAI credentials."
+            echo "::notice::Vectorstore tests ran with Azure OpenAI credentials (full semantic embedding testing)."
           fi
