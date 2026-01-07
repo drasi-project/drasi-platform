@@ -20,6 +20,7 @@ const fs = require('fs');
 const path = require('path');
 const portfinder = require('portfinder');
 const { loadDrasiImages, installDrasi, installDrasiIngress, tryLoadInfraImages, waitForChildProcess } = require('./infrastructure');
+const { configureDNS } = require('./configure-dns');
 const execAsync = util.promisify(cp.exec);
 
 function getErrorMessage(error, defaultMessage = 'Unknown error') {
@@ -46,7 +47,7 @@ async function updateKindConfigWithAvailablePort() {
     console.log(`Found available port: ${availablePort}`);
 
     // Read the kind-config.yaml file
-    const configPath = path.join(__dirname, '..', 'kind-config.yaml');
+    const configPath = path.join(__dirname,'kind-config.yaml');
     let configContent = fs.readFileSync(configPath, 'utf8');
 
     // Replace the hostPort value with the available port
@@ -123,8 +124,26 @@ module.exports = async function () {
     const ingressPort = await updateKindConfigWithAvailablePort();
 
     console.log(`Creating cluster '${clusterName}' with ingress port ${ingressPort}...`);
-    await waitForChildProcess(cp.exec(`kind create cluster --name ${clusterName} --config kind-config.yaml`, { encoding: 'utf-8' }));
+    // Check if Kind config file exists, use it if available
+    const kindConfigPath = path.join(__dirname, 'kind-config.yaml');
+    let createCommand = `kind create cluster --name ${clusterName} --config kind-config.yaml`;
+    if (fs.existsSync(kindConfigPath)) {
+      createCommand += ` --config ${kindConfigPath}`;
+      console.log(`Using Kind configuration from ${kindConfigPath}`);
+    }
+    
+    await waitForChildProcess(cp.exec(createCommand, { encoding: 'utf-8' }));
     await waitForChildProcess(cp.exec(`docker update --memory=8g --memory-swap=8g --cpus=4 ${clusterName}-control-plane`, { encoding: 'utf-8' }));
+    
+    // Configure DNS for external access (e.g., Azure OpenAI)
+    try {
+      await configureDNS();
+      // Give CoreDNS some time to stabilize after restart
+      console.log("Waiting for CoreDNS to stabilize...");
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    } catch (error) {
+      console.warn("DNS configuration failed, continuing anyway:", error.message);
+    }
   }
 
   console.log("Loading Docker images into Kind cluster...");

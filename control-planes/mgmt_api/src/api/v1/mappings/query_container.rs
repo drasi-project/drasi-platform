@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::domain::models::{QueryContainerSpec, QueryContainerStatus, StorageSpec};
+use crate::domain::models::{QueryContainerSpec, QueryContainerStatus, Resource, StorageSpec};
 
-use super::{QueryContainerSpecDto, QueryContainerStatusDto, StorageSpecDto};
+use super::{QueryContainerDto, QueryContainerSpecDto, QueryContainerStatusDto, StorageSpecDto};
 
 impl From<QueryContainerStatus> for QueryContainerStatusDto {
     fn from(status: QueryContainerStatus) -> Self {
@@ -106,6 +106,16 @@ impl From<QueryContainerSpec> for QueryContainerSpecDto {
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
             default_store: spec.default_store,
+        }
+    }
+}
+
+impl From<Resource<QueryContainerSpec, QueryContainerStatus>> for QueryContainerDto {
+    fn from(res: Resource<QueryContainerSpec, QueryContainerStatus>) -> Self {
+        Self {
+            id: res.id,
+            spec: res.spec.into(),
+            status: res.status.map(|s| s.into()),
         }
     }
 }

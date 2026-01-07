@@ -26,7 +26,7 @@ k3d-load:
 	k3d image import $(IMAGE_PREFIX)/reaction-storage-queue:$(DOCKER_TAG_VERSION) -c $(if $(CLUSTER_NAME),$(CLUSTER_NAME),k3s-default)
 
 test:
-	@echo "No tests to run yet"
+	dotnet test
 
 lint-check:
 	@echo "No lint checks to run yet"

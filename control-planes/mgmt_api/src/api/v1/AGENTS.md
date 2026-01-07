@@ -6,18 +6,18 @@ This directory implements the version 1 (`v1`) HTTP API. It is the "Routing Laye
 
 -   **Role**: API Routing and Handling Layer.
 -   **Purpose**: To define the web service endpoints, handle request/response serialization, and orchestrate calls to the domain services. This is where the HTTP protocol is translated into internal function calls.
--   **Framework**: Actix Web.
--   **Key Pattern**: The `mod.rs` file uses a Rust macro (`v1_crud_api!`) to generate the standard set of CRUDL (Create, Read, Update, Delete, List) and `ready-wait` endpoints for each resource. This avoids repetitive boilerplate code for common operations.
+-   **Framework**: Actix Web with utoipa for OpenAPI documentation.
+-   **Key Pattern**: Each resource has its own explicit handler module with endpoint functions annotated with `#[utoipa::path]` for automatic OpenAPI documentation generation.
 
 ## File Structure
 
--   **`mod.rs`**:
-    -   **Purpose**: The core of the v1 API. It defines the Actix Web route handlers and configures the routing for all resources.
-    -   **Implementation**:
-        -   It defines handler modules for each resource type (e.g., `source_handlers`, `query_handlers`).
-        -   Each handler module uses the `v1_crud_api!` macro to generate its standard endpoints.
-        -   Resource-specific handlers, like `watch` for queries or the WebSocket `debug` endpoint, are defined as separate functions and added to the routing configuration.
-        -   The handler functions are responsible for deserializing request bodies into DTOs, calling the appropriate `domain` service, and serializing the result back into an `HttpResponse`.
+-   **`mod.rs`**: Module declaration and organization for the v1 API.
+
+-   **Resource Handler Files** : Explicit handler implementations for each resource type.
+
+-   **`openapi.rs`**: Central OpenAPI documentation configuration.
+
+-   **`debug.rs`**: OpenAPI documentation placeholder for the WebSocket debug endpoint.
 
 ## Subdirectories
 

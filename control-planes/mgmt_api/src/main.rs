@@ -22,6 +22,8 @@ use domain::{
 };
 use drasi_comms_dapr::comms::DaprHttpInvoker;
 use std::sync::Arc;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     domain::{
@@ -155,24 +157,19 @@ async fn main() -> Result<(), std::io::Error> {
             .app_data(source_provider_domain_svc_arc)
             .app_data(reaction_provider_domain_svc_arc)
             .app_data(web::Data::new(debug_service))
-            .service(web::scope("/v1/sources").configure(api::v1::source_handlers::configure))
+            // Configure the new explicit handler modules
+            .service(api::v1::sources::configure_routes())
+            .service(api::v1::query_containers::configure_routes())
+            .service(api::v1::reactions::configure_routes())
+            .service(api::v1::continuous_queries::configure_routes())
+            .service(api::v1::source_providers::configure_routes())
+            .service(api::v1::reaction_providers::configure_routes())
+            .service(api::v1::debug::configure_routes())
+            // Serve OpenAPI spec and Swagger UI
             .service(
-                web::scope("/v1/queryContainers")
-                    .configure(api::v1::query_container_handlers::configure),
+                SwaggerUi::new("/swagger-ui/{_:.*}")
+                    .url("/api-doc/openapi.json", api::v1::ApiDoc::openapi()),
             )
-            .service(web::scope("/v1/reactions").configure(api::v1::reaction_handlers::configure))
-            .service(
-                web::scope("/v1/continuousQueries").configure(api::v1::query_handlers::configure),
-            )
-            .service(
-                web::scope("/v1/sourceProviders")
-                    .configure(api::v1::source_provider_handlers::configure),
-            )
-            .service(
-                web::scope("/v1/reactionProviders")
-                    .configure(api::v1::reaction_provider_handlers::configure),
-            )
-            .service(web::scope("/v1/debug").configure(api::v1::debug_handlers::configure))
     })
     .bind(("0.0.0.0", 8080))?
     .run()

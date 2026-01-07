@@ -68,7 +68,7 @@ env:
     {"label": "Kubernetes Reactivator", "path": "sources/kubernetes/kubernetes-reactivator", "name": "source-kubernetes-reactivator", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
     {"label": "Kubernetes Proxy", "path": "sources/kubernetes/kubernetes-proxy", "name": "source-kubernetes-proxy", "platforms": "linux/amd64,linux/arm64", "category": "sources"},
     {"label": "SignalR", "path": "reactions/signalr/signalr-reaction", "name": "reaction-signalr", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
-    {"label": "Dataverse", "path": "reactions/power-platform/dataverse/dataverse-reaction", "name": "reaction-dataverse", "platforms": "linux/amd64", "category": "reactions"},
+    {"label": "Dataverse", "path": "reactions/power-platform/dataverse/dataverse-reaction", "name": "reaction-dataverse", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "Debezium", "path": "reactions/debezium/debezium-reaction", "name": "reaction-debezium", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "Debug", "path": "reactions/platform/debug-reaction", "name": "reaction-debug", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "EventGrid", "path": "reactions/azure/eventgrid-reaction", "name": "reaction-eventgrid", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
@@ -80,6 +80,7 @@ env:
     {"label": "PostDaprPubSub", "path": "reactions/dapr/post-pubsub", "name": "reaction-post-dapr-pubsub", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "Http", "path": "reactions/http", "name": "reaction-http", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "StoredProc", "path": "reactions/sql/storedproc-reaction", "name": "reaction-storedproc", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "SyncVectorStore", "path": "reactions/sync-vectorstore", "name": "reaction-sync-vectorstore", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "MCP", "path": "reactions/mcp", "name": "reaction-mcp", "platforms": "linux/amd64,linux/arm64", "category": "reactions"}]'
 
 jobs:
@@ -130,7 +131,6 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           submodules: true
-          token: ${{ secrets.DRASI_CORE_PAT }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
@@ -343,6 +343,14 @@ jobs:
           name: drasi_vscode_extension
           path: ${{ env.RELEASE_PATH}}/drasi-*.vsix
 
+  # Call image validation workflow
+  validate-images:
+    name: Validate Images
+    needs: create-all-manifests
+    uses: ./.github/workflows/image-validation.yml
+    with:
+      tag: ${{ inputs.tag }}
+
   # Final release job
   release:
     permissions:
@@ -354,6 +362,7 @@ jobs:
     needs:
       - validate
       - create-all-manifests
+      - validate-images
       - package-cli
       - vscode-extension
     runs-on: ubuntu-latest

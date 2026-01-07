@@ -33,6 +33,87 @@ permissions:
   packages: write
 
 jobs:
+  verify-openapi-spec:
+    name: Verify OpenAPI Specification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Generate OpenAPI Spec
+        run: make -C control-planes/mgmt_api openapi-generate
+
+      - name: Check for diff
+        run: |
+          if ! git diff --quiet HEAD control-planes/mgmt_api/openapi.yaml; then
+            echo "ERROR: The generated OpenAPI specification is out of date."
+            echo "Please run 'make -C control-planes/mgmt_api openapi-generate' and commit the changes."
+            exit 1
+          fi
+          echo "OpenAPI specification is up to date."
+
+  detect-breaking-api-changes:
+    name: Detect Breaking API Changes
+    runs-on: ubuntu-latest
+    # TODO: Enable this job after the initial OpenAPI PR is merged
+    # For now, skip it since there's no spec in main branch to compare against
+    if: false
+    # if: github.base_ref == 'main' && github.event_name == 'pull_request'
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Checkout base branch (main)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Generate OpenAPI Spec for PR
+        run: make -C control-planes/mgmt_api openapi-generate
+
+      - name: Generate OpenAPI Spec for main branch
+        run: |
+          cd main
+          make -C control-planes/mgmt_api openapi-generate
+
+      - name: Install openapi-diff
+        run: npm install -g openapi-diff
+
+      - name: Run openapi-diff
+        run: |
+          openapi-diff main/control-planes/mgmt_api/openapi.yaml control-planes/mgmt_api/openapi.yaml --fail-on-incompatible
+
   build-images:
     permissions:
       packages: write
@@ -218,6 +299,11 @@ jobs:
             path: './reactions/aws/eventbridge-reaction', 
             name: 'reaction-eventbridge'
           },
+          {
+            label: 'SyncVectorStore',
+            path: './reactions/sync-vectorstore',
+            name: 'reaction-sync-vectorstore'
+          },
           { 
             label: 'MCP',
             path: './reactions/mcp', 
@@ -270,7 +356,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -291,6 +377,39 @@ jobs:
         with:
           name: cli
           path: cli/bin
+
+  test-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up Go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
+        with:
+          go-version: '1.22'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run unit tests
+        working-directory: cli
+        run: |
+          echo "Running unit tests..."
+          go test -v ./...
+
+      - name: Run tests with race detector
+        working-directory: cli
+        run: |
+          echo "Running tests with race detector..."
+          go test -race ./...
 
   test-source-sdks:
     runs-on: ubuntu-latest
@@ -394,6 +513,16 @@ jobs:
         working-directory: e2e-tests
         env:
           DRASI_VERSION: ${{ matrix.variant.drasi_version }}
+          E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY: ${{ secrets.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY }}
+          E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT: ${{ secrets.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_ENDPOINT }}
+          E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL: ${{ secrets.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_EMBEDDING_MODEL }}
         run: npm test
 
-  
+      - name: Report vectorstore test status
+        if: always()
+        run: |
+          if [ -z "${{ secrets.E2E_SYNC_VECTORSTORE_AZURE_OPENAI_KEY }}" ]; then
+            echo "::notice::Vectorstore tests ran with mock embedding service (no Azure OpenAI credentials available). Pipeline integration is tested, but not semantic embedding quality."
+          else
+            echo "::notice::Vectorstore tests ran with Azure OpenAI credentials (full semantic embedding testing)."
+          fi

@@ -1,0 +1,1628 @@
+openapi: 3.0.3
+info:
+  title: Drasi Management API
+  description: API for managing Drasi platform resources
+  contact:
+    name: The Drasi Authors
+    url: https://github.com/drasi-project/drasi-platform
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  version: 1.0.0
+servers:
+- url: /
+  description: Local server
+paths:
+  /v1/continuousQueries:
+    get:
+      tags:
+      - Continuous Queries
+      operationId: list_continuous_queries
+      responses:
+        '200':
+          description: List of queries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContinuousQueryDto'
+        '500':
+          description: Internal server error
+  /v1/continuousQueries/{id}:
+    get:
+      tags:
+      - Continuous Queries
+      operationId: get_continuous_query
+      parameters:
+      - name: id
+        in: path
+        description: Query ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Query found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuousQueryDto'
+        '404':
+          description: Query not found
+        '500':
+          description: Internal server error
+    put:
+      tags:
+      - Continuous Queries
+      operationId: create_continuous_query
+      parameters:
+      - name: id
+        in: path
+        description: Query ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuerySpecDto'
+        required: true
+      responses:
+        '200':
+          description: Query created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuousQueryDto'
+        '400':
+          description: Bad request
+        '409':
+          description: Query already exists. Continuous queries are immutable and cannot be updated.
+        '500':
+          description: Internal server error
+    delete:
+      tags:
+      - Continuous Queries
+      operationId: delete_continuous_query
+      parameters:
+      - name: id
+        in: path
+        description: Query ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Query deleted
+        '404':
+          description: Query not found
+        '500':
+          description: Internal server error
+  /v1/continuousQueries/{id}/ready-wait:
+    get:
+      tags:
+      - Continuous Queries
+      operationId: ready_wait_query
+      parameters:
+      - name: id
+        in: path
+        description: Query ID
+        required: true
+        schema:
+          type: string
+      - name: timeout
+        in: query
+        description: 'Timeout in seconds (default: 60, max: 300). This endpoint blocks until the resource is ready or the timeout is reached. Clients should configure their HTTP client timeout to be slightly higher than this value.'
+        required: false
+        schema:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+      responses:
+        '200':
+          description: Query is ready. Returns immediately when the resource status is 'Ready'.
+        '400':
+          description: Invalid timeout value (must be <= 300 seconds)
+        '404':
+          description: Query not found
+        '500':
+          description: Internal server error
+        '503':
+          description: Query not ready within timeout. The resource did not become ready within the specified timeout period.
+  /v1/continuousQueries/{id}/watch:
+    get:
+      tags:
+      - Continuous Queries
+      operationId: watch_continuous_query
+      parameters:
+      - name: id
+        in: path
+        description: Query ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Stream of query results as a JSON array. Each element is a ResultEventDto object.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResultEventDto'
+        '404':
+          description: Query not found
+        '500':
+          description: Internal server error
+  /v1/debug:
+    get:
+      tags:
+      - Continuous Queries
+      summary: WebSocket endpoint for interactive query debugging.
+      description: |-
+        **IMPORTANT**: This endpoint uses WebSocket protocol, which is not fully supported by OpenAPI 3.0 generators.
+        Generated clients will only handle the HTTP upgrade handshake but will NOT provide WebSocket communication methods.
+        Clients must implement WebSocket handling manually.
+
+        **Protocol**:
+        1. Client connects via WebSocket to `/v1/debug`
+        2. Client sends a QuerySpecDto as a JSON text message
+        3. Server streams back ResultEventDto objects as JSON text messages
+        4. Connection remains open until client disconnects or query is terminated
+
+        **Note for Client Implementers**: You will need to use a WebSocket library directly for this endpoint.
+        The generated client code will not be sufficient for full functionality.
+      operationId: debug_query_websocket
+      requestBody:
+        description: Query specification sent as WebSocket text message after connection is established (not as HTTP body)
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - mode
+              - query
+              - sources
+              properties:
+                container:
+                  type: string
+                mode:
+                  type: string
+                query:
+                  type: string
+                queryLanguage:
+                  allOf:
+                  - $ref: '#/components/schemas/QueryLanguageDto'
+                  nullable: true
+                sources:
+                  $ref: '#/components/schemas/QuerySourcesDto'
+                storageProfile:
+                  type: string
+                  nullable: true
+                view:
+                  allOf:
+                  - $ref: '#/components/schemas/ViewSpecDto'
+                  nullable: true
+        required: true
+      responses:
+        '101':
+          description: 'Switching protocols to WebSocket. After connection upgrade, client sends a QuerySpecDto JSON message to start debugging. Server streams back ResultEventDto objects as JSON text messages. NOTE: OpenAPI generators will not provide WebSocket handling - manual implementation required.'
+  /v1/queryContainers:
+    get:
+      tags:
+      - Query Containers
+      operationId: list_query_containers
+      responses:
+        '200':
+          description: List of Query Containers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QueryContainerDto'
+        '500':
+          description: Internal server error
+  /v1/queryContainers/{id}:
+    get:
+      tags:
+      - Query Containers
+      operationId: get_query_container
+      parameters:
+      - name: id
+        in: path
+        description: Query Container ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Query Container found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryContainerDto'
+        '404':
+          description: Query Container not found
+        '500':
+          description: Internal server error
+    put:
+      tags:
+      - Query Containers
+      operationId: upsert_query_container
+      parameters:
+      - name: id
+        in: path
+        description: Query Container ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryContainerSpecDto'
+        required: true
+      responses:
+        '200':
+          description: Query Container created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryContainerDto'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+    delete:
+      tags:
+      - Query Containers
+      operationId: delete_query_container
+      parameters:
+      - name: id
+        in: path
+        description: Query Container ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Query Container deleted
+        '404':
+          description: Query Container not found
+        '500':
+          description: Internal server error
+  /v1/queryContainers/{id}/ready-wait:
+    get:
+      tags:
+      - Query Containers
+      operationId: ready_wait_query_container
+      parameters:
+      - name: id
+        in: path
+        description: Query Container ID
+        required: true
+        schema:
+          type: string
+      - name: timeout
+        in: query
+        description: 'Timeout in seconds (default: 60, max: 300). This endpoint blocks until the resource is ready or the timeout is reached. Clients should configure their HTTP client timeout to be slightly higher than this value.'
+        required: false
+        schema:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+      responses:
+        '200':
+          description: Query Container is ready. Returns immediately when the resource status is 'Ready'.
+        '400':
+          description: Invalid timeout value (must be <= 300 seconds)
+        '404':
+          description: Query Container not found
+        '500':
+          description: Internal server error
+        '503':
+          description: Query Container not ready within timeout. The resource did not become ready within the specified timeout period.
+  /v1/reactionProviders:
+    get:
+      tags:
+      - Reaction Providers
+      operationId: list_reaction_providers
+      responses:
+        '200':
+          description: List of Reaction Providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReactionProviderDto'
+        '500':
+          description: Internal server error
+  /v1/reactionProviders/{id}:
+    get:
+      tags:
+      - Reaction Providers
+      operationId: get_reaction_provider
+      parameters:
+      - name: id
+        in: path
+        description: Reaction Provider ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Reaction Provider found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReactionProviderDto'
+        '404':
+          description: Reaction Provider not found
+        '500':
+          description: Internal server error
+    put:
+      tags:
+      - Reaction Providers
+      operationId: upsert_reaction_provider
+      parameters:
+      - name: id
+        in: path
+        description: Reaction Provider ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderSpecDto'
+        required: true
+      responses:
+        '200':
+          description: Reaction Provider created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReactionProviderDto'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+    delete:
+      tags:
+      - Reaction Providers
+      operationId: delete_reaction_provider
+      parameters:
+      - name: id
+        in: path
+        description: Reaction Provider ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Reaction Provider deleted
+        '404':
+          description: Reaction Provider not found
+        '500':
+          description: Internal server error
+  /v1/reactions:
+    get:
+      tags:
+      - Reactions
+      operationId: list_reactions
+      responses:
+        '200':
+          description: List of reactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReactionDto'
+        '500':
+          description: Internal server error
+  /v1/reactions/{id}:
+    get:
+      tags:
+      - Reactions
+      operationId: get_reaction
+      parameters:
+      - name: id
+        in: path
+        description: Reaction ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Reaction found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReactionDto'
+        '404':
+          description: Reaction not found
+        '500':
+          description: Internal server error
+    put:
+      tags:
+      - Reactions
+      operationId: upsert_reaction
+      parameters:
+      - name: id
+        in: path
+        description: Reaction ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReactionSpecDto'
+        required: true
+      responses:
+        '200':
+          description: Reaction created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReactionDto'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+    delete:
+      tags:
+      - Reactions
+      operationId: delete_reaction
+      parameters:
+      - name: id
+        in: path
+        description: Reaction ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Reaction deleted
+        '404':
+          description: Reaction not found
+        '500':
+          description: Internal server error
+  /v1/reactions/{id}/ready-wait:
+    get:
+      tags:
+      - Reactions
+      operationId: ready_wait_reaction
+      parameters:
+      - name: id
+        in: path
+        description: Reaction ID
+        required: true
+        schema:
+          type: string
+      - name: timeout
+        in: query
+        description: 'Timeout in seconds (default: 60, max: 300). This endpoint blocks until the resource is ready or the timeout is reached. Clients should configure their HTTP client timeout to be slightly higher than this value.'
+        required: false
+        schema:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+      responses:
+        '200':
+          description: Reaction is ready. Returns immediately when the resource status is 'Ready'.
+        '400':
+          description: Invalid timeout value (must be <= 300 seconds)
+        '404':
+          description: Reaction not found
+        '500':
+          description: Internal server error
+        '503':
+          description: Reaction not ready within timeout. The resource did not become ready within the specified timeout period.
+  /v1/sourceProviders:
+    get:
+      tags:
+      - Source Providers
+      operationId: list_source_providers
+      responses:
+        '200':
+          description: List of Source Providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SourceProviderDto'
+        '500':
+          description: Internal server error
+  /v1/sourceProviders/{id}:
+    get:
+      tags:
+      - Source Providers
+      operationId: get_source_provider
+      parameters:
+      - name: id
+        in: path
+        description: Source Provider ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Source Provider found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceProviderDto'
+        '404':
+          description: Source Provider not found
+        '500':
+          description: Internal server error
+    put:
+      tags:
+      - Source Providers
+      operationId: upsert_source_provider
+      parameters:
+      - name: id
+        in: path
+        description: Source Provider ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderSpecDto'
+        required: true
+      responses:
+        '200':
+          description: Source Provider created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceProviderDto'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+    delete:
+      tags:
+      - Source Providers
+      operationId: delete_source_provider
+      parameters:
+      - name: id
+        in: path
+        description: Source Provider ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Source Provider deleted
+        '404':
+          description: Source Provider not found
+        '500':
+          description: Internal server error
+  /v1/sources:
+    get:
+      tags:
+      - Sources
+      operationId: list_sources
+      responses:
+        '200':
+          description: List of sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SourceDto'
+        '500':
+          description: Internal server error
+  /v1/sources/{id}:
+    get:
+      tags:
+      - Sources
+      operationId: get_source
+      parameters:
+      - name: id
+        in: path
+        description: Source ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Source found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceDto'
+        '404':
+          description: Source not found
+        '500':
+          description: Internal server error
+    put:
+      tags:
+      - Sources
+      operationId: upsert_source
+      parameters:
+      - name: id
+        in: path
+        description: Source ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceSpecDto'
+        required: true
+      responses:
+        '200':
+          description: Source created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceDto'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+    delete:
+      tags:
+      - Sources
+      operationId: delete_source
+      parameters:
+      - name: id
+        in: path
+        description: Source ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Source deleted
+        '404':
+          description: Source not found
+        '500':
+          description: Internal server error
+  /v1/sources/{id}/ready-wait:
+    get:
+      tags:
+      - Sources
+      operationId: ready_wait_source
+      parameters:
+      - name: id
+        in: path
+        description: Source ID
+        required: true
+        schema:
+          type: string
+      - name: timeout
+        in: query
+        description: 'Timeout in seconds (default: 60, max: 300). This endpoint blocks until the resource is ready or the timeout is reached. Clients should configure their HTTP client timeout to be slightly higher than this value.'
+        required: false
+        schema:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+      responses:
+        '200':
+          description: Source is ready. Returns immediately when the resource status is 'Ready'.
+        '400':
+          description: Invalid timeout value (must be <= 300 seconds)
+        '404':
+          description: Source not found
+        '500':
+          description: Internal server error
+        '503':
+          description: Source not ready within timeout. The resource did not become ready within the specified timeout period.
+components:
+  schemas:
+    ConfigValueDto:
+      oneOf:
+      - type: object
+        required:
+        - value
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - Inline
+          value:
+            $ref: '#/components/schemas/InlineValueDto'
+      - type: object
+        required:
+        - name
+        - key
+        - kind
+        properties:
+          key:
+            type: string
+          kind:
+            type: string
+            enum:
+            - Secret
+          name:
+            type: string
+      discriminator:
+        propertyName: kind
+    ContinuousQueryDto:
+      type: object
+      required:
+      - id
+      - spec
+      properties:
+        id:
+          type: string
+        spec:
+          $ref: '#/components/schemas/QuerySpecDto'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/QueryStatusDto'
+          nullable: true
+    ControlMessage:
+      oneOf:
+      - allOf:
+        - $ref: '#/components/schemas/ErrorMessage'
+        - type: object
+          required:
+          - kind
+          properties:
+            kind:
+              type: string
+              enum:
+              - error
+      discriminator:
+        propertyName: kind
+    ControlSignalDto:
+      oneOf:
+      - type: object
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - bootstrapStarted
+      - type: object
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - bootstrapCompleted
+      - type: object
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - running
+      - type: object
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - stopped
+      - type: object
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - deleted
+    EndpointDto:
+      type: object
+      required:
+      - setting
+      - target
+      properties:
+        setting:
+          $ref: '#/components/schemas/EndpointSettingDto'
+        target:
+          type: string
+    EndpointSettingDto:
+      type: string
+      enum:
+      - internal
+      - external
+    ErrorMessage:
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: string
+    InlineValueDto:
+      oneOf:
+      - type: object
+        required:
+        - String
+        properties:
+          String:
+            type: object
+            required:
+            - value
+            properties:
+              value:
+                type: string
+      - type: object
+        required:
+        - Integer
+        properties:
+          Integer:
+            type: object
+            required:
+            - value
+            properties:
+              value:
+                type: integer
+                format: int64
+      - type: object
+        required:
+        - Boolean
+        properties:
+          Boolean:
+            type: object
+            required:
+            - value
+            properties:
+              value:
+                type: boolean
+      - type: object
+        required:
+        - List
+        properties:
+          List:
+            type: object
+            required:
+            - value
+            properties:
+              value:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfigValueDto'
+    JsonSchemaDto:
+      type: object
+      required:
+      - type
+      properties:
+        $schema:
+          type: string
+          nullable: true
+        default:
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        enum:
+          type: array
+          items: {}
+          nullable: true
+        format:
+          type: string
+          nullable: true
+        items:
+          allOf:
+          - $ref: '#/components/schemas/JsonSchemaDto'
+          nullable: true
+        maxLength:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+        maximum:
+          type: number
+          format: double
+          nullable: true
+        minLength:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+        minimum:
+          type: number
+          format: double
+          nullable: true
+        properties:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/JsonSchemaDto'
+          nullable: true
+        required:
+          type: array
+          items:
+            type: string
+          nullable: true
+        type:
+          $ref: '#/components/schemas/SchemaTypeDto'
+    ProviderServiceDto:
+      type: object
+      required:
+      - image
+      properties:
+        config_schema:
+          allOf:
+          - $ref: '#/components/schemas/JsonSchemaDto'
+          nullable: true
+        dapr:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+        deprovisionHandler:
+          type: boolean
+          nullable: true
+        endpoints:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ServiceEndpointDto'
+          nullable: true
+        externalImage:
+          type: boolean
+          nullable: true
+        image:
+          type: string
+    ProviderSpecDto:
+      type: object
+      required:
+      - services
+      properties:
+        config_schema:
+          allOf:
+          - $ref: '#/components/schemas/JsonSchemaDto'
+          nullable: true
+        services:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ProviderServiceDto'
+    QueryContainerDto:
+      type: object
+      required:
+      - id
+      - spec
+      properties:
+        id:
+          type: string
+        spec:
+          $ref: '#/components/schemas/QueryContainerSpecDto'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/QueryContainerStatusDto'
+          nullable: true
+    QueryContainerSpecDto:
+      type: object
+      required:
+      - queryHostCount
+      - results
+      - storage
+      - defaultStore
+      properties:
+        defaultStore:
+          type: string
+        queryHostCount:
+          type: integer
+          format: int32
+          minimum: 0
+        results:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ConfigValueDto'
+        storage:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StorageSpecDto'
+    QueryContainerStatusDto:
+      type: object
+      required:
+      - available
+      properties:
+        available:
+          type: boolean
+        messages:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+    QueryJoinDto:
+      type: object
+      required:
+      - id
+      - keys
+      properties:
+        id:
+          type: string
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryJoinKeyDto'
+    QueryJoinKeyDto:
+      type: object
+      required:
+      - label
+      - property
+      properties:
+        label:
+          type: string
+        property:
+          type: string
+    QueryLanguageDto:
+      type: string
+      enum:
+      - Cypher
+      - GQL
+    QuerySourceLabelDto:
+      type: object
+      required:
+      - sourceLabel
+      properties:
+        sourceLabel:
+          type: string
+    QuerySourcesDto:
+      type: object
+      required:
+      - subscriptions
+      properties:
+        joins:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryJoinDto'
+          nullable: true
+        middleware:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceMiddlewareConfigDto'
+          nullable: true
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuerySubscriptionDto'
+    QuerySpecDto:
+      type: object
+      required:
+      - mode
+      - query
+      - sources
+      properties:
+        container:
+          type: string
+        mode:
+          type: string
+        query:
+          type: string
+        queryLanguage:
+          allOf:
+          - $ref: '#/components/schemas/QueryLanguageDto'
+          nullable: true
+        sources:
+          $ref: '#/components/schemas/QuerySourcesDto'
+        storageProfile:
+          type: string
+          nullable: true
+        view:
+          allOf:
+          - $ref: '#/components/schemas/ViewSpecDto'
+          nullable: true
+    QueryStatusDto:
+      type: object
+      required:
+      - hostName
+      - status
+      - container
+      properties:
+        container:
+          type: string
+        errorMessage:
+          type: string
+          nullable: true
+        hostName:
+          type: string
+        status:
+          type: string
+    QuerySubscriptionDto:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuerySourceLabelDto'
+          nullable: true
+        pipeline:
+          type: array
+          items:
+            type: string
+          nullable: true
+        relations:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuerySourceLabelDto'
+          nullable: true
+    ReactionDto:
+      type: object
+      required:
+      - id
+      - spec
+      properties:
+        id:
+          type: string
+        spec:
+          $ref: '#/components/schemas/ReactionSpecDto'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ReactionStatusDto'
+          nullable: true
+    ReactionProviderDto:
+      type: object
+      required:
+      - id
+      - spec
+      properties:
+        id:
+          type: string
+        spec:
+          $ref: '#/components/schemas/ProviderSpecDto'
+    ReactionSpecDto:
+      type: object
+      required:
+      - kind
+      - queries
+      properties:
+        identity:
+          allOf:
+          - $ref: '#/components/schemas/ServiceIdentityDto'
+          nullable: true
+        kind:
+          type: string
+        properties:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ConfigValueDto'
+          nullable: true
+        queries:
+          type: object
+          additionalProperties:
+            type: string
+            nullable: true
+        services:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ServiceConfigDto'
+          nullable: true
+        tag:
+          type: string
+          nullable: true
+    ReactionStatusDto:
+      type: object
+      required:
+      - available
+      properties:
+        available:
+          type: boolean
+        ingress_url:
+          type: string
+          nullable: true
+        messages:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+    ReadyWaitParams:
+      type: object
+      properties:
+        timeout:
+          type: integer
+          format: int64
+          minimum: 0
+    ResultChangeEventDto:
+      type: object
+      required:
+      - queryId
+      - sequence
+      - sourceTimeMs
+      - addedResults
+      - updatedResults
+      - deletedResults
+      properties:
+        addedResults:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        deletedResults:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        metadata:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        queryId:
+          type: string
+        sequence:
+          type: integer
+          format: int64
+          minimum: 0
+        sourceTimeMs:
+          type: integer
+          format: int64
+          minimum: 0
+        updatedResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdatePayloadDto'
+    ResultControlEventDto:
+      type: object
+      required:
+      - queryId
+      - sequence
+      - sourceTimeMs
+      - controlSignal
+      properties:
+        controlSignal:
+          $ref: '#/components/schemas/ControlSignalDto'
+        metadata:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        queryId:
+          type: string
+        sequence:
+          type: integer
+          format: int64
+          minimum: 0
+        sourceTimeMs:
+          type: integer
+          format: int64
+          minimum: 0
+    ResultEventDto:
+      oneOf:
+      - allOf:
+        - $ref: '#/components/schemas/ResultChangeEventDto'
+        - type: object
+          required:
+          - kind
+          properties:
+            kind:
+              type: string
+              enum:
+              - change
+      - allOf:
+        - $ref: '#/components/schemas/ResultControlEventDto'
+        - type: object
+          required:
+          - kind
+          properties:
+            kind:
+              type: string
+              enum:
+              - control
+      discriminator:
+        propertyName: kind
+    RetentionPolicyDto:
+      oneOf:
+      - type: string
+        enum:
+        - latest
+      - type: object
+        required:
+        - expire
+        properties:
+          expire:
+            type: object
+            required:
+            - afterSeconds
+            properties:
+              afterSeconds:
+                type: integer
+                format: int64
+                minimum: 0
+      - type: string
+        enum:
+        - all
+    SchemaTypeDto:
+      type: string
+      enum:
+      - object
+      - array
+      - string
+      - number
+      - integer
+      - boolean
+      - 'null'
+    ServiceConfigDto:
+      type: object
+      properties:
+        dapr:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ConfigValueDto'
+          nullable: true
+        endpoints:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/EndpointDto'
+          nullable: true
+        properties:
+          type: object
+          additionalProperties: {}
+          nullable: true
+    ServiceEndpointDto:
+      type: object
+      required:
+      - setting
+      - target
+      properties:
+        setting:
+          $ref: '#/components/schemas/EndpointSettingDto'
+        target:
+          type: string
+    ServiceIdentityDto:
+      oneOf:
+      - type: object
+        required:
+        - clientId
+        - kind
+        properties:
+          clientId:
+            type: string
+          kind:
+            type: string
+            enum:
+            - MicrosoftEntraWorkloadID
+      - type: object
+        required:
+        - tenantId
+        - clientId
+        - kind
+        properties:
+          certificate:
+            allOf:
+            - $ref: '#/components/schemas/ConfigValueDto'
+            nullable: true
+          clientId:
+            $ref: '#/components/schemas/ConfigValueDto'
+          kind:
+            type: string
+            enum:
+            - MicrosoftEntraApplication
+          secret:
+            allOf:
+            - $ref: '#/components/schemas/ConfigValueDto'
+            nullable: true
+          tenantId:
+            $ref: '#/components/schemas/ConfigValueDto'
+      - type: object
+        required:
+        - connectionString
+        - kind
+        properties:
+          connectionString:
+            $ref: '#/components/schemas/ConfigValueDto'
+          kind:
+            type: string
+            enum:
+            - ConnectionString
+      - type: object
+        required:
+        - accessKey
+        - kind
+        properties:
+          accessKey:
+            $ref: '#/components/schemas/ConfigValueDto'
+          kind:
+            type: string
+            enum:
+            - AccessKey
+      - type: object
+        required:
+        - roleArn
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - AwsIamRole
+          roleArn:
+            $ref: '#/components/schemas/ConfigValueDto'
+      - type: object
+        required:
+        - accessKeyId
+        - secretAccessKey
+        - region
+        - kind
+        properties:
+          accessKeyId:
+            $ref: '#/components/schemas/ConfigValueDto'
+          kind:
+            type: string
+            enum:
+            - AwsIamAccessKey
+          region:
+            $ref: '#/components/schemas/ConfigValueDto'
+          secretAccessKey:
+            $ref: '#/components/schemas/ConfigValueDto'
+      discriminator:
+        propertyName: kind
+    SourceDto:
+      type: object
+      required:
+      - id
+      - spec
+      properties:
+        id:
+          type: string
+        spec:
+          $ref: '#/components/schemas/SourceSpecDto'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SourceStatusDto'
+          nullable: true
+    SourceMiddlewareConfigDto:
+      type: object
+      required:
+      - kind
+      - name
+      properties:
+        kind:
+          type: string
+        name:
+          type: string
+      additionalProperties: {}
+    SourceProviderDto:
+      type: object
+      required:
+      - id
+      - spec
+      properties:
+        id:
+          type: string
+        spec:
+          $ref: '#/components/schemas/ProviderSpecDto'
+    SourceSpecDto:
+      type: object
+      required:
+      - kind
+      properties:
+        identity:
+          allOf:
+          - $ref: '#/components/schemas/ServiceIdentityDto'
+          nullable: true
+        kind:
+          type: string
+        properties:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ConfigValueDto'
+          nullable: true
+        services:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ServiceConfigDto'
+          nullable: true
+    SourceStatusDto:
+      type: object
+      required:
+      - available
+      properties:
+        available:
+          type: boolean
+        ingress_url:
+          type: string
+          nullable: true
+        messages:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+    StorageSpecDto:
+      oneOf:
+      - type: object
+        required:
+        - enableArchive
+        - kind
+        properties:
+          enableArchive:
+            type: boolean
+          kind:
+            type: string
+            enum:
+            - memory
+      - type: object
+        required:
+        - connectionString
+        - kind
+        properties:
+          cacheSize:
+            type: integer
+            format: int32
+            nullable: true
+            minimum: 0
+          connectionString:
+            $ref: '#/components/schemas/ConfigValueDto'
+          kind:
+            type: string
+            enum:
+            - redis
+      - type: object
+        required:
+        - kind
+        properties:
+          directIo:
+            type: boolean
+          enableArchive:
+            type: boolean
+          kind:
+            type: string
+            enum:
+            - rocksDb
+          storageClass:
+            type: string
+            nullable: true
+      discriminator:
+        propertyName: kind
+    UpdatePayloadDto:
+      type: object
+      properties:
+        after:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        before:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        grouping_keys:
+          type: array
+          items:
+            type: string
+          nullable: true
+    ViewSpecDto:
+      type: object
+      required:
+      - enabled
+      - retentionPolicy
+      properties:
+        enabled:
+          type: boolean
+        retentionPolicy:
+          $ref: '#/components/schemas/RetentionPolicyDto'
+tags:
+- name: Sources
+  description: Source resource management
+- name: Query Containers
+  description: Query Container resource management
+- name: Reactions
+  description: Reaction resource management
+- name: Continuous Queries
+  description: Continuous Query resource management
+- name: Source Providers
+  description: Source Provider registration and management
+- name: Reaction Providers
+  description: Reaction Provider registration and management
+
