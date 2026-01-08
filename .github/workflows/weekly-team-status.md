@@ -7,7 +7,6 @@ description: |
   moderate emoji usage to boost team morale.
 
 on:
-  schedule: weekly on friday
   workflow_dispatch:
 permissions:
   contents: read
