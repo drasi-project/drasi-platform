@@ -31,6 +31,12 @@ impl HttpStreamingInvoker {
     }
 }
 
+impl Default for HttpStreamingInvoker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub enum StreamType {
     JsonNewLine,
     JsonArray,
@@ -51,7 +57,7 @@ impl HttpStreamingInvoker {
         stream_type: StreamType,
         headers: Option<Headers>,
     ) -> Result<impl Stream<Item = Result<Value, StreamBodyError>> + Send, InvokeError> {
-        let uri = format!("http://{}/{}", app_id, path);
+        let uri = format!("http://{app_id}/{path}");
 
         let request_headers = {
             let mut request_headers = reqwest::header::HeaderMap::new();
@@ -134,18 +140,18 @@ impl std::fmt::Display for InvokeError {
 
 impl From<reqwest::Error> for InvokeError {
     fn from(err: reqwest::Error) -> Self {
-        InvokeError::new(format!("Error invoking HTTP request: {}", err))
+        InvokeError::new(format!("Error invoking HTTP request: {err}"))
     }
 }
 
 impl From<InvalidHeaderName> for InvokeError {
     fn from(err: InvalidHeaderName) -> Self {
-        InvokeError::new(format!("Error parsing header name: {}", err))
+        InvokeError::new(format!("Error parsing header name: {err}"))
     }
 }
 
 impl From<InvalidHeaderValue> for InvokeError {
     fn from(err: InvalidHeaderValue) -> Self {
-        InvokeError::new(format!("Error parsing header value: {}", err))
+        InvokeError::new(format!("Error parsing header value: {err}"))
     }
 }

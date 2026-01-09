@@ -3,6 +3,19 @@ name = "change-dispatcher"
 version = "0.1.0"
 edition = "2021"
 
+[lints.rust]
+warnings = "deny"
+unused = "allow"
+
+[lints.clippy]
+print_stdout = "warn"
+unwrap_used = "warn"
+uninlined_format_args = "warn"
+module_inception = "allow"
+ptr_arg = "allow"
+type_complexity = "allow"
+large_enum_variant = "allow"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

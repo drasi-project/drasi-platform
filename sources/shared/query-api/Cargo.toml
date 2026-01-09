@@ -3,6 +3,19 @@ name = "query-api"
 version = "0.1.0"
 edition = "2021"
 
+[lints.rust]
+warnings = "deny"
+unused = "allow"
+
+[lints.clippy]
+print_stdout = "warn"
+unwrap_used = "warn"
+uninlined_format_args = "warn"
+module_inception = "allow"
+ptr_arg = "allow"
+type_complexity = "allow"
+large_enum_variant = "allow"
+
 [dependencies]
 axum = { version = "0.7.5", features = ["http1", "macros", "tokio"] }
 axum-streams = { version = "0.19.0", features=["json"] }

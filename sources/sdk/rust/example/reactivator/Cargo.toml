@@ -3,6 +3,19 @@ name = "reactivator"
 version = "0.1.0"
 edition = "2021"
 
+[lints.rust]
+warnings = "deny"
+unused = "allow"
+
+[lints.clippy]
+print_stdout = "warn"
+unwrap_used = "warn"
+uninlined_format_args = "warn"
+module_inception = "allow"
+ptr_arg = "allow"
+type_complexity = "allow"
+large_enum_variant = "allow"
+
 [dependencies]
 tokio = {version = "1.40.0", features = ["full"]}
 drasi-source-sdk = "0.1.22"
