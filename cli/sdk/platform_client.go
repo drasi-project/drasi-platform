@@ -15,6 +15,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"drasi.io/cli/output"
+	generated "drasi.io/cli/sdk/generated"
 	"drasi.io/cli/sdk/registry"
 	"github.com/phayes/freeport"
 	corev1 "k8s.io/api/core/v1"
@@ -121,6 +122,13 @@ func (t *KubernetesPlatformClient) CreateDrasiClient() (DrasiClient, error) {
 		Timeout: 30 * time.Second,
 	}
 	result.streamClient = &http.Client{}
+
+	// Initialize the generated OpenAPI client
+	genClient, err := generated.NewClient(result.prefix, generated.WithHTTPClient(result.client))
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize OpenAPI client: %w", err)
+	}
+	result.generatedClient = genClient
 
 	return &result, nil
 }
