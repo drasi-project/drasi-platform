@@ -84,6 +84,27 @@ spec:
 ---
 apiVersion: v1
 kind: ReactionProvider
+name: EventBridge
+spec:
+  services:
+    reaction:
+      image: reaction-eventbridge
+  config_schema:
+    type: object
+    properties: 
+      eventBusName:
+        type: string
+        default: "default"
+      format:
+        type: string
+        enum:
+          - "packed"
+          - "unpacked"
+          - "template"
+        default: "packed"
+---
+apiVersion: v1
+kind: ReactionProvider
 name: Gremlin
 spec:
   config_schema:

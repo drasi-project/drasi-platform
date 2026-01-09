@@ -1,0 +1,29 @@
+# Rust target directories - exclude from docker build contexts
+# This file is needed because several docker builds use the repository root as build context
+
+# Control planes Rust projects
+control-planes/kubernetes_provider/target
+control-planes/mgmt_api/target
+control-planes/resource_provider_api/target
+
+# Infrastructure Rust projects
+infrastructure/target
+infrastructure/comms-abstractions/target
+infrastructure/comms-dapr/target
+infrastructure/comms-http/target
+
+# Query container Rust projects
+query-container/target
+query-container/publish-api/target
+query-container/query-host/target
+query-container/view-svc/target
+
+# Sources Rust projects
+sources/kubernetes/kubernetes-proxy/target
+sources/kubernetes/kubernetes-reactivator/target
+sources/sdk/rust/target
+sources/sdk/rust/example/proxy/target
+sources/sdk/rust/example/reactivator/target
+sources/shared/change-dispatcher/target
+sources/shared/change-router/target
+sources/shared/query-api/target

@@ -1,0 +1,84 @@
+# Copyright 2025 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Mock Embedding Service Deployment
+# Used for e2e tests when Azure OpenAI credentials are not available
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-embedding-service
+  namespace: default
+  labels:
+    app: mock-embedding-service
+    component: e2e-testing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-embedding-service
+  template:
+    metadata:
+      labels:
+        app: mock-embedding-service
+    spec:
+      containers:
+      - name: mock-embedding
+        image: drasi-project/mock-embedding-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PORT
+          value: "8080"
+        - name: EMBEDDING_DIMENSIONS
+          value: "3072"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+# Service to expose the mock embedding service within the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-embedding-service
+  namespace: default
+  labels:
+    app: mock-embedding-service
+    component: e2e-testing
+spec:
+  type: ClusterIP
+  selector:
+    app: mock-embedding-service
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http

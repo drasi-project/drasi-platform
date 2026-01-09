@@ -15,6 +15,7 @@
 
 using Drasi.Reaction.SDK;
 using Drasi.Reaction.SDK.Models.QueryOutput;
+using Drasi.Reactions.EventBridge.Models;
 using Drasi.Reactions.EventBridge.Models.Unpacked;
 
 using Amazon.EventBridge;
@@ -27,7 +28,7 @@ using System.Text.Json;
 
 namespace Drasi.Reactions.EventBridge.Services;
 
-public class ControlSignalHandler: IControlEventHandler
+public class ControlSignalHandler: IControlEventHandler<QueryConfig>
 {
     private readonly AmazonEventBridgeClient _client;
     private readonly OutputFormat _format;
@@ -47,7 +48,7 @@ public class ControlSignalHandler: IControlEventHandler
         _formatter = formatter;
     }
 
-    public async Task HandleControlSignal(ControlEvent evt, object? queryConfig)
+    public async Task HandleControlSignal(ControlEvent evt, QueryConfig? queryConfig)
     {
         switch (_format)
         {
@@ -79,6 +80,7 @@ public class ControlSignalHandler: IControlEventHandler
 
                 break;
             case OutputFormat.Unpacked:
+            case OutputFormat.Template:
                 var notification = new ControlSignalNotification
                 {
                     Op = ControlSignalNotificationOp.X,
