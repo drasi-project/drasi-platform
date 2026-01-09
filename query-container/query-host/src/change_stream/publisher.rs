@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::time::SystemTime;
-
 use redis::{aio::MultiplexedConnection, AsyncCommands};
+use std::time::SystemTime;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum PublishError {
+    #[error("Connection error: {0}")]
     ConnectionError(String),
+    #[error("{0}")]
     Other(String),
 }
 

@@ -70,7 +70,6 @@ use crate::{
 enum Command {
     Shutdown,
     Delete,
-    Pause,
 }
 
 /// A background worker that runs a single query
@@ -355,9 +354,6 @@ impl QueryWorker {
                                     _ = deprovision_result_view(dapr_client.clone(), query_container_id.as_ref(), query_id.as_ref(), &view_spec).await;
                                     break;
                                 },
-                                Some(Command::Pause) => {
-                                    todo!();
-                                },
                                 None => {
                                     log::error!("Command channel closed unexpectedly");
                                     lifecycle.change_state(QueryState::TerminalError("Command channel closed unexpectedly".to_string()));
@@ -470,13 +466,6 @@ impl QueryWorker {
         match self.commander.send(Command::Delete) {
             Ok(_) => log::info!("Delete command sent"),
             Err(err) => log::error!("Error sending delete command: {err}"),
-        }
-    }
-
-    pub fn pause(&self) {
-        match self.commander.send(Command::Pause) {
-            Ok(_) => log::info!("Pause command sent"),
-            Err(err) => log::error!("Error sending Pause command: {err}"),
         }
     }
 
@@ -631,7 +620,7 @@ async fn bootstrap(
     _ = result_index.clear().await;
 
     for source in &config.sources.subscriptions {
-        let mut initial_data = match source_client
+        let initial_data = match source_client
             .subscribe(
                 query_container_id.to_string(),
                 query_id.to_string(),
