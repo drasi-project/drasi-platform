@@ -198,9 +198,18 @@ func (t *ApiClient) ReadyWait(manifests *[]api.Manifest, timeout int32, output o
 	for _, mf := range *manifests {
 		subject := "Wait " + mf.Kind + "/" + mf.Name
 
+		// Validate the resource kind before making the request
+		route, ok := kindRoutes[strings.ToLower(mf.Kind)]
+		if !ok {
+			errMsg := fmt.Sprintf("unknown resource kind '%s'. Supported kinds are: source, reaction, query, continuousquery, querycontainer, sourceprovider, reactionprovider", mf.Kind)
+			output.AddTask(subject, fmt.Sprintf("Waiting for %v/%v to come online", mf.Kind, mf.Name))
+			output.FailTask(subject, fmt.Sprintf("Error: %v", errMsg))
+			return errors.New(errMsg)
+		}
+
 		output.AddTask(subject, fmt.Sprintf("Waiting for %v/%v to come online", mf.Kind, mf.Name))
 
-		url := fmt.Sprintf("%v/%v/%v/%v/ready-wait?timeout=%v", t.prefix, mf.ApiVersion, kindRoutes[strings.ToLower(mf.Kind)], mf.Name, timeout)
+		url := fmt.Sprintf("%v/%v/%v/%v/ready-wait?timeout=%v", t.prefix, mf.ApiVersion, route, mf.Name, timeout)
 
 		req, err := http.NewRequest(http.MethodGet, url, bytes.NewReader([]byte{}))
 		if err != nil {
