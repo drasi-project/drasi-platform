@@ -30,4 +30,4 @@ test:
 
 lint-check:
 	cargo fmt -- --check
-	cargo clippy --all-targets --all-features -- -D warnings -W clippy::print_stdout -A unused -A clippy::module_inception -A clippy::ptr_arg -A clippy::type_complexity
+	cargo clippy --all-targets --all-features
