@@ -441,6 +441,35 @@ jobs:
           cd sources/sdk/rust
           make test
           
+<<<<<<< HEAD
+=======
+  test-vscode-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: dev-tools/vscode/drasi/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Install extension dependencies
+        working-directory: dev-tools/vscode/drasi
+        run: npm ci
+
+      - name: Run extension tests
+        working-directory: dev-tools/vscode/drasi
+        run: xvfb-run -a npm test
+          
+>>>>>>> 8ad4d5b (added vscode-extension-to-build-test.yml)
   e2e-tests:
     permissions:
       packages: write
