@@ -244,8 +244,9 @@ mod tests {
 
     #[tokio::test]
     async fn validate_accepts_query_spec_without_language_specified() {
-        // Test that a QuerySpec with query_language: None is valid
-        // The default language (GQL) will be applied by the query worker
+        // Test that a QuerySpec with query_language: None is valid and accepted.
+        // Note: This only validates spec acceptance; the actual default to GQL
+        // is handled by the query worker.
         let svc: Arc<QueryContainerDomainService> = Arc::new(TestQueryContainerService {
             status: Some(QueryContainerStatus {
                 available: true,
