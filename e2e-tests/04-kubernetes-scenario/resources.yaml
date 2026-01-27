@@ -115,6 +115,7 @@ kind: ContinuousQuery
 name: risky-containers
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:
     subscriptions:
       - id: k8s

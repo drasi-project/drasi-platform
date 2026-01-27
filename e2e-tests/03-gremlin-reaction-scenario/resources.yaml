@@ -94,6 +94,7 @@ kind: ContinuousQuery
 name: query3
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:    
     subscriptions:
       - id: test-source-3
@@ -110,6 +111,7 @@ kind: ContinuousQuery
 name: query3-deletion
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:    
     subscriptions:
       - id: test-source-3
@@ -126,6 +128,7 @@ kind: ContinuousQuery
 name: query4
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:    
     subscriptions:
       - id: test-source-3

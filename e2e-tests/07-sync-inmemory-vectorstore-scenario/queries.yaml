@@ -4,6 +4,7 @@ kind: ContinuousQuery
 name: products-query
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:
     subscriptions:
       - id: vectorstore-source
@@ -22,6 +23,7 @@ kind: ContinuousQuery
 name: products-with-category-query
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:
     subscriptions:
       - id: vectorstore-source

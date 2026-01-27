@@ -4,6 +4,7 @@ kind: ContinuousQuery
 name: qdrant-products-query
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:
     subscriptions:
       - id: qdrant-source
@@ -22,6 +23,7 @@ kind: ContinuousQuery
 name: qdrant-products-category-query
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:
     subscriptions:
       - id: qdrant-source

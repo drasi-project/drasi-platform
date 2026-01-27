@@ -112,6 +112,7 @@ kind: ContinuousQuery
 name: query2
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:    
     subscriptions:
       - id: test-source-2

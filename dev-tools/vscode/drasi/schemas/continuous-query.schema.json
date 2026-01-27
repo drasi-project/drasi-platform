@@ -55,7 +55,7 @@
             "GQL"
           ],
           "description": "Query language to use",
-          "default": "Cypher"
+          "default": "GQL"
         },
         "storageProfile": {
           "type": "string",
