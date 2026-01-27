@@ -3,6 +3,7 @@ kind: ContinuousQuery
 name: product-updates-packed
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:
     subscriptions:
       - id: pubsub-pg-source
@@ -22,6 +23,7 @@ kind: ContinuousQuery
 name: product-updates-unpacked
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:
     subscriptions:
       - id: pubsub-pg-source

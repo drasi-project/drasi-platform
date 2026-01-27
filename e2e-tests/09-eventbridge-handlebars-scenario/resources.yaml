@@ -148,6 +148,7 @@ kind: ContinuousQuery
 name: product-query
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:    
     subscriptions:
       - id: test-source-eventbridge

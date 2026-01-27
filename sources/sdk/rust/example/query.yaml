@@ -3,6 +3,7 @@ kind: ContinuousQuery
 name: query1
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:    
     subscriptions:
       - id: test-source
