@@ -169,6 +169,57 @@ spec:
 ---
 apiVersion: v1
 kind: SourceProvider
+name: Oracle
+spec:
+  services:
+    proxy:
+      image: source-sql-proxy
+      dapr:
+        app-port: "4002"
+      config_schema:
+        type: object
+        properties:
+          connector:
+            type: string
+            default: Oracle
+    reactivator:
+      image: source-debezium-reactivator
+      deprovisionHandler: true
+      dapr:
+        app-port: "80"
+      config_schema:
+        type: object
+        properties:
+          connector:
+            type: string
+            default: Oracle
+  config_schema:
+    type: object
+    properties:
+      database:
+        type: string
+      serviceName:
+        type: string
+      host:
+        type: string
+      password:
+        type: string
+      port:
+        type: number
+        default: 1521
+      user:
+        type: string
+      tables:
+        type: array
+    required:
+      - host
+      - port
+      - user
+      - password
+      - tables
+---
+apiVersion: v1
+kind: SourceProvider
 name: CosmosGremlin
 spec:
   config_schema:

@@ -1,0 +1,168 @@
+# Copyright 2024 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-oracle-data-init
+data:
+  01-init.sql: |
+    -- Create test user
+    CREATE USER testuser IDENTIFIED BY oracle;
+    GRANT CONNECT, RESOURCE, DBA TO testuser;
+    GRANT SELECT_CATALOG_ROLE TO testuser;
+    GRANT EXECUTE_CATALOG_ROLE TO testuser;
+    GRANT SELECT ANY TRANSACTION TO testuser;
+    GRANT LOGMINING TO testuser;
+    GRANT CREATE TABLE TO testuser;
+    GRANT LOCK ANY TABLE TO testuser;
+    GRANT CREATE SEQUENCE TO testuser;
+    
+    -- Connect as testuser
+    CONNECT testuser/oracle@XEPDB1;
+    
+    -- Create test table
+    CREATE TABLE ITEM (
+        ITEMID NUMBER(10) NOT NULL,
+        NAME VARCHAR2(100) NOT NULL,
+        CATEGORY VARCHAR2(10) NOT NULL,
+        SCORE NUMBER(10) NOT NULL,
+        CONSTRAINT PK_ITEM PRIMARY KEY (ITEMID)
+    );
+
+    -- Insert test data
+    INSERT INTO ITEM (ITEMID, NAME, CATEGORY, SCORE) VALUES (1, 'Foo', '1', 5);
+    INSERT INTO ITEM (ITEMID, NAME, CATEGORY, SCORE) VALUES (2, 'Bar', '1', 5);
+    COMMIT;
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-oracle-config
+  labels:
+    app: oracle
+data:
+  ORACLE_SID: "XE"
+  ORACLE_PDB: "XEPDB1"
+  ORACLE_PWD: "oracle"
+  ORACLE_CHARACTERSET: "AL32UTF8"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oracle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oracle
+  template:
+    metadata:
+      labels:
+        app: oracle
+    spec:
+      containers:
+        - name: oracle
+          image: container-registry.oracle.com/database/express:21.3.0-xe
+          ports:
+            - containerPort: 1521
+          envFrom:
+            - configMapRef:
+                name: test-oracle-config
+          volumeMounts:
+            - name: oracle-init
+              mountPath: "/docker-entrypoint-initdb.d"
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+            limits:
+              memory: "4Gi" 
+              cpu: "2"
+      volumes:
+        - name: oracle-init
+          configMap:
+            name: test-oracle-data-init
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oracle
+  labels:
+    app: oracle
+spec:
+  type: ClusterIP
+  ports:
+   - port: 1521
+  selector:
+   app: oracle
+
+---
+apiVersion: v1
+kind: Source
+name: test-oracle-source
+spec:
+  kind: Oracle
+  properties:
+    host: oracle.default.svc.cluster.local
+    port: 1521
+    user: testuser
+    password: oracle
+    serviceName: XEPDB1
+    tables:
+      - TESTUSER.ITEM
+
+---
+apiVersion: v1
+kind: ContinuousQuery
+name: oracle-query1
+spec:
+  mode: query
+  sources:    
+    subscriptions:
+      - id: test-oracle-source
+        pipeline:
+          - process
+    middleware:
+      - kind: jq
+        name: process
+        ITEM:        
+          insert:
+            - query: |
+                . 
+                + 
+                {
+                  "SCORE": .SCORE | tonumber,
+                }
+          update:
+            - query: |
+                . 
+                + 
+                {
+                  "SCORE": .SCORE | tonumber,
+                }
+
+  query: > 
+    MATCH 
+      (i:ITEM {CATEGORY: '1'})
+    WHERE 
+      i.SCORE >= 5
+    RETURN 
+      i.ITEMID AS Id, 
+      i.NAME as Name,
+      i.CATEGORY as Category,
+      i.SCORE as Score
