@@ -34,7 +34,8 @@ class TableCursor {
             connection.setAutoCommit(false);
             var statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             statement.setFetchSize(1000);
-            String quote = SourceProxy.GetConfigValue("connector").equalsIgnoreCase("MySQL") ? "`" : "\"";
+            String connector = SourceProxy.GetConfigValue("connector");
+            String quote = connector.equalsIgnoreCase("MySQL") ? "`" : "\"";
             var sanitizedTableName = tableName.replace(quote, "").replace(";", "");
             var fullyQualifiedTableName = schemaName != null ? quote + schemaName + quote + "." + quote + sanitizedTableName + quote : quote + sanitizedTableName + quote;
             resultSet = statement.executeQuery("SELECT * FROM " + fullyQualifiedTableName);

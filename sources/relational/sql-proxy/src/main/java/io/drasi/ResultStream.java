@@ -107,6 +107,15 @@ public class ResultStream implements BootstrapStream {
                 propsSQL.setProperty("responseBuffering", "adaptive");
 
                 return DriverManager.getConnection("jdbc:sqlserver://"  + SourceProxy.GetConfigValue("host") + ":" + SourceProxy.GetConfigValue("port") + ";databaseName=" + SourceProxy.GetConfigValue("database"), propsSQL);
+            case "Oracle":
+                var propsOracle = new Properties();
+                propsOracle.setProperty("user", SourceProxy.GetConfigValue("user"));
+                propsOracle.setProperty("password", SourceProxy.GetConfigValue("password"));
+                
+                String oracleServiceName = SourceProxy.GetConfigValue("serviceName", SourceProxy.GetConfigValue("database"));
+                var oracleConnectionString = "jdbc:oracle:thin:@//" + SourceProxy.GetConfigValue("host") + ":" + SourceProxy.GetConfigValue("port") + "/" + oracleServiceName;
+                
+                return DriverManager.getConnection(oracleConnectionString, propsOracle);
             default:
                 throw new IllegalArgumentException("Unknown connector");
         }
