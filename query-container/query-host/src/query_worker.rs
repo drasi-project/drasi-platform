@@ -179,12 +179,19 @@ impl QueryWorker {
 
             fill_default_source_labels(&mut modified_config, &continuous_query.get_query());
 
-            let source_publisher = change_stream::publisher::Publisher::connect(
+            let source_publisher = match change_stream::publisher::Publisher::connect(
                 &stream_config.redis_url,
                 topic.clone(),
             )
             .await
-            .unwrap(); //todo
+            {
+                Ok(p) => p,
+                Err(err) => {
+                    log::error!("Failed to connect to Redis publisher: {}", err);
+                    lifecycle.change_state(QueryState::TransientError(err.to_string()));
+                    return;
+                }
+            };
 
             let future_consumer =
                 FutureConsumer::new(Arc::new(source_publisher), query_id.to_string());
