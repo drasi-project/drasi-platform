@@ -17,6 +17,7 @@
 package io.drasi;
 
 import io.drasi.databases.MySql;
+import io.drasi.databases.Oracle;
 import io.drasi.databases.PostgreSql;
 import io.drasi.databases.SqlServer;
 import io.drasi.source.sdk.ChangeMonitor;
@@ -39,6 +40,7 @@ public class DebeziumReactivator {
             case "PostgreSQL" -> new PostgreSql();
             case "SQLServer" -> new SqlServer();
             case "MySQL" -> new MySql();
+            case "Oracle" -> new Oracle();
             default -> throw new IllegalArgumentException("Unknown connector");
         };
 

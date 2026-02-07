@@ -65,6 +65,11 @@
       <artifactId>debezium-connector-sqlserver</artifactId>
       <version>${version.debezium}</version>
     </dependency>
+    <dependency>
+      <groupId>io.debezium</groupId>
+      <artifactId>debezium-connector-oracle</artifactId>
+      <version>${version.debezium}</version>
+    </dependency>
 
     <dependency>
       <groupId>com.azure</groupId>
