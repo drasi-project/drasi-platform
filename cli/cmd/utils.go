@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -69,7 +70,7 @@ func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
 				Name:       args[1],
 				Spec:       nil,
 			})
-		} else {
+		} else if len(args) == 0 {
 			// Possibility 2: we have no arguments and we need to retrieve the manifests from pipe
 			stat, err := os.Stdin.Stat()
 			if err != nil {
@@ -87,6 +88,9 @@ func loadManifests(cmd *cobra.Command, args []string) (*[]api.Manifest, error) {
 					manifests = append(manifests, *fileManifests...)
 				}
 			}
+		} else {
+			// Invalid argument count
+			return nil, fmt.Errorf("invalid argument count: expected 0 or 2 arguments, got %d", len(args))
 		}
 
 	}
