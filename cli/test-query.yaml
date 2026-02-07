@@ -17,6 +17,7 @@ apiVersion: v1
 name: query1
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:
     subscriptions:
       - id: foo

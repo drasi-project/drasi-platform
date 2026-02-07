@@ -241,4 +241,66 @@ mod tests {
             other => panic!("expected InvalidSpec, got: {:?}", other),
         }
     }
+
+    #[tokio::test]
+    async fn validate_accepts_query_spec_without_language_specified() {
+        // Test that a QuerySpec with query_language: None is valid and accepted.
+        // Note: This only validates spec acceptance; the actual default to GQL
+        // is handled by the query worker.
+        let svc: Arc<QueryContainerDomainService> = Arc::new(TestQueryContainerService {
+            status: Some(QueryContainerStatus {
+                available: true,
+                messages: None,
+            }),
+        });
+        let validator = QuerySpecValidator {
+            query_container_service: svc,
+        };
+
+        let spec = make_query_spec_with_pipeline(vec!["mw1".into()]);
+        assert!(spec.query_language.is_none());
+
+        let res = validator.validate(&spec).await;
+        assert!(res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn validate_accepts_query_spec_with_cypher_language() {
+        // Test that a QuerySpec with query_language: Some(Cypher) is valid
+        let svc: Arc<QueryContainerDomainService> = Arc::new(TestQueryContainerService {
+            status: Some(QueryContainerStatus {
+                available: true,
+                messages: None,
+            }),
+        });
+        let validator = QuerySpecValidator {
+            query_container_service: svc,
+        };
+
+        let mut spec = make_query_spec_with_pipeline(vec!["mw1".into()]);
+        spec.query_language = Some(QueryLanguage::Cypher);
+
+        let res = validator.validate(&spec).await;
+        assert!(res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn validate_accepts_query_spec_with_gql_language() {
+        // Test that a QuerySpec with query_language: Some(GQL) is valid
+        let svc: Arc<QueryContainerDomainService> = Arc::new(TestQueryContainerService {
+            status: Some(QueryContainerStatus {
+                available: true,
+                messages: None,
+            }),
+        });
+        let validator = QuerySpecValidator {
+            query_container_service: svc,
+        };
+
+        let mut spec = make_query_spec_with_pipeline(vec!["mw1".into()]);
+        spec.query_language = Some(QueryLanguage::GQL);
+
+        let res = validator.validate(&spec).await;
+        assert!(res.is_ok());
+    }
 }

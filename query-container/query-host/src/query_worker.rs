@@ -104,16 +104,19 @@ impl QueryWorker {
             let config: models::QueryConfig = config.into();
             let mut modified_config = config.clone();
 
+            // Select the appropriate parser and function registry based on query language.
+            // If no language is specified (None), default to GQL.
+            // Previously defaulted to Cypher for backward compatibility.
             let (parser, function_registry): (Arc<dyn QueryParser>, Arc<FunctionRegistry>) =
                 match query_language {
-                    Some(QueryLanguage::GQL) => {
+                    Some(QueryLanguage::GQL) | None => {
                         let function_registry =
                             Arc::new(FunctionRegistry::new()).with_gql_function_set();
                         let parser = Arc::new(GQLParser::new(function_registry.clone()))
                             as Arc<dyn QueryParser>;
                         (parser, function_registry)
                     }
-                    Some(QueryLanguage::Cypher) | None => {
+                    Some(QueryLanguage::Cypher) => {
                         let function_registry =
                             Arc::new(FunctionRegistry::new()).with_cypher_function_set();
                         let parser = Arc::new(CypherParser::new(function_registry.clone()))

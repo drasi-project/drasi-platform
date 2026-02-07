@@ -3,6 +3,7 @@ kind: ContinuousQuery
 name: product-query
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:    
     subscriptions:
       - id: product-inventory-source
@@ -19,6 +20,7 @@ kind: ContinuousQuery
 name: inventory-query
 spec:
   mode: query
+  queryLanguage: Cypher
   sources:    
     subscriptions:
       - id: product-inventory-source
