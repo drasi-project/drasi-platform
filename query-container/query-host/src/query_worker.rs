@@ -187,7 +187,7 @@ impl QueryWorker {
             {
                 Ok(p) => p,
                 Err(err) => {
-                    log::error!("Failed to connect to Redis publisher: {}", err);
+                    log::error!("Failed to connect to source publisher: {}", err);
                     lifecycle.change_state(QueryState::TransientError(err.to_string()));
                     return;
                 }
