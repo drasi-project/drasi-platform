@@ -45,6 +45,7 @@ type ContourInstaller struct {
 	platformClient *sdk.KubernetesPlatformClient
 	kubeClient     *kubernetes.Clientset
 }
+// new change
 
 func MakeContourInstaller(platformClient *sdk.KubernetesPlatformClient) (*ContourInstaller, error) {
 	kubeConfig := platformClient.GetKubeConfig()
