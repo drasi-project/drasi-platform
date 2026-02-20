@@ -37,7 +37,7 @@ Follow the [Getting Started tutorial](https://drasi.io/getting-started/) and try
 Head over to our [documentation site](https://drasi.io/) and visit the [Tutorial](https://drasi.io/tutorials/) and [How To](https://drasi.io/how-to-guides/) guides to learn more about Drasi.
 
 ## Release Status
-This is an early release of Drasi for the community learn about the platform and experiment with in Proofs Of Concept. Please share your thoughts on Drasi and create GitHub issues for any bugs you may find or if you have feature requests that will help improve Drasi.
+This is an early release of Drasi for the community to learn about the platform and experiment with in Proofs Of Concept. Please share your thoughts on Drasi and create GitHub issues for any bugs you may find or if you have feature requests that will help improve Drasi.
 
 This repo contains everything you require to build a Drasi-based solution with Sources, Reactions, and tooling for development and testing.
 
