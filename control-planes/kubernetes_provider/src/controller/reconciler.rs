@@ -344,14 +344,15 @@ impl ResourceReconciler {
 
         match self.deployment_api.get(&name).await {
             Ok(current) => {
-                self.update_deployment_status(&current).await;
                 let current_hash = current.metadata.annotations.unwrap()["drasi/spechash"].clone();
                 if current_hash != self.deployment_hash {
                     log::info!("Updating deployment {}", name);
                     let pp = PatchParams::default();
                     let pat = Patch::Merge(&dep);
-                    let update_result = self.deployment_api.patch(&name, &pp, &pat).await?;
-                    self.update_deployment_status(&update_result).await;
+                    self.deployment_api.patch(&name, &pp, &pat).await?;
+                    self.status = ReconcileStatus::Offline("Updating deployment".to_string());
+                } else {
+                    self.update_deployment_status(&current).await;
                 }
             }
             Err(e) => match e {
