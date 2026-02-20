@@ -349,8 +349,24 @@ impl ResourceReconciler {
                     log::info!("Updating deployment {}", name);
                     let pp = PatchParams::default();
                     let pat = Patch::Merge(&dep);
-                    self.deployment_api.patch(&name, &pp, &pat).await?;
-                    self.status = ReconcileStatus::Offline("Updating deployment".to_string());
+                    let update_result = self.deployment_api.patch(&name, &pp, &pat).await?;
+
+                    // Check if K8s is rolling out new pods by comparing generation numbers.The API server increments generation on spec changes (e.g., pod template),
+                    // but NOT on metadata-only changes (e.g., annotation hash update).If generation > observedGeneration, a rollout is in progress and we must
+                    // wait for the monitor to trigger re-reconciliation when new pods come up.Otherwise, the patch didn't affect pods and current status is valid.
+                    let generation = update_result.metadata.generation.unwrap_or(0);
+                    let observed = update_result
+                        .status
+                        .as_ref()
+                        .and_then(|s| s.observed_generation)
+                        .unwrap_or(0);
+
+                    if generation > observed {
+                        self.status =
+                            ReconcileStatus::Offline("Updating deployment".to_string());
+                    } else {
+                        self.update_deployment_status(&update_result).await;
+                    }
                 } else {
                     self.update_deployment_status(&current).await;
                 }
