@@ -41,6 +41,7 @@ impl RedisChangeStream {
         buffer_size: usize,
         fetch_batch_size: usize,
         start_timestamp: u128,
+        reset_position: bool,
     ) -> Result<Self, ChangeStreamError> {
         let client = redis::Client::open(url)?;
         let mut connection = client.get_async_connection().await?;
@@ -53,7 +54,30 @@ impl RedisChangeStream {
         {
             Ok(res) => log::info!("Created consumer group: {:?}", res),
             Err(err) => match err.kind() {
-                redis::ErrorKind::ExtensionError => log::info!("Consumer group already exists"),
+                redis::ErrorKind::ExtensionError => {
+                    if reset_position {
+                        log::info!(
+                            "Consumer group already exists, resetting position to {} after re-bootstrap",
+                            starting_position
+                        );
+                        match connection
+                            .xgroup_setid::<&str, &str, &str, String>(
+                                topic,
+                                group_id,
+                                &starting_position,
+                            )
+                            .await
+                        {
+                            Ok(_) => log::info!("Consumer group position reset successfully"),
+                            Err(err) => {
+                                log::error!("Error resetting consumer group position: {:?}", err);
+                                return Err(ChangeStreamError::from(err));
+                            }
+                        }
+                    } else {
+                        log::info!("Consumer group already exists, resuming from last position");
+                    }
+                }
                 _ => log::error!("Consumer group create error: {:?} {:?}", err, err.kind()),
             },
         };
