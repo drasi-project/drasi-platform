@@ -1,0 +1,161 @@
+# Copyright 2026 The Drasi Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: PR Assignment Check
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited]
+
+jobs:
+  check-assignment:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Check PR has linked issue and author is assigned
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            const prAuthor = context.payload.pull_request.user.login;
+            const prBody = context.payload.pull_request.body || '';
+
+            console.log(`Checking PR #${prNumber} by @${prAuthor}`);
+
+            // Skip check for maintainers (write or admin access)
+            const { data: permData } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner,
+              repo,
+              username: prAuthor,
+            });
+            const permission = permData.permission;
+            if (permission === 'admin' || permission === 'write') {
+              console.log(`@${prAuthor} has '${permission}' access — skipping assignment check`);
+              return;
+            }
+
+            // Extract linked issue numbers from PR body
+            // Matches: "Fixes #123", "Closes #123", "Resolves #123", "#123", etc.
+            const issuePattern = /(?:(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s*)?#(\d+)/gi;
+            const linkedIssues = [];
+            let match;
+            while ((match = issuePattern.exec(prBody)) !== null) {
+              linkedIssues.push(parseInt(match[1], 10));
+            }
+
+            // Remove duplicates
+            const uniqueIssues = [...new Set(linkedIssues)];
+            console.log(`Found linked issues: ${uniqueIssues.join(', ') || 'none'}`);
+
+            // Case 1: No linked issue found
+            if (uniqueIssues.length === 0) {
+              const prLabels = context.payload.pull_request.labels.map(l => l.name);
+              const alreadyLabeled = prLabels.includes('needs-issue');
+
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: prNumber,
+                labels: ['needs-issue']
+              });
+
+              // Only comment the first time to avoid spamming on repeated edits
+              if (!alreadyLabeled) {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  body: `Hi @${prAuthor}, thanks for your contribution!
+
+            This PR doesn't appear to have a linked issue. Per our [contributing guidelines](https://github.com/drasi-project/drasi-platform/blob/main/CONTRIBUTING.md), please:
+
+            1. Find an existing issue or [open a new one](https://github.com/drasi-project/drasi-platform/issues/new/choose)
+            2. Wait to be assigned to the issue
+            3. Link the issue in your PR description using "Fixes #<issue-number>"
+
+            Please update the PR description to link to the relevant issue. If you need help finding an appropriate issue, check our [good first issues](https://github.com/drasi-project/drasi-platform/issues?q=is:issue+is:open+label:%22good+first+issue%22).
+
+            Join our [Discord server](https://aka.ms/drasidiscord) to engage with maintainers and the community!`
+                });
+              }
+
+              console.log(alreadyLabeled
+                ? 'PR already labeled needs-issue, skipping duplicate comment'
+                : 'Added label and comment for missing linked issue');
+              return;
+            }
+
+            // Case 2: Check if PR author is assigned to any of the linked issues
+            let authorAssignedToAny = false;
+            let checkedIssues = [];
+
+            for (const issueNumber of uniqueIssues) {
+              try {
+                const issue = await github.rest.issues.get({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                });
+
+                const assignees = issue.data.assignees.map(a => a.login);
+                checkedIssues.push({ number: issueNumber, assignees });
+
+                if (assignees.includes(prAuthor)) {
+                  authorAssignedToAny = true;
+                  console.log(`Author @${prAuthor} is assigned to issue #${issueNumber}`);
+                  break;
+                }
+              } catch (e) {
+                console.log(`Could not fetch issue #${issueNumber}: ${e.message}`);
+              }
+            }
+
+            if (!authorAssignedToAny) {
+              // Close the PR with explanation
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: `Hi @${prAuthor}, thanks for your interest in contributing to drasi-platform!
+
+            However, I need to close this PR because you are not assigned to the linked issue(s). Per our [contributing guidelines](https://github.com/drasi-project/drasi-platform/blob/main/CONTRIBUTING.md):
+
+            > Please start by choosing an existing issue, or opening an issue to work on. The maintainers will respond to your issue, please work with the maintainers to ensure that what you're doing is in scope for the project before writing any code.
+
+            **To contribute:**
+            1. Comment on the issue you'd like to work on to request assignment
+            2. Wait for a maintainer to assign you
+            3. Then open your PR
+
+            This process helps us coordinate work and avoid duplicate efforts. We appreciate your understanding!
+
+            If you believe this was closed in error (e.g., you were assigned but the automation didn't detect it), please let us know.
+
+            Join our [Discord server](https://aka.ms/drasidiscord) to engage with maintainers and the community!`
+              });
+
+              await github.rest.pulls.update({
+                owner,
+                repo,
+                pull_number: prNumber,
+                state: 'closed'
+              });
+
+              console.log(`Closed PR #${prNumber} - author not assigned to linked issues`);
+            } else {
+              console.log(`PR #${prNumber} passed assignment check`);
+            }
