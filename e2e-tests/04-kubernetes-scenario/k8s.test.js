@@ -16,16 +16,23 @@
 
 const yaml = require("js-yaml");
 const fs = require("fs");
+const path = require("path");
 const deployResources = require("../fixtures/deploy-resources");
 const deleteResources = require("../fixtures/delete-resources");
 const PortForward = require("../fixtures/port-forward");
 const SignalRFixture = require("../fixtures/signalr-fixture");
 const pg = require("pg");
 const cp = require("child_process");
-const { waitForChildProcess } = require("../fixtures/infrastructure");
+const { waitForChildProcess, waitFor } = require("../fixtures/infrastructure");
+
+const SCENARIO_DIR = __dirname;
+const INFRA_FILE = path.join(SCENARIO_DIR, "infrastructure.yaml");
+const SOURCES_FILE = path.join(SCENARIO_DIR, "sources.yaml");
+const QUERIES_FILE = path.join(SCENARIO_DIR, "queries.yaml");
 
 let signalRFixture = new SignalRFixture(["risky-containers"]);
 let dbPortForward = new PortForward("devops-pg", 5432);
+let resourcesToCleanup = [];
 
 let dbClient = new pg.Client({
   database: "devops",
@@ -35,6 +42,13 @@ let dbClient = new pg.Client({
 });
 
 beforeAll(async () => {
+  const infraResources = yaml.loadAll(fs.readFileSync(INFRA_FILE, "utf8"));
+  const sourceResources = yaml.loadAll(fs.readFileSync(SOURCES_FILE, "utf8"));
+  const queryResources = yaml.loadAll(fs.readFileSync(QUERIES_FILE, "utf8"));
+  resourcesToCleanup = [...infraResources, ...sourceResources, ...queryResources];
+
+  // Step 1: Create the K8s context secret
+  console.log("Creating K8s context secret...");
   await waitForChildProcess(
     cp.exec(
       "kind get kubeconfig --name drasi-test | sed 's/127.0.0.1.*/kubernetes.default.svc/g' | kubectl create secret generic k8s-context --from-file=context=/dev/stdin -n drasi-system",
@@ -42,17 +56,21 @@ beforeAll(async () => {
     ),
   );
 
-  const resources = yaml.loadAll(
-    fs.readFileSync(__dirname + "/resources.yaml", "utf8"),
-  );
+  // Step 2: Deploy infrastructure (ConfigMaps, Deployment, Service, Pods)
+  console.log("Deploying infrastructure resources...");
+  await deployResources(infraResources);
+
+  // Step 3: Wait for secret propagation and infrastructure to stabilize
+  console.log("Waiting for infrastructure to stabilize...");
+  await waitFor({ timeoutMs: 15000, description: "infrastructure and secret propagation" });
+
+  // Step 4: Deploy sources (PostgreSQL and Kubernetes)
+  console.log("Deploying Drasi sources...");
   try {
-    await deployResources(resources);
+    await deployResources(sourceResources);
   } catch (e) {
-     await waitForChildProcess(
-      cp.exec(
-        "drasi describe source k8s",
-        { encoding: "utf-8" },
-      ),
+    await waitForChildProcess(
+      cp.exec("drasi describe source k8s", { encoding: "utf-8" }),
     );
     await waitForChildProcess(
       cp.exec(
@@ -68,20 +86,28 @@ beforeAll(async () => {
     );
     throw e;
   }
+
+  // Step 5: Deploy queries
+  console.log("Deploying Drasi queries...");
+  await deployResources(queryResources);
+
+  // Step 6: Start SignalR and DB connections
   await signalRFixture.start();
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
-  await new Promise((r) => setTimeout(r, 5000));
-}, 240000);
+
+  // Step 7: Wait for query bootstrap to complete
+  console.log("Waiting for query to bootstrap...");
+  await waitFor({ timeoutMs: 15000, description: "query bootstrap" });
+}, 480000);
 
 afterAll(async () => {
   await signalRFixture.stop();
   await dbClient.end();
   dbPortForward.stop();
-  const resources = yaml.loadAll(
-    fs.readFileSync(__dirname + "/resources.yaml", "utf8"),
+  await deleteResources(resourcesToCleanup).catch(err =>
+    console.error("Error during resource cleanup:", err),
   );
-  await deleteResources(resources);
 });
 
 test("scenario", async () => {
