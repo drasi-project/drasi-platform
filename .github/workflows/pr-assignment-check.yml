@@ -37,12 +37,21 @@ jobs:
             console.log(`Checking PR #${prNumber} by @${prAuthor}`);
 
             // Skip check for maintainers (write or admin access)
-            const { data: permData } = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner,
-              repo,
-              username: prAuthor,
-            });
-            const permission = permData.permission;
+            let permission = 'none';
+            try {
+              const { data: permData } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner,
+                repo,
+                username: prAuthor,
+              });
+              permission = permData.permission || 'none';
+            } catch (error) {
+              if (error && error.status === 404) {
+                console.log(`@${prAuthor} is not a collaborator — treating as external contributor`);
+              } else {
+                throw error;
+              }
+            }
             if (permission === 'admin' || permission === 'write') {
               console.log(`@${prAuthor} has '${permission}' access — skipping assignment check`);
               return;
@@ -81,15 +90,15 @@ jobs:
                   issue_number: prNumber,
                   body: `Hi @${prAuthor}, thanks for your contribution!
 
-            This PR doesn't appear to have a linked issue. Per our [contributing guidelines](https://github.com/drasi-project/drasi-platform/blob/main/CONTRIBUTING.md), please:
+This PR doesn't appear to have a linked issue. Per our [contributing guidelines](https://github.com/drasi-project/drasi-platform/blob/main/CONTRIBUTING.md), please:
 
-            1. Find an existing issue or [open a new one](https://github.com/drasi-project/drasi-platform/issues/new/choose)
-            2. Wait to be assigned to the issue
-            3. Link the issue in your PR description using "Fixes #<issue-number>"
+1. Find an existing issue or [open a new one](https://github.com/drasi-project/drasi-platform/issues/new/choose)
+2. Wait to be assigned to the issue
+3. Link the issue in your PR description using "Fixes #<issue-number>"
 
-            Please update the PR description to link to the relevant issue. If you need help finding an appropriate issue, check our [good first issues](https://github.com/drasi-project/drasi-platform/issues?q=is:issue+is:open+label:%22good+first+issue%22).
+Please update the PR description to link to the relevant issue. If you need help finding an appropriate issue, check our [good first issues](https://github.com/drasi-project/drasi-platform/issues?q=is:issue+is:open+label:%22good+first+issue%22).
 
-            Join our [Discord server](https://aka.ms/drasidiscord) to engage with maintainers and the community!`
+Join our [Discord server](https://aka.ms/drasidiscord) to engage with maintainers and the community!`
                 });
               }
 
@@ -101,7 +110,6 @@ jobs:
 
             // Case 2: Check if PR author is assigned to any of the linked issues
             let authorAssignedToAny = false;
-            let checkedIssues = [];
 
             for (const issueNumber of uniqueIssues) {
               try {
@@ -112,7 +120,6 @@ jobs:
                 });
 
                 const assignees = issue.data.assignees.map(a => a.login);
-                checkedIssues.push({ number: issueNumber, assignees });
 
                 if (assignees.includes(prAuthor)) {
                   authorAssignedToAny = true;
@@ -132,20 +139,20 @@ jobs:
                 issue_number: prNumber,
                 body: `Hi @${prAuthor}, thanks for your interest in contributing to drasi-platform!
 
-            However, I need to close this PR because you are not assigned to the linked issue(s). Per our [contributing guidelines](https://github.com/drasi-project/drasi-platform/blob/main/CONTRIBUTING.md):
+However, I need to close this PR because you are not assigned to the linked issue(s). Per our [contributing guidelines](https://github.com/drasi-project/drasi-platform/blob/main/CONTRIBUTING.md):
 
-            > Please start by choosing an existing issue, or opening an issue to work on. The maintainers will respond to your issue, please work with the maintainers to ensure that what you're doing is in scope for the project before writing any code.
+> Please start by choosing an existing issue, or opening an issue to work on. The maintainers will respond to your issue, please work with the maintainers to ensure that what you're doing is in scope for the project before writing any code.
 
-            **To contribute:**
-            1. Comment on the issue you'd like to work on to request assignment
-            2. Wait for a maintainer to assign you
-            3. Then open your PR
+**To contribute:**
+1. Comment on the issue you'd like to work on to request assignment
+2. Wait for a maintainer to assign you
+3. Then open your PR
 
-            This process helps us coordinate work and avoid duplicate efforts. We appreciate your understanding!
+This process helps us coordinate work and avoid duplicate efforts. We appreciate your understanding!
 
-            If you believe this was closed in error (e.g., you were assigned but the automation didn't detect it), please let us know.
+If you believe this was closed in error (e.g., you were assigned but the automation didn't detect it), please let us know.
 
-            Join our [Discord server](https://aka.ms/drasidiscord) to engage with maintainers and the community!`
+Join our [Discord server](https://aka.ms/drasidiscord) to engage with maintainers and the community!`
               });
 
               await github.rest.pulls.update({
@@ -157,5 +164,17 @@ jobs:
 
               console.log(`Closed PR #${prNumber} - author not assigned to linked issues`);
             } else {
+              // Remove stale label if present from a previous failed check
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  name: 'needs-issue'
+                });
+                console.log(`Removed stale 'needs-issue' label from PR #${prNumber}`);
+              } catch (e) {
+                if (e.status !== 404) throw e;
+              }
               console.log(`PR #${prNumber} passed assignment check`);
             }
