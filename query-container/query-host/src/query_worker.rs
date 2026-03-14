@@ -229,6 +229,11 @@ impl QueryWorker {
                 init_seq.sequence
             );
 
+            let did_bootstrap = matches!(
+                lifecycle.get_state(),
+                QueryState::Configured | QueryState::Bootstrapping
+            );
+
             match lifecycle.get_state() {
                 QueryState::Configured | QueryState::Bootstrapping => {
                     lifecycle.change_state(QueryState::Bootstrapping);
@@ -267,6 +272,7 @@ impl QueryWorker {
                 stream_config.buffer_size,
                 stream_config.fetch_batch_size,
                 start_timestamp,
+                did_bootstrap,
             )
             .await
             {

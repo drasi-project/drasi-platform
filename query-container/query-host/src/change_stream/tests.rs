@@ -50,7 +50,7 @@ async fn serves_messages_sequentially() {
         .unwrap();
 
     let subject =
-        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp, false)
             .await
             .unwrap();
 
@@ -105,7 +105,7 @@ async fn buffers_messages() {
         .unwrap();
 
     let subject =
-        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp, false)
             .await
             .unwrap();
 
@@ -160,7 +160,7 @@ async fn recovers_unack_messages() {
         .unwrap();
 
     let subject =
-        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp, false)
             .await
             .unwrap();
 
@@ -186,7 +186,7 @@ async fn recovers_unack_messages() {
     drop(subject);
 
     let subject =
-        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp, false)
             .await
             .unwrap();
 
@@ -214,7 +214,7 @@ async fn waits_for_new_messages() {
         .unwrap();
 
     let subject =
-        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp, false)
             .await
             .unwrap();
 
@@ -246,7 +246,7 @@ async fn stops_buffering_on_drop() {
         .unwrap();
 
     let subject =
-        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp)
+        RedisChangeStream::new(&url, &query_container_id, &query_id, 5, 3, start_timestamp, false)
             .await
             .unwrap();
 
