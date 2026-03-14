@@ -23,7 +23,7 @@ const PortForward = require("../fixtures/port-forward");
 const SignalRFixture = require("../fixtures/signalr-fixture");
 const pg = require("pg");
 const cp = require("child_process");
-const { waitForChildProcess, waitFor } = require("../fixtures/infrastructure");
+const { waitForChildProcess } = require("../fixtures/infrastructure");
 
 const SCENARIO_DIR = __dirname;
 const INFRA_FILE = path.join(SCENARIO_DIR, "infrastructure.yaml");
@@ -60,11 +60,7 @@ beforeAll(async () => {
   console.log("Deploying infrastructure resources...");
   await deployResources(infraResources);
 
-  // Step 3: Wait for secret propagation and infrastructure to stabilize
-  console.log("Waiting for infrastructure to stabilize...");
-  await waitFor({ timeoutMs: 15000, description: "infrastructure and secret propagation" });
-
-  // Step 4: Deploy sources (PostgreSQL and Kubernetes)
+  // Step 3: Deploy sources (PostgreSQL and Kubernetes)
   console.log("Deploying Drasi sources...");
   try {
     await deployResources(sourceResources);
@@ -87,19 +83,18 @@ beforeAll(async () => {
     throw e;
   }
 
-  // Step 5: Deploy queries
+  // Step 4: Deploy queries
   console.log("Deploying Drasi queries...");
   await deployResources(queryResources);
 
-  // Step 6: Start SignalR and DB connections
+  // Step 5: Start SignalR and DB connections
   await signalRFixture.start();
   dbClient.port = await dbPortForward.start();
   await dbClient.connect();
 
-  // Step 7: Wait for query bootstrap to complete
-  console.log("Waiting for query to bootstrap...");
-  await waitFor({ timeoutMs: 15000, description: "query bootstrap" });
-}, 480000);
+  // Step 6: Wait for query bootstrap to complete
+  await new Promise((r) => setTimeout(r, 5000));
+}, 240000);
 
 afterAll(async () => {
   await signalRFixture.stop();
