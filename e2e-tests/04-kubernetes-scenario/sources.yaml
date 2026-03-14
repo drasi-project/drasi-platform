@@ -12,23 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.90-bullseye AS builder
-RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
-
-
-WORKDIR /usr/src
-COPY ./infrastructure ./infrastructure
-
-RUN cargo new source/shared/query-api
-WORKDIR /usr/src/source/shared/query-api
-COPY ./sources/shared/query-api/Cargo.toml . 
-RUN cargo fetch
-COPY ./sources/shared/query-api .
-RUN cargo install --force --path .
-
-    
-FROM gcr.io/distroless/cc
-ENV RUST_BACKTRACE=1
-COPY --from=builder /usr/local/cargo/bin/query-api /usr/local/bin/query-api
-USER root
-CMD ["query-api"]
+apiVersion: v1
+kind: Source
+name: devops
+spec:
+  kind: PostgreSQL
+  properties:
+    host: devops-pg.default.svc.cluster.local
+    port: 5432
+    user: test
+    password: test
+    database: devops
+    ssl: false
+    tables:
+      - public.RiskyImage
+---
+apiVersion: v1
+kind: Source
+name: k8s
+spec:
+  kind: Kubernetes
+  properties:
+    kubeConfig:
+      kind: Secret
+      name: k8s-context
+      key: context

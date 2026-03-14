@@ -26,7 +26,7 @@ data:
             CONSTRAINT "RiskyImage_pkey" PRIMARY KEY ("Id")
         );
 
-        insert into "RiskyImage" ("Id", "Image", "Reason") values (1, 'drasi.azurecr.io/my-app:0.1', 'Security Risk');
+        insert into "RiskyImage" ("Id", "Image", "Reason") values (1, 'ghcr.io/drasi-project/my-app:0.1', 'Security Risk');
         insert into "RiskyImage" ("Id", "Image", "Reason") values (2, 'docker.io/library/redis:6.2.3-alpine', 'Compliance Issue');
 ---
 apiVersion: v1
@@ -85,83 +85,13 @@ spec:
     app: devops-pg
 ---
 apiVersion: v1
-kind: Source
-name: devops
-spec:
-  kind: PostgreSQL
-  properties:
-    host: devops-pg.default.svc.cluster.local
-    port: 5432
-    user: test
-    password: test
-    database: devops
-    ssl: false
-    tables:
-      - public.RiskyImage
----
-apiVersion: v1
-kind: Source
-name: k8s
-spec:
-  kind: Kubernetes
-  properties:
-    kubeConfig:
-      kind: Secret
-      name: k8s-context
-      key: context
----
-apiVersion: v1
-kind: ContinuousQuery
-name: risky-containers
-spec:
-  mode: query
-  sources:
-    subscriptions:
-      - id: k8s
-        nodes:
-          - sourceLabel: Pod
-        pipeline:
-          - extract-containers
-      - id: devops
-        nodes:
-          - sourceLabel: RiskyImage
-    joins:
-      - id: HAS_IMAGE
-        keys:
-          - label: RiskyImage
-            property: Image
-          - label: Container
-            property: image
-    middleware:
-      - kind: unwind
-        name: extract-containers
-        Pod:
-          - selector: $.status.containerStatuses[*]
-            label: Container
-            key: $.containerID
-            relation: OWNS
-
-  query: >
-    MATCH
-      (p:Pod)-[:OWNS]->(c:Container)-[:HAS_IMAGE]->(i:RiskyImage)
-    RETURN
-      p.name as pod,
-      c.image as image,
-      c.name as name,
-      c.ready as ready,
-      c.started as started,
-      c.restartCount as restartCount,
-      i.Reason as reason
----
-apiVersion: v1
 kind: Pod
 metadata:
   name: my-app-1
 spec:
   containers:
     - name: app
-      image: "drasi.azurecr.io/my-app:0.1"
-      imagePullPolicy: Always
+      image: "ghcr.io/drasi-project/my-app:0.1"
 ---
 apiVersion: v1
 kind: Pod
@@ -170,5 +100,4 @@ metadata:
 spec:
   containers:
     - name: app
-      image: "drasi.azurecr.io/my-app:0.2"
-      imagePullPolicy: Always
+      image: "ghcr.io/drasi-project/my-app:0.2"

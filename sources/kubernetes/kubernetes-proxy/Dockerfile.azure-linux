@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM mcr.microsoft.com/azurelinux/base/rust:1.86 AS builder
+FROM mcr.microsoft.com/azurelinux/base/rust:1.90 AS builder
 RUN tdnf update -y && tdnf install -y protobuf-devel cmake openssl-devel clang-devel
 
 WORKDIR /usr/src
