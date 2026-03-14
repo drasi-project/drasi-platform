@@ -114,18 +114,18 @@ test("scenario", async () => {
   let initData = await signalRFixture.requestReload("risky-containers");
 
   expect(initData.length == 1).toBeTruthy();
-  expect(initData[0].image == "drasi.azurecr.io/my-app:0.1").toBeTruthy();
+  expect(initData[0].image == "ghcr.io/drasi-project/my-app:0.1").toBeTruthy();
 
   let insertCondition = signalRFixture.waitForChange(
     "risky-containers",
     (change) =>
       change.op == "i" &&
-      change.payload.after.image == "drasi.azurecr.io/my-app:0.2" &&
+      change.payload.after.image == "ghcr.io/drasi-project/my-app:0.2" &&
       change.payload.after.reason == "Critical Bug",
   );
 
   await dbClient.query(
-    `insert into "RiskyImage" ("Id", "Image", "Reason") values (101, 'drasi.azurecr.io/my-app:0.2', 'Critical Bug')`,
+    `insert into "RiskyImage" ("Id", "Image", "Reason") values (101, 'ghcr.io/drasi-project/my-app:0.2', 'Critical Bug')`,
   );
 
   expect(await insertCondition).toBeTruthy();
@@ -134,14 +134,14 @@ test("scenario", async () => {
     "risky-containers",
     (change) =>
       change.op == "d" &&
-      change.payload.before.image == "drasi.azurecr.io/my-app:0.2" &&
+      change.payload.before.image == "ghcr.io/drasi-project/my-app:0.2" &&
       change.payload.before.reason == "Critical Bug",
     60000,
   );
 
   await waitForChildProcess(
     cp.exec(
-      "kubectl set image pod/my-app-2 app=drasi.azurecr.io/my-app:0.3",
+      "kubectl set image pod/my-app-2 app=ghcr.io/drasi-project/my-app:0.3",
       { encoding: "utf-8" },
     ),
   );

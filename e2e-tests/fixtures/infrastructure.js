@@ -79,7 +79,7 @@ async function loadDrasiImages(clusterName, imageVersion = "latest") {
 async function tryLoadInfraImages(clusterName) {
   let promises = [];
 
-  for (let image of ["drasidemo.azurecr.io/my-app:0.3"]) {
+  for (let image of ["ghcr.io/drasi-project/my-app:0.1", "ghcr.io/drasi-project/my-app:0.2", "ghcr.io/drasi-project/my-app:0.3"]) {
     promises.push(
       new Promise((resolve) => {
         let pull = cp.spawn("docker", ["pull", image]);
