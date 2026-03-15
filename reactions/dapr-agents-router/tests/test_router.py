@@ -2,9 +2,8 @@
 Tests for DrasiAgentRouter change/control event handling.
 Uses unittest.mock to avoid needing a real Dapr sidecar.
 """
-import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from drasi.reaction.models.ChangeEvent import ChangeEvent
@@ -37,9 +36,9 @@ async def test_handle_change_publishes_packed_event():
     router = DrasiAgentRouter()
     event = ChangeEvent.model_validate(SAMPLE_CHANGE_DICT)
 
-    mock_client = AsyncMock()
-    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=None)
 
     with patch("src.router.DaprClient", return_value=mock_client):
         await router._handle_change(event, SAMPLE_CONFIG_DICT)

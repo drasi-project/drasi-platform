@@ -13,10 +13,8 @@ This is the Python equivalent of the C# PostDaprPubSub reaction, but with:
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-import os
 from typing import Any
 
 from dapr.clients import DaprClient
@@ -141,8 +139,8 @@ class DrasiAgentRouter:
             "controlSignal": {"kind": signal_kind},
         }
 
-        async with DaprClient() as client:
-            await client.publish_event(
+        with DaprClient() as client:
+            client.publish_event(
                 pubsub_name=config.pubsub_name,
                 topic_name=config.topic_name,
                 data=json.dumps(payload),
@@ -169,13 +167,13 @@ class DrasiAgentRouter:
             logger.debug("No messages to publish for query '%s'", event.queryId)
             return
 
-        async with DaprClient() as client:
+        with DaprClient() as client:
             for msg in messages:
                 op = msg.get("op")  # Only set for unpacked events
                 ce_type = get_cloudevent_type(config, op)
 
                 try:
-                    await client.publish_event(
+                    client.publish_event(
                         pubsub_name=config.pubsub_name,
                         topic_name=config.topic_name,
                         data=json.dumps(msg),
