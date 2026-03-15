@@ -28,7 +28,7 @@ This streamlined setup ensures drivers are promptly informed, optimizing the del
 
 ## Getting Started
 
-Follow the [Getting Started tutorial](https://drasi.io/getting-started/) and try out Drasi. The tutorial will lead you through:
+Follow the [Getting Started tutorial](https://drasi.io/drasi-server/getting-started/) and try out Drasi. The tutorial will lead you through:
 
 1. Applying a Source representing the data source whose changes you want to observe.
 2. Creating Continuous Queries to define the data to observe, conditions to assess changes, and the structure of the output.
