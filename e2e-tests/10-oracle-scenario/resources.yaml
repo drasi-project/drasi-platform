@@ -120,6 +120,7 @@ spec:
   properties:
     host: oracle.default.svc.cluster.local
     port: 1521
+    database: XE
     user: testuser
     password: oracle
     serviceName: XEPDB1

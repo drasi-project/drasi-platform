@@ -198,8 +198,10 @@ spec:
     properties:
       database:
         type: string
+        description: The CDB name (e.g. XE). Required for all Oracle setups.
       serviceName:
         type: string
+        description: The PDB name for CDB/PDB (multi-tenant) setups (e.g. XEPDB1). Optional for non-CDB installations.
       host:
         type: string
       password:
@@ -212,6 +214,7 @@ spec:
       tables:
         type: array
     required:
+      - database
       - host
       - port
       - user

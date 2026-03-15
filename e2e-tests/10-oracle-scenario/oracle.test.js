@@ -14,51 +14,63 @@
  * limitations under the License.
  */
 
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
-import { deployFixture } from '../fixtures/deploy-resources';
-import { undeployFixture } from '../fixtures/delete-resources';
-import { SignalRFixture } from '../fixtures/signalr-fixture';
+const yaml = require('js-yaml');
+const fs = require('fs');
+const deployResources = require('../fixtures/deploy-resources');
+const deleteResources = require('../fixtures/delete-resources');
+const PortForward = require('../fixtures/port-forward');
+const SignalRFixture = require('../fixtures/signalr-fixture');
+const oracledb = require('oracledb');
 
-describe('Oracle Database Integration', () => {
-  const scenarioName = '10-oracle-scenario';
-  let signalRFixture;
+let dbPortForward = new PortForward('oracle', 1521);
+let signalrFixture = new SignalRFixture(['oracle-query1']);
+let dbConn;
 
-  beforeAll(async () => {
-    await deployFixture(scenarioName);
-    signalRFixture = new SignalRFixture(scenarioName);
-    await signalRFixture.start();
-  }, 120000);
+beforeAll(async () => {
+  const resources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
+  await deployResources(resources);
+  await signalrFixture.start();
 
-  afterAll(async () => {
-    if (signalRFixture) {
-      await signalRFixture.stop();
-    }
-    await undeployFixture(scenarioName);
+  const localPort = await dbPortForward.start();
+  dbConn = await oracledb.getConnection({
+    user: 'testuser',
+    password: 'oracle',
+    connectString: `127.0.0.1:${localPort}/XEPDB1`,
   });
 
-  test('Oracle source should connect and retrieve data', async () => {
-    const queryId = 'oracle-query1';
+  await new Promise(r => setTimeout(r, 15000)); // reactivator is slow to startup
+}, 180000);
 
-    const result = await signalRFixture.waitForQueryResult(queryId);
-    expect(result).toBeDefined();
-    expect(result.length).toBeGreaterThan(0);
+afterAll(async () => {
+  await signalrFixture.stop();
+  if (dbConn) {
+    await dbConn.close();
+  }
+  dbPortForward.stop();
 
-    const item = result[0];
-    expect(item).toHaveProperty('Id');
-    expect(item).toHaveProperty('Name');
-    expect(item).toHaveProperty('Category');
-    expect(item).toHaveProperty('Score');
-
-    expect(item.Category).toBe('1');
-    expect(item.Score).toBeGreaterThanOrEqual(5);
-  }, 30000);
-
-  test('Oracle change data capture should work', async () => {
-    // This test would need to connect to Oracle and make changes
-    // For now, we'll just verify the query is active and returns data
-    const queryId = 'oracle-query1';
-    const result = await signalRFixture.waitForQueryResult(queryId);
-    expect(result).toBeDefined();
-    expect(result.length).toBeGreaterThan(0);
-  }, 30000);
+  const resources = yaml.loadAll(fs.readFileSync(__dirname + '/resources.yaml', 'utf8'));
+  await deleteResources(resources);
 });
+
+test('Initial data bootstrap returns existing rows', async () => {
+  const initData = await signalrFixture.requestReload('oracle-query1');
+  expect(initData.length).toBeGreaterThanOrEqual(2);
+  const item = initData[0];
+  expect(item).toHaveProperty('Id');
+  expect(item).toHaveProperty('Name');
+  expect(item).toHaveProperty('Category');
+  expect(item).toHaveProperty('Score');
+}, 30000);
+
+test('A row update propagates as a change event', async () => {
+  const updateCondition = signalrFixture.waitForChange(
+    'oracle-query1',
+    change => change.op === 'u' && change.payload.after.Name === 'UpdatedFoo' && change.payload.after.Id === 1,
+    30000,
+  );
+
+  await dbConn.execute(`UPDATE ITEM SET NAME = 'UpdatedFoo' WHERE ITEMID = 1`);
+  await dbConn.commit();
+
+  expect(await updateCondition).toBeTruthy();
+}, 40000);

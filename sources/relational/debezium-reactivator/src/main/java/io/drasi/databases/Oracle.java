@@ -76,14 +76,20 @@ public class Oracle implements DatabaseStrategy {
 
     @Override
     public Configuration createConnectorConfig(Configuration baseConfig) {
-        return Configuration.create()
+        var builder = Configuration.create()
                 .with(baseConfig)
                 .with("connector.class", "io.debezium.connector.oracle.OracleConnector")
                 .with("log.mining.strategy", "online_catalog")
                 .with("snapshot.mode", "no_data")
                 .with("database.connection.adapter", "logminer")
-                .with("log.mining.batch.size.default", "1000")
-            .build();
+                .with("log.mining.batch.size.default", "1000");
+
+        var pdbName = Reactivator.GetConfigValue("serviceName", "");
+        if (!pdbName.isEmpty()) {
+            builder = builder.with("database.pdb.name", pdbName);
+        }
+
+        return builder.build();
     }
 
     @Override
