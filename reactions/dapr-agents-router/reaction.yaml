@@ -1,0 +1,18 @@
+# Example reaction manifest for the Drasi Agent Router.
+# Copy and modify this to configure your own routing rules.
+kind: Reaction
+apiVersion: v1
+name: agent-router
+spec:
+  kind: DaprAgentsRouter
+  properties:
+    DefaultPubsubName: agent-pubsub
+    DefaultFormat: packed
+    MCP_PORT: "3001"
+  queries:
+    # Example: route 'sla-breaches' query results to the support agent's topic
+    sla-breaches: |
+      pubsubName: agent-pubsub
+      topicName: support.sla-breach
+      format: packed
+      skipControlSignals: true
