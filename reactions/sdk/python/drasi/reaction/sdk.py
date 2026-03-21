@@ -24,6 +24,7 @@ from dapr.ext.fastapi import DaprApp
 from fastapi import FastAPI, Request
 
 from drasi.reaction.logger import config_logging
+from drasi.reaction.management_client import ManagementClient
 from drasi.reaction.models.ChangeEvent import ChangeEvent
 from drasi.reaction.models.ControlEvent import ControlEvent
 
@@ -73,6 +74,7 @@ class DrasiReaction:
         self._app = FastAPI()
         self._dapr_app = DaprApp(self._app)
         self._query_configs: dict[str, Any] = {}
+        self._management_client = ManagementClient()
 
     def subscribe(self):
         """Subscribes to queries by reading configuration files and registering handlers."""
@@ -102,6 +104,14 @@ class DrasiReaction:
         """
 
         return self._query_configs
+    @property
+    def management_client(self) -> ManagementClient:
+        """Gets the ManagementClient for interacting with the Drasi Management API.
+
+        Returns:
+            ManagementClient: The management client instance.
+        """
+        return self._management_client
 
     def start(self):
         """Starts the Drasi Reaction."""
