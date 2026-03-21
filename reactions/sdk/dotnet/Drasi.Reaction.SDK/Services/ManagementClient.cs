@@ -27,13 +27,15 @@ namespace Drasi.Reaction.SDK.Services
 
         public async Task<string> GetQueryContainerId(string queryId)
         {
-            var httpClient = _httpClientFactory.CreateClient();
-            httpClient.BaseAddress = new Uri(_managementApiBaseUrl);
-            var resp = await httpClient.GetAsync($"/v1/continuousQueries/{queryId}");
-            resp.EnsureSuccessStatusCode();
-            var body = await resp.Content.ReadFromJsonAsync<JsonDocument>() ?? throw new Exception("Failed to parse response body");
-            var spec = body.RootElement.GetProperty("spec");
-            return spec.GetProperty("container").GetString() ?? throw new Exception("Failed to parse response body");
+            using (var httpClient = _httpClientFactory.CreateClient())
+            {
+                httpClient.BaseAddress = new Uri(_managementApiBaseUrl);
+                var resp = await httpClient.GetAsync($"/v1/continuousQueries/{queryId}");
+                resp.EnsureSuccessStatusCode();
+                var body = await resp.Content.ReadFromJsonAsync<JsonDocument>() ?? throw new Exception("Failed to parse response body");
+                var spec = body.RootElement.GetProperty("spec");
+                return spec.GetProperty("container").GetString() ?? throw new Exception("Failed to parse response body");
+            }
         }
 
         public async Task<bool> WaitForQueryReadyAsync(string queryId, int waitSeconds = DefaultApiTimeoutSeconds, CancellationToken cancellationToken = default)
@@ -44,55 +46,57 @@ namespace Drasi.Reaction.SDK.Services
                 throw new ArgumentNullException(nameof(queryId));
             }
 
-            var httpClient = _httpClientFactory.CreateClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(waitSeconds + ClientSideExtraTimeoutSeconds);
-
-            var requestUri = $"{_managementApiBaseUrl}/v1/continuousQueries/{queryId}/ready-wait?timeout={waitSeconds}";
-            _logger.LogInformation("Waiting for {Timeout} seconds for query {QueryId} to be ready...", waitSeconds, queryId);
-
-            try
+            using (var httpClient = _httpClientFactory.CreateClient())
             {
-                using var response = await httpClient.GetAsync(requestUri, cancellationToken);
+                httpClient.Timeout = TimeSpan.FromSeconds(waitSeconds + ClientSideExtraTimeoutSeconds);
 
-                if (response.IsSuccessStatusCode)
+                var requestUri = $"{_managementApiBaseUrl}/v1/continuousQueries/{queryId}/ready-wait?timeout={waitSeconds}";
+                _logger.LogInformation("Waiting for {Timeout} seconds for query {QueryId} to be ready...", waitSeconds, queryId);
+
+                try
                 {
-                    _logger.LogDebug("Query {QueryId} is ready.", queryId);
-                    return true;
+                    using var response = await httpClient.GetAsync(requestUri, cancellationToken);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _logger.LogDebug("Query {QueryId} is ready.", queryId);
+                        return true;
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    {
+                        _logger.LogWarning("Query {QueryId} did not become ready within {WaitSeconds}s. Status: {StatusCode}",
+                            queryId, waitSeconds, response.StatusCode);
+                        return false;
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        _logger.LogError("Query {QueryId} not found while waiting for readiness. Status: {StatusCode}",
+                            queryId, response.StatusCode);
+                        return false;
+                    }
+                    else
+                    {
+                        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                        _logger.LogError("Failed to get readiness status for query {QueryId}. Status: {StatusCode}, Reason: {ReasonPhrase}, Content: {ResponseContent}",
+                            queryId, response.StatusCode, response.ReasonPhrase, responseContent);
+                        return false;
+                    }
                 }
-                else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                catch (OperationCanceledException)
                 {
-                    _logger.LogWarning("Query {QueryId} did not become ready within {WaitSeconds}s. Status: {StatusCode}",
-                        queryId, waitSeconds, response.StatusCode);
+                    _logger.LogWarning("Operation to wait for query {QueryId} readiness was canceled.", queryId);
                     return false;
                 }
-                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                catch (HttpRequestException ex)
                 {
-                    _logger.LogError("Query {QueryId} not found while waiting for readiness. Status: {StatusCode}",
-                        queryId, response.StatusCode);
+                    _logger.LogError(ex, "HTTP request failed while waiting for query {QueryId} readiness at {RequestUri}.", queryId, requestUri);
                     return false;
                 }
-                else
+                catch (Exception ex)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogError("Failed to get readiness status for query {QueryId}. Status: {StatusCode}, Reason: {ReasonPhrase}, Content: {ResponseContent}",
-                        queryId, response.StatusCode, response.ReasonPhrase, responseContent);
-                    return false;
+                    _logger.LogError(ex, "An unexpected error occurred while waiting for query {QueryId} to be ready.", queryId);
+                    throw;
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogWarning("Operation to wait for query {QueryId} readiness was canceled.", queryId);
-                return false;
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "HTTP request failed while waiting for query {QueryId} readiness at {RequestUri}.", queryId, requestUri);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An unexpected error occurred while waiting for query {QueryId} to be ready.", queryId);
-                throw;
             }
         }
     }
