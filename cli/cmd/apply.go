@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 
 	"drasi.io/cli/api"
 	"drasi.io/cli/output"
@@ -27,6 +28,7 @@ import (
 type applyCmdOptions struct {
 	platformClientFactory func(namespace string) (sdk.PlatformClient, error)
 	outputFactory         func() output.TaskOutput
+	openapiSpec           []byte
 }
 
 // NewApplyCommand creates the apply command with optional dependency injection
@@ -62,6 +64,19 @@ Usage examples:
 
 			if len(*manifests) == 0 {
 				return errors.New("no manifests found. Did you forget to specify the '-f' flag")
+			}
+			validationErrs, err := ValidateManifests(*manifests, opt.openapiSpec)
+
+			if err != nil {
+				return fmt.Errorf("validation setup failed: %w", err)
+			}
+
+			for _, e := range validationErrs {
+				cmd.PrintErrf("%s\n", e.Error())
+			}
+
+			if HasErrors(validationErrs) {
+				return errors.New("apply aborted: one or more manifests failed validation (see above)")
 			}
 
 			var namespace string
