@@ -95,8 +95,7 @@ class ResultViewClient:
             try:
                 query_container_id = await self._management_client.get_query_container_id(query_id)
             except Exception as err:
-                logger.error("Couldn't resolve container for query '%s': %s", query_id, err)
-                return
+                raise RuntimeError(f"Couldn't resolve container for query '{query_id}': {err}") from err
 
         view_url = f"http://{query_container_id}-view-svc/{query_id}"
 
