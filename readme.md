@@ -46,13 +46,13 @@ We hope you will join us and contribute to Drasi! Some of the ways to get starte
 
 ## Contributing To Drasi
 
-Please see the [Contribution guide](https://github.com/drasi-project/drasi-platform/blob/main/CONTRIBUTING.md) for information on contributing to Drasi.
+Please see the [Contribution guide](https://github.com/drasi-project/.github/blob/main/CONTRIBUTING.md) for information on contributing to Drasi.
 
 ## Security
-Please refer to our guide on [reporting security vulnerabilities](https://github.com/drasi-project/drasi-platform/blob/main/SECURITY.md#reporting-security-issues)
+Please refer to our guide on [reporting security vulnerabilities](https://github.com/drasi-project/.github/blob/main/SECURITY.md#reporting-security-issues)
 
 ## Code of Conduct
-Please refer to Drasi's [Code of Conduct](https://github.com/drasi-project/community/blob/main/CODE_OF_CONDUCT.md)
+Please refer to Drasi's [Code of Conduct](https://github.com/drasi-project/.github/blob/main/CODE_OF_CONDUCT.md)
 
 ## License
 This project is licensed under the **Apache 2.0 license**. Please see the [LICENSE](https://github.com/drasi-project/community/blob/main/LICENSE) file.
