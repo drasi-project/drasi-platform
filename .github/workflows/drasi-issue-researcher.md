@@ -28,7 +28,7 @@ Analyze this issue: "${{ needs.activation.outputs.text }}"
 
 Your job: produce a single, structured Research Brief comment that helps a human (or later coding agent) implement the issue correctly.
 
-The audience for the results of your reseaarch is an experienced Drasi engineer, so you do not need to provide an overview of drasi, its functionality, or architecture.
+The audience for the results of your research is an experienced Drasi engineer, so you do not need to provide an overview of drasi, its functionality, or architecture.
 
 You MUST do all of the following:
 1) Read the issue title, body, and ALL comments.
@@ -81,5 +81,5 @@ Output requirement:
 - Use Markdown, with clear sections and bullet points.
 
 References:
-- Drasi GitHub Organization: https://github.com/drasi-projects
+- Drasi GitHub Organization: https://github.com/drasi-project
 - Drasi Context: https://drasi.io/drasi-context.yaml
