@@ -15,32 +15,18 @@
 name: DevSkim
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
   schedule:
-    - cron: '30 0 * * 0' #runs every Sunday at 00:30 UTC
+    - cron: '30 0 * * 0' # runs every Sunday at 00:30 UTC
 
-permissions:
+permissions: 
   contents: read
+
 jobs:
-  lint:
-    name: DevSkim
-    runs-on: ubuntu-latest
-    if: github.repository == 'drasi-project/drasi-platform'
+  devskim:
+    uses: drasi-project/.github/.github/workflows/devskim.yaml@main
     permissions:
       actions: read
       contents: read
       security-events: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Run DevSkim scanner
-        uses: microsoft/DevSkim-Action@v1
-
-      - name: Upload DevSkim scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@89036746af0bb9507d6f90289b0d5b97d5f44c0c # v2.26.4
-        with:
-          sarif_file: devskim-results.sarif
