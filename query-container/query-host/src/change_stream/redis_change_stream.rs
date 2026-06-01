@@ -45,7 +45,7 @@ impl RedisChangeStream {
         let client = redis::Client::open(url)?;
         let mut connection = client.get_async_connection().await?;
 
-        let starting_position = format!("{}-0", start_timestamp);
+        let starting_position = format!("{start_timestamp}-0");
 
         match connection
             .xgroup_create_mkstream::<&str, &str, &str, String>(topic, group_id, &starting_position)
@@ -257,7 +257,7 @@ where
                     Err(err) => {
                         return Err(ChangeStreamError::MessageError {
                             id: message.id.clone(),
-                            error: format!("Failed to deserialize data: {:?}", err),
+                            error: format!("Failed to deserialize data: {err:?}"),
                         })
                     }
                 },
@@ -326,7 +326,7 @@ where
                     Err(err) => {
                         return Err(ChangeStreamError::MessageError {
                             id: message.id.clone(),
-                            error: format!("Failed to deserialize enqueue_time: {:?}", err),
+                            error: format!("Failed to deserialize enqueue_time: {err:?}"),
                         });
                     }
                 },

@@ -97,7 +97,7 @@ impl QueryWorker {
         let inner_handle = tokio::spawn(async move {
             log::info!("Query {} worker starting", query_id);
 
-            let topic = format!("{}-publish", query_container_id);
+            let topic = format!("{query_container_id}-publish");
 
             let view_spec = config.view.clone();
             let query_language = config.query_language.clone();
@@ -761,7 +761,7 @@ async fn configure_result_view(
 
     let _: () = match mut_dapr
         .invoke_actor(
-            format!("{}.View", query_container),
+            format!("{query_container}.View"),
             query_id.to_string(),
             "configure",
             view_spec,
@@ -793,7 +793,7 @@ async fn deprovision_result_view(
 
     let _: () = match mut_dapr
         .invoke_actor(
-            format!("{}.View", query_container),
+            format!("{query_container}.View"),
             query_id.to_string(),
             "deprovision",
             (),

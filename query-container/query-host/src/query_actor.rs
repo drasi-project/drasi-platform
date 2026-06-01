@@ -149,7 +149,7 @@ impl Actor for QueryActor {
             .config
             .get()
             .await
-            .map_or(false, |c| c.transient.is_some_and(|f| f));
+            .is_some_and(|c| c.transient.is_some_and(|f| f));
         if let Some(w) = self.worker.take().await {
             if transient {
                 w.delete();

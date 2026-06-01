@@ -61,8 +61,8 @@ impl IndexFactory {
         let mut storage_specs = BTreeMap::new();
         let mut store_index = 0;
 
-        while let Ok(store) = env::var(format!("STORE_{}", store_index)) {
-            let store_type = match env::var(format!("STORE_{}_TYPE", store_index)) {
+        while let Ok(store) = env::var(format!("STORE_{store_index}")) {
+            let store_type = match env::var(format!("STORE_{store_index}_TYPE")) {
                 Ok(store_type) => store_type,
                 Err(_) => {
                     log::error!("STORE_{}_TYPE not set", store_index);
@@ -74,7 +74,7 @@ impl IndexFactory {
             match store_type.to_lowercase().as_str() {
                 "memory" => {
                     let enable_archive =
-                        match env::var(format!("STORE_{}_ENABLE_ARCHIVE", store_index)) {
+                        match env::var(format!("STORE_{store_index}_ENABLE_ARCHIVE")) {
                             Ok(enable_archive) => enable_archive.to_lowercase() == "true",
                             Err(_) => {
                                 log::warn!(
@@ -89,7 +89,7 @@ impl IndexFactory {
                 }
                 "redis" => {
                     let connection_string =
-                        match env::var(format!("STORE_{}_CONNECTION_STRING", store_index)) {
+                        match env::var(format!("STORE_{store_index}_CONNECTION_STRING")) {
                             Ok(connection_string) => connection_string,
                             Err(_) => {
                                 log::error!("STORE_{}_CONNECTION_STRING not set", store_index);
@@ -98,7 +98,7 @@ impl IndexFactory {
                             }
                         };
 
-                    let cache_size = match env::var(format!("STORE_{}_CACHE_SIZE", store_index)) {
+                    let cache_size = match env::var(format!("STORE_{store_index}_CACHE_SIZE")) {
                         Ok(cache_size) => {
                             let size = cache_size.parse::<usize>().unwrap_or_default();
                             if size < 1 {
@@ -120,7 +120,7 @@ impl IndexFactory {
                 }
                 "rocksdb" => {
                     let enable_archive =
-                        match env::var(format!("STORE_{}_ENABLE_ARCHIVE", store_index)) {
+                        match env::var(format!("STORE_{store_index}_ENABLE_ARCHIVE")) {
                             Ok(enable_archive) => enable_archive.to_lowercase() == "true",
                             Err(_) => {
                                 log::warn!(
@@ -131,7 +131,7 @@ impl IndexFactory {
                             }
                         };
 
-                    let direct_io = match env::var(format!("STORE_{}_DIRECT_IO", store_index)) {
+                    let direct_io = match env::var(format!("STORE_{store_index}_DIRECT_IO")) {
                         Ok(direct_io) => direct_io.to_lowercase() == "true",
                         Err(_) => {
                             log::warn!("STORE_{}_DIRECT_IO not set, using false", store_index);

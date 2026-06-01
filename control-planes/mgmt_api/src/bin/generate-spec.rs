@@ -26,6 +26,6 @@ fn main() {
     // This is a binary meant to output to stdout, so we allow println here
     #[allow(clippy::print_stdout)]
     {
-        println!("{}", yaml);
+        println!("{yaml}");
     }
 }

@@ -33,8 +33,7 @@ impl Publisher {
             Ok(client) => client,
             Err(e) => {
                 return Err(PublishError::ConnectionError(format!(
-                    "Error connecting to redis: {}",
-                    e
+                    "Error connecting to redis: {e}"
                 )))
             }
         };
@@ -43,8 +42,7 @@ impl Publisher {
             Ok(connection) => connection,
             Err(e) => {
                 return Err(PublishError::ConnectionError(format!(
-                    "Error connecting to redis: {}",
-                    e
+                    "Error connecting to redis: {e}"
                 )))
             }
         };
@@ -81,8 +79,7 @@ impl Publisher {
             }
             Err(e) => {
                 return Err(PublishError::Other(format!(
-                    "Error publishing to topic: {}",
-                    e
+                    "Error publishing to topic: {e}"
                 )))
             }
         };

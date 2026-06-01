@@ -46,7 +46,7 @@ async fn main() {
         query_container_id
     );
 
-    let topic = format!("{}-publish", query_container_id);
+    let topic = format!("{query_container_id}-publish");
 
     let publisher = match Publisher::connect(&redis_url, topic).await {
         Ok(publisher) => publisher,
@@ -68,7 +68,7 @@ async fn main() {
         .parse()
         .unwrap_or(4000);
 
-    let addr = format!("0.0.0.0:{}", port);
+    let addr = format!("0.0.0.0:{port}");
     log::info!("Listening on {}", addr);
     let listener = match tokio::net::TcpListener::bind(&addr).await {
         Ok(listener) => listener,

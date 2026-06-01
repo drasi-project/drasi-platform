@@ -67,7 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         fetch_batch_size: 5,
     });
 
-    let actor_name = format!("{}.View", query_container_id);
+    let actor_name = format!("{query_container_id}.View");
 
     let view_store = view_store_factory::from_env().await?;
 

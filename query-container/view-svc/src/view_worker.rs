@@ -76,7 +76,7 @@ impl ViewWorker {
                 return ShutdownReason::Error;
             }
 
-            let topic = format!("{}-results", query_id);
+            let topic = format!("{query_id}-results");
 
             let change_stream = match RedisChangeStream::new(
                 &stream_config.redis_url,

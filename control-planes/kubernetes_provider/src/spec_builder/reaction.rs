@@ -159,7 +159,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                 ..Default::default()
                             };
                             // Use just endpoint_name as key - ResourceReconciler will add reaction.id prefix
-                            let service_key = format!("{}-{}", service_name, endpoint_name);
+                            let service_key = format!("{service_name}-{endpoint_name}");
                             k8s_services.insert(service_key.clone(), service_spec);
 
                             // Create Ingress resource with hostname-based routing
@@ -289,5 +289,5 @@ fn calc_hash<T: Serialize>(obj: &T) -> String {
     let mut hash = SpookyHasher::default();
     data.hash(&mut hash);
     let hsh = hash.finish();
-    format!("{:02x}", hsh)
+    format!("{hsh:02x}")
 }
