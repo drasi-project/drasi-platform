@@ -21,11 +21,11 @@ const databasePort = getConfigValue('databasePort');
 const databaseUser = getConfigValue('databaseUser');
 const databasePassword = getConfigValue('databasePassword');
 const databaseDbname = getConfigValue('databaseDbname');
-const databaseCient = getConfigValue('databaseClient', 'pg');
+const databaseClient = getConfigValue('databaseClient', 'pg');
 const databaseSsl = convertConfigValue(getConfigValue('databaseSsl', 'false'));
 
 let knex = require('knex')({
-    client: databaseCient,
+    client: databaseClient,
     connection: {
       host : databaseHostname,
       port : databasePort,
@@ -37,9 +37,9 @@ let knex = require('knex')({
   });
 
 //  mssql requires a different connection object; see https://knexjs.org/faq/recipes.html#connecting-to-mssql-on-azure-sql-database
-if (databaseCient === 'mssql') {
+if (databaseClient === 'mssql') {
     knex = require('knex')({
-        client: databaseCient,
+        client: databaseClient,
         connection: {
           server: databaseHostname,
           user: databaseUser,
@@ -171,12 +171,12 @@ function checkSqlCommandParameters(data: Record<string, any>, paramList: string[
 
 async function executeStoredProcedure(command: string, queryArguments: string[]): Promise<void> {
     // Check if the command starts with 'CALL ' and add it if it doesn't
-    if (databaseCient !== 'mssql' && !command.trim().toUpperCase().startsWith('CALL ')) {
+    if (databaseClient !== 'mssql' && !command.trim().toUpperCase().startsWith('CALL ')) {
       command = 'CALL ' + command;
     }
 
     // Check if the command starts with 'EXEC ' and add it if it doesn't
-    if (databaseCient === 'mssql' && !command.trim().toUpperCase().startsWith('EXEC ')) {
+    if (databaseClient === 'mssql' && !command.trim().toUpperCase().startsWith('EXEC ')) {
         command = 'EXEC ' + command;
     }
     
@@ -194,8 +194,8 @@ async function executeStoredProcedure(command: string, queryArguments: string[])
     query += ")";
 
 
-    if (databaseCient === 'mssql') {
-        // mssql syntax requirments
+    if (databaseClient === 'mssql') {
+        // mssql syntax requirements
         query = query.replace('(', ' ').replace(')', '');
     }
     console.log(`Executing the stored proc: ${query}`);

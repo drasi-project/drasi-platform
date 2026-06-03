@@ -104,7 +104,7 @@ describe('PostDaprPubSub Reaction with Redis Stream Verification', () => {
     beforeAll(async () => {
         console.log("Starting E2E test setup for PostDaprPubSub (Redis)...");
         try {
-            // 1. deploy all k8s resouces first
+            // 1. deploy all k8s resources first
             console.log("Deploying K8s resources...");
             await deployResources(k8sResources);
 

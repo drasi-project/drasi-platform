@@ -1,5 +1,5 @@
 
-The AWS EventBridge Reaction generates [CloudEvents](https://cloudevents.io/) from Continous Query results and publishes them to an AWS EventBus. The output format can either be the packed format of the raw query output, an unpacked format where a single CloudEvent represents one change to the result set, or a template format that uses Handlebars templates for custom output.
+The AWS EventBridge Reaction generates [CloudEvents](https://cloudevents.io/) from Continuous Query results and publishes them to an AWS EventBus. The output format can either be the packed format of the raw query output, an unpacked format where a single CloudEvent represents one change to the result set, or a template format that uses Handlebars templates for custom output.
 
 The EventBridge Reaction supports using either IAM roles for service accounts ([IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)) or IAM User keys.
 
