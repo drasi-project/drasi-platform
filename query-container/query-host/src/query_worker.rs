@@ -278,7 +278,7 @@ impl QueryWorker {
                 }
             };
 
-            let trace_propogator = TraceContextPropagator::new();
+            let trace_propagator = TraceContextPropagator::new();
             let meter = opentelemetry::global::meter("query-host");
             let change_counter = meter
                 .u64_counter("drasi.query-host.change_count")
@@ -287,7 +287,7 @@ impl QueryWorker {
 
             let msg_latency = meter
                 .f64_histogram("drasi.query-host.msg_latency")
-                .with_description("Latency of messge processing")
+                .with_description("Latency of message processing")
                 .with_unit(opentelemetry::metrics::Unit::new("ns"))
                 .init();
 
@@ -388,7 +388,7 @@ impl QueryWorker {
                                             continue;
                                         }
 
-                                        let parent_context = trace_propogator.extract(&evt);
+                                        let parent_context = trace_propagator.extract(&evt);
                                         let span = tracing::span!(tracing::Level::INFO, "process_message");
                                         span.set_parent(parent_context);
                                         span.set_attribute("query_id", query_id.clone());

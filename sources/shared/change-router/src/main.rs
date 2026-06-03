@@ -438,7 +438,7 @@ async fn process_changes(
                     }
                 }
                 _ => {
-                    // TODO - supprt other ops on SourceSubscriptions
+                    // TODO - support other ops on SourceSubscriptions
                 }
             }
             return Ok(());
