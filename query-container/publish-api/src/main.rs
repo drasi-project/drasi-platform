@@ -42,8 +42,7 @@ async fn main() {
     };
 
     log::info!(
-        "Drasi Publish API starting up for query node: {}",
-        query_container_id
+        "Drasi Publish API starting up for query node: {query_container_id}"
     );
 
     let topic = format!("{query_container_id}-publish");
@@ -51,7 +50,7 @@ async fn main() {
     let publisher = match Publisher::connect(&redis_url, topic).await {
         Ok(publisher) => publisher,
         Err(e) => {
-            log::error!("Error connecting to the redis broker: {:?}", e);
+            log::error!("Error connecting to the redis broker: {e:?}");
             std::process::exit(1);
         }
     };
@@ -69,11 +68,11 @@ async fn main() {
         .unwrap_or(4000);
 
     let addr = format!("0.0.0.0:{port}");
-    log::info!("Listening on {}", addr);
+    log::info!("Listening on {addr}");
     let listener = match tokio::net::TcpListener::bind(&addr).await {
         Ok(listener) => listener,
         Err(_e) => {
-            log::error!("Error binding to the address: {}", addr);
+            log::error!("Error binding to the address: {addr}");
             std::process::exit(1);
         }
     };
@@ -82,7 +81,7 @@ async fn main() {
             log::info!("Server started at: {}", &addr);
         }
         Err(e) => {
-            log::error!("Error starting the server: {:?}", e);
+            log::error!("Error starting the server: {e:?}");
         }
     };
 }
@@ -112,7 +111,7 @@ async fn change(
         None => None,
     };
 
-    log::info!("Publishing change: {:?}", body);
+    log::info!("Publishing change: {body:?}");
 
     match state
         .publisher
@@ -124,7 +123,7 @@ async fn change(
             StatusCode::OK
         }
         Err(e) => {
-            log::error!("Error publishing change: {:?}", e);
+            log::error!("Error publishing change: {e:?}");
             StatusCode::BAD_GATEWAY
         }
     }
@@ -151,7 +150,7 @@ async fn data(
         None => None,
     };
 
-    log::info!("Publishing data: {:?}", body);
+    log::info!("Publishing data: {body:?}");
 
     match state
         .publisher
@@ -163,7 +162,7 @@ async fn data(
             StatusCode::OK
         }
         Err(e) => {
-            log::error!("Error publishing data: {:?}", e);
+            log::error!("Error publishing data: {e:?}");
             StatusCode::BAD_GATEWAY
         }
     }

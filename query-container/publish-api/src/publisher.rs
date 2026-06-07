@@ -77,7 +77,7 @@ impl Publisher {
 
         let _: redis::Value = match connection.xadd(&self.topic, "*", &items).await {
             Ok(ret) => {
-                log::debug!("Publish result: {:?}", ret);
+                log::debug!("Publish result: {ret:?}");
                 ret
             }
             Err(e) => {

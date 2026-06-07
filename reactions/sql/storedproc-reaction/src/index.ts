@@ -15,16 +15,17 @@
  */
 
 import { DrasiReaction, ChangeEvent,parseYaml, ControlEvent, getConfigValue } from '@drasi/reaction-sdk';
+import knexLib from 'knex';
 
 const databaseHostname = getConfigValue('databaseHostname');
 const databasePort = getConfigValue('databasePort');
 const databaseUser = getConfigValue('databaseUser');
 const databasePassword = getConfigValue('databasePassword');
 const databaseDbname = getConfigValue('databaseDbname');
-const databaseClient = getConfigValue('databaseClient', 'pg');
-const databaseSsl = convertConfigValue(getConfigValue('databaseSsl', 'false'));
+const databaseClient = getConfigValue('databaseClient', 'pg')!;
+const databaseSsl = convertConfigValue(getConfigValue('databaseSsl', 'false')!);
 
-let knex = require('knex')({
+let knex = knexLib({
     client: databaseClient,
     connection: {
       host : databaseHostname,
@@ -38,7 +39,7 @@ let knex = require('knex')({
 
 //  mssql requires a different connection object; see https://knexjs.org/faq/recipes.html#connecting-to-mssql-on-azure-sql-database
 if (databaseClient === 'mssql') {
-    knex = require('knex')({
+    knex = knexLib({
         client: databaseClient,
         connection: {
           server: databaseHostname,
@@ -55,7 +56,7 @@ if (databaseClient === 'mssql') {
 
 
 const queryParamsRegex = /@\w+/g;
-const addedResultCommand: string = getConfigValue('addedResultCommand', '');
+const addedResultCommand: string = getConfigValue('addedResultCommand', '')!;
 console.log(`AddedResultCommand: ${addedResultCommand}`);
 const addedResultCommandParamList: string[] = [];
 // Retrieve the parameters from the addedResultCommand
@@ -70,7 +71,7 @@ if (addedResultCommand !== '') {
     }
 }
 
-const updatedResultCommand: string = getConfigValue("updatedResultCommand", '');
+const updatedResultCommand: string = getConfigValue("updatedResultCommand", '')!;
 console.log(`UpdatedResultCommand: ${updatedResultCommand}`);
 const updatedResultCommandParamList: string[] = [];
 // Retrieve the parameters from the updatedResultCommand
@@ -84,7 +85,7 @@ if (updatedResultCommand !== '') {
     }
 }
 
-const deletedResultCommand: string = getConfigValue("deletedResultCommand", '');
+const deletedResultCommand: string = getConfigValue("deletedResultCommand", '')!;
 console.log(`DeletedResultCommand: ${deletedResultCommand}`);
 const deletedResultCommandParamList: string[] = [];
 if (deletedResultCommand !== '') {
@@ -116,7 +117,7 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
             try {
                 await executeStoredProcedure(addedResultCommand, queryArguments);
             } catch (error) {
-                throw new Error(`Failed to execute added stored procedure: ${error.message}`);
+                throw new Error(`Failed to execute added stored procedure: ${(error as Error).message}`);
             }
         } else {
             throw new Error(`Missing parameters in the added results`);
@@ -133,7 +134,7 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
             try {
                 await executeStoredProcedure(updatedResultCommand, queryArguments);
             } catch (error) {
-                throw new Error(`Failed to execute updated stored procedure: ${error.message}`);
+                throw new Error(`Failed to execute updated stored procedure: ${(error as Error).message}`);
             }
         } else {
             throw new Error(`Missing parameters in the updated results`);
@@ -148,7 +149,7 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
             try {
                 await executeStoredProcedure(deletedResultCommand, queryArguments);
             } catch (error) {
-                throw new Error(`Failed to execute deleted stored procedure: ${error.message}`);
+                throw new Error(`Failed to execute deleted stored procedure: ${(error as Error).message}`);
             }
         } else {
             throw new Error(`Missing parameters in the deleted results`);
@@ -206,7 +207,7 @@ async function executeStoredProcedure(command: string, queryArguments: string[])
         console.log("The query was executed successfully");
       } catch (error) {
         console.log(error);
-        throw new Error(`Failed to execute stored procedure: ${error.message}`);
+        throw new Error(`Failed to execute stored procedure: ${(error as Error).message}`);
       }
   }
 
