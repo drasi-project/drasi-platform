@@ -56,6 +56,12 @@
       <artifactId>mssql-jdbc</artifactId>
       <version>12.4.2.jre11</version>
     </dependency>
+    
+    <dependency>
+      <groupId>com.oracle.database.jdbc</groupId>
+      <artifactId>ojdbc11</artifactId>
+      <version>23.8.0.25.04</version>
+    </dependency>
 
     <dependency>
       <groupId>com.azure</groupId>
