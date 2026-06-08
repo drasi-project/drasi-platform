@@ -65,7 +65,7 @@ impl IndexFactory {
             let store_type = match env::var(format!("STORE_{store_index}_TYPE")) {
                 Ok(store_type) => store_type,
                 Err(_) => {
-                    log::error!("STORE_{}_TYPE not set", store_index);
+                    log::error!("STORE_{store_index}_TYPE not set");
                     store_index += 1;
                     continue;
                 }
@@ -78,8 +78,7 @@ impl IndexFactory {
                             Ok(enable_archive) => enable_archive.to_lowercase() == "true",
                             Err(_) => {
                                 log::warn!(
-                                    "STORE_{}_ENABLE_ARCHIVE not set, using false",
-                                    store_index
+                                    "STORE_{store_index}_ENABLE_ARCHIVE not set, using false"
                                 );
                                 false
                             }
@@ -92,7 +91,7 @@ impl IndexFactory {
                         match env::var(format!("STORE_{store_index}_CONNECTION_STRING")) {
                             Ok(connection_string) => connection_string,
                             Err(_) => {
-                                log::error!("STORE_{}_CONNECTION_STRING not set", store_index);
+                                log::error!("STORE_{store_index}_CONNECTION_STRING not set");
                                 store_index += 1;
                                 continue;
                             }
@@ -124,8 +123,7 @@ impl IndexFactory {
                             Ok(enable_archive) => enable_archive.to_lowercase() == "true",
                             Err(_) => {
                                 log::warn!(
-                                    "STORE_{}_ENABLE_ARCHIVE not set, using false",
-                                    store_index
+                                    "STORE_{store_index}_ENABLE_ARCHIVE not set, using false"
                                 );
                                 false
                             }
@@ -134,7 +132,7 @@ impl IndexFactory {
                     let direct_io = match env::var(format!("STORE_{store_index}_DIRECT_IO")) {
                         Ok(direct_io) => direct_io.to_lowercase() == "true",
                         Err(_) => {
-                            log::warn!("STORE_{}_DIRECT_IO not set, using false", store_index);
+                            log::warn!("STORE_{store_index}_DIRECT_IO not set, using false");
                             false
                         }
                     };
@@ -148,7 +146,7 @@ impl IndexFactory {
                     );
                 }
                 _ => {
-                    log::error!("STORE_{}_TYPE not supported", store_index);
+                    log::error!("STORE_{store_index}_TYPE not supported");
                     store_index += 1;
                     continue;
                 }
@@ -171,7 +169,7 @@ impl IndexFactory {
             Ok(store) => store,
             Err(_) => {
                 let def_store = storage_specs.first_entry().unwrap().key().clone();
-                log::warn!("DEFAULT_STORE not set, using {}", def_store);
+                log::warn!("DEFAULT_STORE not set, using {def_store}");
                 def_store
             }
         };
@@ -233,7 +231,7 @@ impl IndexFactory {
                             match CachedElementIndex::new(element_index.clone(), *cache_size) {
                                 Ok(cached_index) => cached_index,
                                 Err(err) => {
-                                    log::error!("Failed to create cached element index: {}", err);
+                                    log::error!("Failed to create cached element index: {err}");
                                     return Err(IndexError::NotSupported);
                                 }
                             };
@@ -241,7 +239,7 @@ impl IndexFactory {
                         let result_index = match CachedResultIndex::new(result_index, *cache_size) {
                             Ok(cri) => Arc::new(cri),
                             Err(err) => {
-                                log::error!("Failed to create cached result index: {}", err);
+                                log::error!("Failed to create cached result index: {err}");
                                 return Err(IndexError::NotSupported);
                             }
                         };

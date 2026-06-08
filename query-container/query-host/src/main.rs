@@ -155,7 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match dapr_server.start(Some(3000)).await {
         Ok(_) => log::info!("Dapr server exited"),
-        Err(e) => log::error!("Dapr server exited with error {:?}", e),
+        Err(e) => log::error!("Dapr server exited with error {e:?}"),
     };
 
     drop(dapr_server);
