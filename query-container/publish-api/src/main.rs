@@ -41,9 +41,7 @@ async fn main() {
         Err(_) => String::from("redis://drasi-redis:6379"),
     };
 
-    log::info!(
-        "Drasi Publish API starting up for query node: {query_container_id}"
-    );
+    log::info!("Drasi Publish API starting up for query node: {query_container_id}");
 
     let topic = format!("{query_container_id}-publish");
 

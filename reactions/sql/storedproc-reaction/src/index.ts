@@ -29,11 +29,11 @@ let knex = knexLib({
     client: databaseClient,
     connection: {
       host : databaseHostname,
-      port : databasePort,
+      port : databasePort ? Number(databasePort) : undefined,
       user :   databaseUser,
       password : databasePassword,
       database : databaseDbname,
-      ssl: databaseSsl
+      ssl: Boolean(databaseSsl)
     }
   });
 
@@ -50,7 +50,7 @@ if (databaseClient === 'mssql') {
             port: Number(databasePort),
             encrypt: true,
           },
-        }
+        } as any
       });
 }
 
