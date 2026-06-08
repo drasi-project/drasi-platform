@@ -32,8 +32,9 @@ jobs:
       clippy-command: make lint-check
       fmt-command: 'true'
       # Keep `-D warnings` so first-party warnings still fail the build, but
-      # allow `unused_imports` because the vendored drasi-core submodule (pinned
-      # to a commit older than the upstream fix) emits this warning and we
+      # allow `unused_imports` and `unused_variables` because the vendored drasi-core submodule (pinned
+      # to a commit older than the upstream fix) emits these warnings and we
       # don't want to bump the submodule in this PR.
-      rustflags: '-D warnings -A unused-imports'
+      # We will remove the `-A` once we swtich to using crates
+      rustflags: '-D warnings -A unused-imports -A unused-variables'
 
