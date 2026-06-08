@@ -3,6 +3,10 @@ members = [
     "publish-api",
     "view-svc",
     "query-host"]
+# The drasi-core git submodule is its own Cargo workspace. Exclude it from this
+# workspace so cargo doesn't try to fold its members into ours (which would
+# break workspace.package inheritance inside drasi-core).
+exclude = ["query-host/drasi-core"]
 [workspace.package]
 version = "0.2.0"
 
