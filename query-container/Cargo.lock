@@ -425,7 +425,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "time",
- "uuid",
+ "uuid 1.23.2",
 ]
 
 [[package]]
@@ -566,7 +566,7 @@ dependencies = [
  "serde_json",
  "snafu",
  "url",
- "uuid",
+ "uuid 1.23.2",
  "web-sys",
 ]
 
@@ -830,15 +830,12 @@ checksum = "1435fa1053d8b2fbbe9be7e97eca7f33d37b28409959813daefc1446a14247f1"
 
 [[package]]
 name = "drasi-core"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c0c68c1f2d317fc0aca91f1783cf00b5cb1fff74a1738423a9173c847c53da4"
+version = "0.1.0"
 dependencies = [
  "approx",
  "async-recursion",
  "async-stream",
  "async-trait",
- "bytes",
  "caches",
  "chrono",
  "chrono-tz",
@@ -851,6 +848,7 @@ dependencies = [
  "itoa",
  "lazy_static",
  "log",
+ "mockall 0.13.1",
  "once_cell",
  "opentelemetry",
  "ordered-float",
@@ -867,41 +865,35 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
- "uuid",
+ "uuid 1.23.2",
 ]
 
 [[package]]
 name = "drasi-functions-cypher"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d60a014a212ed9c394d2113630e62e963206b0441011e6878dfff11b01722dcd"
+version = "0.2.0"
 dependencies = [
  "drasi-core",
 ]
 
 [[package]]
 name = "drasi-functions-gql"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7759a545593ba5feeb29491babb0f70a5a5ea74260f6f630291e565b06bf7c26"
+version = "0.2.0"
 dependencies = [
  "drasi-core",
+ "tokio",
 ]
 
 [[package]]
 name = "drasi-index-garnet"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01ad8399fac14f43f1de472b31dc6505d5fb1648e4b254b870937f41bc4c3029"
+version = "0.1.0"
 dependencies = [
  "async-recursion",
+ "async-stream",
  "async-trait",
  "bit-set",
- "bytes",
  "drasi-core",
  "drasi-query-ast",
  "fnv",
- "futures",
  "hashers",
  "log",
  "ordered-float",
@@ -909,26 +901,24 @@ dependencies = [
  "redis 0.25.5",
  "serde",
  "serde_json",
+ "shared-tests",
  "siphasher 0.3.11",
  "tokio",
  "tracing",
+ "uuid 0.8.2",
 ]
 
 [[package]]
 name = "drasi-index-rocksdb"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7dfd47cb2b52803ff7519529f82301a4c1b929ce957937d542fae77139e8b52"
+version = "0.1.0"
 dependencies = [
  "async-stream",
  "async-trait",
  "bit-set",
- "bytes",
  "drasi-core",
  "drasi-query-ast",
  "fastmurmur3",
  "fnv",
- "futures",
  "hashers",
  "log",
  "ordered-float",
@@ -936,22 +926,24 @@ dependencies = [
  "rocksdb",
  "serde",
  "serde_json",
+ "shared-tests",
  "tokio",
  "tracing",
+ "uuid 0.8.2",
 ]
 
 [[package]]
 name = "drasi-middleware"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "452aee2c7b77cddf35886912dddf1a4a0c7b4b6ceee033525338c9062ea90c07"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
  "drasi-core",
  "hex",
+ "jq-rs",
  "jsonpath-rust",
  "log",
+ "ordered-float",
  "serde",
  "serde_json",
  "tokio",
@@ -960,9 +952,7 @@ dependencies = [
 
 [[package]]
 name = "drasi-query-ast"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f2621be8fade50d49f1ef475e0f5f7e4bd5f4ac60983fca5b4d46f2ea307087"
+version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -971,9 +961,7 @@ dependencies = [
 
 [[package]]
 name = "drasi-query-cypher"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e45aa57f6e9e997a26b1266f92f69abf4f10ebe69d2f5ffc193a7ca2a6a416ae"
+version = "0.1.0"
 dependencies = [
  "drasi-query-ast",
  "peg",
@@ -983,9 +971,7 @@ dependencies = [
 
 [[package]]
 name = "drasi-query-gql"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "023cb055fb27d8b8a033becf33811bb914c6151340e0efda56972367937885c8"
+version = "0.1.0"
 dependencies = [
  "drasi-query-ast",
  "peg",
@@ -1848,6 +1834,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "jq-rs"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9cfaeae42ef96b227ab787558cc7bbd5f1dfe96b4df7c63f92853017751b0e4"
+dependencies = [
+ "jq-sys",
+]
+
+[[package]]
+name = "jq-sys"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81b65b7e54bd2fffc8cb20cbcf19f40d3158dab5cf5b5adb1f65f9b35eba4c48"
+dependencies = [
+ "pkg-config",
+]
+
+[[package]]
 name = "js-sys"
 version = "0.3.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2069,7 +2073,21 @@ dependencies = [
  "downcast",
  "fragile",
  "lazy_static",
- "mockall_derive",
+ "mockall_derive 0.12.1",
+ "predicates",
+ "predicates-tree",
+]
+
+[[package]]
+name = "mockall"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39a6bfcc6c8c7eed5ee98b9c3e33adc726054389233e201c95dab2d41a3839d2"
+dependencies = [
+ "cfg-if",
+ "downcast",
+ "fragile",
+ "mockall_derive 0.13.1",
  "predicates",
  "predicates-tree",
 ]
@@ -2079,6 +2097,18 @@ name = "mockall_derive"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af7cbce79ec385a1d4f54baa90a76401eb15d9cab93685f62e7e9f942aa00ae2"
+dependencies = [
+ "cfg-if",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "mockall_derive"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25ca3004c2efe9011bd4e461bd8256445052b9615405b4f7ea43fc8ca5c20898"
 dependencies = [
  "cfg-if",
  "proc-macro2",
@@ -2129,7 +2159,7 @@ dependencies = [
  "trust-dns-proto",
  "trust-dns-resolver",
  "typed-builder",
- "uuid",
+ "uuid 1.23.2",
  "webpki-roots 0.25.4",
 ]
 
@@ -2754,7 +2784,7 @@ dependencies = [
  "futures",
  "gethostname",
  "log",
- "mockall",
+ "mockall 0.12.1",
  "once_cell",
  "opentelemetry",
  "opentelemetry-otlp",
@@ -2770,7 +2800,7 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
- "uuid",
+ "uuid 1.23.2",
 ]
 
 [[package]]
@@ -3507,6 +3537,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "shared-tests"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.22.1",
+ "chrono",
+ "drasi-core",
+ "drasi-functions-cypher",
+ "drasi-middleware",
+ "drasi-query-ast",
+ "drasi-query-cypher",
+ "env_logger 0.10.2",
+ "futures",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -4290,6 +4340,16 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+dependencies = [
+ "getrandom 0.2.17",
+ "serde",
+]
+
+[[package]]
+name = "uuid"
 version = "1.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d258b83ceec21034727ecee8c382cfa6c3e133699b0742c64571814fb420c9f7"
@@ -4348,7 +4408,7 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
- "uuid",
+ "uuid 1.23.2",
 ]
 
 [[package]]

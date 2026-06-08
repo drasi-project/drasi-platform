@@ -6,15 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-drasi-core = "0.5.3"
-drasi-query-cypher = "0.3.6"
-drasi-query-gql = "0.3.6"
-drasi-query-ast = "0.3.5"
-drasi-functions-cypher = "0.5.3"
-drasi-functions-gql = "0.5.3"
-drasi-middleware = "0.5.3"
-drasi-index-garnet = "0.3.0"
-drasi-index-rocksdb = "0.5.4"
+drasi-core = { path = "./drasi-core/core" }
+drasi-query-cypher = { path = "./drasi-core/query-cypher" }
+drasi-query-gql = { path = "./drasi-core/query-gql" }
+drasi-query-ast = { path = "./drasi-core/query-ast" }
+drasi-functions-cypher = { path = "./drasi-core/functions-cypher" }
+drasi-functions-gql = { path = "./drasi-core/functions-gql" }
+drasi-middleware = { path = "./drasi-core/middleware" }
+drasi-index-garnet = { path = "./drasi-core/index-garnet" }
+drasi-index-rocksdb = { path = "./drasi-core/index-rocksdb" }
 dapr = "=0.15.1"
 dapr-macros = {version = "=0.15.1", package = "dapr-macros"}
 env_logger = "0.11"
@@ -47,16 +47,3 @@ uuid = {version = "1.4.1", features = ["v4"]}
 
 [profile.release]
 lto = true
-
-# Uncomment to develop against a local checkout of drasi-core sitting next to
-# this repo. Adjust the relative path to match your workspace layout.
-# [patch.crates-io]
-# drasi-core             = { path = "../../../drasi-core/core" }
-# drasi-query-cypher     = { path = "../../../drasi-core/query-cypher" }
-# drasi-query-gql        = { path = "../../../drasi-core/query-gql" }
-# drasi-query-ast        = { path = "../../../drasi-core/query-ast" }
-# drasi-functions-cypher = { path = "../../../drasi-core/functions-cypher" }
-# drasi-functions-gql    = { path = "../../../drasi-core/functions-gql" }
-# drasi-middleware       = { path = "../../../drasi-core/middleware" }
-# drasi-index-garnet     = { path = "../../../drasi-core/index-garnet" }
-# drasi-index-rocksdb    = { path = "../../../drasi-core/index-rocksdb" }
