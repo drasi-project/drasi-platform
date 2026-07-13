@@ -192,17 +192,16 @@ async def test_yields_nothing_on_non_200():
 
 
 @pytest.mark.asyncio
-async def test_yields_nothing_when_container_lookup_fails():
-    """If the management client throws, we should log and yield nothing."""
+async def test_raises_when_container_lookup_fails():
+    """If the management client throws, the failure should propagate so the caller
+    can tell the query ID didn't resolve — matches the .NET and JS SDKs."""
     mock_mgmt = AsyncMock(spec=ManagementClient)
     mock_mgmt.get_query_container_id.side_effect = RuntimeError("API is down")
 
     client = ResultViewClient(mock_mgmt)
-    items = []
-    async for view_item in client.get_current_result("q1"):
-        items.append(view_item)
-
-    assert items == []
+    with pytest.raises(RuntimeError, match="Couldn't resolve container"):
+        async for _ in client.get_current_result("q1"):
+            pass
 
 
 @pytest.mark.asyncio
