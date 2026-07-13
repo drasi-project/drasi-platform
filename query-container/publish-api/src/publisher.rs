@@ -33,8 +33,7 @@ impl Publisher {
             Ok(client) => client,
             Err(e) => {
                 return Err(PublishError::ConnectionError(format!(
-                    "Error connecting to redis: {}",
-                    e
+                    "Error connecting to redis: {e}"
                 )))
             }
         };
@@ -43,8 +42,7 @@ impl Publisher {
             Ok(connection) => connection,
             Err(e) => {
                 return Err(PublishError::ConnectionError(format!(
-                    "Error connecting to redis: {}",
-                    e
+                    "Error connecting to redis: {e}"
                 )))
             }
         };
@@ -64,8 +62,7 @@ impl Publisher {
             Ok(now) => now.as_nanos().to_string(),
             Err(e) => {
                 return Err(PublishError::Other(format!(
-                    "Error getting current time: {}",
-                    e
+                    "Error getting current time: {e}"
                 )))
             }
         };
@@ -80,13 +77,12 @@ impl Publisher {
 
         let _: redis::Value = match connection.xadd(&self.topic, "*", &items).await {
             Ok(ret) => {
-                log::debug!("Publish result: {:?}", ret);
+                log::debug!("Publish result: {ret:?}");
                 ret
             }
             Err(e) => {
                 return Err(PublishError::Other(format!(
-                    "Error publishing to topic: {}",
-                    e
+                    "Error publishing to topic: {e}"
                 )))
             }
         };

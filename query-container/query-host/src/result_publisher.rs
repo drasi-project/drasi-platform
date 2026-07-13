@@ -44,7 +44,7 @@ impl ResultPublisher {
         query_id: &str,
         data: ResultEvent,
     ) -> Result<(), Box<dyn Error + Send>> {
-        let topic = format!("{}-results", query_id);
+        let topic = format!("{query_id}-results");
         log::info!("Publishing {:#?}", data);
 
         let mut request = self

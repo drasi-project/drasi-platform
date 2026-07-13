@@ -4,6 +4,7 @@
       "declaration": true,
       "emitDeclarationOnly": false,
       "module": "commonjs",
+      "rootDir": "./src",
       "outDir": "./dist",
       "esModuleInterop": true,
       //"skipLibCheck": true,

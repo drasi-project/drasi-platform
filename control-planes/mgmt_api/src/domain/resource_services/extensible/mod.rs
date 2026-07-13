@@ -157,7 +157,7 @@ where
                             .invoker
                             .invoke(
                                 Payload::None,
-                                format!("{}-{}", id, service_name).as_str(),
+                                format!("{id}-{service_name}").as_str(),
                                 "deprovision",
                                 None,
                             )
@@ -424,8 +424,7 @@ fn merge_spec(
                     None => {
                         return Err(DomainError::InvalidSpec {
                             message: format!(
-                                "Unable to retrieve the service properties for {}",
-                                service_name
+                                "Unable to retrieve the service properties for {service_name}"
                             ),
                         })
                     }
@@ -518,7 +517,7 @@ fn merge_spec(
                                         }),
                                     },
                                     None => return Err(DomainError::InvalidSpec {
-                                        message: format!("Unable to retrieve the target port; {} is not defined", target),
+                                        message: format!("Unable to retrieve the target port; {target} is not defined"),
                                     }),
                                 }
                             },

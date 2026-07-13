@@ -102,7 +102,7 @@ impl ReactionActor {
                                     // If host is set and not "*", use the hostname
                                     if let Some(host) = &rule.host {
                                         if !host.is_empty() && host != "*" {
-                                            return Some(format!("http://{}", host));
+                                            return Some(format!("http://{host}"));
                                         }
                                     }
 
@@ -114,13 +114,12 @@ impl ReactionActor {
                                                     if !ingress_list.is_empty() {
                                                         let ingress_item = &ingress_list[0];
                                                         if let Some(ip) = &ingress_item.ip {
-                                                            return Some(format!("http://{}", ip));
+                                                            return Some(format!("http://{ip}"));
                                                         } else if let Some(hostname) =
                                                             &ingress_item.hostname
                                                         {
                                                             return Some(format!(
-                                                                "http://{}",
-                                                                hostname
+                                                                "http://{hostname}"
                                                             ));
                                                         }
                                                     }

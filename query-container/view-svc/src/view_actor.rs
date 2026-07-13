@@ -124,7 +124,7 @@ impl ViewActor {
     pub async fn configure(&self, DaprJson(spec): DaprJson<ViewSpec>) -> impl IntoResponse {
         log::info!("{} configure", self.query_id);
         if let Err(err) = self.write_config(spec).await {
-            log::error!("Error writing config: {}", err);
+            log::error!("Error writing config: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error writing config",
@@ -133,7 +133,7 @@ impl ViewActor {
         };
 
         if let Err(err) = self.register_reminder().await {
-            log::error!("Error registering reminder: {}", err);
+            log::error!("Error registering reminder: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error registering reminder",
@@ -142,7 +142,7 @@ impl ViewActor {
         }
 
         if let Err(err) = self.init_worker().await {
-            log::error!("Error initializing worker: {}", err);
+            log::error!("Error initializing worker: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error initializing worker",
@@ -156,7 +156,7 @@ impl ViewActor {
     pub async fn deprovision(&self) -> impl IntoResponse {
         log::info!("{} deprovision", self.query_id);
         if let Err(err) = self.unregister_reminder().await {
-            log::error!("Error unregistering reminder: {}", err);
+            log::error!("Error unregistering reminder: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error unregistering reminder",
@@ -169,7 +169,7 @@ impl ViewActor {
         }
 
         if let Err(err) = self.store.delete_view(&self.query_id).await {
-            log::error!("Error deleting view: {}", err);
+            log::error!("Error deleting view: {err}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Error deleting view",
@@ -222,7 +222,7 @@ impl ViewActor {
                             Ok(true)
                         }
                         Err(e) => {
-                            log::error!("Error deserializing config: {}", e);
+                            log::error!("Error deserializing config: {e}");
                             Err(ActorError::SerializationError())
                         }
                     }
@@ -232,7 +232,7 @@ impl ViewActor {
                 }
             }
             Err(e) => {
-                log::error!("Error reading config: {}", e);
+                log::error!("Error reading config: {e}");
                 Err(ActorError::CorruptedState)
             }
         }
@@ -247,7 +247,7 @@ impl ViewActor {
             value: Some(match serde_json::to_vec(&config) {
                 Ok(s) => s,
                 Err(e) => {
-                    log::error!("Error serializing config: {}", e);
+                    log::error!("Error serializing config: {e}");
                     return Err(ActorError::SerializationError());
                 }
             }),
@@ -258,7 +258,7 @@ impl ViewActor {
         match result {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error persisting config: {}", e);
+                log::error!("Error persisting config: {e}");
                 Err(ActorError::CorruptedState)
             }
         }
@@ -278,7 +278,7 @@ impl ViewActor {
         {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error registering reminder: {}", e);
+                log::error!("Error registering reminder: {e}");
                 Err(ActorError::MethodError(Box::new(e)))
             }
         }
@@ -289,7 +289,7 @@ impl ViewActor {
         match client.unregister_actor_reminder("ping").await {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error unregistering reminder: {}", e);
+                log::error!("Error unregistering reminder: {e}");
                 Err(ActorError::MethodError(Box::new(e)))
             }
         }

@@ -99,7 +99,7 @@ public class PostgreSql implements DatabaseStrategy {
                 .with("plugin.name", "pgoutput")
                 // Default is all_tables.
                 .with("publication.autocreate.mode", "filtered")
-                // Name of publication created when using pgoutput plugin. Deault is dbz_publication.
+                // Name of publication created when using pgoutput plugin. Default is dbz_publication.
                 .with("publication.name", publicationSlotName)
                 // Name of replication slot for streaming changes from the database. Default is debezium. 
                 .with("slot.name", publicationSlotName)

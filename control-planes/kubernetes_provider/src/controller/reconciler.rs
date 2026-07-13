@@ -120,7 +120,7 @@ impl ResourceReconciler {
 
                     let label_selector = deployment_labels
                         .iter()
-                        .map(|(k, v)| format!("{}={}", k, v))
+                        .map(|(k, v)| format!("{k}={v}"))
                         .collect::<Vec<String>>()
                         .join(",");
 
@@ -567,7 +567,7 @@ impl ResourceReconciler {
             log::info!("Reconciling ingresses {}", self.spec.resource_id);
 
             let ip_suffix = match self.get_ingress_external_ip().await {
-                Some(ip) => format!("{}.nip.io", ip),
+                Some(ip) => format!("{ip}.nip.io"),
                 None => {
                     log::warn!("Could not determine external IP, using UNAVAILABLE");
                     "UNAVAILABLE".to_string()
@@ -767,7 +767,7 @@ fn calc_deployment_hash(spec: &KubernetesSpec) -> String {
     cm_data.hash(&mut hash);
 
     let hsh = hash.finish();
-    format!("{:02x}", hsh)
+    format!("{hsh:02x}")
 }
 
 fn calc_service_account_hash(spec: &KubernetesSpec) -> String {
@@ -777,5 +777,5 @@ fn calc_service_account_hash(spec: &KubernetesSpec) -> String {
     sa_data.hash(&mut hash);
 
     let hsh = hash.finish();
-    format!("{:02x}", hsh)
+    format!("{hsh:02x}")
 }
