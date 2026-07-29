@@ -28,7 +28,7 @@
     "@aws-sdk/client-eventbridge": "^3.645.0",
     "@microsoft/signalr": "^7.0.2",
     "axios": "^1.11.0",
-    "gremlin": "^3.7.3",
+    "gremlin": "^3.7.4",
     "jest-junit": "^16.0.0",
     "js-yaml": "^4.1.0",
     "knex": "^2.4.2",

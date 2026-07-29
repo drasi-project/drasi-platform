@@ -12,64 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Run lint checks
+name: Rust Lint
 
 on:
-  push:
-    branches: ['*']
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
-  lint_check:
-    name: Cargo Clippy lint check
-    env:
-      # Set RUSTFLAGS for Clippy linting
-      # RUSTFLAGS: |
-      #   -Dwarnings                        # Treat warnings as errors
-      #   -W clippy::print_stdout           # Warn on use of 'print' and 'println!'
-      #   -A unused                         # Allow unused code (false positive occurences in query-perf)
-      #   -A clippy::module_inception       # Allow module inception (module with same name as the file)
-      #   -A clippy::ptr_arg                # Allow passing references as function parameters
-      #   -A clippy::type_complexity        # Allow complex types without warning
-      RUSTFLAGS: |
-        -Dwarnings                        
-        -W clippy::print_stdout       
-        -A unused                         
-        -A clippy::module_inception       
-        -A clippy::ptr_arg                
-        -A clippy::type_complexity      
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          submodules: true
-      - name: Install specific Rust version
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: 1.83.0 # Pin to a specific Rust version
-          override: true
+  lint:
+    uses: drasi-project/.github/.github/workflows/rust-lint.yaml@main
+    with:
+      install-jq: true
+      # `make lint-check` recurses through every Cargo project and runs both
+      # `cargo fmt -- --check` and `cargo clippy ...`, so the reusable
+      # workflow's separate fmt job is intentionally a no-op below.
+      clippy-command: make lint-check
+      fmt-command: 'true'
+      # Keep `-D warnings` so first-party warnings still fail the build, but
+      # allow `unused_imports` and `unused_variables` because the vendored drasi-core submodule (pinned
+      # to a commit older than the upstream fix) emits these warnings and we
+      # don't want to bump the submodule in this PR.
+      # We will remove the `-A` once we swtich to using crates
+      rustflags: '-D warnings -A unused-imports -A unused-variables'
 
-      - name: Install Clippy
-        run: rustup component add clippy rustfmt
-
-      - name: Install dependencies
-        run: sudo apt-get install -y protobuf-compiler jq libjq-dev
-      
-      - name: Set JQ_LIB_DIR
-        run: echo "JQ_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-
-      # Cache Cargo dependencies
-      - name: Cache Cargo registry
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Lint check
-        run: make lint-check

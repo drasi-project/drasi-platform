@@ -62,7 +62,7 @@ pub fn build_deployment_spec(
     persistent_volumes: Option<BTreeMap<String, String>>,
     app_protocol: Option<String>,
 ) -> DeploymentSpec {
-    let app_id = format!("{}-{}", resource_id, service_name);
+    let app_id = format!("{resource_id}-{service_name}");
 
     let mut env = map_env_vars(env_vars);
     let mut ports = Vec::new();

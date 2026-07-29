@@ -9,26 +9,30 @@ class QueryConfig {
 }
 
 class CallSpec {
-    url: string;
-    method: Method;
-    body: string;
+    url!: string;
+    method!: Method;
+    body!: string;
     headers?: { [key: string]: string };
 }
 
 class ReactionConfig {
-    baseUrl: string;
+    baseUrl!: string;
     token?: string;
     timeout: number = 10000;
 }
 
 const reactionConfig: ReactionConfig = {
-    baseUrl: getConfigValue("baseUrl"),
+    baseUrl: getConfigValue("baseUrl")!,
     token: getConfigValue("token"),
     timeout: parseInt(getConfigValue("timeout") || "10000")
 }
 
 async function onChangeEvent(event: ChangeEvent, queryConfig?: QueryConfig): Promise<void> {
     console.log(`Received change sequence: ${event.sequence} for query ${event.queryId}`);
+
+    if (!queryConfig) {
+        return;
+    }
 
     if (queryConfig.added) {
         let urlTemplate = Handlebars.compile(queryConfig.added.url);

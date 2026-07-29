@@ -82,23 +82,19 @@ impl Actor for QueryActor {
                                 value: Some(match serde_json::to_vec(&state) {
                                     Ok(s) => s,
                                     Err(e) => {
-                                        log::error!(
-                                            "Query {} Error serializing status: {}",
-                                            qid,
-                                            e
-                                        );
+                                        log::error!("Query {qid} Error serializing status: {e}");
                                         continue;
                                     }
                                 }),
                             }])
                             .await;
                         match res {
-                            Ok(_) => log::info!("Query {} Status updated to {}", qid, state),
-                            Err(e) => log::error!("Query {} Error updating status: {}", qid, e),
+                            Ok(_) => log::info!("Query {qid} Status updated to {state}"),
+                            Err(e) => log::error!("Query {qid} Error updating status: {e}"),
                         }
                     }
                     Err(e) => {
-                        log::info!("status watcher closed - {}", e);
+                        log::info!("status watcher closed - {e}");
                         break;
                     }
                 }
@@ -149,7 +145,7 @@ impl Actor for QueryActor {
             .config
             .get()
             .await
-            .map_or(false, |c| c.transient.is_some_and(|f| f));
+            .is_some_and(|c| c.transient.is_some_and(|f| f));
         if let Some(w) = self.worker.take().await {
             if transient {
                 w.delete();
@@ -371,7 +367,7 @@ impl QueryActor {
         {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error registering reminder: {}", e);
+                log::error!("Error registering reminder: {e}");
                 Err(ActorError::MethodError(Box::new(e)))
             }
         }
@@ -382,7 +378,7 @@ impl QueryActor {
         match client.unregister_actor_reminder("ping").await {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error unregistering reminder: {}", e);
+                log::error!("Error unregistering reminder: {e}");
                 Err(ActorError::MethodError(Box::new(e)))
             }
         }
@@ -396,7 +392,7 @@ impl QueryActor {
             value: Some(match serde_json::to_vec(&config_value) {
                 Ok(s) => s,
                 Err(e) => {
-                    log::error!("Error serializing config: {}", e);
+                    log::error!("Error serializing config: {e}");
                     return Err(ActorError::SerializationError());
                 }
             }),
@@ -407,7 +403,7 @@ impl QueryActor {
         match result {
             Ok(_) => Ok(()),
             Err(e) => {
-                log::error!("Error persisting config: {}", e);
+                log::error!("Error persisting config: {e}");
                 Err(ActorError::CorruptedState)
             }
         }
@@ -423,14 +419,14 @@ impl QueryActor {
                     match serde_json::from_slice(&s.data) {
                         Ok(s) => s,
                         Err(e) => {
-                            log::error!("Error deserializing status: {}", e);
+                            log::error!("Error deserializing status: {e}");
                             return Err(ActorError::SerializationError());
                         }
                     }
                 }
             }),
             Err(e) => {
-                log::error!("Error reading status: {}", e);
+                log::error!("Error reading status: {e}");
                 return Err(ActorError::CorruptedState);
             }
         };
@@ -443,7 +439,7 @@ impl QueryActor {
                     let cfg: Option<QuerySpec> = match serde_json::from_slice(&s.data) {
                         Ok(s) => s,
                         Err(e) => {
-                            log::error!("Error deserializing config: {}", e);
+                            log::error!("Error deserializing config: {e}");
                             return Err(ActorError::SerializationError());
                         }
                     };
@@ -454,7 +450,7 @@ impl QueryActor {
                 }
             }
             Err(e) => {
-                log::error!("Error reading config: {}", e);
+                log::error!("Error reading config: {e}");
                 return Err(ActorError::CorruptedState);
             }
         };

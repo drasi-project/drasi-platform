@@ -1,0 +1,22 @@
+# Typos spell checker configuration
+# https://github.com/crate-ci/typos/blob/master/docs/reference.md
+
+[files]
+extend-exclude = [
+    "target/",
+    "Cargo.lock",
+    "*.snap",
+    "node_modules/",
+    "output/",
+    "query-container/query-host/drasi-core/",
+    "cli/go.mod",
+    "cli/go.sum",
+    "reactions/signalr/signalr-reaction/clients/react/src/unpacked-generated.ts",
+]
+
+[default.extend-words]
+ba = "ba"
+SCHEM = "SCHEM"
+AKS = "AKS"
+aks = "aks"
+

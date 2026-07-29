@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = match QueryApiConfig::new() {
         Ok(config) => config,
         Err(e) => {
-            panic!("Error parsing the configuration: {:?}", e);
+            panic!("Error parsing the configuration: {e:?}");
         }
     };
     log::info!(
@@ -196,7 +196,7 @@ async fn dispatch_control_event(
             log::error!("Error publishing the subscription event: {:?}", e);
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error publishing the subscription event: {:?}", e),
+                format!("Error publishing the subscription event: {e:?}"),
             )
                 .into_response());
         }
@@ -243,7 +243,7 @@ async fn dispatch_unsubscription_event(
             log::error!("Error publishing the unsubscription event: {:?}", e);
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error publishing the unsubscription event: {:?}", e),
+                format!("Error publishing the unsubscription event: {e:?}"),
             )
                 .into_response());
         }
@@ -262,7 +262,7 @@ async fn acquire_v1(
             log::error!("Error serializing the subscription request: {:?}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error serializing the subscription request: {:?}", e),
+                format!("Error serializing the subscription request: {e:?}"),
             )
                 .into_response();
         }
@@ -285,7 +285,7 @@ async fn acquire_v1(
             log::error!("Error invoking the acquire method on the proxy: {:?}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error invoking acquire: {:?}", e),
+                format!("Error invoking acquire: {e:?}"),
             )
                 .into_response();
         }
@@ -297,7 +297,7 @@ async fn acquire_v1(
             log::error!("Error parsing the response from the proxy: {:?}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error parsing the response from the proxy: {:?}", e),
+                format!("Error parsing the response from the proxy: {e:?}"),
             )
                 .into_response();
         }
@@ -330,7 +330,7 @@ async fn acquire_v2(
             log::error!("Error serializing the subscription request: {:?}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error serializing the subscription request: {:?}", e),
+                format!("Error serializing the subscription request: {e:?}"),
             )
                 .into_response();
         }
@@ -356,7 +356,7 @@ async fn acquire_v2(
             );
             return (
                 StatusCode::BAD_GATEWAY,
-                format!("Error invoking acquire-stream: {:?}", e),
+                format!("Error invoking acquire-stream: {e:?}"),
             )
                 .into_response();
         }

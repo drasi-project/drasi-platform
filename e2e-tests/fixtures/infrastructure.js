@@ -124,6 +124,19 @@ async function installDrasi(version = "latest") {
     }),
     "install",
   );
+
+  // E2E runs do not always include an otel-collector service. Disable Dapr
+  // tracing export to avoid startup/readiness failures from unresolved
+  // telemetry endpoints (for example http://otel-collector:9411).
+  await waitForChildProcess(
+    cp.exec(
+      "kubectl patch configuration dapr-config -n drasi-system --type merge -p '{\"spec\":{\"tracing\":{\"samplingRate\":\"0\"}}}'",
+      {
+        encoding: "utf-8",
+      },
+    ),
+    "disable-tracing",
+  );
 }
 
 async function installDrasiIngress() {

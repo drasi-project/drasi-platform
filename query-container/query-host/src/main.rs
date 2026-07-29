@@ -85,7 +85,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let index_factory = Arc::new(IndexFactory::new());
 
-    let actor_name = format!("{}.ContinuousQuery", query_container_id);
+    let actor_name = format!("{query_container_id}.ContinuousQuery");
     let source_client = Arc::new(SourceClient::new(reqwest::Client::new()));
     let publisher = Arc::new(ResultPublisher::new(
         dapr_host.into(),
@@ -155,7 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match dapr_server.start(Some(3000)).await {
         Ok(_) => log::info!("Dapr server exited"),
-        Err(e) => log::error!("Dapr server exited with error {:?}", e),
+        Err(e) => log::error!("Dapr server exited with error {e:?}"),
     };
 
     drop(dapr_server);
