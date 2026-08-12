@@ -80,3 +80,55 @@ custom_reaction = DrasiReaction(
 # Start the Reaction
 custom_reaction.start()
 ```
+
+### Durable reaction state
+
+A ReactionProvider can request a dedicated Dapr state store by setting
+`state_store: true`:
+
+```yaml
+apiVersion: v1
+kind: ReactionProvider
+name: PythonStatefulReaction
+spec:
+  state_store: true
+  services:
+    reaction:
+      image: python-stateful-reaction
+```
+
+The platform injects the generated component name as `StateStoreName`. Use the
+official Dapr SDK to access it:
+
+```python
+import os
+
+from dapr.aio.clients import DaprClient
+
+async def update_routing_rules():
+    store_name = os.environ["StateStoreName"]
+
+    async with DaprClient() as client:
+        current = await client.get_state(
+            store_name=store_name,
+            key="routing-rules",
+        )
+        await client.save_state(
+            store_name=store_name,
+            key="routing-rules",
+            value='{"route": "agent"}',
+            etag=current.etag or None,
+        )
+```
+
+`get_state` returns the store ETag in `current.etag`. Passing it to
+`save_state` enables optimistic concurrency when the configured state store
+supports ETags. The Dapr SDK also provides consistency options, transactions,
+bulk operations, deletes, and request metadata.
+
+The platform creates a per-reaction Dapr Component, not a separate backing
+database. Components use the state store configured when Drasi is installed
+and are not currently scoped to the reaction's Dapr app IDs. Deleting a
+reaction removes its state-store and pub/sub Component resources, but does not
+purge records from the shared backing store. Recreating the same reaction ID
+may make its previous state accessible again.

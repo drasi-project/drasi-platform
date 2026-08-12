@@ -131,6 +131,7 @@ impl From<ReactionSpec> for resource_provider_api::models::ReactionSpec {
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
             queries: reaction_spec.queries,
             identity: reaction_spec.identity.map(|identity| identity.into()),
+            state_store: reaction_spec.state_store,
         }
     }
 }

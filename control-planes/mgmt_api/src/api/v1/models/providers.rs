@@ -24,6 +24,11 @@ use super::ConfigValueDto;
 pub struct ProviderSpecDto {
     pub services: HashMap<String, ProviderServiceDto>,
     pub config_schema: Option<JsonSchemaDto>,
+    /// Whether resources using this provider require a per-resource Dapr state-store
+    /// component. Currently provisioned for reactions; source support is reserved for
+    /// a future release.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state_store: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
