@@ -20,7 +20,6 @@ from typing import Any
 
 from dapr.clients import DaprClient
 from fastapi import FastAPI
-from pydantic_handlebars import render
 
 from drasi.reaction.models.ChangeEvent import ChangeEvent
 from drasi.reaction.models.ChangeNotification import ChangeNotification
