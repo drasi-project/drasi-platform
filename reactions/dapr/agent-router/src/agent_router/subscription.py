@@ -57,22 +57,6 @@ class SubscriptionRegistry():
         self._lock = asyncio.Lock()
 
 
-    def new_subscription_id(self, agent_id: str) -> str:
-        """
-        Generate a subscription ID from an agent ID. Currently a no-op that echoes the agent ID.
-
-        Args:
-            agent_id (str): Agent ID for which to generate a subscription ID.
-
-        Returns:
-            str: The generated subscription ID.
-        """
-        # TODO: Subscription ID is currently the client-provided agent ID (which can be anything).
-        # Should it be cryptographic (enforced) and composed with a principal (e.g. API key ID, OAuth sub, SPIFFE ID) in authenticated mode
-        # or source (e.g. registered workflow ID) in unauthenticated mode?
-        return agent_id
-
-
     async def get_subscription(self, query_id: str, subscription_id: str) -> QuerySubscription | None:
         """
         Get a subscription.

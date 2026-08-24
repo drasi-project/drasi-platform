@@ -70,6 +70,7 @@ class AgentRouterToolset:
         query_id: str,
         event_types: Annotated[list[EventType], Field(min_length=1)],
         agent_id: str,
+        subscription_id: str,
         topic: str,
     ) -> SubscribeResult:
         """
@@ -81,6 +82,8 @@ class AgentRouterToolset:
                 Must contain at least one event type.
             agent_id (str): Unique ID of the agent making the subscription.
                 Injected by the agent framework — must never be exposed to the LLM through the tool schema.
+            subscription_id (str): Unique ID of the subscription.
+                Injected by the agent framework — must never be exposed to the LLM through the tool
             topic (str): Name of the topic on which the agent will receive messages.
                 Injected by the agent — must never be exposed to the LLM through the tool schema.
 
@@ -103,12 +106,12 @@ class AgentRouterToolset:
         if self._query_configs.get(query_id) is None:
             raise ToolError(f"Unknown query_id '{query_id}'")
 
-        subscription_id = self._subscription_registry.new_subscription_id(agent_id)
-
-        # TODO: verify that the agent is allowed to subscribe
+        # TODO: Subscription ID comprises a principal (API key ID, OAuth sub, SPIFFE ID, URN)
+        # and a globally unique identifier. This should be verified.
+        qualified_subscription_id = f"{agent_id}:{subscription_id}"
         await self._subscription_registry.upsert_subscription(
             query_id=query_id,
-            subscription_id=subscription_id,
+            subscription_id=qualified_subscription_id,
             topic=topic,
             event_types=event_types,
         )
