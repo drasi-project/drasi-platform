@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import json
 import logging
 from typing import Any
 
@@ -97,11 +98,11 @@ class AgentRouter():
 
     def _get_event_type(self, event: ChangeEvent) -> EventType | None:
         """
-        Return the event type of a Drasi change event.
+        Return the event type of a packed Drasi change event.
         Assumes that the event contains only one type of change (added, updated, or deleted).
 
         Args:
-            event (ChangeEvent): The Drasi change event.
+            event (ChangeEvent): The packed Drasi change event.
         
         Returns:
             EventType | None: The event type (EventType.ADDED, EventType.UPDATED, EventType.DELETED)
@@ -119,15 +120,23 @@ class AgentRouter():
 
     def _to_unpacked_events(self, event: ChangeEvent) -> list[ChangeNotification]:
         """
-        Converts a single Drasi change event (containing batched records) into a flat list
+        Converts a single Drasi change event (containing batched records) into a list
         of unpacked events, one per record.
+        Preserves the original order of the records.
+
+        Args:
+            event (ChangeEvent): The packed Drasi change event.
+
+        Returns:
+            list[ChangeNotification]: A list of unpacked Drasi change events.
+
         """
         source = ChangeSource(
             queryId=event.queryId,
             ts_ms=event.sourceTimeMs,
         )
         # TODO: sequence numbers for "unpacked" events are currently not reliable since they are generated reaction-side,
-        # clients should perform their own deduplication based on payload content or similar.
+        # clients should perform their own deduplication based on payload content or CloudEvents ID.
         # This sequence number is a dummy to enable validation.
         seq = 0
         unpacked_events: list[ChangeNotification] = []
@@ -176,16 +185,14 @@ class AgentRouter():
         Args:
             pubsub_name (str): The name of the Dapr pub/sub component.
             topic (str): The name of the topic on which to publish the event.
-            event (str): The serialized event to publish.
+            event (str): The serialized event to publish (must follow the CloudEvents 1.0 specification).
         """
 
-        # TODO: may want opt-in signing
-        # TODO: add more metadata
         self._dapr_client.publish_event(
             pubsub_name=pubsub_name,
             topic_name=topic,
             data=event,
-            data_content_type="application/json",
+            data_content_type="application/cloudevents+json",
         )
 
 
@@ -244,11 +251,19 @@ class AgentRouter():
 
             # Publish to Dapr pub/sub
             # TODO: may want to bulk publish
-            for sub, evt in bindings:
+            for idx, (sub, evt) in enumerate(bindings):
+                # TODO: add source and type metadata
+                # TODO: opt-in signing?
+                # Construct a CloudEvent ID from the query ID, sequence number of the original packed event,
+                # and row index of the record in the original packed event
+                payload = {
+                    "id": f"{event.queryId}:{event.sequence}:{idx}",
+                    "data": evt,
+                }
                 self._publish_event(
                     pubsub_name=self._pubsub_config.pubsub_name,
                     topic=sub.topic,
-                    event=evt,
+                    event=json.dumps(payload),
                 )
 
         return on_change_event
