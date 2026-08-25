@@ -253,10 +253,11 @@ class AgentRouter():
             for idx, (sub, evt) in enumerate(bindings):
                 # TODO: add source and type metadata
                 # TODO: opt-in signing?
-                # Construct a CloudEvent ID from the query ID, sequence number of the original packed event,
+                # Construct a CloudEvent ID from the query ID, subscription ID,
+                # sequence number of the original packed event,
                 # and row index of the record in the original packed event
                 payload = {
-                    "id": f"{event.queryId}:{event.sequence}:{idx}",
+                    "id": f"{event.queryId}:{sub.id}:{event.sequence}:{idx}",
                     "data": evt,
                 }
                 self._publish_event(
