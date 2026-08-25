@@ -31,8 +31,8 @@ class EventType(StrEnum):
     Enumeration of supported event types.
     
     ADDED: A record was added to the query result set.
-    UPDATED: A record in the query result set was updated.
-    DELETED: A record was removed from the query result set.
+    UPDATED: A record was updated in the query result set.
+    DELETED: A record was deleted from the query result set.
     """
 
     ADDED = "added"
