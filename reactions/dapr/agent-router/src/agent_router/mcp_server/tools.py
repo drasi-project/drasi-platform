@@ -160,9 +160,10 @@ class AgentRouterToolset:
             raise ToolError(f"Unknown query_id '{query_id}'")
 
         # TODO: verify that the agent actually owns the subscription
+        qualified_subscription_id = f"{agent_id}:{subscription_id}"
         subscription = await self._subscription_registry.get_subscription(
             query_id=query_id,
-            subscription_id=subscription_id,
+            subscription_id=qualified_subscription_id,
         )
 
         if subscription is None:
