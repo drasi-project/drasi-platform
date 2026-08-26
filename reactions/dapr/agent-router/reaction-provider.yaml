@@ -24,3 +24,8 @@ spec:
       dapr:
         app-port: "80"
         app-protocol: "http"
+      # TODO: uncomment this once reaction provider endpoints config is fixed
+      # endpoints:
+      #   gateway:
+      #     target: "80"
+      #     setting: internal
