@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import json
 import logging
 from typing import Any
 
@@ -176,22 +175,24 @@ class AgentRouter():
 
         return unpacked_events
 
- 
-    def _publish_event(self, pubsub_name: str, topic: str, event: str) -> None:
+
+    def _publish_event(self, pubsub_name: str, topic: str, event: str, metadata: dict[str, str] | None) -> None:
         """
         Publish an event to a Dapr pub/sub topic.
 
         Args:
             pubsub_name (str): The name of the Dapr pub/sub component.
             topic (str): The name of the topic on which to publish the event.
-            event (str): The serialized event to publish (must follow the CloudEvents 1.0 specification).
+            event (str): The serialized event to publish.
+            metadata (dict[str, str]): Optional metadata for the publish event.
         """
 
         self._dapr_client.publish_event(
             pubsub_name=pubsub_name,
             topic_name=topic,
             data=event,
-            data_content_type="application/cloudevents+json",
+            publish_metadata=metadata or {},
+            data_content_type="application/json",
         )
 
 
@@ -256,14 +257,12 @@ class AgentRouter():
                 # Construct a CloudEvent ID from the query ID, subscription ID,
                 # sequence number of the original packed event,
                 # and row index of the record in the original packed event
-                payload = {
-                    "id": f"{event.queryId}:{sub.id}:{event.sequence}:{idx}",
-                    "data": evt,
-                }
+                ce_id = f"{event.queryId}:{sub.id}:{event.sequence}:{idx}"
                 self._publish_event(
                     pubsub_name=self._pubsub_config.pubsub_name,
                     topic=sub.topic,
-                    event=json.dumps(payload),
+                    event=evt,
+                    metadata={"cloudevent.id": ce_id},
                 )
 
         return on_change_event
