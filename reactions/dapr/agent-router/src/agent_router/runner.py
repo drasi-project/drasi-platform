@@ -47,6 +47,7 @@ class AgentRouterRunner():
         """
         # TODO: shutdown handlers
         self._dapr_client = DaprClient()
+        self._started = False
 
         # Ensure component names are given and
         # components are registered with the Dapr sidecar
@@ -80,8 +81,8 @@ class AgentRouterRunner():
                 "Use the following JSON schema to parse the available Drasi queries:\n\n"
                 f"{json.dumps(QueryResult.model_json_schema())}\n\n"
                 "**Available Queries**:\n\n"
-                f"{json.dumps(QueryResult(query_id="low_stock_event_query", title="Low Stock Event", description="This query detects when the stock on hand for a product falls below the low stock threshold.").model_dump_json())}\n\n"
-                f"{json.dumps(QueryResult(query_id="critical_stock_event_query", title="Critical Stock Event", description="This query detects when the stock on hand for a product drops to zero.").model_dump_json())}\n\n"
+                f"{json.dumps(QueryResult(query_id='low_stock_event_query', title='Low Stock Event', description='This query detects when the stock on hand for a product falls below the low stock threshold.').model_dump_json())}\n\n"
+                f"{json.dumps(QueryResult(query_id='critical_stock_event_query', title='Critical Stock Event', description='This query detects when the stock on hand for a product drops to zero.').model_dump_json())}\n\n"
             ),
         )
         self._mcp_server = MCPServer(
@@ -95,6 +96,7 @@ class AgentRouterRunner():
 
     def start(self) -> None:
         """Start the runtime."""
+        self._started = True
         self._mcp_server.start()
         # Router must be started last as it blocks
         self._router.start()
@@ -102,6 +104,9 @@ class AgentRouterRunner():
 
     def shutdown(self) -> None:
         """Shutdown the runtime in reverse order of instantiation (idempotent)."""
+        if not self._started:
+            return
+
         if self._router:
             try:
                 self._router.shutdown()
@@ -123,6 +128,7 @@ class AgentRouterRunner():
                 pass
             self._dapr_client = None
 
+        self._started = False
 
 
     def _ensure_pubsub(self, dapr_client: DaprClient, pubsub_config: PubSubConfig) -> None:

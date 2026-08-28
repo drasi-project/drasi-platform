@@ -96,6 +96,9 @@ class AgentRouterToolset:
         # Deduplicate event types
         event_types = list(dict.fromkeys(event_types))
 
+        if not event_types:
+            raise ToolError("event_types must contain at least one value")
+
         logger.info(
             f"Subscribing agent '{agent_id}' "
             f"to query '{query_id}' "
@@ -174,7 +177,7 @@ class AgentRouterToolset:
 
         await self._subscription_registry.delete_subscription(
             query_id=query_id,
-            subscription_id=subscription_id,
+            subscription_id=qualified_subscription_id,
         )
 
         logger.info(
