@@ -997,6 +997,13 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/ProviderServiceDto'
+        state_store:
+          type: boolean
+          description: |-
+            Whether resources using this provider require a per-resource Dapr state-store
+            component. Currently provisioned for reactions; source support is reserved for
+            a future release.
+          nullable: true
     QueryContainerDto:
       type: object
       required:

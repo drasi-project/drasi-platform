@@ -215,6 +215,7 @@ impl From<ProviderSpecDto> for ProviderSpec {
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
             config_schema: provider_spec.config_schema.map(|schema| schema.into()),
+            state_store: provider_spec.state_store.unwrap_or_default(),
         }
     }
 }
@@ -228,6 +229,7 @@ impl From<ProviderSpec> for ProviderSpecDto {
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
             config_schema: provider_spec.config_schema.map(|schema| schema.into()),
+            state_store: provider_spec.state_store.then_some(true),
         }
     }
 }

@@ -121,6 +121,8 @@ pub struct ReactionSpec {
     pub properties: Option<HashMap<String, ConfigValue>>,
     pub queries: HashMap<String, String>,
     pub identity: Option<ServiceIdentity>,
+    #[serde(default)]
+    pub state_store: bool,
 }
 
 impl HasKind for ReactionSpec {
@@ -230,6 +232,8 @@ pub struct SourceProviderStatus {
 pub struct ProviderSpec {
     pub services: HashMap<String, ProviderService>,
     pub config_schema: Option<JsonSchema>,
+    #[serde(default)]
+    pub state_store: bool,
 }
 
 pub struct SourceProviderMarker;

@@ -75,9 +75,24 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             },
         );
 
+        let state_store_name = format!("drasi-statestore-{}", reaction.id);
+        if reaction.spec.state_store {
+            env.insert(
+                "StateStoreName".to_string(),
+                ConfigValue::Inline {
+                    value: state_store_name.clone(),
+                },
+            );
+        }
+
+        let mut component_labels = BTreeMap::new();
+        component_labels.insert("drasi/type".to_string(), ResourceType::Reaction.to_string());
+        component_labels.insert("drasi/resource".to_string(), reaction.id.to_string());
+
         let services = reaction.spec.services.clone().unwrap_or_default();
 
         for (service_name, service_spec) in services {
+            let owns_components = specs.is_empty();
             let mut config_volumes = BTreeMap::new();
             let mut config_maps = BTreeMap::new();
 
@@ -257,16 +272,28 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 config_maps,
                 volume_claims: BTreeMap::new(),
                 ingresses: Some(k8s_ingresses),
-                pub_sub: Some(Component {
+                pub_sub: owns_components.then(|| Component {
                     metadata: ObjectMeta {
                         name: Some(pub_sub_name.clone()),
-                        labels: Some(labels.clone()),
+                        labels: Some(component_labels.clone()),
                         ..Default::default()
                     },
                     spec: ComponentSpec {
                         _type: runtime_config.pub_sub_type.clone(),
                         version: runtime_config.pub_sub_version.clone(),
                         metadata: pub_sub_metadata,
+                    },
+                }),
+                state_store: (owns_components && reaction.spec.state_store).then(|| Component {
+                    metadata: ObjectMeta {
+                        name: Some(state_store_name.clone()),
+                        labels: Some(component_labels.clone()),
+                        ..Default::default()
+                    },
+                    spec: ComponentSpec {
+                        _type: runtime_config.state_store_type.clone(),
+                        version: runtime_config.state_store_version.clone(),
+                        metadata: runtime_config.state_store_config.clone(),
                     },
                 }),
                 service_account: None,
@@ -290,4 +317,100 @@ fn calc_hash<T: Serialize>(obj: &T) -> String {
     data.hash(&mut hash);
     let hsh = hash.finish();
     format!("{hsh:02x}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use resource_provider_api::models::Service;
+    use std::collections::HashMap;
+
+    fn build_specs(state_store: bool, service_count: usize) -> Vec<KubernetesSpec> {
+        let services = (0..service_count)
+            .map(|index| {
+                (
+                    format!("service-{index}"),
+                    Service {
+                        replica: None,
+                        image: "reaction-image".to_string(),
+                        external_image: Some(true),
+                        endpoints: None,
+                        dapr: None,
+                        properties: None,
+                    },
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        ReactionSpecBuilder {}.build(
+            ResourceRequest {
+                id: "my-reaction".to_string(),
+                spec: ReactionSpec {
+                    kind: "TestReaction".to_string(),
+                    tag: None,
+                    services: Some(services),
+                    properties: None,
+                    queries: HashMap::new(),
+                    identity: None,
+                    state_store,
+                },
+            },
+            &RuntimeConfig::default(),
+            "instance-id",
+        )
+    }
+
+    fn env_value<'a>(spec: &'a KubernetesSpec, name: &str) -> Option<&'a str> {
+        spec.deployment.template.spec.as_ref().unwrap().containers[0]
+            .env
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|env| env.name == name)
+            .and_then(|env| env.value.as_deref())
+    }
+
+    #[test]
+    fn creates_one_state_store_for_a_multi_service_reaction() {
+        let specs = build_specs(true, 2);
+
+        assert_eq!(specs.len(), 2);
+        assert_eq!(
+            specs.iter().filter(|spec| spec.pub_sub.is_some()).count(),
+            1
+        );
+        assert_eq!(
+            specs
+                .iter()
+                .filter(|spec| spec.state_store.is_some())
+                .count(),
+            1
+        );
+
+        for spec in &specs {
+            assert_eq!(
+                env_value(spec, "StateStoreName"),
+                Some("drasi-statestore-my-reaction")
+            );
+        }
+
+        let state_store = specs
+            .iter()
+            .find_map(|spec| spec.state_store.as_ref())
+            .unwrap();
+        assert_eq!(
+            state_store.metadata.name.as_deref(),
+            Some("drasi-statestore-my-reaction")
+        );
+        assert_eq!(state_store.spec._type, "state.mongodb");
+        assert_eq!(state_store.spec.version, "v1");
+    }
+
+    #[test]
+    fn omits_state_store_when_provider_does_not_request_one() {
+        let specs = build_specs(false, 1);
+
+        assert!(specs[0].state_store.is_none());
+        assert_eq!(env_value(&specs[0], "StateStoreName"), None);
+    }
 }

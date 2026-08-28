@@ -177,6 +177,9 @@ func (t *KubernetesManifestInstaller) generateConfigMapManifest(localMode bool, 
 	}
 
 	cfg["DAPR_SIDECAR"] = "daprio/daprd:" + t.daprSidecarVersion
+	cfg["STATE_STORE_TYPE"] = "state.mongodb"
+	cfg["STATE_STORE_VERSION"] = "v1"
+	cfg["STATE_STORE_CONFIG"] = `[{"name":"connectionString","value":"mongodb://drasi-mongo:27017/?replicaSet=rs0"}]`
 
 	configMap := map[string]interface{}{
 		"apiVersion": "v1",

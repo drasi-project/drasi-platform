@@ -37,6 +37,8 @@ pub struct KubernetesSpec {
     pub volume_claims: BTreeMap<String, PersistentVolumeClaim>,
     pub ingresses: Option<BTreeMap<String, Ingress>>,
     pub pub_sub: Option<Component>,
+    #[serde(default)]
+    pub state_store: Option<Component>,
     pub service_account: Option<ServiceAccount>,
     pub removed: bool,
 }
@@ -58,6 +60,7 @@ impl KubernetesSpec {
             volume_claims: BTreeMap::new(),
             ingresses: Some(BTreeMap::new()),
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         }
@@ -103,6 +106,9 @@ pub struct RuntimeConfig {
     pub pub_sub_type: String,
     pub pub_sub_version: String,
     pub pub_sub_config: Vec<EnvVar>,
+    pub state_store_type: String,
+    pub state_store_version: String,
+    pub state_store_config: Vec<EnvVar>,
     pub ingress_class_name: String,
     pub ingress_load_balancer_service: String,
     pub ingress_load_balancer_namespace: String,
@@ -136,6 +142,16 @@ impl RuntimeConfig {
             },
         ];
 
+        let state_store_config = match std::env::var("STATE_STORE_CONFIG") {
+            Ok(config) => serde_json::from_str(&config)
+                .unwrap_or_else(|e| panic!("Invalid STATE_STORE_CONFIG: {e}")),
+            Err(_) => vec![EnvVar {
+                name: "connectionString".to_string(),
+                value: Some("mongodb://drasi-mongo:27017/?replicaSet=rs0".to_string()),
+                value_from: None,
+            }],
+        };
+
         RuntimeConfig {
             image_prefix: match std::env::var("ACR") {
                 Ok(acr) => format!("{acr}/drasi-project/"),
@@ -166,6 +182,15 @@ impl RuntimeConfig {
                 Err(_) => "v1".to_string(),
             },
             pub_sub_config,
+            state_store_type: match std::env::var("STATE_STORE_TYPE") {
+                Ok(state_store_type) => state_store_type,
+                Err(_) => "state.mongodb".to_string(),
+            },
+            state_store_version: match std::env::var("STATE_STORE_VERSION") {
+                Ok(state_store_version) => state_store_version,
+                Err(_) => "v1".to_string(),
+            },
+            state_store_config,
             ingress_class_name: match std::env::var("INGRESS_CLASS_NAME") {
                 Ok(class_name) => class_name,
                 Err(_) => "contour".to_string(),

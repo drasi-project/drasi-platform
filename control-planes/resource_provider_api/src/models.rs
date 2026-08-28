@@ -162,6 +162,8 @@ pub struct ReactionSpec {
     pub properties: Option<HashMap<String, ConfigValue>>,
     pub queries: HashMap<String, String>,
     pub identity: Option<ServiceIdentity>,
+    #[serde(default)]
+    pub state_store: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

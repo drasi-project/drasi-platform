@@ -79,6 +79,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             volume_claims: BTreeMap::new(),
             ingresses: None,
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         });
@@ -110,6 +111,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             volume_claims: BTreeMap::new(),
             ingresses: None,
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         });
@@ -158,6 +160,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             volume_claims: BTreeMap::new(),
             ingresses: None,
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         });
@@ -343,6 +346,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                     Some(k8s_ingresses)
                 },
                 pub_sub: None,
+                state_store: None,
                 service_account: None,
                 removed: false,
             };
