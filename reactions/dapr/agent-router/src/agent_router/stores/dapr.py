@@ -37,6 +37,7 @@ _ETAG_CACHE_MAXSIZE = 1024
 
 
 # TODO: make all dapr client calls async
+# TODO: standardize error handling (propagate non-runtime exceptions?)
 class DaprStateStore(StateStore[TState]):
     """
     Dapr key-value state store for persisting and recovering subscription state.
@@ -123,10 +124,17 @@ class DaprStateStore(StateStore[TState]):
         state_key = self._normalize_key(key)
         meta = self._state_metadata_for_key(state_key)
 
-        snapshot, etag = await self._load_with_etag(
-            key=state_key,
-            state_metadata=meta,
-        )
+        try:
+            snapshot, etag = await self._load_with_etag(
+                key=state_key,
+                state_metadata=meta,
+            )
+        except RuntimeError as exc:
+            logger.warning(
+                "Invalid state encountered (%s); returning default entry.", exc
+            )
+            return self._default_state_model_factory()
+
         if snapshot is None:
             return self._default_state_model_factory()
 
@@ -364,6 +372,9 @@ class DaprStateStore(StateStore[TState]):
 
         Returns:
             (dict | BaseModel | None, etag | None)
+
+        Raises:
+            RuntimeError: If the state cannot be loaded or is invalid.
         """
         logger.debug(
             "Loading state with etag from %s key=%s", self._state_store_name, key
@@ -423,6 +434,9 @@ class DaprStateStore(StateStore[TState]):
             state_metadata: Optional Dapr metadata.
             state_options: Dict of `StateOptions` fields (or a `StateOptions` instance).
             ttl_in_seconds: Optional TTL; backend must support TTL via metadata.
+
+        Raises:
+            RuntimeError: If the state cannot be saved.
         """
         payload_dict = self._ensure_dict(value)
         payload_str = json.dumps(payload_dict)
@@ -473,6 +487,9 @@ class DaprStateStore(StateStore[TState]):
             etag: Optional ETag for concurrency.
             state_metadata: Optional Dapr metadata.
             state_options: Dict or `StateOptions` controlling delete behavior.
+
+        Raises:
+            RuntimeError: If the state cannot be deleted.
         """
         logger.debug(
             "Deleting state from %s key=%s etag=%s", self._state_store_name, key, etag
