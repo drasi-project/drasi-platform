@@ -19,7 +19,6 @@ write-through updates, and backing state store synchronization."""
 
 import json
 from dataclasses import dataclass
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
