@@ -110,8 +110,12 @@ Alternatively, you can choose whichever editor you are most comfortable for work
 The Drasi CLI tool will be required in your development workflow to manage a Drasi instance that you may want to test against. You can either [build it from source](../../../../cli/) or download a pre-built binary.
 
 Download the CLI for your platform, and add it to your system path:
-- [MacOS arm64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-darwin-arm64)
-- [MacOS x64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-darwin-x64)
-- [Windows x64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-windows-x64.exe)
-- [Linux x64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-linux-x64)
-- [Linux arm64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-linux-arm64)
+- [MacOS arm64](https://github.com/drasi-project/drasi-platform/releases/download/0.10.0/drasi-darwin-arm64)
+- [MacOS x64](https://github.com/drasi-project/drasi-platform/releases/download/0.10.0/drasi-darwin-x64)
+- [Windows x64](https://github.com/drasi-project/drasi-platform/releases/download/0.10.0/drasi-windows-x64.exe)
+- [Linux x64](https://github.com/drasi-project/drasi-platform/releases/download/0.10.0/drasi-linux-x64)
+- [Linux arm64](https://github.com/drasi-project/drasi-platform/releases/download/0.10.0/drasi-linux-arm64)
+
+See also the [latest releases page](https://github.com/drasi-project/drasi-platform/releases) for newer versions.
+
+For integrators, the [drasi-platform REST API reference](../reference/drasi-platform-rest-api.md) documents the in-cluster `drasi-api` `/v1/*` endpoints.
