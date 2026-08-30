@@ -100,7 +100,7 @@ def start_runner(mocker):
 
 
 @pytest.fixture
-def shutdown_runner(mocker):
+def failing_runner(mocker):
     """Build a runner whose start path simulates termination during startup."""
     events: list[str] = []
     runner = _make_runner(mocker, events)
@@ -116,14 +116,14 @@ def shutdown_runner(mocker):
 
 def test_agent_router_runner_start_order(start_runner) -> None:
     """Verify start brings up the MCP server before the router."""
-    runner, events = start_runner
+    _, events = start_runner
 
     assert events == ["mcp_server.start", "router.start"]
 
 
-def test_agent_router_runner_shutdown_cleans_up_components(shutdown_runner) -> None:
+def test_agent_router_runner_shutdown_cleans_up_components(failing_runner) -> None:
     """Verify shutdown cleans up the router, MCP server, and Dapr client."""
-    runner, events = shutdown_runner
+    runner, events = failing_runner
 
     try:
         runner.start()
@@ -144,9 +144,9 @@ def test_agent_router_runner_shutdown_cleans_up_components(shutdown_runner) -> N
     assert runner._dapr_client is None
 
 
-def test_agent_router_runner_shutdown_is_idempotent(shutdown_runner) -> None:
+def test_agent_router_runner_shutdown_is_idempotent(failing_runner) -> None:
     """Verify a second shutdown call does not perform cleanup again."""
-    runner, events = shutdown_runner
+    runner, events = failing_runner
 
     try:
         runner.start()
