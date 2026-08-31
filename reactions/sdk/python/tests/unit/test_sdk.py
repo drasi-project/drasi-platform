@@ -1,9 +1,10 @@
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from drasi.reaction.sdk import DrasiReaction
+from drasi.reaction.result_view_client import ResultViewClient
 from drasi.reaction.utils import yaml_query_configs
 
 SUBSCRIBE_QUERIES = {"query1": "foo: bar", "query2": ""}
@@ -52,3 +53,26 @@ def test_reaction_adds_routes_to_router(query_config_dir):
     routes = [route.path for route in reaction._app.router.routes]
     for query in SUBSCRIBE_QUERIES.keys():
         assert f"/{query}" in routes
+
+
+def test_reaction_exposes_result_view_client():
+    """DrasiReaction should wire up a ResultViewClient and expose it as a property."""
+    reaction = DrasiReaction(on_change_event=Mock())
+    client = reaction.result_view_client
+
+    assert client is not None
+    assert isinstance(client, ResultViewClient)
+
+
+@pytest.mark.asyncio
+async def test_reaction_closes_clients_on_shutdown():
+    """The app's shutdown hook should close both HTTP clients so no
+    aiohttp sessions leak when the reaction stops."""
+    reaction = DrasiReaction(on_change_event=Mock())
+    reaction._management_client = AsyncMock()
+    reaction._result_view_client = AsyncMock()
+
+    await reaction._close_clients()
+
+    reaction._management_client.close.assert_awaited_once()
+    reaction._result_view_client.close.assert_awaited_once()
