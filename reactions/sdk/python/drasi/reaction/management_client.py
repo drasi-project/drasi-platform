@@ -18,10 +18,6 @@ from typing import Protocol, runtime_checkable
 
 import aiohttp
 
-from drasi.reaction.logger import config_logging
-
-logger = config_logging()
-
 # Internal cluster address where the Drasi API lives.
 DRASI_API_BASE = "http://drasi-api:8080"
 

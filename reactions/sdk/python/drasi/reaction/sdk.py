@@ -77,6 +77,7 @@ class DrasiReaction:
         self._query_configs: dict[str, Any] = {}
         self._management_client = ManagementClient()
         self._result_view_client = ResultViewClient(self._management_client)
+        self._app.add_event_handler("shutdown", self._close_clients)
 
     def subscribe(self):
         """Subscribes to queries by reading configuration files and registering handlers."""
@@ -112,6 +113,12 @@ class DrasiReaction:
         """Access the client for streaming current query results."""
 
         return self._result_view_client
+
+    async def _close_clients(self):
+        """Closes the shared HTTP sessions when the application shuts down."""
+
+        await self._result_view_client.close()
+        await self._management_client.close()
 
     def start(self):
         """Starts the Drasi Reaction."""
