@@ -322,5 +322,33 @@ fn populate_default_values(
         properties: Some(properties),
         queries: reaction.queries.clone(),
         identity: reaction.identity.clone(),
+        state_store: schema_json.state_store,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn derives_state_store_dependency_from_provider() {
+        let reaction = ReactionSpec {
+            kind: "StatefulReaction".to_string(),
+            tag: None,
+            services: Some(HashMap::new()),
+            properties: Some(HashMap::new()),
+            queries: HashMap::new(),
+            identity: None,
+            state_store: false,
+        };
+        let provider = ProviderSpec {
+            services: HashMap::new(),
+            config_schema: None,
+            state_store: true,
+        };
+
+        let populated = populate_default_values(&reaction, &provider).unwrap();
+
+        assert!(populated.state_store);
+    }
 }

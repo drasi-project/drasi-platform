@@ -78,6 +78,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
             volume_claims: BTreeMap::new(),
             ingresses: None,
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         });
@@ -230,6 +231,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
             volume_claims: persistent_volume_claims,
             ingresses: None,
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         });
@@ -279,6 +281,7 @@ impl SpecBuilder<QueryContainerSpec> for QueryContainerSpecBuilder {
             volume_claims: BTreeMap::new(),
             ingresses: None,
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         });

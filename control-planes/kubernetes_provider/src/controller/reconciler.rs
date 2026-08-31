@@ -34,7 +34,7 @@ use kube::{
 };
 use serde::Serialize;
 
-use crate::models::Component;
+use crate::models::{Component, ResourceType};
 
 use super::super::models::{KubernetesSpec, RuntimeConfig};
 
@@ -281,6 +281,96 @@ impl ResourceReconciler {
             }
         }
 
+        if let Some(pub_sub) = &self.spec.pub_sub {
+            self.delete_component(pub_sub.metadata.name.as_ref().unwrap())
+                .await?;
+        }
+
+        if let Some(state_store) = &self.spec.state_store {
+            self.delete_component(state_store.metadata.name.as_ref().unwrap())
+                .await?;
+        } else if self.spec.pub_sub.is_some()
+            && matches!(&self.spec.resource_type, ResourceType::Reaction)
+        {
+            self.delete_managed_component(&format!("drasi-statestore-{}", self.spec.resource_id))
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn delete_managed_component(&self, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        match self.component_api.get(name).await {
+            Ok(component) => {
+                let labels = component.metadata.labels.unwrap_or_default();
+                let resource_type = self.spec.resource_type.to_string();
+                let is_managed = labels.get("drasi/type") == Some(&resource_type)
+                    && labels.get("drasi/resource") == Some(&self.spec.resource_id);
+
+                if is_managed {
+                    self.delete_component(name).await?;
+                } else {
+                    log::warn!("Component {} is not managed by this resource", name);
+                }
+            }
+            Err(kube::Error::Api(api_err)) if api_err.code == 404 => {}
+            Err(kube::Error::Api(api_err)) => return Err(Box::new(api_err)),
+            Err(err) => return Err(Box::new(err)),
+        }
+
+        Ok(())
+    }
+
+    async fn delete_component(&self, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        log::info!("Deleting component {}", name);
+        let pp = DeleteParams::default();
+        if let Err(err) = self.component_api.delete(name, &pp).await {
+            match err {
+                kube::Error::Api(api_err) if api_err.code == 404 => {}
+                kube::Error::Api(api_err) => return Err(Box::new(api_err)),
+                _ => return Err(Box::new(err)),
+            }
+        }
+        Ok(())
+    }
+
+    async fn reconcile_component(
+        &self,
+        component: &Component,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let name = component.metadata.name.as_ref().unwrap();
+        match self.component_api.get(name).await {
+            Ok(current) => {
+                if current.spec != component.spec
+                    || current.metadata.labels != component.metadata.labels
+                {
+                    log::info!("Updating component {}", name);
+                    let mut replacement = component.clone();
+                    replacement.metadata.resource_version = current.metadata.resource_version;
+                    let pp = PostParams::default();
+                    self.component_api.replace(name, &pp, &replacement).await?;
+                }
+            }
+            Err(kube::Error::Api(api_err)) if api_err.code == 404 => {
+                log::info!("Creating component {}", name);
+                let pp = PostParams::default();
+                if let Err(err) = self.component_api.create(&pp, component).await {
+                    match err {
+                        kube::Error::Api(api_err) if api_err.code == 409 => {
+                            log::debug!("Component {} was created concurrently", name);
+                        }
+                        kube::Error::Api(api_err) => return Err(Box::new(api_err)),
+                        _ => return Err(Box::new(err)),
+                    }
+                }
+            }
+            Err(kube::Error::Api(api_err)) => {
+                log::error!("Error getting component {}: {}", name, api_err.code);
+                return Err(Box::new(api_err));
+            }
+            Err(e) => return Err(Box::new(e)),
+        }
+
         Ok(())
     }
 
@@ -288,28 +378,16 @@ impl ResourceReconciler {
         log::info!("Reconciling components {}", self.spec.resource_id);
 
         if let Some(pub_sub) = &self.spec.pub_sub {
-            let name = &pub_sub.metadata.name.clone().unwrap();
-            match self.component_api.get(name).await {
-                Ok(current) => {
-                    if current.spec != pub_sub.spec {
-                        log::info!("Updating component {}", name);
-                        let pp = PostParams::default();
-                        _ = self.component_api.replace(name, &pp, pub_sub).await?;
-                    }
-                }
-                Err(e) => match e {
-                    kube::Error::Api(api_err) => {
-                        if api_err.code != 404 {
-                            log::error!("Error getting pubsub component: {}", api_err.code);
-                            return Err(Box::new(api_err));
-                        }
-                        log::info!("Creating component {}", name);
-                        let pp = PostParams::default();
-                        _ = self.component_api.create(&pp, pub_sub).await?;
-                    }
-                    _ => return Err(Box::new(e)),
-                },
-            }
+            self.reconcile_component(pub_sub).await?;
+        }
+
+        if let Some(state_store) = &self.spec.state_store {
+            self.reconcile_component(state_store).await?;
+        } else if self.spec.pub_sub.is_some()
+            && matches!(&self.spec.resource_type, ResourceType::Reaction)
+        {
+            self.delete_managed_component(&format!("drasi-statestore-{}", self.spec.resource_id))
+                .await?;
         }
 
         Ok(())
