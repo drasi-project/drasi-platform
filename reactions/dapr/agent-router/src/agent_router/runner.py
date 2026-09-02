@@ -75,7 +75,7 @@ class AgentRouterRunner():
                 "## SAFETY RULES\n"
                 "If ANY required argument is missing, ask the user to provide it before calling the tool.\n"
                 "NEVER invent query IDs, event types, agent IDs, subscription IDs, or topics.\n\n"
-                "## QUERY CONFIGURATION\n"
+                "## DRASI QUERY CONFIGURATION RULES\n"
                 "Use the following JSON schema to parse the available Drasi queries:\n\n"
                 f"{json.dumps(QueryResult.model_json_schema())}"
             ),
