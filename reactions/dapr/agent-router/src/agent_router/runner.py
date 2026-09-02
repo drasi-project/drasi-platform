@@ -79,10 +79,7 @@ class AgentRouterRunner():
                 "NEVER invent query IDs, event types, agent IDs, subscription IDs, or topics.\n\n"
                 "## QUERY CONFIGURATION\n"
                 "Use the following JSON schema to parse the available Drasi queries:\n\n"
-                f"{json.dumps(QueryResult.model_json_schema())}\n\n"
-                "**Available Queries**:\n\n"
-                f"{json.dumps(QueryResult(query_id='low_stock_event_query', title='Low Stock Event', description='This query detects when the stock on hand for a product falls below the low stock threshold.').model_dump_json())}\n\n"
-                f"{json.dumps(QueryResult(query_id='critical_stock_event_query', title='Critical Stock Event', description='This query detects when the stock on hand for a product drops to zero.').model_dump_json())}\n\n"
+                f"{json.dumps(QueryResult.model_json_schema())}"
             ),
         )
         self._mcp_server = MCPServer(
