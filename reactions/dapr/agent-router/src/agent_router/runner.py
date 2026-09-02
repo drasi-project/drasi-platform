@@ -68,8 +68,6 @@ class AgentRouterRunner():
             subscription_registry=self._subscription_registry,
         )
 
-        # TODO: what happens when the queries are updated? Maybe make this configurable?
-        # TODO: discover queries instead of hardcoding — need to hook into reaction.start()?
         self._mcp = FastMCP(
             name="drasi-agent-router-mcp",
             instructions=(
