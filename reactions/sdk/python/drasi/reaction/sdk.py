@@ -51,6 +51,8 @@ class DrasiReaction:
         on_change_event: AsyncChangeEventFunc,
         on_control_event: AsyncControlEventFunc | None = None,
         parse_query_configs: Callable[[TextIOWrapper], Any] | None = None,
+        app: FastAPI | None = None,
+        host: str = "127.0.0.1",
         port: int = 80,
     ) -> None:
         """Initializes the DrasiReaction instance.
@@ -61,16 +63,19 @@ class DrasiReaction:
                 Defaults to None.
             parse_query_configs (Callable[[TextIOWrapper], Any] | None, optional): Function to parse query configurations.
                 Defaults to None.
+            app (FastAPI | None, optional): Injected FastAPI application instance. If None, a new instance is created.
+            host (str, optional): Host for the application. Defaults to "127.0.0.1" (localhost).
             port (int, optional): Port for the application. Defaults to 80.
         """
 
         self.on_change_event = on_change_event
         self.on_control_event = on_control_event
         self.parse_query_configs = parse_query_configs
+        self.host = host
         self.port = port
         self._pubsub_name = os.getenv("PubsubName", "drasi-pubsub")
         self._config_directory = Path(os.getenv("QueryConfigPath", "/etc/queries"))
-        self._app = FastAPI()
+        self._app = app or FastAPI()
         self._dapr_app = DaprApp(self._app)
         self._query_configs: dict[str, Any] = {}
 
@@ -109,7 +114,7 @@ class DrasiReaction:
         try:
             self.subscribe()
             logger.info("starting python reaction app")
-            uvicorn.run(self._app, host="127.0.0.1", port=self.port)
+            uvicorn.run(self._app, host=self.host, port=self.port)
 
         except Exception as err:
             logger.error(err)
