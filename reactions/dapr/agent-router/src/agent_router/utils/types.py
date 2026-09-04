@@ -68,10 +68,10 @@ class PubSubConfig(BaseModel):
     Configuration for pub/sub.
 
     Attributes:
-        pubsub_name (str | None): Name of the Dapr pub/sub component to use.
+        pubsub_name (str): Name of the Dapr pub/sub component to use.
     """
 
-    pubsub_name: str | None = None
+    pubsub_name: str
 
 
 class StateConfig(BaseModel):
@@ -79,11 +79,11 @@ class StateConfig(BaseModel):
     Configuration for subscription state.
 
     Attributes:
-        state_store_name (str | None): Name of the Dapr state store component to use for persistence.
+        state_store_name (str): Name of the Dapr state store component to use for persistence.
         state_key_prefix (str | None): Optional prefix to use for state keys to avoid collisions.
     """
 
-    state_store_name: str | None = None
+    state_store_name: str
     state_key_prefix: str | None = None
 
 

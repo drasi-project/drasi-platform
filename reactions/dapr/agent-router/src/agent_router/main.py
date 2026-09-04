@@ -23,10 +23,10 @@ from agent_router.utils.types import PubSubConfig, StateConfig
 # TODO: make this configurable?
 logging.basicConfig(level=logging.INFO)
 
-# TODO: remove these defaults
-PUBSUB_NAME = os.getenv("PubSubName", "inventory-agent-pubsub")
-STATE_STORE_NAME = os.getenv("StateStoreName", "drasi-agent-router-dapr-store")
-STATE_STORE_KEY_PREFIX = os.getenv("StateStoreKeyPrefix", None)
+PUBSUB_NAME = os.getenv("pubsubName")
+# Fallback to the per-reaction injected state store name
+STATE_STORE_NAME = os.getenv("stateStoreName") or os.getenv("StateStoreName")
+STATE_STORE_KEY_PREFIX = os.getenv("stateStoreKeyPrefix")
 
 
 def main() -> None:

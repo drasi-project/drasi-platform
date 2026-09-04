@@ -18,6 +18,7 @@ apiVersion: v1
 kind: ReactionProvider
 name: DaprAgentRouter
 spec:
+  state_store: true
   services:
     reaction:
       image: reaction-dapr-agent-router
@@ -29,3 +30,17 @@ spec:
       #   gateway:
       #     target: "80"
       #     setting: internal
+  config_schema:
+    type: object
+    properties:
+      pubsubName:
+        type: string
+        description: "The name of the Dapr pubsub component to use."
+      stateStoreName:
+        type: string
+        description: "The name of the Dapr state store component to use. Defaults to the per-reaction injected state store name if unset."
+      stateStoreKeyPrefix:
+        type: string
+        description: "The key prefix to use for the Dapr state store. Defaults to no prefix if unset."
+    required:
+      - pubsubName
