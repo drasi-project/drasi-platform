@@ -451,6 +451,7 @@ class DrasiReaction(Generic[ConfigT]):
                 with query_path.open("r", encoding="utf-8") as query_file:
                     parsed_config = self.parse_query_configs(query_file)
                 config = copy.deepcopy(parsed_config)
+                # Ensure the canonical snapshot can be copied for each delivery.
                 copy.deepcopy(config)
 
             registrations[query_id] = QueryRegistration(
