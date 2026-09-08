@@ -1,0 +1,7 @@
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: python-reaction-sdk-test
+spec:
+  tracing:
+    samplingRate: "1"
