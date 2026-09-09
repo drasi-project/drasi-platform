@@ -24,9 +24,14 @@ public class ResultViewClient : IResultViewClient
     private readonly IManagementClient _managementClient;
 
     public ResultViewClient(IManagementClient managementClient)
+    : this(new HttpClient(), managementClient)
     {
+    }
+
+    public ResultViewClient(HttpClient httpClient, IManagementClient managementClient)
+    {
+        _httpClient = httpClient;
         _managementClient = managementClient;
-        _httpClient = new HttpClient();
     }
 
     public async IAsyncEnumerable<ViewItem> GetCurrentResult(string queryContainerId, string queryId, [EnumeratorCancellation]CancellationToken cancellationToken = default)
