@@ -32,13 +32,14 @@ public class ReactionTests : IClassFixture<Fixture<object>>
     }
 
     [Fact]
-    public async void ChangeEventsAreHandled()
+    public async Task ChangeEventsAreHandled()
     {
         var myEvt = new ChangeEvent()
         {
             Sequence = 1,
             QueryId = "query1",
-            AddedResults = [],
+            // Population of AddedResults ensures the event handler is invoked
+            AddedResults = [new Dictionary<string, object> { { "id", 1 } }],
             UpdatedResults = [],
             DeletedResults = []
         };
