@@ -38,6 +38,7 @@ namespace Drasi.Reaction.SDK
         {
             _webappBuilder = WebApplication.CreateBuilder();
             _webappBuilder.Services.AddDaprClient();
+            _webappBuilder.Services.AddHttpClient();
             _webappBuilder.Services.AddControllers();
             _webappBuilder.Services.AddSingleton<IQueryConfigService, QueryConfigService>();
             _webappBuilder.Services.AddSingleton<IConfigDeserializer, NullConfigDeserializer>();

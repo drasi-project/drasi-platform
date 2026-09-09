@@ -25,6 +25,7 @@
     <None Include="drasi.png" Pack="true" PackagePath="\"/>
     <PackageReference Include="Dapr.AspNetCore" Version="1.14.0" />
     <PackageReference Include="Dapr.Client" Version="1.14.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="YamlDotNet" Version="16.1.3" />
   </ItemGroup>
 
