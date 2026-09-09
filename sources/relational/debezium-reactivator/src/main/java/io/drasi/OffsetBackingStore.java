@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -56,7 +57,7 @@ public class OffsetBackingStore extends MemoryOffsetBackingStore {
         var instanceId = System.getenv("INSTANCE_ID").getBytes();
         var resp = stateStore.get("instance_id");
 
-        if (resp == null || !resp.equals(instanceId)) {
+        if (resp == null || !Arrays.equals(resp, instanceId)) {
             log.info("Instance ID mismatch. Clearing offset store.");
             stateStore.delete("offset");
             stateStore.put("instance_id", instanceId);
