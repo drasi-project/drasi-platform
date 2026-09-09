@@ -23,7 +23,7 @@ This is the list of core dependencies to install for the most common tasks. In g
 - [Docker](https://docs.docker.com/engine/install/)
 - Make
 
-For `make` we advice the following installation steps depending on you OS.
+For `make` we advise the following installation steps depending on your OS.
   
 #### Linux
 
@@ -97,9 +97,7 @@ You might want tools that can help debug Kubernetes problems and understand what
 
 ### Editors
 
-You can choose whichever editor you are most comfortable for working on Rust code. If you don't have a code editor set up for Rust, we recommend VS Code.
-
-Alternatively, you can choose whichever editor you are most comfortable for working on Rust code. Feel free to skip this section if you want to make another choice.
+You can choose whichever editor you are most comfortable with for working on Rust code. If you don't have a code editor set up for Rust, we recommend VS Code. Feel free to skip this section if you want to make another choice.
 
 - [Visual Studio Code](https://code.visualstudio.com/)
 - [Rust Analyzer extension](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
