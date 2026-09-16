@@ -120,6 +120,7 @@ public class ControlSignalHandlerTests
         // Arrange
         var evt = new ControlEvent { 
             QueryId = "test-query",
+            Sequence = 42,
             ControlSignal = new ControlSignalClass { Kind = ControlSignalKind.Running }
         };
         var config = new QueryConfig { 
@@ -143,7 +144,9 @@ public class ControlSignalHandlerTests
         _mockDaprClient.Verify(dc => dc.PublishEventAsync(
             config.PubsubName,
             config.TopicName,
-            It.Is<JsonElement>(je => je.GetRawText().Contains("\"kind\":\"running\"")), // Check for unpacked structure
+            It.Is<JsonElement>(je =>
+                je.GetRawText().Contains("\"kind\":\"running\"")
+                && je.GetProperty("seq").GetInt64() == 42),
             It.IsAny<CancellationToken>()
         ), Times.Once);
     }
