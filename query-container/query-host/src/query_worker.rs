@@ -538,6 +538,7 @@ async fn process_change(
         }
     };
 
+    let seq = seq_manager.increment(&source_change_id).await?;
     let process_start_time = SystemTime::now();
     let changes = match continuous_query.process_source_change(source_change).await {
         Ok(c) => c,
@@ -587,7 +588,6 @@ async fn process_change(
             tracking.insert("query".to_string(), Value::Object(qt));
         }
 
-        let seq = seq_manager.increment(&source_change_id).await?;
         let output =
             ResultEvent::from_query_results(query_id, changes, seq, timestamp, Some(metadata));
 
@@ -862,12 +862,13 @@ impl SequenceManager {
 
     pub async fn increment(&mut self, source_change_id: &str) -> Result<u64, IndexError> {
         let sequence = self.value.sequence + 1;
+        self.value.sequence = sequence;
+        self.value.source_change_id = Arc::from(source_change_id);
+
         self.store
             .apply_sequence(sequence, source_change_id)
             .await?;
 
-        self.value.sequence = sequence;
-        self.value.source_change_id = Arc::from(source_change_id);
         Ok(sequence)
     }
 }
@@ -934,7 +935,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn increment_propagates_persistence_failure() {
+    async fn increment_does_not_reuse_failed_allocation() {
         let mut manager = SequenceManager::new(Arc::new(FailingSequenceCounter))
             .await
             .unwrap();
@@ -943,6 +944,24 @@ mod tests {
             manager.increment("current").await.unwrap_err(),
             IndexError::IOError
         );
-        assert_eq!(manager.get(), &ResultSequence::default());
+        assert_eq!(
+            manager.get(),
+            &ResultSequence {
+                sequence: 1,
+                source_change_id: Arc::from("current"),
+            }
+        );
+
+        assert_eq!(
+            manager.increment("stopped").await.unwrap_err(),
+            IndexError::IOError
+        );
+        assert_eq!(
+            manager.get(),
+            &ResultSequence {
+                sequence: 2,
+                source_change_id: Arc::from("stopped"),
+            }
+        );
     }
 }
