@@ -21,7 +21,6 @@ use drasi_query_cypher::CypherParser;
 use drasi_query_gql::GQLParser;
 use futures::StreamExt;
 use std::{
-    error::Error,
     pin::pin,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -29,7 +28,7 @@ use std::{
 
 use drasi_core::{
     evaluation::functions::FunctionRegistry,
-    interface::{ElementIndex, ResultIndex, ResultSequence},
+    interface::{ElementIndex, IndexError, ResultIndex, ResultSequence, ResultSequenceCounter},
     middleware::MiddlewareTypeRegistry,
     models,
     query::{ContinuousQuery, QueryBuilder},
@@ -41,7 +40,7 @@ use tokio::{
     select,
     sync::{
         mpsc::{self},
-        oneshot, watch, Mutex,
+        oneshot, Mutex,
     },
     task::JoinHandle,
     time::Instant,
@@ -222,7 +221,7 @@ impl QueryWorker {
                 }
             };
 
-            let init_seq = sequence_manager.get().await;
+            let init_seq = sequence_manager.get();
             log::info!(
                 "Query {} starting at sequence {}",
                 query_id,
@@ -293,12 +292,21 @@ impl QueryWorker {
 
             let metric_attributes = [KeyValue::new("query_id", query_id.to_string())];
 
+            let running_sequence = match sequence_manager.increment("control").await {
+                Ok(sequence) => sequence,
+                Err(err) => {
+                    log::error!("Error allocating Running sequence: {err}");
+                    lifecycle.change_state(QueryState::TransientError(err.to_string()));
+                    return;
+                }
+            };
+
             match publisher
                 .publish(
                     &query_id,
                     ResultEvent::from_control_signal(
                         query_id.as_ref(),
-                        sequence_manager.increment("control"),
+                        running_sequence,
                         SystemTime::now()
                             .duration_since(UNIX_EPOCH)
                             .unwrap_or_default()
@@ -334,18 +342,23 @@ impl QueryWorker {
                                             Err(err) => log::error!("Error unsubscribing from source {}: {}", subscription.id, err),
                                         };
                                     }
-                                    match publisher.publish(
-                                        &query_id,
-                                        ResultEvent::from_control_signal(
-                                            query_id.as_ref(),
-                                            sequence_manager.increment("control"),
-                                            SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
-                                            ControlSignal::QueryDeleted)
-                                    ).await {
-                                        Ok(_) => log::info!("Published delete signal"),
-                                        Err(err) => {
-                                            log::error!("Error publishing delete signal: {err}");
-                                        },
+                                    match sequence_manager.increment("control").await {
+                                            Ok(sequence) => {
+                                                match publisher.publish(
+                                                    &query_id,
+                                                    ResultEvent::from_control_signal(
+                                                        query_id.as_ref(),
+                                                        sequence,
+                                                        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
+                                                        ControlSignal::QueryDeleted)
+                                                ).await {
+                                                    Ok(_) => log::info!("Published delete signal"),
+                                                    Err(err) => {
+                                                        log::error!("Error publishing delete signal: {err}");
+                                                    },
+                                                };
+                                            }
+                                            Err(err) => log::error!("Error allocating delete sequence: {err}"),
                                     };
                                     _ = deprovision_result_view(dapr_client.clone(), query_container_id.as_ref(), query_id.as_ref(), &view_spec).await;
                                     break;
@@ -424,25 +437,30 @@ impl QueryWorker {
             continuous_query.terminate_future_consumer().await;
             drop(continuous_query);
 
-            match publisher
-                .publish(
-                    &query_id,
-                    ResultEvent::from_control_signal(
-                        query_id.as_ref(),
-                        sequence_manager.increment("control"),
-                        SystemTime::now()
-                            .duration_since(UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_millis() as u64,
-                        ControlSignal::Stopped,
-                    ),
-                )
-                .await
-            {
-                Ok(_) => log::debug!("Published Stopped signal"),
-                Err(err) => {
-                    log::error!("Error publishing Stopped signal: {err}");
+            match sequence_manager.increment("control").await {
+                Ok(sequence) => {
+                    match publisher
+                        .publish(
+                            &query_id,
+                            ResultEvent::from_control_signal(
+                                query_id.as_ref(),
+                                sequence,
+                                SystemTime::now()
+                                    .duration_since(UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_millis() as u64,
+                                ControlSignal::Stopped,
+                            ),
+                        )
+                        .await
+                    {
+                        Ok(_) => log::debug!("Published Stopped signal"),
+                        Err(err) => {
+                            log::error!("Error publishing Stopped signal: {err}");
+                        }
+                    };
                 }
+                Err(err) => log::error!("Error allocating Stopped sequence: {err}"),
             };
         });
 
@@ -569,7 +587,7 @@ async fn process_change(
             tracking.insert("query".to_string(), Value::Object(qt));
         }
 
-        let seq = seq_manager.increment(&source_change_id);
+        let seq = seq_manager.increment(&source_change_id).await?;
         let output =
             ResultEvent::from_query_results(query_id, changes, seq, timestamp, Some(metadata));
 
@@ -599,13 +617,17 @@ async fn bootstrap(
     result_index: Arc<dyn ResultIndex>,
 ) -> Result<(), BootstrapError> {
     let process_span = info_span!("process_bootstrap", query_id = query_id);
+    let sequence = seq_manager
+        .increment("control")
+        .await
+        .map_err(|err| BootstrapError::other(Box::new(err)))?;
 
     match publisher
         .publish(
             query_id,
             ResultEvent::from_control_signal(
                 query_id,
-                seq_manager.increment("control"),
+                sequence,
                 SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
@@ -661,7 +683,10 @@ async fn bootstrap(
                         }
                     };
 
-                    let seq = seq_manager.increment("bootstrap");
+                    let seq = seq_manager
+                        .increment("bootstrap")
+                        .await
+                        .map_err(|err| BootstrapError::other(Box::new(err)))?;
                     let output = dispatcher::with_default(
                         &tracing::Dispatch::none(), // Disable tracing for this scope
                         || {
@@ -696,12 +721,17 @@ async fn bootstrap(
         }
     }
 
+    let sequence = seq_manager
+        .increment("control")
+        .await
+        .map_err(|err| BootstrapError::other(Box::new(err)))?;
+
     match publisher
         .publish(
             query_id,
             ResultEvent::from_control_signal(
                 query_id,
-                seq_manager.increment("control"),
+                sequence,
                 SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
@@ -814,46 +844,105 @@ async fn deprovision_result_view(
 /// Track the current sequence number for a query
 struct SequenceManager {
     value: ResultSequence,
-    tx: watch::Sender<ResultSequence>,
+    store: Arc<dyn ResultSequenceCounter>,
 }
 
 impl SequenceManager {
-    pub async fn new(store: Arc<dyn ResultIndex>) -> Result<Self, Box<dyn Error>> {
-        let (tx, mut rx) = watch::channel(ResultSequence::default());
+    pub async fn new(store: Arc<dyn ResultSequenceCounter>) -> Result<Self, IndexError> {
         let current = store.get_sequence().await?;
-
-        let store = store.clone();
-
-        tokio::spawn(async move {
-            loop {
-                let chg = rx.changed().await;
-                // only store the latest value, ignore intermediate changes
-                let latest = rx.borrow().clone();
-
-                if let Err(err) = store
-                    .apply_sequence(latest.sequence, &latest.source_change_id)
-                    .await
-                {
-                    log::error!("Error applying sequence: {err}");
-                }
-
-                if chg.is_err() {
-                    log::info!("Sequence counter channel closed");
-                    break;
-                }
-            }
-        });
-        Ok(Self { value: current, tx })
+        Ok(Self {
+            value: current,
+            store,
+        })
     }
 
-    pub async fn get(&self) -> &ResultSequence {
+    pub fn get(&self) -> &ResultSequence {
         &self.value
     }
 
-    pub fn increment(&mut self, source_change_id: &str) -> u64 {
-        self.value.sequence += 1;
+    pub async fn increment(&mut self, source_change_id: &str) -> Result<u64, IndexError> {
+        let sequence = self.value.sequence + 1;
+        self.store
+            .apply_sequence(sequence, source_change_id)
+            .await?;
+
+        self.value.sequence = sequence;
         self.value.source_change_id = Arc::from(source_change_id);
-        _ = self.tx.send_replace(self.value.clone());
-        self.value.sequence
+        Ok(sequence)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SequenceManager;
+    use async_trait::async_trait;
+    use drasi_core::{
+        in_memory_index::in_memory_result_index::InMemoryResultIndex,
+        interface::{IndexError, ResultSequence, ResultSequenceCounter},
+    };
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn increment_persists_sequence() {
+        let store = Arc::new(InMemoryResultIndex::new());
+        store.apply_sequence(41, "previous").await.unwrap();
+        let mut manager = SequenceManager::new(store.clone()).await.unwrap();
+
+        assert_eq!(manager.increment("current").await.unwrap(), 42);
+        assert_eq!(
+            store.get_sequence().await.unwrap(),
+            ResultSequence {
+                sequence: 42,
+                source_change_id: Arc::from("current"),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn drop_does_not_reset_sequence() {
+        let store = Arc::new(InMemoryResultIndex::new());
+        store.apply_sequence(41, "previous").await.unwrap();
+
+        let manager = SequenceManager::new(store.clone()).await.unwrap();
+        drop(manager);
+        tokio::task::yield_now().await;
+
+        assert_eq!(
+            store.get_sequence().await.unwrap(),
+            ResultSequence {
+                sequence: 41,
+                source_change_id: Arc::from("previous"),
+            }
+        );
+    }
+
+    struct FailingSequenceCounter;
+
+    #[async_trait]
+    impl ResultSequenceCounter for FailingSequenceCounter {
+        async fn apply_sequence(
+            &self,
+            _sequence: u64,
+            _source_change_id: &str,
+        ) -> Result<(), IndexError> {
+            Err(IndexError::IOError)
+        }
+
+        async fn get_sequence(&self) -> Result<ResultSequence, IndexError> {
+            Ok(ResultSequence::default())
+        }
+    }
+
+    #[tokio::test]
+    async fn increment_propagates_persistence_failure() {
+        let mut manager = SequenceManager::new(Arc::new(FailingSequenceCounter))
+            .await
+            .unwrap();
+
+        assert_eq!(
+            manager.increment("current").await.unwrap_err(),
+            IndexError::IOError
+        );
+        assert_eq!(manager.get(), &ResultSequence::default());
     }
 }
