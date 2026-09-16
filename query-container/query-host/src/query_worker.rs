@@ -538,7 +538,6 @@ async fn process_change(
         }
     };
 
-    let seq = seq_manager.increment(&source_change_id).await?;
     let process_start_time = SystemTime::now();
     let changes = match continuous_query.process_source_change(source_change).await {
         Ok(c) => c,
@@ -588,6 +587,7 @@ async fn process_change(
             tracking.insert("query".to_string(), Value::Object(qt));
         }
 
+        let seq = seq_manager.increment(&source_change_id).await?;
         let output =
             ResultEvent::from_query_results(query_id, changes, seq, timestamp, Some(metadata));
 
@@ -875,13 +875,75 @@ impl SequenceManager {
 
 #[cfg(test)]
 mod tests {
-    use super::SequenceManager;
+    use super::{process_change, SequenceManager};
+    use crate::{change_stream::Message, result_publisher::ResultPublisher};
     use async_trait::async_trait;
     use drasi_core::{
+        evaluation::functions::FunctionRegistry,
         in_memory_index::in_memory_result_index::InMemoryResultIndex,
         interface::{IndexError, ResultSequence, ResultSequenceCounter},
+        query::QueryBuilder,
     };
+    use drasi_query_cypher::CypherParser;
+    use serde_json::json;
     use std::sync::Arc;
+    use tokio::net::TcpListener;
+
+    #[tokio::test]
+    async fn no_result_change_does_not_allocate_or_publish() {
+        let store = Arc::new(InMemoryResultIndex::new());
+        store.apply_sequence(41, "previous").await.unwrap();
+        let stores: [Arc<dyn ResultSequenceCounter>; 2] = [store, Arc::new(FailingSequenceCounter)];
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let publisher = ResultPublisher::new(
+            "127.0.0.1".to_string(),
+            listener.local_addr().unwrap().port(),
+            "test".to_string(),
+        );
+
+        for store in stores {
+            let mut manager = SequenceManager::new(store.clone()).await.unwrap();
+            let initial_sequence = manager.get().clone();
+            let parser = Arc::new(CypherParser::new(Arc::new(FunctionRegistry::new())));
+            let query = QueryBuilder::new(
+                "MATCH (n:Person) WHERE n.age >= 18 RETURN n.name AS name",
+                parser,
+            )
+            .try_build()
+            .await
+            .unwrap();
+            let evt = Message {
+                id: "1-0".to_string(),
+                data: serde_json::from_value(json!({
+                    "id": "event-1",
+                    "sourceId": "source",
+                    "time": {"seq": 1, "ms": 1},
+                    "queries": ["query"],
+                    "type": "i",
+                    "elementType": "node",
+                    "after": {
+                        "id": "person-1",
+                        "labels": ["Person"],
+                        "properties": {"name": "Ada", "age": 17}
+                    }
+                }))
+                .unwrap(),
+                enqueue_time: None,
+                trace_state: None,
+                trace_parent: None,
+            };
+
+            tokio::select! {
+                result = process_change("query", &query, &mut manager, &publisher, evt, None, 0) => {
+                    result.unwrap();
+                }
+                _ = listener.accept() => panic!("A no-result change must not be published"),
+            }
+
+            assert_eq!(manager.get(), &initial_sequence);
+            assert_eq!(store.get_sequence().await.unwrap(), initial_sequence);
+        }
+    }
 
     #[tokio::test]
     async fn increment_persists_sequence() {
