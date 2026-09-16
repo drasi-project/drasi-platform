@@ -190,6 +190,8 @@ pub struct Service {
     pub replica: Option<String>,
     pub image: String,
     pub external_image: Option<bool>,
+    #[serde(rename = "supportsConcurrentInstances")]
+    pub supports_concurrent_instances: bool,
     pub endpoints: Option<HashMap<String, Endpoint>>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
     pub properties: Option<HashMap<String, ConfigValue>>,
