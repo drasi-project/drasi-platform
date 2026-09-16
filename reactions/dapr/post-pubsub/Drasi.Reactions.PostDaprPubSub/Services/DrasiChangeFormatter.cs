@@ -31,6 +31,7 @@ public class DrasiChangeFormatter : IChangeFormatter
             var outputItem = new ChangeNotification
             {
                 Op = ChangeNotificationOp.I,
+                Seq = evt.Sequence,
                 TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 Payload = new PayloadClass()
                 {
@@ -50,6 +51,7 @@ public class DrasiChangeFormatter : IChangeFormatter
             var outputItem = new ChangeNotification
             {
                 Op = ChangeNotificationOp.U,
+                Seq = evt.Sequence,
                 TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 Payload = new PayloadClass()
                 {
@@ -70,6 +72,7 @@ public class DrasiChangeFormatter : IChangeFormatter
             var outputItem = new ChangeNotification
             {
                 Op = ChangeNotificationOp.D,
+                Seq = evt.Sequence,
                 TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 Payload = new PayloadClass()
                 {

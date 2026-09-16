@@ -64,6 +64,7 @@ public class ControlSignalHandler : IControlEventHandler<QueryConfig>
             var notification = new ControlSignalNotification
             {
                 Op = ControlSignalNotificationOp.X,
+                Seq = evt.Sequence,
                 TsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 Payload = new ControlSignalNotificationPayload()
                 {
