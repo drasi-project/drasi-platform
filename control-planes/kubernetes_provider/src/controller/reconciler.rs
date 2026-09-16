@@ -33,6 +33,7 @@ use kube::{
     Api, ResourceExt,
 };
 use serde::Serialize;
+use serde_json::Value;
 
 use crate::models::{Component, ResourceType};
 
@@ -410,13 +411,9 @@ impl ResourceReconciler {
                 annotations: Some(annotations),
                 ..Default::default()
             },
-            spec: Some(DeploymentSpec {
-                strategy: Some(DeploymentStrategy {
-                    type_: Some("RollingUpdate".to_string()),
-                    ..Default::default()
-                }),
-                ..self.spec.deployment.clone()
-            }),
+            spec: Some(with_default_deployment_strategy(
+                self.spec.deployment.clone(),
+            )),
             ..Default::default()
         };
 
@@ -427,7 +424,8 @@ impl ResourceReconciler {
                 if current_hash != self.deployment_hash {
                     log::info!("Updating deployment {}", name);
                     let pp = PatchParams::default();
-                    let pat = Patch::Merge(&dep);
+                    let deployment_patch = deployment_merge_patch(&dep);
+                    let pat = Patch::Merge(&deployment_patch);
                     let update_result = self.deployment_api.patch(&name, &pp, &pat).await?;
                     self.update_deployment_status(&update_result).await;
                 }
@@ -835,6 +833,37 @@ impl ResourceReconciler {
     }
 }
 
+fn with_default_deployment_strategy(mut spec: DeploymentSpec) -> DeploymentSpec {
+    if spec.strategy.is_none() {
+        spec.strategy = Some(DeploymentStrategy {
+            type_: Some("RollingUpdate".to_string()),
+            ..Default::default()
+        });
+    }
+
+    spec
+}
+
+fn deployment_merge_patch(deployment: &Deployment) -> Value {
+    let mut patch = serde_json::to_value(deployment).unwrap();
+    let is_recreate = deployment
+        .spec
+        .as_ref()
+        .and_then(|spec| spec.strategy.as_ref())
+        .and_then(|strategy| strategy.type_.as_deref())
+        == Some("Recreate");
+
+    if is_recreate {
+        patch
+            .pointer_mut("/spec/strategy")
+            .and_then(Value::as_object_mut)
+            .unwrap()
+            .insert("rollingUpdate".to_string(), Value::Null);
+    }
+
+    patch
+}
+
 fn calc_deployment_hash(spec: &KubernetesSpec) -> String {
     let mut hash = SpookyHasher::default();
 
@@ -846,6 +875,77 @@ fn calc_deployment_hash(spec: &KubernetesSpec) -> String {
 
     let hsh = hash.finish();
     format!("{hsh:02x}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
+
+    fn deployment_spec(strategy: Option<&str>) -> DeploymentSpec {
+        DeploymentSpec {
+            selector: LabelSelector::default(),
+            strategy: strategy.map(|strategy| DeploymentStrategy {
+                type_: Some(strategy.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn preserves_explicit_deployment_strategy() {
+        let spec = with_default_deployment_strategy(deployment_spec(Some("Recreate")));
+
+        assert_eq!(
+            spec.strategy.and_then(|strategy| strategy.type_),
+            Some("Recreate".to_string())
+        );
+    }
+
+    #[test]
+    fn defaults_missing_deployment_strategy_to_rolling_update() {
+        let spec = with_default_deployment_strategy(deployment_spec(None));
+
+        assert_eq!(
+            spec.strategy.and_then(|strategy| strategy.type_),
+            Some("RollingUpdate".to_string())
+        );
+    }
+
+    #[test]
+    fn recreate_merge_patch_clears_rolling_update_settings() {
+        let deployment = Deployment {
+            spec: Some(deployment_spec(Some("Recreate"))),
+            ..Default::default()
+        };
+
+        let patch = deployment_merge_patch(&deployment);
+
+        assert_eq!(patch["spec"]["strategy"]["type"], "Recreate");
+        assert!(patch["spec"]["strategy"]["rollingUpdate"].is_null());
+    }
+
+    #[test]
+    fn deployment_hash_includes_strategy() {
+        let rolling = KubernetesSpec::new(
+            ResourceType::Source,
+            "source".to_string(),
+            "service".to_string(),
+            deployment_spec(None),
+        );
+        let recreate = KubernetesSpec::new(
+            ResourceType::Source,
+            "source".to_string(),
+            "service".to_string(),
+            deployment_spec(Some("Recreate")),
+        );
+
+        assert_ne!(
+            calc_deployment_hash(&rolling),
+            calc_deployment_hash(&recreate)
+        );
+    }
 }
 
 fn calc_service_account_hash(spec: &KubernetesSpec) -> String {

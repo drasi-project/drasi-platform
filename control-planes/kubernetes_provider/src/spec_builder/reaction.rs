@@ -23,6 +23,7 @@ use super::{
 use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::{
     api::{
+        apps::v1::DeploymentStrategy,
         core::v1::{ConfigMap, EnvVar, ServicePort, ServiceSpec},
         networking::v1::{
             HTTPIngressPath, HTTPIngressRuleValue, Ingress, IngressBackend, IngressRule,
@@ -117,7 +118,15 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             );
             let image = service_spec.image.clone();
 
-            let replica = service_spec.replica.unwrap_or("1".to_string());
+            let replica = match service_spec.supports_concurrent_instances {
+                true => service_spec
+                    .replica
+                    .as_deref()
+                    .unwrap_or("1")
+                    .parse::<i32>()
+                    .unwrap(),
+                false => 1,
+            };
 
             let app_port = match service_spec.dapr {
                 Some(ref dapr) => match dapr.get("app-port") {
@@ -240,14 +249,14 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 
             config_volumes.insert(config_name.clone(), "/etc/queries".to_string());
 
-            let deployment_spec = build_deployment_spec(
+            let mut deployment_spec = build_deployment_spec(
                 runtime_config,
                 ResourceType::Reaction,
                 &reaction.id,
                 &service_name,
                 image.as_str(),
                 service_spec.external_image.unwrap_or(false),
-                replica.parse::<i32>().unwrap(),
+                replica,
                 Some(app_port.unwrap_or(80)),
                 env.clone(),
                 Some(ports),
@@ -255,6 +264,13 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 None,
                 app_protocol,
             );
+
+            if !service_spec.supports_concurrent_instances {
+                deployment_spec.strategy = Some(DeploymentStrategy {
+                    type_: Some("Recreate".to_string()),
+                    ..Default::default()
+                });
+            }
 
             let mut pub_sub_metadata = runtime_config.pub_sub_config.clone();
             pub_sub_metadata.push(EnvVar {
@@ -325,15 +341,21 @@ mod tests {
     use resource_provider_api::models::Service;
     use std::collections::HashMap;
 
-    fn build_specs(state_store: bool, service_count: usize) -> Vec<KubernetesSpec> {
+    fn build_specs_with_concurrency(
+        state_store: bool,
+        service_count: usize,
+        supports_concurrent_instances: bool,
+        replica: Option<&str>,
+    ) -> Vec<KubernetesSpec> {
         let services = (0..service_count)
             .map(|index| {
                 (
                     format!("service-{index}"),
                     Service {
-                        replica: None,
+                        replica: replica.map(str::to_string),
                         image: "reaction-image".to_string(),
                         external_image: Some(true),
+                        supports_concurrent_instances,
                         endpoints: None,
                         dapr: None,
                         properties: None,
@@ -358,6 +380,10 @@ mod tests {
             &RuntimeConfig::default(),
             "instance-id",
         )
+    }
+
+    fn build_specs(state_store: bool, service_count: usize) -> Vec<KubernetesSpec> {
+        build_specs_with_concurrency(state_store, service_count, true, None)
     }
 
     fn env_value<'a>(spec: &'a KubernetesSpec, name: &str) -> Option<&'a str> {
@@ -412,5 +438,28 @@ mod tests {
 
         assert!(specs[0].state_store.is_none());
         assert_eq!(env_value(&specs[0], "StateStoreName"), None);
+    }
+
+    #[test]
+    fn uses_recreate_and_one_replica_when_concurrent_instances_are_unsupported() {
+        let specs = build_specs_with_concurrency(false, 1, false, Some("3"));
+
+        assert_eq!(specs[0].deployment.replicas, Some(1));
+        assert_eq!(
+            specs[0]
+                .deployment
+                .strategy
+                .as_ref()
+                .and_then(|strategy| strategy.type_.as_deref()),
+            Some("Recreate")
+        );
+    }
+
+    #[test]
+    fn preserves_replica_count_and_default_strategy_when_concurrency_is_supported() {
+        let specs = build_specs_with_concurrency(false, 1, true, Some("3"));
+
+        assert_eq!(specs[0].deployment.replicas, Some(3));
+        assert!(specs[0].deployment.strategy.is_none());
     }
 }
