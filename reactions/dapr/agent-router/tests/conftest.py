@@ -22,9 +22,10 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 from agent_router import create_app
+import agent_router.forwarding as forwarding_module
 import agent_router.subscriptions as subscriptions_module
 
-from fakes import FakeStateStore
+from fakes import FakePubSub, FakeStateStore
 
 
 @pytest.fixture
@@ -35,8 +36,15 @@ def state_store(monkeypatch: pytest.MonkeyPatch) -> FakeStateStore:
 
 
 @pytest.fixture
+def pubsub(monkeypatch: pytest.MonkeyPatch) -> FakePubSub:
+    broker = FakePubSub()
+    monkeypatch.setattr(forwarding_module, "DaprClient", broker.client)
+    return broker
+
+
+@pytest.fixture
 def query_directory(
-    monkeypatch: pytest.MonkeyPatch, state_store: FakeStateStore
+    monkeypatch: pytest.MonkeyPatch, state_store: FakeStateStore, pubsub: FakePubSub
 ) -> Iterator[Path]:
     runtime_root = Path(__file__).parent / ".runtime"
     path = runtime_root / uuid.uuid4().hex

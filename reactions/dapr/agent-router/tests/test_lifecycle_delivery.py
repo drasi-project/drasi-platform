@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from grpc import RpcError
 
 import agent_router.app as app_module
+import agent_router.forwarding as forwarding_module
 import agent_router.subscriptions as subscriptions_module
 from agent_router.subscriptions import SubscriptionError
 from drasi_agent_router_contracts import router_dead_letter_topic
@@ -109,6 +110,7 @@ def test_mcp_startup_failure_unwinds_and_never_marks_sdk_ready(
 
 def test_sdk_routes_dlt_and_typed_delivery_boundaries(
     app_factory,
+    pubsub,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     query_id = "orders.region.v1"
@@ -140,7 +142,7 @@ def test_sdk_routes_dlt_and_typed_delivery_boundaries(
             json=cloud_event(query_id, secret="do-not-log-this"),
         )
         assert change.status_code == 200
-        assert change.json() == {"status": "RETRY"}
+        assert change.json() == {"status": "SUCCESS"}
 
         control = client.post(
             f"/_drasi/events/{query_id}",
@@ -159,14 +161,17 @@ def test_sdk_routes_dlt_and_typed_delivery_boundaries(
     forwarding_records = [
         record
         for record in caplog.records
-        if record.getMessage() == "router_forwarding_not_implemented"
+        if record.getMessage() == "router_change_processed"
     ]
     assert len(forwarding_records) == 1
     assert forwarding_records[0].drasi_query_id == query_id
+    assert forwarding_records[0].accepted_publications == 0
+    assert pubsub.attempts == []
     assert "do-not-log-this" not in caplog.text
     assert "control-private" not in caplog.text
     assert "malformed-private" not in caplog.text
     assert app.state.reaction.is_ready is False
+    assert all(client.closed for client in pubsub.clients)
 
 
 @pytest.mark.parametrize("failure", ["read", "write", "corrupt"])
@@ -192,26 +197,38 @@ def test_state_initialization_failure_unwinds_without_readiness(
     assert all(client.closed for client in state_store.clients)
 
 
-def test_all_admission_waits_for_the_complete_state_load(app_factory, state_store) -> None:
+@pytest.mark.parametrize("stage", ["state", "publisher"])
+def test_all_admission_waits_for_complete_initialization(
+    app_factory, state_store, monkeypatch, stage
+) -> None:
     app = app_factory({"orders.v1": "title: Orders\ndescription: Order changes.\n"})
 
     async def exercise():
-        read_started, release_read = asyncio.Event(), asyncio.Event()
+        initialization_started, release_initialization = asyncio.Event(), asyncio.Event()
         ready, shutdown = asyncio.Event(), asyncio.Event()
 
-        async def blocked_read():
-            read_started.set()
-            await release_read.wait()
+        async def block_initialization():
+            initialization_started.set()
+            await release_initialization.wait()
+
+        initialize_publisher = app.state.forwarder.initialize
+
+        async def blocked_publisher():
+            await block_initialization()
+            await initialize_publisher()
 
         async def application_lifespan():
             async with app.router.lifespan_context(app):
                 ready.set()
                 await shutdown.wait()
 
-        state_store.before_read = blocked_read
+        if stage == "state":
+            state_store.before_read = block_initialization
+        else:
+            monkeypatch.setattr(app.state.forwarder, "initialize", blocked_publisher)
         task = asyncio.create_task(application_lifespan())
         try:
-            await asyncio.wait_for(read_started.wait(), timeout=1)
+            await asyncio.wait_for(initialization_started.wait(), timeout=1)
             assert app.state.reaction.is_ready is False
             async with httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=app), base_url="http://router.test"
@@ -225,14 +242,14 @@ def test_all_admission_waits_for_the_complete_state_load(app_factory, state_stor
                     "/_drasi/events/orders.v1", json=cloud_event("orders.v1")
                 )
                 assert result.json() == {"status": "RETRY"}
-                release_read.set()
+                release_initialization.set()
                 await asyncio.wait_for(ready.wait(), timeout=1)
                 assert app.state.reaction.is_ready is True
                 assert (await client.get("/dapr/subscribe")).status_code == 200
                 assert (await client.get("/readyz")).status_code == 200
                 assert (await client.get("/admin/rules")).status_code == 200
         finally:
-            release_read.set()
+            release_initialization.set()
             shutdown.set()
             await task
         assert all(client.closed for client in state_store.clients)
@@ -253,3 +270,49 @@ def test_state_client_creation_failure_stays_unready(app_factory, monkeypatch, c
             pytest.fail("client creation failed but the app became ready")
     assert app.state.reaction.is_ready is False
     assert "private-sidecar-address" not in caplog.text
+
+
+@pytest.mark.parametrize("error_type", [RpcError, DaprInternalError, TimeoutError])
+def test_publisher_initialization_failure_closes_state_and_stays_unready(
+    app_factory, state_store, monkeypatch, error_type, caplog
+):
+    app = app_factory()
+
+    def fail_client_creation():
+        raise error_type("private-publisher-address")
+
+    monkeypatch.setattr(forwarding_module, "DaprClient", fail_client_creation)
+    with pytest.RaisesGroup(RuntimeError):
+        with TestClient(app):
+            pytest.fail("publisher initialization failed but the app became ready")
+    assert app.state.reaction.is_ready is False
+    assert state_store.clients
+    assert all(client.closed for client in state_store.clients)
+    assert "private-publisher-address" not in caplog.text
+
+
+def test_clients_close_after_readiness_is_cleared(
+    app_factory, state_store, pubsub, monkeypatch
+):
+    app = app_factory()
+    closed = []
+
+    with TestClient(app):
+        publisher = pubsub.clients[0]
+        state_client = state_store.clients[0]
+        close_publisher, close_state = publisher.close, state_client.close
+
+        async def close_publication():
+            assert not app.state.reaction.is_ready
+            await close_publisher()
+            closed.append("publisher")
+
+        async def close_subscriptions():
+            assert not app.state.reaction.is_ready
+            await close_state()
+            closed.append("state")
+
+        monkeypatch.setattr(publisher, "close", close_publication)
+        monkeypatch.setattr(state_client, "close", close_subscriptions)
+
+    assert closed == ["publisher", "state"]
