@@ -58,6 +58,7 @@ env:
     ghcr.io/drasi-project/reaction-storedproc
     ghcr.io/drasi-project/reaction-sync-dapr-statestore
     ghcr.io/drasi-project/reaction-post-dapr-pubsub
+    ghcr.io/drasi-project/reaction-dapr-agent-router
     ghcr.io/drasi-project/reaction-http
     ghcr.io/drasi-project/reaction-eventbridge
 

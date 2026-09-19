@@ -29,12 +29,12 @@ jobs:
       # `make lint-check` recurses through every Cargo project and runs both
       # `cargo fmt -- --check` and `cargo clippy ...`, so the reusable
       # workflow's separate fmt job is intentionally a no-op below.
-      clippy-command: make lint-check
+      # Preserve the pinned drasi-core submodule's unused import/variable allowances.
+      clippy-command: >-
+        python3 -m venv "$RUNNER_TEMP/uv-bootstrap" &&
+        "$RUNNER_TEMP/uv-bootstrap/bin/python" -m pip install uv==0.11.27 &&
+        PATH="$RUNNER_TEMP/uv-bootstrap/bin:$PATH"
+        RUSTFLAGS="-D warnings -A unused-imports -A unused-variables"
+        make lint-check
+      clippy-args: ''
       fmt-command: 'true'
-      # Keep `-D warnings` so first-party warnings still fail the build, but
-      # allow `unused_imports` and `unused_variables` because the vendored drasi-core submodule (pinned
-      # to a commit older than the upstream fix) emits these warnings and we
-      # don't want to bump the submodule in this PR.
-      # We will remove the `-A` once we swtich to using crates
-      rustflags: '-D warnings -A unused-imports -A unused-variables'
-

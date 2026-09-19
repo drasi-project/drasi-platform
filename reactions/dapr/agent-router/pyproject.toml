@@ -26,6 +26,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+dev = [
+    "ruff>=0.12,<1",
+]
 test = [
     "httpx>=0.27.1,<1",
     "pytest>=8,<9",
@@ -39,3 +42,6 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
