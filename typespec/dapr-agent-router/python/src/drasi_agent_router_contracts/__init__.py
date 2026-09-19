@@ -80,10 +80,6 @@ def parse(model: type[Model], document: Any) -> Model:
         raise ValueError(f"Unknown agent-router contract model: {model.__name__}")
     Draft202012Validator(schema, registry=registry).validate(document)
     result = model.model_validate(document)
-    if isinstance(result, SubscribeResponse):
-        operations = [operation.value for operation in result.operations]
-        if operations != sorted(operations, key=("i", "u", "d").index):
-            raise ValueError("Subscribe response operations must use i, u, d order")
     if isinstance(result, AgentDelivery):
         position = result.eventId.rsplit(":", 1)[-1]
         if re.fullmatch(r"0|[1-9][0-9]*", position) is None:

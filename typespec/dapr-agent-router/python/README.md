@@ -11,7 +11,7 @@ delivery = parse(AgentDelivery, cloud_event["data"])
 wire_data = to_wire(delivery)
 ```
 
-Use `parse`/`parse_catalog` at input boundaries and `to_wire` before publishing. Generated Pydantic types alone do not preserve every JSON Schema or protocol constraint. Subscribe request operations may be in any order; response operations must be in `i`, `u`, `d` order.
+Use `parse`/`parse_catalog` at input boundaries and `to_wire` before publishing. Generated Pydantic types alone do not preserve every JSON Schema or protocol constraint. Subscribe operations are non-empty, unique sets of `i`, `u`, and `d`; request and response ordering has no semantic meaning.
 
 The current pre-release contract may change without compatibility adapters or migrations. Both consumers should use the same package revision. Protocol objects reject undeclared fields; query-result columns remain unrestricted.
 

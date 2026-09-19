@@ -84,22 +84,47 @@ def test_subscribe_requests_accept_any_operation_order(operations):
 
 
 @pytest.mark.parametrize("operations", OPERATION_PERMUTATIONS)
-def test_subscribe_responses_require_canonical_operation_order(operations):
+def test_subscribe_responses_accept_any_operation_order(operations):
     response = message("created")
     response["operations"] = list(operations)
     model = protocol.SubscribeResponse.model_validate(response)
-    if list(operations) == sorted(operations, key=("i", "u", "d").index):
-        assert (
-            protocol.to_wire(protocol.parse(protocol.SubscribeResponse, response))
-            == response
-        )
-        assert protocol.to_wire(model) == response
-    else:
-        with pytest.raises(ValueError, match="i, u, d order"):
-            protocol.parse(protocol.SubscribeResponse, response)
-        with pytest.raises(ValueError, match="i, u, d order"):
-            protocol.to_wire(model)
-    assert response["operations"] == list(operations)
+    assert (
+        protocol.to_wire(protocol.parse(protocol.SubscribeResponse, response))
+        == response
+    )
+    assert protocol.to_wire(model) == response
+
+
+@pytest.mark.parametrize(
+    ("model", "fixture"),
+    [
+        (protocol.SubscribeRequest, "subscribe"),
+        (protocol.SubscribeResponse, "created"),
+    ],
+)
+@pytest.mark.parametrize("operations", [[], ["i", "i"], ["x"], ["i", "u", "d", "i"]])
+def test_operation_sets_reject_empty_duplicate_or_unsupported_values(
+    model, fixture, operations
+):
+    document = message(fixture)
+    document["operations"] = operations
+    with pytest.raises(ValidationError):
+        protocol.parse(model, document)
+
+
+@pytest.mark.parametrize(
+    ("model", "fixture"),
+    [
+        (protocol.SubscribeRequest, "subscribe"),
+        (protocol.SubscribeResponse, "created"),
+    ],
+)
+def test_serialization_still_rejects_duplicate_operations(model, fixture):
+    document = message(fixture)
+    document["operations"] = ["i", "i"]
+    unchecked = model.model_validate(document)
+    with pytest.raises(ValidationError):
+        protocol.to_wire(unchecked)
 
 
 @pytest.mark.parametrize("vector", IDENTITIES["topics"])

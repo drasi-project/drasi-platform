@@ -14,7 +14,7 @@
             "minItems": 1,
             "maxItems": 3,
             "uniqueItems": true,
-            "description": "Selected operations in canonical i, u, d order; enforced by the protocol boundary helpers."
+            "description": "Selected operations form a non-empty, unique set. Their order has no semantic meaning."
         },
         "subscription_incarnation": {
             "$ref": "NonEmptyString.json"

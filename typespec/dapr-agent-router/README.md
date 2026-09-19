@@ -66,9 +66,9 @@ The catalog is a deployment-time menu, not a search API or current-result snapsh
 
 ### `subscribe`
 
-`SubscribeRequest` requires `query_id`, `operations`, `subscriber`, and `subscription_incarnation`. `operations` is a non-empty array of distinct `i`, `u`, or `d` values. Input order is irrelevant; successful responses return the effective set in `i`, `u`, `d` order.
+`SubscribeRequest` requires `query_id`, `operations`, `subscriber`, and `subscription_incarnation`. In both requests and responses, `operations` is a non-empty array of distinct `i`, `u`, or `d` values with set semantics.
 
-The router constructs that canonical response order. It is a semantic requirement enforced by `parse(SubscribeResponse, ...)` and `to_wire`, not just the structural schema. For example, request operations `["u", "i"]` are valid, but the response must contain `["i", "u"]`. Boundary helpers reject an out-of-order response rather than silently sorting it.
+For example, `["u", "i"]` and `["i", "u"]` have the same meaning and are valid in either direction. Producers may sort operations for readability, but consumers must compare membership rather than require an order. Boundary helpers preserve the supplied order. This does not change canonical event-ID or topic encoding.
 
 The router validates the catalog entry and derives the inbox. Its rule has no handling instructions, arbitrary topic, broker override, TTL, replay option, or caller-selected subscription ID.
 
@@ -177,7 +177,7 @@ At-least-once processing, partial fanout, retries, and duplicate workflows are p
 
 JSON Schemas use draft 2020-12 and local relative references. Resolve references from the supplied schema set, without network fetching. Protocol requests, responses, metadata, and delivery objects reject undeclared fields rather than silently dropping them or anticipating future formats. Projected rows in `before` and `after` remain arbitrary JSON objects: their columns are query data, not protocol fields.
 
-Generated Pydantic models are typed representations, not complete protocol validators: code generation does not enforce distinct operation lists or the distinction between an absent optional field and an explicit `null`. **Use the shared package's `parse`/`parse_catalog` at input boundaries and `to_wire` before publishing.** They enforce the current generated schemas, canonical response ordering, and semantic identity rules without hand-editing generated files or selecting historical formats.
+Generated Pydantic models are typed representations, not complete protocol validators: code generation does not enforce distinct operation lists or the distinction between an absent optional field and an explicit `null`. **Use the shared package's `parse`/`parse_catalog` at input boundaries and `to_wire` before publishing.** They enforce the current generated schemas and semantic identity rules without hand-editing generated files or selecting historical formats.
 
 ```python
 from drasi_agent_router_contracts import AgentDelivery, parse, to_wire

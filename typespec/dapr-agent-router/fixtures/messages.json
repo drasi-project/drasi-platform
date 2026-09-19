@@ -43,8 +43,7 @@
   {
     "name": "unordered-subscribe-response",
     "model": "SubscribeResponse",
-    "valid": false,
-    "schema_valid": true,
+    "valid": true,
     "message": {
       "query_id": "service-errors",
       "operations": ["u", "i"],

@@ -24,7 +24,7 @@ class SubscribeResponse(BaseModel):
     operations: Annotated[
         list[Operation],
         Field(
-            description='Selected operations in canonical i, u, d order; enforced by the protocol boundary helpers.',
+            description='Selected operations form a non-empty, unique set. Their order has no semantic meaning.',
             max_length=3,
             min_length=1,
         ),
