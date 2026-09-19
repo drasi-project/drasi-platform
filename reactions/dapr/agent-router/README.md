@@ -4,7 +4,7 @@ This package provides the DaprAgentRouter image and built-in ReactionProvider, i
 
 The earlier runner, catalog, and subscription registry prototype is in [drasi-project/drasi-platform#443](https://github.com/drasi-project/drasi-platform/pull/443). This application adapts its same-port architecture and store-first registry approach to the current SDK lifecycle and shared protocol, without lazy cache loading or failure-to-empty/success fallbacks.
 
-**This is not yet a functioning event router.** `list_queries`, `subscribe`, and `unsubscribe` are implemented. Row conversion is available through the helpers below but is not wired into delivery. Fanout and administration remain separate work. Valid change events deliberately return `RETRY`, rather than acknowledging changes that have not been forwarded. Do not deploy this application against live query streams expecting delivery or retention guarantees: broker retry/dead-letter policies can exhaust retries.
+**This is not yet a functioning event router.** `list_queries`, `subscribe`, `unsubscribe`, and the internal operator API are implemented. Row conversion is available through the helpers below but is not wired into delivery. Fanout remains separate work. Valid change events deliberately return `RETRY`, rather than acknowledging changes that have not been forwarded. Do not deploy this application against live query streams expecting delivery or retention guarantees: broker retry/dead-letter policies can exhaust retries.
 
 ## Configuration
 
@@ -112,6 +112,11 @@ The application exposes:
 | `POST /mcp` | Stateless MCP initialization, tool discovery, and the three catalog/subscription tools. |
 | `GET /dapr/subscribe` | SDK-managed query subscriptions and the derived inbound dead-letter topic. |
 | `POST /_drasi/events/{query_id}` | SDK-managed CloudEvent validation and explicit delivery outcomes. |
+| `GET /admin/rules` | Inspect the confirmed routing snapshot, with optional query/subscriber filters. |
+| `POST /admin/rules/remove` | Durably remove one exact query/subscriber rule. |
+| `POST /admin/subscribers/remove-rules` | Durably remove every rule for one explicitly identified subscriber. |
+| `GET /healthz` | Application liveness, without checking dependencies. |
+| `GET /readyz` | SDK lifecycle readiness, without a new storage or broker probe. |
 
 `/mcp` is the exact endpoint, without an additional path segment or trailing-slash redirect. MCP requests must use the normal protocol headers, including `Accept: application/json, text/event-stream`. Successful tool results contain identical JSON data in `structuredContent` and a text content block. Argument errors have `isError: true` and a JSON `ToolError` text block, with no success-shaped `structuredContent`.
 
@@ -182,9 +187,68 @@ Routing snapshots are immutable and require no state-store calls or evicting cac
 | State key disappears during the process lifetime | Reject management operations; do not silently reinitialize or replace known rules with an empty table. |
 | Ordinary shutdown/restart | Preserve rules and restore them before accepting work. |
 | Query removed from the catalog | Preserve its stored rules so incarnation-checked unsubscribe remains possible. New subscribe calls are rejected. |
-| Agent permanently removed | Explicit operator cleanup is required; shutdown is not unsubscribe. Administrative endpoints are a separate issue. |
+| Agent permanently removed | Explicit operator cleanup is required; shutdown is not unsubscribe. Use the internal administration endpoints below. |
 
 The agent's durable intent is separate state containing its instructions and pending/active status. It must preserve pending operations across failures and reconcile them after restart. The router cannot reconstruct missing agent instructions. Query recreation, backing-store restoration, and decommissioning require coordinated operator action; deleting a Dapr Component is not a purge of its backing data. There are no leases, heartbeats, automatic expiry, replay, or permanent tombstones.
+
+## Administration
+
+The operator API shares the app port with MCP but is not exposed as agent tools. It assumes the same private, trusted deployment; it does not add authentication, authorization, public ingress, or a dashboard. Use private Dapr service invocation, for example:
+
+```sh
+router_url='http://localhost:3500/v1.0/invoke/sre-router-reaction.drasi-system/method'
+curl --fail-with-body "$router_url/admin/rules"
+```
+
+`GET /admin/rules` returns `router_id`, `view: "routing_snapshot"`, and `rules`. Each rule contains its query ID, full subscriber identity, operations, incarnation, and derived inbox topic. Results are sorted by query and subscriber identity. Rules for queries no longer in the catalog remain visible and removable.
+
+This is the last confirmed in-memory routing view, not a fresh backing-store inspection or a storage-health assertion. Listing remains available during a runtime store outage and does not read storage. An unconfirmed write can have committed without updating this view; retry the complete mutation to resolve that uncertainty. Before initialization or after shutdown, inspection and cleanup return HTTP 503 rather than an empty registry.
+
+Filter by `query_id`, by all three subscriber fields together, or both:
+
+```sh
+curl --fail-with-body --get "$router_url/admin/rules" \
+  --data-urlencode 'query_id=checkout-server-errors' \
+  --data-urlencode 'namespace=applications' \
+  --data-urlencode 'app_id=checkout-sre' \
+  --data-urlencode 'agent_name=CheckoutSRE'
+```
+
+Omitting all filters lists all rules. Partial subscriber filters, empty/invalid identities, and unknown parameters are rejected. Identities are exact, case-sensitive values; neither filters nor cleanup interpret wildcards.
+
+To remove one rule, supply its query and complete subscriber identity:
+
+```sh
+curl --fail-with-body "$router_url/admin/rules/remove" \
+  -H 'Content-Type: application/json' \
+  --data '{"query_id":"checkout-server-errors","subscriber":{"namespace":"applications","app_id":"checkout-sre","agent_name":"CheckoutSRE"}}'
+```
+
+The response is `{"removed":true}`, or `{"removed":false}` if the rule was already absent. Unlike agent-facing unsubscribe, operator cleanup does not require the incarnation token. It removes the current rule for the exact key; it does not weaken MCP's incarnation checks.
+
+To remove every rule for one logical agent:
+
+```sh
+curl --fail-with-body "$router_url/admin/subscribers/remove-rules" \
+  -H 'Content-Type: application/json' \
+  --data '{"subscriber":{"namespace":"applications","app_id":"checkout-sre","agent_name":"CheckoutSRE"}}'
+```
+
+The response contains `removed_count`, which can be zero. The complete subscriber object is required. There is no default, wildcard, namespace-wide, or all-subscriber cleanup operation; extra body fields are rejected.
+
+Both removals use the same lock, durable reread, ETag-conditional write, and store-before-memory ordering as subscription operations. Subscriber-wide cleanup is one document mutation, not a sequence of partially successful deletes. Removing the last rule retains an empty registry document. A storage error, conflict, or timeout returns HTTP 503 with `code: "state_unavailable"`; even an apparently absent rule must be confirmed by a successful durable read. Invalid arguments return HTTP 422 with `code: "invalid_arguments"`. Error bodies contain a sanitized `message`, not the submitted body or backend exception.
+
+**Cleanup is not permanent suspension.** A live agent can recreate a removed rule when it subscribes or reconciles its durable intent. Disable that intent or stop/decommission the application before removing its obsolete rules. Router cleanup does not delete agent intent, purge queued messages, cancel in-flight work, or revoke access.
+
+## Health and logging
+
+When the HTTP application is serving, `GET /healthz` returns HTTP 200 with `{"status":"alive"}`. `GET /readyz` returns HTTP 200 with `{"status":"ready"}` only while the Reaction SDK reports initialization complete; otherwise it returns HTTP 503 with `{"status":"not_ready"}`. The server may not yet accept HTTP connections while ASGI startup is still running.
+
+Readiness uses the same lifecycle as MCP and SDK admission: the MCP manager and complete subscription state load must start successfully, and readiness clears before cleanup. Neither health endpoint queries storage, checks broker connectivity, or proves that events have reached agents. A runtime store outage does not clear lifecycle readiness or force restarts; inspection/catalog access remains available while required durable operations return errors. Exposing these routes does not automatically configure Kubernetes probes or Dapr app-health annotations.
+
+The application configures JSON output on standard output for the `agent_router` and `drasi.reaction` loggers. INFO-level initialization, mutation, cleanup, and shutdown records include stable event names, UTC timestamps, levels, and allowlisted context. Depending on the operation, context includes router/query/subscriber identities, state-component name, operation, outcome, removal count, or a sanitized error code/message.
+
+Integration-owned records do not contain rows, handling instructions, credentials, request bodies, or raw exception details. Unknown contextual fields are omitted, and subscriber context includes only `namespace`, `app_id`, and `agent_name`. This is not a universal redaction guarantee for third-party/runtime logging or additional handlers configured by the host. Normal health polling does not emit an application log record for every request.
 
 ## Row conversion
 
@@ -254,7 +318,7 @@ make test-state-integration
 
 This target starts an isolated Compose project with Dapr 1.14.5 (the CLI's current default) and MongoDB 6, uses dynamically assigned loopback ports, and removes its containers and volumes on exit. It exercises durable restoration, actual ETag rejection, unsupported-record handling, and state-component errors. The fixture does not enable actors or require MongoDB multi-document transactions. The ordinary suite skips these cases unless `DRASI_ROUTER_TEST_STATE_STORE` and the Dapr endpoints are supplied.
 
-Broker policies and health/administrative endpoints remain separate work.
+Broker policies and event forwarding remain separate work.
 
 ## Container builds
 
@@ -277,7 +341,7 @@ Both variants use Python 3.12, uv 0.11.27, and the committed dependency lockfile
 
 The Makefile supports the repository's `IMAGE_PREFIX`, `DOCKER_TAG_VERSION`, `BUILD_CONFIG`, `TAG_SUFFIX`, and `DOCKERX_OPTS` conventions. Release workflows publish both Linux `amd64` and `arm64` variants. For example, `DOCKER_TAG_VERSION=vX.Y.Z BUILD_CONFIG=azure-linux TAG_SUFFIX=-arm64` selects the tag `vX.Y.Z-azure-linux-arm64`.
 
-`make image-test` needs Docker, Docker Compose, and Python 3.10 or later on the host. It starts an isolated copy of the Dapr/MongoDB state fixture and connects the actual router image to that private network. It mounts a synthetic catalog, exercises MCP and SDK delivery on the same temporary loopback port, checks the non-root/single-worker configuration, and verifies subscription persistence across a clean router restart. It removes its containers, volumes, network, and temporary query files. No installed Dapr CLI, broker, model, or credentials are needed.
+`make image-test` needs Docker, Docker Compose, and Python 3.10 or later on the host. It starts an isolated copy of the Dapr/MongoDB state fixture and connects the actual router image to that private network. It mounts a synthetic catalog, exercises MCP, SDK delivery, administration, and health on the same temporary loopback port, checks JSON log output and the non-root/single-worker configuration, and verifies subscription and cleanup persistence across clean router restarts. It removes its containers, volumes, network, and temporary query files. No installed Dapr CLI, broker, model, or credentials are needed.
 
 Load a locally built image into an existing development cluster using matching build/tag options:
 

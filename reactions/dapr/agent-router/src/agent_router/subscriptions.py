@@ -9,7 +9,7 @@ import json
 import logging
 from collections.abc import Awaitable
 from dataclasses import dataclass
-from typing import NamedTuple, TypeVar
+from typing import Literal, NamedTuple, TypeVar
 
 from dapr.aio.clients import DaprClient
 from dapr.clients.exceptions import DaprInternalError
@@ -54,19 +54,27 @@ class SubscriberIdentity(NamedTuple):
 RuleKey = tuple[str, SubscriberIdentity]
 
 
-def _key(request: SubscribeRequest | UnsubscribeRequest) -> RuleKey:
-    to_wire(request)
-    subscriber = request.subscriber
+def subscriber_identity(subscriber: Subscriber) -> SubscriberIdentity:
+    to_wire(subscriber)
     identity = SubscriberIdentity(
         subscriber.namespace, subscriber.app_id, subscriber.agent_name
     )
-    for value in (
-        request.query_id,
-        request.subscription_incarnation,
-        *identity,
-    ):
+    for value in identity:
         value.encode("utf-8")
-    return request.query_id, identity
+    return identity
+
+
+def validate_query_id(query_id: str) -> str:
+    if not isinstance(query_id, str) or not query_id:
+        raise ValueError("query_id must be a non-empty string")
+    query_id.encode("utf-8")
+    return query_id
+
+
+def _key(request: SubscribeRequest | UnsubscribeRequest) -> RuleKey:
+    to_wire(request)
+    request.subscription_incarnation.encode("utf-8")
+    return validate_query_id(request.query_id), subscriber_identity(request.subscriber)
 
 
 @dataclass(frozen=True)
@@ -105,6 +113,10 @@ class SubscriptionRegistry:
         async with self._lock:
             if self._client is not None:
                 raise RuntimeError("subscription registry is already initialized")
+            logger.info(
+                "router_subscriptions_initializing",
+                extra={**self._log_context(), "operation": "initialize"},
+            )
             try:
                 self._client = DaprClient()
             except (DaprInternalError, RpcError, TimeoutError):
@@ -120,7 +132,15 @@ class SubscriptionRegistry:
                 raise self._state_error("Subscription registry bootstrap did not persist")
             self._rules, _ = state
             self._initialized = True
-            logger.info("router_subscriptions_loaded", extra=self._log_context())
+            logger.info(
+                "router_subscriptions_loaded",
+                extra={
+                    **self._log_context(),
+                    "operation": "initialize",
+                    "outcome": "success",
+                    "rule_count": len(self._rules),
+                },
+            )
 
     async def close(self) -> None:
         async with self._lock:
@@ -128,10 +148,32 @@ class SubscriptionRegistry:
             client, self._client = self._client, None
             if client is not None:
                 await client.close()
+            logger.info(
+                "router_subscriptions_closed",
+                extra={
+                    **self._log_context(),
+                    "operation": "close",
+                    "outcome": "success",
+                },
+            )
 
     def snapshot(self, query_id: str) -> tuple[SubscriptionRule, ...]:
         self._require_initialized()
         return tuple(rule for rule in self._rules.values() if rule.query_id == query_id)
+
+    def list_rules(
+        self, *, query_id: str | None = None, subscriber: Subscriber | None = None
+    ) -> tuple[SubscriptionRule, ...]:
+        if query_id is not None:
+            validate_query_id(query_id)
+        identity = subscriber_identity(subscriber) if subscriber is not None else None
+        self._require_initialized()
+        return tuple(
+            rule
+            for key, rule in sorted(self._rules.items())
+            if (query_id is None or key[0] == query_id)
+            and (identity is None or key[1] == identity)
+        )
 
     async def subscribe(self, request: SubscribeRequest) -> SubscribeResponse:
         rule = self._rule(request)
@@ -157,32 +199,88 @@ class SubscriptionRegistry:
                     "drasi_query_id": rule.query_id,
                     "subscriber": rule.subscriber._asdict(),
                     "subscription_status": result.status.value,
+                    "operation": "subscribe",
+                    "outcome": "success",
                 },
             )
             return result
 
     async def unsubscribe(self, request: UnsubscribeRequest) -> UnsubscribeResponse:
-        key = _key(request)
-        incarnation = request.subscription_incarnation
-        async with self._lock:
-            self._require_initialized()
-            rules, etag = await self._read_existing()
-            current = rules.get(key)
-            self._check_incarnation(current, incarnation)
-            if current is not None:
-                del rules[key]
-                await self._write(rules, etag)
-            self._rules = rules
-            logger.info(
-                "router_subscription_removed",
+        query_id, identity = _key(request)
+        removed = await self._remove_rules(
+            identity,
+            query_id=query_id,
+            incarnation=request.subscription_incarnation,
+            operation="unsubscribe",
+        )
+        return UnsubscribeResponse(query_id=query_id, removed=bool(removed))
+
+    async def remove_rule(self, query_id: str, subscriber: Subscriber) -> bool:
+        removed = await self._remove_rules(
+            subscriber_identity(subscriber),
+            query_id=validate_query_id(query_id),
+            operation="remove_rule",
+        )
+        return bool(removed)
+
+    async def remove_subscriber_rules(self, subscriber: Subscriber) -> int:
+        return await self._remove_rules(
+            subscriber_identity(subscriber), operation="remove_subscriber_rules"
+        )
+
+    async def _remove_rules(
+        self,
+        identity: SubscriberIdentity,
+        *,
+        query_id: str | None = None,
+        incarnation: str | None = None,
+        operation: Literal["unsubscribe", "remove_rule", "remove_subscriber_rules"],
+    ) -> int:
+        context = {
+            **self._log_context(),
+            "subscriber": identity._asdict(),
+            "operation": operation,
+        }
+        if query_id is not None:
+            context["drasi_query_id"] = query_id
+        try:
+            async with self._lock:
+                self._require_initialized()
+                rules, etag = await self._read_existing()
+                matches = [
+                    key
+                    for key in rules
+                    if key[1] == identity and (query_id is None or key[0] == query_id)
+                ]
+                for key in matches:
+                    if incarnation is not None:
+                        self._check_incarnation(rules[key], incarnation)
+                    del rules[key]
+                if matches:
+                    await self._write(rules, etag)
+                self._rules = rules
+                logger.info(
+                    "router_subscription_removed"
+                    if operation == "unsubscribe"
+                    else "router_rules_cleaned",
+                    extra={
+                        **context,
+                        "outcome": "success",
+                        "subscription_removed": bool(matches),
+                        "removed_count": len(matches),
+                    },
+                )
+                return len(matches)
+        except SubscriptionError as error:
+            logger.warning(
+                "router_rule_removal_failed",
                 extra={
-                    **self._log_context(),
-                    "drasi_query_id": key[0],
-                    "subscriber": key[1]._asdict(),
-                    "subscription_removed": current is not None,
+                    **context,
+                    "outcome": "error",
+                    "router_error_code": error.code.value,
                 },
             )
-            return UnsubscribeResponse(query_id=key[0], removed=current is not None)
+            raise
 
     def _rule(self, request: SubscribeRequest) -> SubscriptionRule:
         query_id, subscriber = _key(request)
@@ -307,17 +405,25 @@ class SubscriptionRegistry:
         except (DaprInternalError, RpcError, asyncio.TimeoutError):
             raise self._state_error(
                 f"Subscription state {operation} was not confirmed; "
-                "retry the complete operation"
+                "retry the complete operation",
+                operation=operation,
             ) from None
 
     def _require_initialized(self) -> None:
         if not self._initialized:
             raise self._state_error("Subscription registry initialization is incomplete")
 
-    def _state_error(self, message: str) -> SubscriptionError:
+    def _state_error(
+        self, message: str, *, operation: str = "state"
+    ) -> SubscriptionError:
         logger.error(
             "router_subscription_state_failed",
-            extra={**self._log_context(), "state_failure": message},
+            extra={
+                **self._log_context(),
+                "operation": operation,
+                "outcome": "error",
+                "state_failure": message,
+            },
         )
         return SubscriptionError(Code.state_unavailable, message)
 
