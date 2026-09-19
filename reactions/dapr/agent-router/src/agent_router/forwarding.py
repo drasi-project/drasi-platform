@@ -79,7 +79,7 @@ class ChangeForwarder:
                     **context,
                     "operation": error.operation,
                     "row_position": error.position,
-                    "reason": str(error),
+                    "drasi_delivery_reason": str(error),
                     "outcome": DeliveryOutcome.DROP.value,
                 },
             )

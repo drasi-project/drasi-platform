@@ -139,3 +139,33 @@ def test_real_missing_component_reports_state_unavailable():
             await unavailable.close()
 
     asyncio.run(exercise())
+
+
+def test_real_operator_cleanup_is_scoped_and_survives_restart():
+    async def exercise():
+        async with live_state() as (registry, _):
+            request = subscription_request()
+            other = subscription_request(app_id="another-app")
+            for item in (
+                request,
+                subscription_request(query_id="retired-query", incarnation="other-life"),
+                other,
+            ):
+                await registry.subscribe(item)
+            assert await registry.remove_rule(request.query_id, request.subscriber) is True
+            assert await registry.remove_rule(request.query_id, request.subscriber) is False
+            await registry.close()
+            await registry.initialize()
+            assert len(registry.list_rules()) == 2
+            assert await registry.remove_subscriber_rules(request.subscriber) == 1
+            assert await registry.remove_subscriber_rules(request.subscriber) == 0
+            await registry.close()
+            await registry.initialize()
+            assert len(registry.list_rules()) == 1
+            assert registry.list_rules()[0].subscriber.app_id == "another-app"
+            assert await registry.remove_subscriber_rules(other.subscriber) == 1
+            await registry.close()
+            await registry.initialize()
+            assert registry.list_rules() == ()
+
+    asyncio.run(exercise())

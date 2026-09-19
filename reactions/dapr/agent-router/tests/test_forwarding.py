@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 import httpx
 import pytest
 from dapr.clients.exceptions import DaprInternalError
-from drasi_agent_router_contracts import AgentDelivery, parse
+from drasi_agent_router_contracts import AgentDelivery, parse, to_wire
 from grpc import RpcError
 
 import agent_router.forwarding as forwarding_module
@@ -288,7 +288,8 @@ def test_partial_failure_repeats_successes_and_uses_current_rules_on_retry(
     ]
 
 
-def test_mid_attempt_mutations_do_not_change_the_snapshot(app_factory, pubsub):
+@pytest.mark.parametrize("removal", ["unsubscribe", "admin-rule", "admin-subscriber"])
+def test_mid_attempt_mutations_do_not_change_the_snapshot(app_factory, pubsub, removal):
     app = app_factory(CATALOG)
     registry = app.state.subscriptions
     first_request = subscription_request(agent_name="First")
@@ -308,9 +309,24 @@ def test_mid_attempt_mutations_do_not_change_the_snapshot(app_factory, pubsub):
             pending = asyncio.create_task(client.post(ROUTE, json=document))
             try:
                 await asyncio.wait_for(started.wait(), timeout=1)
-                await asyncio.wait_for(
-                    registry.unsubscribe(removal_request(first_request)), timeout=1
-                )
+                if removal == "unsubscribe":
+                    await asyncio.wait_for(
+                        registry.unsubscribe(removal_request(first_request)), timeout=1
+                    )
+                else:
+                    arguments = {"subscriber": to_wire(first_request.subscriber)}
+                    if removal == "admin-rule":
+                        path = "/admin/rules/remove"
+                        arguments["query_id"] = first_request.query_id
+                        expected = {"removed": True}
+                    else:
+                        path = "/admin/subscribers/remove-rules"
+                        expected = {"removed_count": 1}
+                    removed = await asyncio.wait_for(
+                        client.post(path, json=arguments), timeout=1
+                    )
+                    assert removed.status_code == 200
+                    assert removed.json() == expected
                 later = await asyncio.wait_for(
                     registry.subscribe(subscription_request(agent_name="Later")),
                     timeout=1,
@@ -398,3 +414,61 @@ def test_internal_conversion_error_is_not_classified_as_poison(
             assert pubsub.attempts == []
 
     asyncio.run(exercise())
+
+
+def test_structured_delivery_logs_keep_diagnostics_without_payloads(
+    app_factory, pubsub, capsys
+):
+    app = app_factory(CATALOG)
+
+    async def exercise():
+        async with running(app) as client:
+            subscription = await app.state.subscriptions.subscribe(
+                subscription_request(operations=("i", "u"))
+            )
+            assert (await client.post(ROUTE, json=event())).json() == {
+                "status": "SUCCESS"
+            }
+            pubsub.error = RpcError("private-transport-details")
+            assert (await client.post(ROUTE, json=event(sequence=43))).json() == {
+                "status": "RETRY"
+            }
+            pubsub.error = None
+            unsupported = event(
+                sequence=44, updatedResults=[{"before": {}, "after": None}]
+            )
+            assert (await client.post(ROUTE, json=unsupported)).json() == {
+                "status": "DROP"
+            }
+            return subscription.topic_name
+
+    topic = asyncio.run(exercise())
+    output = capsys.readouterr().out
+    records = [json.loads(line) for line in output.splitlines()]
+    forwarding = {
+        record["event"]: record
+        for record in records
+        if record["logger"] == "agent_router.forwarding"
+    }
+    success = forwarding["router_change_processed"]
+    assert success["pubsub_name"] == "router-egress"
+    assert success["accepted_publications"] == 1
+    assert success["outcome"] == "SUCCESS"
+    failure = forwarding["router_publication_failed"]
+    assert failure["router_id"] == "drasi-system/router-app"
+    assert failure["drasi_query_id"] == "orders.v1"
+    assert failure["drasi_event_id"] == "drasi:v1:orders.v1:43:i:0"
+    assert failure["pubsub_name"] == "router-egress"
+    assert failure["topic_name"] == topic
+    assert failure["accepted_publications"] == 0
+    assert failure["error_type"] == "RpcError"
+    assert failure["outcome"] == "RETRY"
+    invalid = forwarding["router_invalid_packed_change"]
+    assert invalid["operation"] == "u"
+    assert invalid["row_position"] == 0
+    assert (
+        invalid["drasi_delivery_reason"] == "after snapshot must be a result-row object"
+    )
+    assert invalid["outcome"] == "DROP"
+    assert "private-row" not in output
+    assert "private-transport-details" not in output

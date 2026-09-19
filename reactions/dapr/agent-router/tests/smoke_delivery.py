@@ -212,6 +212,27 @@ class Runtime:
         keys = self.redis(service, "KEYS", "*")
         return {key: self.stream_length(service, key) for key in sorted(keys)}
 
+    def router_output(self) -> tuple[str, str]:
+        container = self.compose("ps", "--quiet", "router")
+        result = subprocess.run(
+            ["docker", "logs", container],
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        return result.stdout, result.stderr
+
+    def router_log_records(self) -> list[dict[str, Any]]:
+        stdout, _ = self.router_output()
+        records = []
+        for line in stdout.splitlines():
+            if not line.startswith("{"):
+                continue
+            record = json.loads(line)
+            assert isinstance(record, dict), record
+            records.append(record)
+        return records
+
     def group(self, topic: str) -> dict[str, Any]:
         groups = self.redis("inbound-redis", "XINFO", "GROUPS", topic)
         for group in groups:
@@ -572,7 +593,7 @@ def exercise_permanent_input_drops(runtime: Runtime, protocol: str) -> None:
 
 
 def exercise_mixed_operations(runtime: Runtime, protocol: str) -> None:
-    print("Checking mixed insert/update/delete operation filters and envelopes")
+    print("Checking mixed operation filters, envelopes, and operator cleanup")
     rules = (
         Rule(
             "mixed-query",
@@ -662,6 +683,27 @@ def exercise_mixed_operations(runtime: Runtime, protocol: str) -> None:
             "before": {"id": "delete-0", "value": "old"},
         },
     )
+    assert runtime.stream_length("inbound-redis", DEAD_LETTER_TOPIC) == dlt_count
+
+    removed = request_json(
+        f"{runtime.app_url}/admin/rules/remove",
+        {
+            "query_id": rules[0].query_id,
+            "subscriber": rules[0].subscriber,
+        },
+    )
+    assert removed == {"removed": True}, removed
+    egress_before = runtime.stream_lengths("egress-redis")
+    entry_id = runtime.publish(
+        "mixed-query",
+        change_event(
+            "mixed-query",
+            sequence + 1,
+            added=[{"value": "removed-rule-private-row"}],
+        ),
+    )
+    runtime.wait_consumed("mixed-query", entry_id)
+    assert runtime.stream_lengths("egress-redis") == egress_before
     assert runtime.stream_length("inbound-redis", DEAD_LETTER_TOPIC) == dlt_count
 
 
@@ -792,6 +834,89 @@ def exercise_retry_exhaustion(runtime: Runtime, protocol: str) -> None:
     assert_dead_letter(runtime, dlt_index, packed)
 
 
+def exercise_forwarding_logs(runtime: Runtime) -> None:
+    print("Checking packaged JSON forwarding diagnostics and payload exclusion")
+
+    def expected_records() -> list[dict[str, Any]] | None:
+        records = runtime.router_log_records()
+        failures = [
+            record
+            for record in records
+            if record.get("event") == "router_publication_failed"
+            and record.get("drasi_query_id") == "exhaustion-query"
+        ]
+        poison = [
+            record
+            for record in records
+            if record.get("event") == "router_invalid_packed_change"
+            and record.get("drasi_query_id") == "converter-query"
+        ]
+        return records if len(failures) >= 3 and len(poison) >= 1 else None
+
+    records = wait_for(
+        expected_records,
+        "the forwarding diagnostics in router stdout",
+        timeout=10,
+    )
+    stdout, stderr = runtime.router_output()
+    for private_value in (
+        "insert-0",
+        "must-not-publish",
+        "removed-rule-private-row",
+        "published-before-failure",
+        "denied-new",
+        "duplicate-on-each-attempt",
+        "always-denied-new",
+    ):
+        assert private_value not in stdout
+        assert private_value not in stderr
+
+    processed = [
+        record
+        for record in records
+        if record.get("event") == "router_change_processed"
+        and record.get("drasi_query_id") == "mixed-query"
+    ]
+    assert [record["accepted_publications"] for record in processed] == [3, 0]
+    assert all(record["pubsub_name"] == EGRESS for record in processed)
+    assert all(record["router_id"] == ROUTER_ID for record in processed)
+    assert all(record["outcome"] == "SUCCESS" for record in processed)
+
+    failures = [
+        record
+        for record in records
+        if record.get("event") == "router_publication_failed"
+        and record.get("drasi_query_id") == "exhaustion-query"
+    ]
+    assert len(failures) == 3, failures
+    for record in failures:
+        assert record["router_id"] == ROUTER_ID
+        assert record["pubsub_name"] == EGRESS
+        assert record["topic_name"] == TOPICS["exhaustion-z"]
+        assert record["drasi_event_id"] == "drasi:v1:exhaustion-query:31:u:0"
+        assert record["accepted_publications"] == 1
+        assert record["outcome"] == "RETRY"
+        assert isinstance(record["error_type"], str) and record["error_type"]
+
+    poison = [
+        record
+        for record in records
+        if record.get("event") == "router_invalid_packed_change"
+        and record.get("drasi_query_id") == "converter-query"
+    ]
+    assert len(poison) == 1, poison
+    assert poison[0]["router_id"] == ROUTER_ID
+    assert poison[0]["pubsub_name"] == EGRESS
+    assert poison[0]["operation"] == "u"
+    assert poison[0]["row_position"] == 0
+    assert (
+        poison[0]["drasi_delivery_reason"]
+        == "after snapshot must be a result-row object"
+    )
+    assert poison[0]["outcome"] == "DROP"
+    assert "reason" not in poison[0]
+
+
 def check_delivery(image: str) -> None:
     with delivery_runtime(image) as runtime:
         protocol = initialize_mcp(runtime.app_url)
@@ -800,6 +925,7 @@ def check_delivery(image: str) -> None:
         exercise_mixed_operations(runtime, protocol)
         exercise_retry_recovery(runtime, protocol)
         exercise_retry_exhaustion(runtime, protocol)
+        exercise_forwarding_logs(runtime)
     print(f"Router real-Dapr delivery passed: {image}")
 
 

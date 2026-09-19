@@ -457,3 +457,66 @@ def test_non_utf8_identity_is_rejected_before_state_access(registry, state_store
             assert len(state_store.writes) == writes
 
     asyncio.run(exercise())
+
+
+def test_admin_cleanup_is_atomic_with_concurrent_subscription(registry, state_store):
+    async def exercise():
+        request = subscription_request()
+        async with running(registry):
+            await registry.subscribe(request)
+            await registry.subscribe(subscription_request(query_id="retired-query"))
+            before = registry.list_rules()
+            started, release = asyncio.Event(), asyncio.Event()
+
+            async def blocked_write():
+                started.set()
+                await release.wait()
+
+            state_store.before_write = blocked_write
+            cleanup = asyncio.create_task(
+                registry.remove_subscriber_rules(request.subscriber)
+            )
+            resubscribe = None
+            try:
+                await asyncio.wait_for(started.wait(), timeout=1)
+                resubscribe = asyncio.create_task(registry.subscribe(request))
+                await asyncio.sleep(0)
+                assert not resubscribe.done()
+                assert registry.list_rules() == before
+            finally:
+                release.set()
+                removed = await cleanup
+                if resubscribe is not None:
+                    await resubscribe
+            assert removed == 2
+            assert len(registry.list_rules()) == 1
+            assert registry.list_rules()[0].query_id == request.query_id
+
+    asyncio.run(exercise())
+
+
+def test_admin_cleanup_rechecks_rules_after_an_etag_conflict(registry, state_store):
+    async def exercise():
+        request = subscription_request()
+        async with running(registry):
+            await registry.subscribe(request)
+            before = registry.list_rules()
+
+            async def competing_write():
+                state_store.before_write = None
+                other = SubscriptionRegistry(registry.router_id, registry.state_store_name)
+                async with running(other):
+                    await other.subscribe(subscription_request(app_id="another-app"))
+
+            state_store.before_write = competing_write
+            with pytest.raises(SubscriptionError) as error:
+                await registry.remove_subscriber_rules(request.subscriber)
+            assert error.value.code == Code.state_unavailable
+            assert registry.list_rules() == before
+            assert len(stored_document(state_store, registry)["rules"]) == 2
+            assert await registry.remove_subscriber_rules(request.subscriber) == 1
+            assert len(registry.list_rules()) == 1
+            assert registry.list_rules()[0].subscriber.app_id == "another-app"
+            assert len(stored_document(state_store, registry)["rules"]) == 1
+
+    asyncio.run(exercise())

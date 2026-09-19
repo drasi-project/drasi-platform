@@ -197,42 +197,59 @@ def test_state_initialization_failure_unwinds_without_readiness(
     assert all(client.closed for client in state_store.clients)
 
 
-def test_all_admission_waits_for_the_complete_state_load(app_factory, state_store) -> None:
+@pytest.mark.parametrize("stage", ["state", "publisher"])
+def test_all_admission_waits_for_complete_initialization(
+    app_factory, state_store, monkeypatch, stage
+) -> None:
     app = app_factory({"orders.v1": "title: Orders\ndescription: Order changes.\n"})
 
     async def exercise():
-        read_started, release_read = asyncio.Event(), asyncio.Event()
+        initialization_started, release_initialization = asyncio.Event(), asyncio.Event()
         ready, shutdown = asyncio.Event(), asyncio.Event()
 
-        async def blocked_read():
-            read_started.set()
-            await release_read.wait()
+        async def block_initialization():
+            initialization_started.set()
+            await release_initialization.wait()
+
+        initialize_publisher = app.state.forwarder.initialize
+
+        async def blocked_publisher():
+            await block_initialization()
+            await initialize_publisher()
 
         async def application_lifespan():
             async with app.router.lifespan_context(app):
                 ready.set()
                 await shutdown.wait()
 
-        state_store.before_read = blocked_read
+        if stage == "state":
+            state_store.before_read = block_initialization
+        else:
+            monkeypatch.setattr(app.state.forwarder, "initialize", blocked_publisher)
         task = asyncio.create_task(application_lifespan())
         try:
-            await asyncio.wait_for(read_started.wait(), timeout=1)
+            await asyncio.wait_for(initialization_started.wait(), timeout=1)
             assert app.state.reaction.is_ready is False
             async with httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=app), base_url="http://router.test"
             ) as client:
                 assert (await client.get("/dapr/subscribe")).status_code == 503
                 assert (await client.post("/mcp", json={})).status_code == 503
+                assert (await client.get("/healthz")).status_code == 200
+                assert (await client.get("/readyz")).status_code == 503
+                assert (await client.get("/admin/rules")).status_code == 503
                 result = await client.post(
                     "/_drasi/events/orders.v1", json=cloud_event("orders.v1")
                 )
                 assert result.json() == {"status": "RETRY"}
-                release_read.set()
+                release_initialization.set()
                 await asyncio.wait_for(ready.wait(), timeout=1)
                 assert app.state.reaction.is_ready is True
                 assert (await client.get("/dapr/subscribe")).status_code == 200
+                assert (await client.get("/readyz")).status_code == 200
+                assert (await client.get("/admin/rules")).status_code == 200
         finally:
-            release_read.set()
+            release_initialization.set()
             shutdown.set()
             await task
         assert all(client.closed for client in state_store.clients)
