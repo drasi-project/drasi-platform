@@ -8,35 +8,6 @@ resolution-markers = [
 ]
 
 [[package]]
-name = "agent-router"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "jsonschema" },
-    { name = "pydantic" },
-    { name = "referencing" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "datamodel-code-generator" },
-]
-test = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "jsonschema", specifier = ">=4.23,<5" },
-    { name = "pydantic", specifier = ">=2.10,<3" },
-    { name = "referencing", specifier = ">=0.28.4,<1" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "datamodel-code-generator", specifier = "==0.76.2" }]
-test = [{ name = "pytest", specifier = ">=8,<9" }]
-
-[[package]]
 name = "annotated-types"
 version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -144,6 +115,35 @@ sdist = { url = "https://files.pythonhosted.org/packages/c7/cd/97b5ce0bc7452199a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/7a/00b736585a6fac1e9c94275a07d8e470a3accdaab37b54d13fdc1c985bc0/datamodel_code_generator-0.76.2-py3-none-any.whl", hash = "sha256:8cc2bffa5a7e81a4b5a1cfce28530eaf9be465f3591bb7cb53030eb0c956f6d9", size = 661183, upload-time = "2026-09-04T11:37:45.73Z" },
 ]
+
+[[package]]
+name = "drasi-agent-router-contracts"
+version = "0.1.0a1"
+source = { editable = "." }
+dependencies = [
+    { name = "jsonschema" },
+    { name = "pydantic" },
+    { name = "referencing" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "datamodel-code-generator" },
+]
+test = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jsonschema", specifier = ">=4.23,<5" },
+    { name = "pydantic", specifier = ">=2.10,<3" },
+    { name = "referencing", specifier = ">=0.28.4,<1" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "datamodel-code-generator", specifier = "==0.76.2" }]
+test = [{ name = "pytest", specifier = ">=8,<9" }]
 
 [[package]]
 name = "exceptiongroup"

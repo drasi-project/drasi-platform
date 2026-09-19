@@ -21,7 +21,14 @@ class SubscribeResponse(BaseModel):
         extra='forbid',
     )
     query_id: Annotated[StrictStr, Field(min_length=1, title='NonEmptyString')]
-    operations: Annotated[list[Operation], Field(max_length=3, min_length=1)]
+    operations: Annotated[
+        list[Operation],
+        Field(
+            description='Selected operations in canonical i, u, d order; enforced by the protocol boundary helpers.',
+            max_length=3,
+            min_length=1,
+        ),
+    ]
     subscription_incarnation: Annotated[
         StrictStr, Field(min_length=1, title='NonEmptyString')
     ]

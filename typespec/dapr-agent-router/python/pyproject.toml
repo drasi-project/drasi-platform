@@ -6,9 +6,9 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agent-router"
-version = "0.1.0"
-description = "DaprAgentRouter reaction protocol contracts"
+name = "drasi-agent-router-contracts"
+version = "0.1.0a1"
+description = "Shared wire contracts for DaprAgentRouter and the Drasi agent extension"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -34,7 +34,11 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-"agent_router.protocol" = ["schemas/*.json"]
+"drasi_agent_router_contracts" = ["schemas/*.json", "fixtures/*.json", "py.typed"]
+
+[project.urls]
+Source = "https://github.com/drasi-project/drasi-platform"
+Documentation = "https://github.com/drasi-project/drasi-platform/tree/main/typespec/dapr-agent-router"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

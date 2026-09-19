@@ -13,7 +13,8 @@
             },
             "minItems": 1,
             "maxItems": 3,
-            "uniqueItems": true
+            "uniqueItems": true,
+            "description": "Selected operations in canonical i, u, d order; enforced by the protocol boundary helpers."
         },
         "subscription_incarnation": {
             "$ref": "NonEmptyString.json"

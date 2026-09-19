@@ -14,10 +14,8 @@
 
 import json
 import re
-import shutil
-import subprocess
-import sys
 from copy import deepcopy
+from itertools import permutations
 from pathlib import Path
 
 import pytest
@@ -26,13 +24,17 @@ from jsonschema.exceptions import ValidationError
 from pydantic import BaseModel
 from referencing import Registry, Resource
 
-from agent_router import protocol
+import drasi_agent_router_contracts as protocol
 
-ROOT = Path(__file__).resolve().parents[4]
-FIXTURES = ROOT / "typespec/dapr-agent-router/fixtures"
 BUNDLE = Path(protocol.__file__).parent
+FIXTURES = BUNDLE / "fixtures"
 CASES = json.loads((FIXTURES / "messages.json").read_text())
 IDENTITIES = json.loads((FIXTURES / "identities.json").read_text())
+OPERATION_PERMUTATIONS = [
+    operations
+    for size in (1, 2, 3)
+    for operations in permutations(("i", "u", "d"), size)
+]
 
 
 def message(name):
@@ -71,6 +73,33 @@ def test_shared_wire_fixtures(case, schemas):
         with pytest.raises((ValueError, ValidationError)):
             protocol.parse(model, case["message"])
     assert case["message"] == original
+
+
+@pytest.mark.parametrize("operations", OPERATION_PERMUTATIONS)
+def test_subscribe_requests_accept_any_operation_order(operations):
+    request = message("subscribe")
+    request["operations"] = list(operations)
+    parsed = protocol.parse(protocol.SubscribeRequest, request)
+    assert protocol.to_wire(parsed) == request
+
+
+@pytest.mark.parametrize("operations", OPERATION_PERMUTATIONS)
+def test_subscribe_responses_require_canonical_operation_order(operations):
+    response = message("created")
+    response["operations"] = list(operations)
+    model = protocol.SubscribeResponse.model_validate(response)
+    if list(operations) == sorted(operations, key=("i", "u", "d").index):
+        assert (
+            protocol.to_wire(protocol.parse(protocol.SubscribeResponse, response))
+            == response
+        )
+        assert protocol.to_wire(model) == response
+    else:
+        with pytest.raises(ValueError, match="i, u, d order"):
+            protocol.parse(protocol.SubscribeResponse, response)
+        with pytest.raises(ValueError, match="i, u, d order"):
+            protocol.to_wire(model)
+    assert response["operations"] == list(operations)
 
 
 @pytest.mark.parametrize("vector", IDENTITIES["topics"])
@@ -352,42 +381,6 @@ def test_packed_fixture_defines_independent_row_positions_and_recipient_envelope
                 protocol.parse(protocol.AgentDelivery, envelope).eventId
                 == row["eventId"]
             )
-
-
-def test_portable_bundle_runs_without_drasi_or_dapr_imports(tmp_path):
-    shutil.copytree(
-        BUNDLE,
-        tmp_path / "portable_contract",
-        ignore=shutil.ignore_patterns("__pycache__"),
-    )
-    script = """
-import importlib, json, sys
-sys.path.insert(0, sys.argv[1])
-protocol = importlib.import_module("portable_contract")
-from jsonschema.exceptions import ValidationError
-for case in json.load(open(sys.argv[2])):
-    try:
-        parsed = protocol.parse(getattr(protocol, case["model"]), case["message"])
-        assert protocol.to_wire(parsed) == case["message"]
-    except (ValueError, ValidationError):
-        assert not case["valid"], case["name"]
-    else:
-        assert case["valid"], case["name"]
-assert not any(name == "drasi" or name.startswith(("drasi.", "dapr.")) for name in sys.modules)
-"""
-    subprocess.run(
-        [
-            sys.executable,
-            "-I",
-            "-c",
-            script,
-            str(tmp_path),
-            str(FIXTURES / "messages.json"),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
 
 
 def test_unknown_model_fails_explicitly():

@@ -22,7 +22,7 @@ from tempfile import TemporaryDirectory
 
 CONTRACT = Path(__file__).resolve().parent
 ROOT = CONTRACT.parents[1]
-BUNDLE = ROOT / "reactions/dapr/agent-router/src/agent_router/protocol"
+BUNDLE = CONTRACT / "python/src/drasi_agent_router_contracts"
 MODELS = BUNDLE / "models"
 
 
@@ -95,8 +95,16 @@ def main() -> None:
                 for path in model_files
             }
         )
+        fixtures = sorted((CONTRACT / "fixtures").glob("*.json"))
+        if not fixtures:
+            raise RuntimeError("No shared protocol fixtures were found")
+        generated.update(
+            {BUNDLE / "fixtures" / path.name: path.read_bytes() for path in fixtures}
+        )
         stale = (
-            set((BUNDLE / "schemas").glob("*.json")) | set(MODELS.rglob("*.py"))
+            set((BUNDLE / "schemas").glob("*.json"))
+            | set((BUNDLE / "fixtures").glob("*.json"))
+            | set(MODELS.rglob("*.py"))
         ) - set(generated)
         changed = [
             path

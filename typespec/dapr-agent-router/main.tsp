@@ -79,6 +79,7 @@ model SubscribeRequest {
 @extension("additionalProperties", false)
 model SubscribeResponse {
     query_id: NonEmptyString;
+    @doc("Selected operations in canonical i, u, d order; enforced by the protocol boundary helpers.")
     @minItems(1)
     @maxItems(3)
     @uniqueItems

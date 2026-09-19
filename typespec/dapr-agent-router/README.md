@@ -1,6 +1,6 @@
 # DaprAgentRouter protocol v1
 
-This is the public contract between a `DaprAgentRouter` Reaction and the Drasi extension in Dapr Agents. `main.tsp` owns the wire models. This document owns the transport, lifecycle, identity algorithms, and contextual requirements that a schema cannot express. The concrete reaction's [portable Python bundle](../../reactions/dapr/agent-router/src/agent_router/protocol) contains generated JSON Schemas, generated Pydantic v2 models, and reference validation/identity helpers. None of this belongs to the general-purpose Reaction SDK.
+This is the public contract between a `DaprAgentRouter` Reaction and the Drasi extension in Dapr Agents. `main.tsp` owns the wire models. This document owns the transport, lifecycle, identity algorithms, and contextual requirements that a schema cannot express. The independent [Python contract package](python/) contains generated JSON Schemas, Pydantic v2 models, validation/identity helpers, and shared fixtures. Both applications consume that package; neither owns a separate copy of the protocol. None of this belongs to the general-purpose Reaction SDK.
 
 Protocol version 1 identifies the current dynamic integration introduced in Milestone 2. It is not a milestone number or a Drasi/Dapr package version. There is one current contract, shared by control and delivery messages, with no capability negotiation or alternative schema versions. Drasi is pre-release with no users: change the contract and its consumers together, without backward-compatibility adapters or schema/data migrations.
 
@@ -65,6 +65,8 @@ The catalog is a deployment-time menu, not a search API or current-result snapsh
 ### `subscribe`
 
 `SubscribeRequest` requires `query_id`, `operations`, `subscriber`, and `subscription_incarnation`. `operations` is a non-empty array of distinct `i`, `u`, or `d` values. Input order is irrelevant; successful responses return the effective set in `i`, `u`, `d` order.
+
+The router constructs that canonical response order. It is a semantic requirement enforced by `parse(SubscribeResponse, ...)` and `to_wire`, not just the structural schema. For example, request operations `["u", "i"]` are valid, but the response must contain `["i", "u"]`. Boundary helpers reject an out-of-order response rather than silently sorting it.
 
 The router validates the catalog entry and derives the inbox. Its rule has no handling instructions, arbitrary topic, broker override, TTL, replay option, or caller-selected subscription ID.
 
@@ -173,10 +175,10 @@ At-least-once processing, partial fanout, retries, and duplicate workflows are p
 
 JSON Schemas use draft 2020-12 and local relative references. Resolve references from the supplied schema set, without network fetching. Protocol requests, responses, metadata, and delivery objects reject undeclared fields rather than silently dropping them or anticipating future formats. Projected rows in `before` and `after` remain arbitrary JSON objects: their columns are query data, not protocol fields.
 
-Generated Pydantic models are typed representations, not complete JSON Schema validators: code generation does not enforce distinct operation lists or the distinction between an absent optional field and an explicit `null`. **Use the portable bundle's `parse`/`parse_catalog` at input boundaries and `to_wire` before publishing.** They enforce the current generated schemas and the semantic identity rules without hand-editing generated files or selecting historical formats.
+Generated Pydantic models are typed representations, not complete protocol validators: code generation does not enforce distinct operation lists or the distinction between an absent optional field and an explicit `null`. **Use the shared package's `parse`/`parse_catalog` at input boundaries and `to_wire` before publishing.** They enforce the current generated schemas, canonical response ordering, and semantic identity rules without hand-editing generated files or selecting historical formats.
 
 ```python
-from agent_router.protocol import AgentDelivery, parse, to_wire
+from drasi_agent_router_contracts import AgentDelivery, parse, to_wire
 
 delivery = parse(AgentDelivery, cloud_event["data"])
 wire_data = to_wire(delivery)
@@ -191,21 +193,49 @@ The reference helpers raise explicit JSON Schema, Pydantic, or `ValueError` exce
 From the repository root:
 
 ```sh
-make -C reactions/dapr/agent-router install-dependencies
-make -C reactions/dapr/agent-router generate-types
-make -C reactions/dapr/agent-router check-types
-make -C reactions/dapr/agent-router test
+make -C typespec/dapr-agent-router install-dependencies
+make -C typespec/dapr-agent-router generate-types
+make -C typespec/dapr-agent-router check-types
+make -C typespec/dapr-agent-router test
+make -C typespec/dapr-agent-router package
 ```
 
-Generation uses the repository's locked TypeSpec toolchain and the concrete reaction's `datamodel-code-generator` 0.76.2, also used by the Dapr Agents Drasi extension. It does not change the generic SDK's tooling or dependencies. The focused target compiles only this project. `--check` generates into a temporary directory and detects missing, changed, or stale artifacts.
+Generation uses the repository's locked TypeSpec toolchain and the contract package's `datamodel-code-generator` 0.76.2. It does not change the generic SDK's tooling or dependencies. The focused target compiles only this project and copies the canonical fixtures into the package. `--check` generates into a temporary directory and detects missing, changed, or stale artifacts. Python builds use these checked-in artifacts, so consumers need neither Node.js nor code-generation tools.
 
-### Dapr Agents consumption
+### Shared package and consumer development
 
-The entire `reactions/dapr/agent-router/src/agent_router/protocol/` directory is a self-contained, vendorable Python package. It has no imports from Drasi SDK, Dapr, or the agent framework. Its runtime requirements are Python 3.10+, Pydantic v2, `jsonschema` 4.23+, and `referencing` 0.28.4+. The concrete reaction package includes its JSON resources in wheels and source distributions.
+The distribution is `drasi-agent-router-contracts`, imported as `drasi_agent_router_contracts`. Its build root is `typespec/dapr-agent-router/python`. It has no imports from the router application, Reaction SDK, Dapr, MCP, or the agent framework. Its runtime requirements are Python 3.10+, Pydantic v2, `jsonschema` 4.23+, and `referencing` 0.28.4+. Wheels and source distributions include the schemas, shared fixtures, Python typing marker, and license.
 
-For the Drasi extension, copy this directory to `dapr_agents/ext/drasi/agent_router/` and use `dapr_agents.ext.drasi.agent_router` instead of `agent_router.protocol`. Copy `fixtures/` alongside its contract tests and retain the reaction's `LICENSE` text in the destination distribution. Declare the runtime dependencies and record the public Platform commit, original paths, generator version, and license in the extension's existing `PROVENANCE.md`. Use a public merged/published revision, not a local context-worktree SHA.
+The router reaction and the Drasi extension both declare a dependency on this package and import from it directly. Do not vendor its modules or regenerate a second set of models in the extension. The router service and agent activation remain separate implementation work; neither application is implemented by this package.
 
-Vendor models, schemas, helpers, and fixtures from the same revision. Do not regenerate only half the bundle or make local edits to generated files. A consumer can instead generate native models from the same schemas, but must enforce the complete schemas plus the contextual/identity rules here. This change supplies the portable artifacts; installing dynamic activation in the extension remains separate work.
+During local development, use an editable dependency from each consuming project:
+
+```sh
+uv add --editable /path/to/drasi-platform/typespec/dapr-agent-router/python
+```
+
+From the Dapr Agents workspace root, target its Drasi extension rather than the framework:
+
+```sh
+uv add --package dapr-agents-ext-drasi --editable /path/to/drasi-platform/typespec/dapr-agent-router/python
+```
+
+Do not commit machine-specific paths to upstream PRs. For fork CI, pin a public commit and the package subdirectory instead of a moving branch. Replace `<owner>` with the repository owner holding that commit and `<public-commit>` with its full SHA:
+
+```sh
+uv add --package dapr-agents-ext-drasi \
+  "drasi-agent-router-contracts @ git+https://github.com/<owner>/drasi-platform.git@<public-commit>#subdirectory=typespec/dapr-agent-router/python"
+```
+
+For the router application's own project, use the same command without `--package dapr-agents-ext-drasi`. Use a published commit, not a local context-worktree SHA. Update both consumers' dependency references and lockfiles together when the contract changes.
+
+Consumers can load the shared fixtures through `importlib.resources.files("drasi_agent_router_contracts").joinpath("fixtures")`. The fixture files are expectations, not runtime configuration or predefined agents.
+
+### Package releases
+
+`make package` writes a wheel and source distribution to `python/dist/`. This package can be released independently of Drasi Platform containers and Dapr Agents. No registry release is performed by this change, and development does not require publishing every iteration.
+
+When ready for upstream consumption, publish a reviewed prerelease after configuring the package registry's ownership/publishing permissions. Replace local or fork-source overrides with the same exact released version in both consumers, for example `drasi-agent-router-contracts==0.1.0a1` once that version is published. Build identifiers and dependency pins provide reproducibility, not backward-compatibility or migration obligations.
 
 ### Shared protocol fixtures
 
