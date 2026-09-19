@@ -18,6 +18,7 @@
         "before",
         "after"
     ],
+    "additionalProperties": false,
     "title": "UpdatePayload",
     "$defs": {
         "RecordUnknown": {

@@ -100,7 +100,7 @@ def parse(model: type[Model], document: Any) -> Model:
 
 
 def parse_catalog(document: Any, expected_router_id: str) -> ListQueriesResponse:
-    """Perform the version/capability handshake and bind it to the selected router."""
+    """Validate the current catalog contract and its configured router identity."""
     _router_parts(expected_router_id)
     catalog = parse(ListQueriesResponse, document)
     if catalog.router_id != expected_router_id:
@@ -109,7 +109,7 @@ def parse_catalog(document: Any, expected_router_id: str) -> ListQueriesResponse
 
 
 def to_wire(message: BaseModel) -> dict[str, Any]:
-    """Serialize a protocol message without absent snapshots, then validate it."""
+    """Omit unset optional fields and validate the current protocol message."""
     document = message.model_dump(mode="json", exclude_unset=True)
     if not isinstance(document, dict):
         raise ValueError("Protocol messages must serialize to JSON objects")

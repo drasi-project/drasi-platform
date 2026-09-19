@@ -37,5 +37,6 @@
         "eventId",
         "event"
     ],
+    "additionalProperties": false,
     "title": "AgentDelivery"
 }

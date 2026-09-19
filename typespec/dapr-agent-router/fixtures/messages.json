@@ -11,9 +11,7 @@
     "valid": true,
     "message": {
       "protocol_version": 1,
-      "delivery_schema_version": 1,
       "router_id": "drasi-system/sre-router-reaction",
-      "capabilities": ["dynamic-subscriptions"],
       "queries": [
         {"query_id": "service-errors", "title": "Service errors", "description": "Individual server-error rows with errorId, service, statusCode, and message.", "usage": "Select inserts to monitor newly matching errors."},
         {"query_id": "rollout-status", "title": "Rollout status", "description": "Individual rollout rows with rolloutId, service, and status."}
@@ -184,16 +182,16 @@
     }
   },
   {
-    "name": "missing-capability",
+    "name": "unknown-catalog-field",
     "model": "ListQueriesResponse",
     "valid": false,
-    "message": {"protocol_version": 1, "delivery_schema_version": 1, "router_id": "drasi-system/sre-router-reaction", "capabilities": ["unrelated-feature"], "queries": []}
+    "message": {"protocol_version": 1, "router_id": "drasi-system/sre-router-reaction", "queries": [], "unsupported_option": true}
   },
   {
     "name": "unsupported-protocol",
     "model": "ListQueriesResponse",
     "valid": false,
-    "message": {"protocol_version": 2, "delivery_schema_version": 1, "router_id": "drasi-system/sre-router-reaction", "capabilities": ["dynamic-subscriptions"], "queries": []}
+    "message": {"protocol_version": 2, "router_id": "drasi-system/sre-router-reaction", "queries": []}
   },
   {
     "name": "missing-update-after",
@@ -229,6 +227,31 @@
       "subscriptionIncarnation": "token",
       "eventId": "drasi:v1:service-errors:42:i:0",
       "event": {"op": "i", "seq": 42, "ts_ms": 0, "payload": {"source": {"queryId": "service-errors", "ts_ms": 0}, "before": null, "after": {}}}
+    }
+  },
+  {
+    "name": "unknown-delivery-field",
+    "model": "AgentDelivery",
+    "valid": false,
+    "message": {
+      "schemaVersion": 1,
+      "routerId": "drasi-system/sre-router-reaction",
+      "subscriptionIncarnation": "token",
+      "eventId": "drasi:v1:service-errors:42:i:0",
+      "event": {"op": "i", "seq": 42, "ts_ms": 0, "payload": {"source": {"queryId": "service-errors", "ts_ms": 0}, "after": {}}},
+      "unsupported_option": true
+    }
+  },
+  {
+    "name": "unknown-row-event-field",
+    "model": "AgentDelivery",
+    "valid": false,
+    "message": {
+      "schemaVersion": 1,
+      "routerId": "drasi-system/sre-router-reaction",
+      "subscriptionIncarnation": "token",
+      "eventId": "drasi:v1:service-errors:42:i:0",
+      "event": {"op": "i", "seq": 42, "ts_ms": 0, "unsupported_option": true, "payload": {"source": {"queryId": "service-errors", "ts_ms": 0}, "after": {}}}
     }
   },
   {

@@ -14,5 +14,6 @@
         "query_id",
         "removed"
     ],
+    "additionalProperties": false,
     "title": "UnsubscribeResponse"
 }

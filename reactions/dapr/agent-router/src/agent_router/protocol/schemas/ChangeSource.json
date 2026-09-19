@@ -14,5 +14,6 @@
         "queryId",
         "ts_ms"
     ],
+    "additionalProperties": false,
     "title": "ChangeSource"
 }

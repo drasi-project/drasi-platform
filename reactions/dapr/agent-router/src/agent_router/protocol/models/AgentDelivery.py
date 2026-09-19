@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from .DeleteEvent import DeleteEvent
 from .InsertEvent import InsertEvent
@@ -13,6 +13,9 @@ from .UpdateEvent import UpdateEvent
 
 
 class AgentDelivery(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
     schemaVersion: Literal[1]
     routerId: Annotated[
         StrictStr, Field(min_length=1, pattern='^[^/\\s]+/[^/\\s]+$', title='RouterId')

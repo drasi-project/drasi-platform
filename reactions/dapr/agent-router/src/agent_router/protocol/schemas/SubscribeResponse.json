@@ -41,5 +41,6 @@
         "topic_name",
         "status"
     ],
+    "additionalProperties": false,
     "title": "SubscribeResponse"
 }

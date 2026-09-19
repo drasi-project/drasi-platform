@@ -6,7 +6,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 
 class Code(Enum):
@@ -17,5 +17,8 @@ class Code(Enum):
 
 
 class ToolError(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
     code: Code
     message: Annotated[StrictStr, Field(min_length=1, title='NonEmptyString')]

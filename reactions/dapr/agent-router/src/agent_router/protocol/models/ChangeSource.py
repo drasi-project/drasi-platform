@@ -5,9 +5,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 
 class ChangeSource(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
     queryId: Annotated[StrictStr, Field(min_length=1, title='NonEmptyString')]
     ts_ms: Annotated[StrictInt, Field(ge=0, title='Timestamp')]

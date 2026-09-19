@@ -7,23 +7,8 @@
             "type": "number",
             "const": 1
         },
-        "delivery_schema_version": {
-            "type": "number",
-            "const": 1
-        },
         "router_id": {
             "$ref": "RouterId.json"
-        },
-        "capabilities": {
-            "type": "array",
-            "items": {
-                "$ref": "NonEmptyString.json"
-            },
-            "minItems": 1,
-            "uniqueItems": true,
-            "contains": {
-                "const": "dynamic-subscriptions"
-            }
         },
         "queries": {
             "type": "array",
@@ -34,10 +19,9 @@
     },
     "required": [
         "protocol_version",
-        "delivery_schema_version",
         "router_id",
-        "capabilities",
         "queries"
     ],
+    "additionalProperties": false,
     "title": "ListQueriesResponse"
 }

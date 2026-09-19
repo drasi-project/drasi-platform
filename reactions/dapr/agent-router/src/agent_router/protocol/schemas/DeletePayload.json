@@ -8,15 +8,13 @@
         },
         "before": {
             "$ref": "#/$defs/RecordUnknown"
-        },
-        "after": {
-            "not": {}
         }
     },
     "required": [
         "source",
         "before"
     ],
+    "additionalProperties": false,
     "title": "DeletePayload",
     "$defs": {
         "RecordUnknown": {

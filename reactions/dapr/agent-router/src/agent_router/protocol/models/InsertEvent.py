@@ -3,21 +3,18 @@
 
 from __future__ import annotations
 
-from enum import Enum
 from typing import Annotated, Literal
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from .InsertPayload import InsertPayload
-from .RowEvent import RowEvent
 
 
-class Op(Enum):
-    i = 'i'
-    u = 'u'
-    d = 'd'
-
-
-class InsertEvent(RowEvent):
-    op: Annotated[Literal['i'], Field(title='Operation')]
+class InsertEvent(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    seq: Annotated[StrictInt, Field(ge=0, title='Sequence')]
+    ts_ms: Annotated[StrictInt, Field(ge=0, title='Timestamp')]
+    op: Literal['i']
     payload: InsertPayload

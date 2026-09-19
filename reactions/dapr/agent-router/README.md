@@ -4,6 +4,8 @@ This directory owns the concrete DaprAgentRouter reaction's [protocol contract](
 
 These contracts and dependencies are specific to this reaction, not the general-purpose Python Reaction SDK.
 
+The pre-release implementation uses one current control/delivery contract, not a compatibility or migration framework. Protocol objects reject undeclared fields; projected query-result columns remain unrestricted.
+
 ```python
 from agent_router.protocol import AgentDelivery, parse, to_wire
 

@@ -35,6 +35,13 @@ def test_distributions_include_contract_and_license(tmp_path):
     }
     assert any(name.endswith(".json") for name in expected)
     with ZipFile(next(tmp_path.glob("*.whl"))) as wheel:
+        packaged = {
+            name
+            for name in wheel.namelist()
+            if name.startswith("agent_router/")
+            and PurePosixPath(name).suffix in (".py", ".json")
+        }
+        assert packaged == set(expected)
         licenses = [
             name for name in wheel.namelist() if name.endswith("/licenses/LICENSE")
         ]
@@ -49,6 +56,14 @@ def test_distributions_include_contract_and_license(tmp_path):
         with sdist.extractfile(licenses[0]) as source_license:
             assert source_license.read() == license_text
         root = PurePosixPath(licenses[0]).parent
+        packaged = {
+            str(PurePosixPath(name).relative_to(root / "src"))
+            for name, member in members.items()
+            if member.isfile()
+            and PurePosixPath(name).is_relative_to(root / "src/agent_router")
+            and PurePosixPath(name).suffix in (".py", ".json")
+        }
+        assert packaged == set(expected)
         for name, content in expected.items():
             with sdist.extractfile(str(root / "src" / name)) as source_file:
                 assert source_file.read() == content

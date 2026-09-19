@@ -5,10 +5,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 
 class Query(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
     query_id: Annotated[StrictStr, Field(min_length=1, title='NonEmptyString')]
     title: Annotated[StrictStr, Field(min_length=1, title='NonEmptyString')]
     description: Annotated[StrictStr, Field(min_length=1, title='NonEmptyString')]

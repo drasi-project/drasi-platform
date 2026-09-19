@@ -5,17 +5,17 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
-from .NonEmptyString import NonEmptyString
 from .Query import Query
 
 
 class ListQueriesResponse(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
     protocol_version: Literal[1]
-    delivery_schema_version: Literal[1]
     router_id: Annotated[
         StrictStr, Field(min_length=1, pattern='^[^/\\s]+/[^/\\s]+$', title='RouterId')
     ]
-    capabilities: Annotated[list[NonEmptyString], Field(min_length=1)]
     queries: list[Query]

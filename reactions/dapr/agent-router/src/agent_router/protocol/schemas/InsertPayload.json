@@ -6,9 +6,6 @@
         "source": {
             "$ref": "ChangeSource.json"
         },
-        "before": {
-            "not": {}
-        },
         "after": {
             "$ref": "#/$defs/RecordUnknown"
         }
@@ -17,6 +14,7 @@
         "source",
         "after"
     ],
+    "additionalProperties": false,
     "title": "InsertPayload",
     "$defs": {
         "RecordUnknown": {

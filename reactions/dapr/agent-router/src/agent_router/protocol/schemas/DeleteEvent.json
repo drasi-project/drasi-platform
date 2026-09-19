@@ -3,6 +3,12 @@
     "$id": "DeleteEvent.json",
     "type": "object",
     "properties": {
+        "seq": {
+            "$ref": "Sequence.json"
+        },
+        "ts_ms": {
+            "$ref": "Timestamp.json"
+        },
         "op": {
             "type": "string",
             "const": "d"
@@ -12,13 +18,11 @@
         }
     },
     "required": [
+        "seq",
+        "ts_ms",
         "op",
         "payload"
     ],
-    "allOf": [
-        {
-            "$ref": "RowEvent.json"
-        }
-    ],
+    "additionalProperties": false,
     "title": "DeleteEvent"
 }

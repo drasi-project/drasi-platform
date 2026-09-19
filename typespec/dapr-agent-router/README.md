@@ -2,7 +2,7 @@
 
 This is the public contract between a `DaprAgentRouter` Reaction and the Drasi extension in Dapr Agents. `main.tsp` owns the wire models. This document owns the transport, lifecycle, identity algorithms, and contextual requirements that a schema cannot express. The concrete reaction's [portable Python bundle](../../reactions/dapr/agent-router/src/agent_router/protocol) contains generated JSON Schemas, generated Pydantic v2 models, and reference validation/identity helpers. None of this belongs to the general-purpose Reaction SDK.
 
-Protocol major 1 is the first version of the dynamic integration introduced in Milestone 2. It is not a milestone number or a Drasi/Dapr package version. Drasi is pre-release with no users: this contract can change without backward-compatibility adapters or schema/data migrations. The version fields identify what communicating components currently understand, not an obligation to preserve earlier drafts.
+Protocol version 1 identifies the current dynamic integration introduced in Milestone 2. It is not a milestone number or a Drasi/Dapr package version. There is one current contract, shared by control and delivery messages, with no capability negotiation or alternative schema versions. Drasi is pre-release with no users: change the contract and its consumers together, without backward-compatibility adapters or schema/data migrations.
 
 This contract addresses [drasi-project/drasi-platform#457](https://github.com/drasi-project/drasi-platform/issues/457). It does not implement the router service, persistence, packed-event conversion, agent workflows, or deployment. Changes to unrelated reactions are unnecessary for this contract. [drasi-project/drasi-platform#443](https://github.com/drasi-project/drasi-platform/pull/443) is prior work, not an interface to preserve.
 
@@ -52,15 +52,13 @@ Accept `ListQueriesRequest`, exactly `{}`, and return `ListQueriesResponse`. The
 
 | Field | Meaning |
 | --- | --- |
-| `protocol_version` | Integer `1`, the application control-protocol major. |
-| `delivery_schema_version` | Integer `1`, the application delivery-schema major. |
+| `protocol_version` | Integer `1`, identifying the current control and delivery contract. |
 | `router_id` | This router's namespace/app ID. |
-| `capabilities` | Unique non-empty strings, including `dynamic-subscriptions`. Unknown additional capabilities may be ignored. |
 | `queries` | The complete catalog, with unique `query_id` values. An empty catalog is valid. |
 
 Each catalog query has a non-empty `query_id`, `title`, and `description`, and optional non-empty `usage`. Metadata comes from the operator's per-query Reaction configuration, not query-text lookup or result-schema inference. The query ID is the key in `Reaction.spec.queries`; its value supplies the metadata fields. Load the whole catalog before readiness and fail initialization on invalid entries.
 
-The extension obtains the catalog once before admitting work. It must reject an unsupported control or delivery major, missing required capability, or unexpected router identity. Use `parse_catalog(document, expected_router_id)` in Python. Package versions and the MCP transport protocol version need not match the application protocol major.
+The extension obtains the catalog once before admitting work. It validates the current response shape, its protocol marker, and the configured router identity using `parse_catalog(document, expected_router_id)`. There is no feature-negotiation step or separate delivery-version handshake. The application protocol marker is independent of package versions and the MCP transport protocol version.
 
 The catalog is a deployment-time menu, not a search API or current-result snapshot. Changes require coordinated router/agent restarts. The extension generates query-specific subscription tools from it; it does not expose router discovery directly to the language model.
 
@@ -102,7 +100,7 @@ Shutdown preserves rules and intent. There are no leases, automatic expiry, or p
 
 ## Stable inbox and dead-letter names
 
-The following algorithm is part of protocol major 1, not an implementation option.
+Both implementations use the following algorithm for the current protocol.
 
 1. Start a SHA-256 input with the ASCII bytes `drasi-agent-router/v1` followed by one zero byte.
 2. For each identity component, append its UTF-8 byte length as an unsigned four-byte big-endian integer, then its exact UTF-8 bytes. Do not normalize text or join components with a delimiter.
@@ -127,7 +125,7 @@ Publish a normal Dapr CloudEvent with an `AgentDelivery` object in `data`:
 
 | Field | Meaning |
 | --- | --- |
-| `schemaVersion` | Integer `1`. Independent of CloudEvents `specversion`. |
+| `schemaVersion` | Integer `1`, the same protocol version returned by `list_queries`. Independent of CloudEvents `specversion`. |
 | `routerId` | Router namespace/app ID. |
 | `subscriptionIncarnation` | The recipient rule's lifecycle token, explicitly inside `data`. |
 | `eventId` | Canonical row identity defined below; not the outer CloudEvent ID. |
@@ -173,9 +171,9 @@ At-least-once processing, partial fanout, retries, and duplicate workflows are p
 
 ## Generated artifacts and Python use
 
-JSON Schemas use draft 2020-12 and local relative references. Resolve references from the supplied schema set, without network fetching. Control requests are closed to catch unsupported arguments. Responses and deliveries tolerate unknown optional fields within this major; Python may ignore those fields when parsing. Projected row fields are retained.
+JSON Schemas use draft 2020-12 and local relative references. Resolve references from the supplied schema set, without network fetching. Protocol requests, responses, metadata, and delivery objects reject undeclared fields rather than silently dropping them or anticipating future formats. Projected rows in `before` and `after` remain arbitrary JSON objects: their columns are query data, not protocol fields.
 
-Generated Pydantic models are typed representations, not complete JSON Schema validators: code generation does not preserve every `not`, `uniqueItems`, or `contains` constraint. **Use the portable bundle's `parse`/`parse_catalog` at input boundaries and `to_wire` before publishing.** They enforce the generated schemas and the semantic identity rules without hand-editing generated files.
+Generated Pydantic models are typed representations, not complete JSON Schema validators: code generation does not enforce distinct operation lists or the distinction between an absent optional field and an explicit `null`. **Use the portable bundle's `parse`/`parse_catalog` at input boundaries and `to_wire` before publishing.** They enforce the current generated schemas and the semantic identity rules without hand-editing generated files or selecting historical formats.
 
 ```python
 from agent_router.protocol import AgentDelivery, parse, to_wire
@@ -184,7 +182,7 @@ delivery = parse(AgentDelivery, cloud_event["data"])
 wire_data = to_wire(delivery)
 ```
 
-`to_wire` omits unset fields and validates the output. In particular, do not serialize an absent insert/delete snapshot as `null`; do not rely on the default generated model's `model_dump()` alone.
+Each generated event model contains only its applicable snapshots; inserts have no `before` field and deletes have no `after` field. `to_wire` omits unset optional metadata and validates the output, including row-ID consistency.
 
 The reference helpers raise explicit JSON Schema, Pydantic, or `ValueError` exceptions. Boundary implementations must translate them into the MCP/delivery outcomes above. Do not log entire exceptions or documents indiscriminately: validation errors can contain input values.
 

@@ -21,5 +21,6 @@
         "title",
         "description"
     ],
+    "additionalProperties": false,
     "title": "Query"
 }

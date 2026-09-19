@@ -5,12 +5,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from .ChangeSource import ChangeSource
 
 
 class UpdatePayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
     source: ChangeSource
     before: dict[str, Any]
     after: dict[str, Any]

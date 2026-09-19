@@ -5,6 +5,8 @@ using TypeSpec.JsonSchema;
 @jsonSchema
 namespace Drasi.AgentRouter;
 
+alias ProtocolVersion = 1;
+
 @minLength(1)
 @extension("title", "NonEmptyString")
 scalar NonEmptyString extends string;
@@ -37,6 +39,7 @@ enum Operation {
 model ListQueriesRequest {}
 
 @extension("title", "Query")
+@extension("additionalProperties", false)
 model Query {
     query_id: NonEmptyString;
     title: NonEmptyString;
@@ -45,14 +48,10 @@ model Query {
 }
 
 @extension("title", "ListQueriesResponse")
+@extension("additionalProperties", false)
 model ListQueriesResponse {
-    protocol_version: 1;
-    delivery_schema_version: 1;
+    protocol_version: ProtocolVersion;
     router_id: RouterId;
-    @minItems(1)
-    @uniqueItems
-    @extension("contains", #{ `const`: "dynamic-subscriptions" })
-    capabilities: NonEmptyString[];
     queries: Query[];
 }
 
@@ -77,6 +76,7 @@ model SubscribeRequest {
 }
 
 @extension("title", "SubscribeResponse")
+@extension("additionalProperties", false)
 model SubscribeResponse {
     query_id: NonEmptyString;
     @minItems(1)
@@ -97,31 +97,35 @@ model UnsubscribeRequest {
 }
 
 @extension("title", "UnsubscribeResponse")
+@extension("additionalProperties", false)
 model UnsubscribeResponse {
     query_id: NonEmptyString;
     removed: boolean;
 }
 
 @extension("title", "ToolError")
+@extension("additionalProperties", false)
 model ToolError {
     code: "invalid_arguments" | "unknown_query" | "incarnation_conflict" | "state_unavailable";
     message: NonEmptyString;
 }
 
 @extension("title", "ChangeSource")
+@extension("additionalProperties", false)
 model ChangeSource {
     queryId: NonEmptyString;
     ts_ms: Timestamp;
 }
 
 @extension("title", "InsertPayload")
+@extension("additionalProperties", false)
 model InsertPayload {
     source: ChangeSource;
-    before?: never;
     after: Record<unknown>;
 }
 
 @extension("title", "UpdatePayload")
+@extension("additionalProperties", false)
 model UpdatePayload {
     source: ChangeSource;
     before: Record<unknown>;
@@ -129,40 +133,45 @@ model UpdatePayload {
 }
 
 @extension("title", "DeletePayload")
+@extension("additionalProperties", false)
 model DeletePayload {
     source: ChangeSource;
     before: Record<unknown>;
-    after?: never;
 }
 
-@extension("title", "RowEvent")
-model RowEvent {
-    "op": Operation;
+alias RowMetadata = {
     seq: Sequence;
     ts_ms: Timestamp;
-}
+};
 
 @extension("title", "InsertEvent")
-model InsertEvent extends RowEvent {
+@extension("additionalProperties", false)
+model InsertEvent {
+    ...RowMetadata;
     "op": Operation.Insert;
     payload: InsertPayload;
 }
 
 @extension("title", "UpdateEvent")
-model UpdateEvent extends RowEvent {
+@extension("additionalProperties", false)
+model UpdateEvent {
+    ...RowMetadata;
     "op": Operation.Update;
     payload: UpdatePayload;
 }
 
 @extension("title", "DeleteEvent")
-model DeleteEvent extends RowEvent {
+@extension("additionalProperties", false)
+model DeleteEvent {
+    ...RowMetadata;
     "op": Operation.Delete;
     payload: DeletePayload;
 }
 
 @extension("title", "AgentDelivery")
+@extension("additionalProperties", false)
 model AgentDelivery {
-    schemaVersion: 1;
+    schemaVersion: ProtocolVersion;
     routerId: RouterId;
     subscriptionIncarnation: NonEmptyString;
     eventId: NonEmptyString;

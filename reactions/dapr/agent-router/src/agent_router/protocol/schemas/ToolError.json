@@ -31,5 +31,6 @@
         "code",
         "message"
     ],
+    "additionalProperties": false,
     "title": "ToolError"
 }

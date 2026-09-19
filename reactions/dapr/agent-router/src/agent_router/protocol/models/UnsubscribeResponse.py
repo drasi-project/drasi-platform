@@ -5,9 +5,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StrictBool, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
 
 
 class UnsubscribeResponse(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
     query_id: Annotated[StrictStr, Field(min_length=1, title='NonEmptyString')]
     removed: StrictBool

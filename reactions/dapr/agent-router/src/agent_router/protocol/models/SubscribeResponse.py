@@ -6,7 +6,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from .Operation import Operation
 
@@ -17,6 +17,9 @@ class Status(Enum):
 
 
 class SubscribeResponse(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
     query_id: Annotated[StrictStr, Field(min_length=1, title='NonEmptyString')]
     operations: Annotated[list[Operation], Field(max_length=3, min_length=1)]
     subscription_incarnation: Annotated[

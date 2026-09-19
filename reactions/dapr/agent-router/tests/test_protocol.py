@@ -139,7 +139,7 @@ def test_identity_boundaries_and_unicode_are_not_normalized():
     ) != protocol.agent_inbox_topic(vectors[0]["router_id"], decomposed)
 
 
-def test_catalog_handshake():
+def test_catalog_matches_configured_router_and_has_unique_queries():
     catalog = message("catalog")
     assert (
         protocol.parse_catalog(catalog, catalog["router_id"]).queries[0].query_id
@@ -163,38 +163,75 @@ def test_mcp_errors_do_not_violate_success_output_schemas(case):
     assert error.message
 
 
-@pytest.mark.parametrize("field", ["protocol_version", "delivery_schema_version"])
 @pytest.mark.parametrize("value", [0, 2, True, "1", None])
-def test_catalog_rejects_invalid_versions(field, value):
+def test_catalog_rejects_invalid_protocol_version(value):
     catalog = message("catalog")
-    catalog[field] = value
+    catalog["protocol_version"] = value
     with pytest.raises((ValueError, ValidationError)):
         protocol.parse_catalog(catalog, catalog["router_id"])
 
 
-def test_unknown_optional_fields_are_accepted_without_changing_row_data():
-    delivery = message("insert")
-    delivery["future"] = {"option": True}
-    delivery["event"]["future"] = True
-    delivery["event"]["payload"]["source"]["future"] = True
-    delivery["event"]["payload"]["future"] = True
-    delivery["event"]["payload"]["after"]["newColumn"] = {"nested": [None, 2]}
-    parsed = protocol.parse(protocol.AgentDelivery, delivery)
-    assert parsed.event.payload.after == delivery["event"]["payload"]["after"]
-    catalog = message("catalog")
-    catalog["future"] = True
-    catalog["queries"][0]["future"] = True
-    catalog["capabilities"].append("future-capability")
-    protocol.parse_catalog(catalog, catalog["router_id"])
-
-
-def test_serialization_checks_generated_models_and_omits_unset_snapshots():
-    delivery = protocol.AgentDelivery.model_validate(message("insert"))
-    assert "before" not in protocol.to_wire(delivery)["event"]["payload"]
-    invalid = message("insert")
-    invalid["event"]["payload"]["before"] = None
-    unchecked = protocol.AgentDelivery.model_validate(invalid)
+@pytest.mark.parametrize(
+    "case", [case for case in CASES if case["valid"]], ids=lambda case: case["name"]
+)
+def test_protocol_messages_reject_unknown_fields(case):
+    document = deepcopy(case["message"])
+    document["unsupported_option"] = True
     with pytest.raises(ValidationError):
+        protocol.parse(getattr(protocol, case["model"]), document)
+
+
+@pytest.mark.parametrize("event_name", ["insert", "update", "delete"])
+@pytest.mark.parametrize("level", ["event", "payload", "source"])
+def test_delivery_protocol_objects_reject_unknown_fields(event_name, level):
+    delivery = message(event_name)
+    target = delivery["event"]
+    if level in ("payload", "source"):
+        target = target["payload"]
+    if level == "source":
+        target = target["source"]
+    target["unsupported_option"] = True
+    with pytest.raises(ValidationError):
+        protocol.parse(protocol.AgentDelivery, delivery)
+
+
+def test_catalog_metadata_rejects_unknown_fields():
+    catalog = message("catalog")
+    catalog["queries"][0]["unsupported_option"] = True
+    with pytest.raises(ValidationError):
+        protocol.parse_catalog(catalog, catalog["router_id"])
+
+
+@pytest.mark.parametrize("event_name", ["insert", "update", "delete"])
+def test_projected_row_columns_remain_unrestricted(event_name):
+    delivery = message(event_name)
+    for snapshot in ("before", "after"):
+        if snapshot in delivery["event"]["payload"]:
+            delivery["event"]["payload"][snapshot]["newColumn"] = {
+                "nested": [None, 2, {"unsupported_option": True}]
+            }
+    parsed = protocol.parse(protocol.AgentDelivery, delivery)
+    assert protocol.to_wire(parsed) == delivery
+
+
+def test_generated_event_models_reject_unknown_fields():
+    delivery = message("insert")
+    delivery["event"]["unsupported_option"] = True
+    with pytest.raises(ValueError):
+        protocol.AgentDelivery.model_validate(delivery)
+
+
+@pytest.mark.parametrize("event_name", ["insert", "delete"])
+def test_generated_snapshots_need_no_null_placeholder_fields(event_name):
+    delivery = protocol.AgentDelivery.model_validate(message(event_name))
+    assert delivery.model_dump(mode="json") == message(event_name)
+    assert protocol.to_wire(delivery) == message(event_name)
+
+
+def test_serialization_validates_the_current_event_identity():
+    delivery = protocol.parse(protocol.AgentDelivery, message("insert"))
+    unchecked = delivery.model_copy(update={"eventId": "drasi:v1:another-query:42:i:0"})
+    with pytest.raises(ValueError, match="does not match"):
         protocol.to_wire(unchecked)
 
 
@@ -206,16 +243,19 @@ def test_subscribe_rejects_empty_required_strings(field):
         protocol.parse(protocol.SubscribeRequest, request)
 
 
-def test_catalog_rejects_duplicate_capabilities_and_empty_metadata():
-    catalog = message("catalog")
-    catalog["capabilities"].append("dynamic-subscriptions")
-    with pytest.raises(ValidationError):
-        protocol.parse_catalog(catalog, catalog["router_id"])
+def test_catalog_rejects_empty_metadata():
     for field in ("title", "description"):
         catalog = message("catalog")
         catalog["queries"][0][field] = ""
         with pytest.raises(ValidationError):
             protocol.parse_catalog(catalog, catalog["router_id"])
+
+
+def test_optional_catalog_guidance_is_not_nullable():
+    catalog = message("catalog")
+    catalog["queries"][0]["usage"] = None
+    with pytest.raises(ValidationError):
+        protocol.parse_catalog(catalog, catalog["router_id"])
 
 
 def test_cloud_event_wrapper_is_not_the_application_envelope():
