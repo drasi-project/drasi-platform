@@ -1,0 +1,24 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "UpdateEvent.json",
+    "type": "object",
+    "properties": {
+        "op": {
+            "type": "string",
+            "const": "u"
+        },
+        "payload": {
+            "$ref": "UpdatePayload.json"
+        }
+    },
+    "required": [
+        "op",
+        "payload"
+    ],
+    "allOf": [
+        {
+            "$ref": "RowEvent.json"
+        }
+    ],
+    "title": "UpdateEvent"
+}

@@ -1,0 +1,24 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "DeleteEvent.json",
+    "type": "object",
+    "properties": {
+        "op": {
+            "type": "string",
+            "const": "d"
+        },
+        "payload": {
+            "$ref": "DeletePayload.json"
+        }
+    },
+    "required": [
+        "op",
+        "payload"
+    ],
+    "allOf": [
+        {
+            "$ref": "RowEvent.json"
+        }
+    ],
+    "title": "DeleteEvent"
+}

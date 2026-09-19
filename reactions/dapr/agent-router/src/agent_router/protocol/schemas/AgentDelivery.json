@@ -1,0 +1,41 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "AgentDelivery.json",
+    "type": "object",
+    "properties": {
+        "schemaVersion": {
+            "type": "number",
+            "const": 1
+        },
+        "routerId": {
+            "$ref": "RouterId.json"
+        },
+        "subscriptionIncarnation": {
+            "$ref": "NonEmptyString.json"
+        },
+        "eventId": {
+            "$ref": "NonEmptyString.json"
+        },
+        "event": {
+            "anyOf": [
+                {
+                    "$ref": "InsertEvent.json"
+                },
+                {
+                    "$ref": "UpdateEvent.json"
+                },
+                {
+                    "$ref": "DeleteEvent.json"
+                }
+            ]
+        }
+    },
+    "required": [
+        "schemaVersion",
+        "routerId",
+        "subscriptionIncarnation",
+        "eventId",
+        "event"
+    ],
+    "title": "AgentDelivery"
+}

@@ -1,0 +1,8 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "IdentityPart.json",
+    "type": "string",
+    "minLength": 1,
+    "title": "IdentityPart",
+    "pattern": "^[^/\\s]+$"
+}

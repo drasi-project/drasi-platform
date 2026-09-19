@@ -1,0 +1,23 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "Subscriber.json",
+    "type": "object",
+    "properties": {
+        "namespace": {
+            "$ref": "IdentityPart.json"
+        },
+        "app_id": {
+            "$ref": "IdentityPart.json"
+        },
+        "agent_name": {
+            "$ref": "NonEmptyString.json"
+        }
+    },
+    "required": [
+        "namespace",
+        "app_id",
+        "agent_name"
+    ],
+    "title": "Subscriber",
+    "additionalProperties": false
+}

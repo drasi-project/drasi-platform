@@ -1,0 +1,51 @@
+{
+  "router_id": "drasi-system/sre-router-reaction",
+  "unpacked_at_ms": 1789760000100,
+  "packed": {
+    "kind": "change",
+    "queryId": "checkout:errors/\u00e9",
+    "sequence": 9007199254740993,
+    "sourceTimeMs": 1789760000000,
+    "metadata": {"notForwarded": "source-only context"},
+    "addedResults": [{"errorId": "a", "message": null}, {}],
+    "updatedResults": [{"before": {"errorId": "b", "statusCode": 503}, "after": {"errorId": "b", "statusCode": 504}}],
+    "deletedResults": [{"errorId": "c"}]
+  },
+  "rows": [
+    {
+      "eventId": "drasi:v1:checkout%3Aerrors%2F%C3%A9:9007199254740993:i:0",
+      "event": {"op": "i", "seq": 9007199254740993, "ts_ms": 1789760000100, "payload": {"source": {"queryId": "checkout:errors/\u00e9", "ts_ms": 1789760000000}, "after": {"errorId": "a", "message": null}}}
+    },
+    {
+      "eventId": "drasi:v1:checkout%3Aerrors%2F%C3%A9:9007199254740993:i:1",
+      "event": {"op": "i", "seq": 9007199254740993, "ts_ms": 1789760000100, "payload": {"source": {"queryId": "checkout:errors/\u00e9", "ts_ms": 1789760000000}, "after": {}}}
+    },
+    {
+      "eventId": "drasi:v1:checkout%3Aerrors%2F%C3%A9:9007199254740993:u:0",
+      "event": {"op": "u", "seq": 9007199254740993, "ts_ms": 1789760000100, "payload": {"source": {"queryId": "checkout:errors/\u00e9", "ts_ms": 1789760000000}, "before": {"errorId": "b", "statusCode": 503}, "after": {"errorId": "b", "statusCode": 504}}}
+    },
+    {
+      "eventId": "drasi:v1:checkout%3Aerrors%2F%C3%A9:9007199254740993:d:0",
+      "event": {"op": "d", "seq": 9007199254740993, "ts_ms": 1789760000100, "payload": {"source": {"queryId": "checkout:errors/\u00e9", "ts_ms": 1789760000000}, "before": {"errorId": "c"}}}
+    }
+  ],
+  "recipients": [
+    {
+      "subscriptionIncarnation": "first-lifecycle",
+      "operations": ["i", "d"],
+      "eventIds": [
+        "drasi:v1:checkout%3Aerrors%2F%C3%A9:9007199254740993:i:0",
+        "drasi:v1:checkout%3Aerrors%2F%C3%A9:9007199254740993:i:1",
+        "drasi:v1:checkout%3Aerrors%2F%C3%A9:9007199254740993:d:0"
+      ]
+    },
+    {
+      "subscriptionIncarnation": "another-agent-lifecycle",
+      "operations": ["u", "d"],
+      "eventIds": [
+        "drasi:v1:checkout%3Aerrors%2F%C3%A9:9007199254740993:u:0",
+        "drasi:v1:checkout%3Aerrors%2F%C3%A9:9007199254740993:d:0"
+      ]
+    }
+  ]
+}

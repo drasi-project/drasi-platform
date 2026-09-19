@@ -1,0 +1,25 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "Query.json",
+    "type": "object",
+    "properties": {
+        "query_id": {
+            "$ref": "NonEmptyString.json"
+        },
+        "title": {
+            "$ref": "NonEmptyString.json"
+        },
+        "description": {
+            "$ref": "NonEmptyString.json"
+        },
+        "usage": {
+            "$ref": "NonEmptyString.json"
+        }
+    },
+    "required": [
+        "query_id",
+        "title",
+        "description"
+    ],
+    "title": "Query"
+}

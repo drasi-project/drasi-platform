@@ -1,0 +1,29 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "UpdatePayload.json",
+    "type": "object",
+    "properties": {
+        "source": {
+            "$ref": "ChangeSource.json"
+        },
+        "before": {
+            "$ref": "#/$defs/RecordUnknown"
+        },
+        "after": {
+            "$ref": "#/$defs/RecordUnknown"
+        }
+    },
+    "required": [
+        "source",
+        "before",
+        "after"
+    ],
+    "title": "UpdatePayload",
+    "$defs": {
+        "RecordUnknown": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {}
+        }
+    }
+}

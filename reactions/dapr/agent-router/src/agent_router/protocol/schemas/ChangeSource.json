@@ -1,0 +1,18 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "ChangeSource.json",
+    "type": "object",
+    "properties": {
+        "queryId": {
+            "$ref": "NonEmptyString.json"
+        },
+        "ts_ms": {
+            "$ref": "Timestamp.json"
+        }
+    },
+    "required": [
+        "queryId",
+        "ts_ms"
+    ],
+    "title": "ChangeSource"
+}

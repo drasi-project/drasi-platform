@@ -1,0 +1,35 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "ToolError.json",
+    "type": "object",
+    "properties": {
+        "code": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "const": "invalid_arguments"
+                },
+                {
+                    "type": "string",
+                    "const": "unknown_query"
+                },
+                {
+                    "type": "string",
+                    "const": "incarnation_conflict"
+                },
+                {
+                    "type": "string",
+                    "const": "state_unavailable"
+                }
+            ]
+        },
+        "message": {
+            "$ref": "NonEmptyString.json"
+        }
+    },
+    "required": [
+        "code",
+        "message"
+    ],
+    "title": "ToolError"
+}
