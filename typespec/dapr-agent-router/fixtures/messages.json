@@ -160,6 +160,36 @@
     }
   },
   {
+    "name": "subscriber-namespace-trailing-newline",
+    "model": "Subscriber",
+    "valid": false,
+    "message": {"namespace": "applications\n", "app_id": "app-a", "agent_name": "agent-a"}
+  },
+  {
+    "name": "subscriber-app-id-trailing-newline",
+    "model": "Subscriber",
+    "valid": false,
+    "message": {"namespace": "applications", "app_id": "app-a\n", "agent_name": "agent-a"}
+  },
+  {
+    "name": "catalog-router-id-trailing-newline",
+    "model": "ListQueriesResponse",
+    "valid": false,
+    "message": {"protocol_version": 1, "router_id": "drasi-system/router-a\n", "queries": []}
+  },
+  {
+    "name": "delivery-router-id-trailing-newline",
+    "model": "AgentDelivery",
+    "valid": false,
+    "message": {
+      "schemaVersion": 1,
+      "routerId": "drasi-system/router-a\n",
+      "subscriptionIncarnation": "token",
+      "eventId": "drasi:v1:service-errors:42:i:0",
+      "event": {"op": "i", "seq": 42, "ts_ms": 0, "payload": {"source": {"queryId": "service-errors", "ts_ms": 0}, "after": {}}}
+    }
+  },
+  {
     "name": "empty-operations",
     "model": "SubscribeRequest",
     "valid": false,

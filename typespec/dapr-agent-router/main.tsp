@@ -11,11 +11,14 @@ alias ProtocolVersion = 1;
 @extension("title", "NonEmptyString")
 scalar NonEmptyString extends string;
 
+// Some regex engines let "$" match before a final newline. Exclude whitespace independently.
 @pattern("^[^/\\s]+$")
+@extension("not", #{ pattern: "\\s" })
 @extension("title", "IdentityPart")
 scalar IdentityPart extends NonEmptyString;
 
 @pattern("^[^/\\s]+/[^/\\s]+$")
+@extension("not", #{ pattern: "\\s" })
 @extension("title", "RouterId")
 scalar RouterId extends NonEmptyString;
 

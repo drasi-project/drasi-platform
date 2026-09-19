@@ -19,6 +19,8 @@ The supported environment is a private, trusted Dapr deployment with one active 
 
 Namespace and app ID components are non-empty and contain neither whitespace nor `/`. The logical agent name is a non-empty string, not a pod name. Values are compared exactly, without case folding, trimming, or Unicode normalization. Strings used in identities must encode as valid UTF-8.
 
+The schemas exclude whitespace independently of end anchors, so regex engines that let `$` match before a final newline still reject trailing line breaks in namespace/app identities.
+
 The extension injects subscriber identity and incarnation from trusted configuration/state. They are not language-model arguments. Topic names are derived, not caller-selected. These conventions do not authenticate callers, provide authorization, or create multi-tenant isolation.
 
 ## MCP transport

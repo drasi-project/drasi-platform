@@ -4,5 +4,8 @@
     "type": "string",
     "minLength": 1,
     "title": "RouterId",
-    "pattern": "^[^/\\s]+/[^/\\s]+$"
+    "pattern": "^[^/\\s]+/[^/\\s]+$",
+    "not": {
+        "pattern": "\\s"
+    }
 }

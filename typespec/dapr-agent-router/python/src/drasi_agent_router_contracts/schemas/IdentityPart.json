@@ -4,5 +4,8 @@
     "type": "string",
     "minLength": 1,
     "title": "IdentityPart",
-    "pattern": "^[^/\\s]+$"
+    "pattern": "^[^/\\s]+$",
+    "not": {
+        "pattern": "\\s"
+    }
 }

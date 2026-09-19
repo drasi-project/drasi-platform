@@ -150,6 +150,54 @@ def test_invalid_router_identity(value):
         protocol.router_dead_letter_topic(value)
 
 
+@pytest.mark.parametrize(
+    ("schema_name", "identity"),
+    [("IdentityPart", "applications"), ("RouterId", "applications/router-a")],
+)
+@pytest.mark.parametrize(
+    "whitespace", ["\n", "\r", "\r\n", "\t", " ", "\u2028", "\u2029"]
+)
+def test_identity_schemas_reject_whitespace_at_every_position(
+    schema_name, identity, whitespace, schemas
+):
+    documents, registry = schemas
+    validator = Draft202012Validator(
+        documents[f"{schema_name}.json"], registry=registry
+    )
+    assert validator.is_valid(identity)
+    for value in (
+        whitespace + identity,
+        identity + whitespace,
+        identity[:1] + whitespace + identity[1:],
+    ):
+        assert not validator.is_valid(value), repr(value)
+
+
+@pytest.mark.parametrize("field", ["namespace", "app_id"])
+def test_subscriber_models_and_helpers_reject_trailing_newline(field):
+    subscriber = {
+        "namespace": "applications",
+        "app_id": "app-a",
+        "agent_name": "agent-a",
+    }
+    subscriber[field] += "\n"
+    with pytest.raises(ValueError):
+        protocol.Subscriber.model_validate(subscriber)
+    with pytest.raises(ValidationError):
+        protocol.parse(protocol.Subscriber, subscriber)
+
+
+def test_identity_guards_do_not_restrict_logical_agent_names():
+    subscriber = {
+        "namespace": "applications",
+        "app_id": "app-a",
+        "agent_name": "Agent name\nwith whitespace",
+    }
+    parsed = protocol.parse(protocol.Subscriber, subscriber)
+    assert protocol.to_wire(parsed) == subscriber
+    assert len(protocol.agent_inbox_topic("drasi-system/router-a", parsed)) == 62
+
+
 def test_identity_boundaries_and_unicode_are_not_normalized():
     vectors = IDENTITIES["topics"]
     assert vectors[1]["inbox"] != vectors[2]["inbox"]
