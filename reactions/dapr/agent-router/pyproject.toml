@@ -8,15 +8,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "drasi-agent-router"
 version = "0.1.0a1"
-description = "Drasi query catalog and application host for DaprAgentRouter"
+description = "Drasi query catalog and durable subscriptions for DaprAgentRouter"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.10,<3.14"
 dependencies = [
+    "dapr>=1.14,<2",
     "drasi-agent-router-contracts @ git+https://github.com/drasi-project/drasi-platform.git@49e8df694a16520519a1ba559f99c1a13a668431#subdirectory=typespec/dapr-agent-router/python",
     "drasi-reaction-sdk @ git+https://github.com/drasi-project/drasi-platform.git@49e8df694a16520519a1ba559f99c1a13a668431#subdirectory=reactions/sdk/python",
     "fastapi>=0.115.4,<0.116",
+    "grpcio>=1.76,<2",
     "jsonschema>=4.23,<5",
     "mcp>=1.28.1,<2",
     "pydantic>=2.11,<3",
@@ -31,7 +33,7 @@ dev = [
 ]
 test = [
     "httpx>=0.27.1,<1",
-    "pytest>=8,<9",
+    "pytest>=8.4,<9",
 ]
 
 [tool.setuptools]
@@ -42,6 +44,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["integration: requires an isolated Dapr sidecar and state component"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F"]

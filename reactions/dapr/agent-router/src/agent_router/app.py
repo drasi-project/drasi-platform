@@ -17,6 +17,7 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from .catalog import build_catalog, parse_query_config
 from .config import RouterConfig
 from .mcp import MCPRoute, create_mcp_server
+from .subscriptions import SubscriptionRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +35,18 @@ async def _forwarding_unavailable(
 def create_app() -> FastAPI:
     config = RouterConfig.from_environment()
     app = FastAPI(redirect_slashes=False)
+    subscriptions = SubscriptionRegistry(config.router_id, config.state_store_name)
     reaction = DrasiReaction[Query](
         on_change_event=_forwarding_unavailable,
         parse_query_configs=parse_query_config,
         dead_letter_topic=config.dead_letter_topic,
+        on_initialize=subscriptions.initialize,
+        on_cleanup=subscriptions.close,
     )
     reaction.install(app)
     catalog = build_catalog(config.router_id, reaction.query_registrations)
     manager = StreamableHTTPSessionManager(
-        app=create_mcp_server(catalog),
+        app=create_mcp_server(catalog, subscriptions),
         stateless=True,
         json_response=True,
     )
@@ -61,4 +65,5 @@ def create_app() -> FastAPI:
         methods=["POST"],
     )
     app.state.reaction = reaction
+    app.state.subscriptions = subscriptions
     return app

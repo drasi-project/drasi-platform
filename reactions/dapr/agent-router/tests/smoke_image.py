@@ -10,10 +10,15 @@ import json
 import subprocess
 import tempfile
 import time
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+ROUTER_ID = "drasi-system/drasi-router-state-tests"
 
 
 def docker(*arguments: str) -> str:
@@ -41,6 +46,71 @@ def request_json(
         return json.loads(content) if content else None
 
 
+@contextmanager
+def state_runtime() -> Iterator[str]:
+    project = f"drasi-router-smoke-{uuid.uuid4().hex}"
+    fixture = Path(__file__).parent / "state-runtime/compose.yaml"
+
+    def compose(*arguments: str) -> str:
+        return docker("compose", "-p", project, "-f", str(fixture), *arguments)
+
+    passed = False
+    try:
+        compose("up", "--wait", "--wait-timeout", "90", "--quiet-pull")
+        dapr = compose("ps", "--quiet", "dapr")
+        networks = json.loads(docker("inspect", dapr))[0]["NetworkSettings"]["Networks"]
+        assert len(networks) == 1, networks
+        yield next(iter(networks))
+        passed = True
+    finally:
+        try:
+            if not passed:
+                compose("logs", "--no-color", "--tail", "50")
+        finally:
+            compose("down", "--volumes")
+
+
+def initialize_mcp(url: str) -> str:
+    initialization = request_json(
+        f"{url}/mcp",
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-03-26",
+                "capabilities": {},
+                "clientInfo": {"name": "image-smoke", "version": "1"},
+            },
+        },
+    )
+    protocol = initialization["result"]["protocolVersion"]
+    request_json(
+        f"{url}/mcp",
+        {"jsonrpc": "2.0", "method": "notifications/initialized"},
+        protocol,
+    )
+    return protocol
+
+
+def call_tool(
+    url: str, protocol: str, name: str, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    response = request_json(
+        f"{url}/mcp",
+        {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {"name": name, "arguments": arguments},
+        },
+        protocol,
+    )
+    result = response["result"]
+    assert result["isError"] is False, result
+    return result["structuredContent"]
+
+
 def wait_for_subscriptions(container: str, url: str) -> Any:
     deadline = time.monotonic() + 90
     last_error: Exception | None = None
@@ -60,7 +130,10 @@ def wait_for_subscriptions(container: str, url: str) -> Any:
 
 
 def check_image(image: str) -> None:
-    with tempfile.TemporaryDirectory(prefix="drasi-router-smoke-") as directory:
+    with (
+        state_runtime() as network,
+        tempfile.TemporaryDirectory(prefix="drasi-router-smoke-") as directory,
+    ):
         queries = Path(directory)
         queries.chmod(0o755)
         query = {
@@ -72,12 +145,15 @@ def check_image(image: str) -> None:
         query_file.chmod(0o644)
         container = docker(
             "create",
+            "--network", network,
             "--publish", "127.0.0.1::8000",
             "--mount", f"type=bind,src={queries},dst=/etc/queries,readonly",
-            "--env", "routerId=drasi-system/smoke-router-reaction",
+            "--env", f"routerId={ROUTER_ID}",
             "--env", "egressPubsubName=smoke-egress",
             "--env", "PubsubName=smoke-inbound",
-            "--env", "StateStoreName=smoke-state",
+            "--env", "StateStoreName=router-state",
+            "--env", "DAPR_HTTP_ENDPOINT=http://dapr:3500",
+            "--env", "DAPR_GRPC_ENDPOINT=dapr:50001",
             image,
         )
         passed = False
@@ -92,42 +168,43 @@ def check_image(image: str) -> None:
             assert subscription["topic"] == "smoke-query-results", subscription
             assert subscription["deadLetterTopic"], subscription
 
-            initialization = request_json(
-                f"{url}/mcp",
-                {
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "initialize",
-                    "params": {
-                        "protocolVersion": "2025-03-26",
-                        "capabilities": {},
-                        "clientInfo": {"name": "image-smoke", "version": "1"},
-                    },
-                },
-            )
-            protocol = initialization["result"]["protocolVersion"]
-            request_json(
-                f"{url}/mcp",
-                {"jsonrpc": "2.0", "method": "notifications/initialized"},
-                protocol,
-            )
-            catalog_result = request_json(
-                f"{url}/mcp",
-                {
-                    "jsonrpc": "2.0",
-                    "id": 2,
-                    "method": "tools/call",
-                    "params": {"name": "list_queries", "arguments": {}},
-                },
-                protocol,
-            )
-            result = catalog_result["result"]
-            assert result["isError"] is False, result
-            assert result["structuredContent"] == {
+            protocol = initialize_mcp(url)
+            catalog = call_tool(url, protocol, "list_queries", {})
+            assert catalog == {
                 "protocol_version": 1,
-                "router_id": "drasi-system/smoke-router-reaction",
+                "router_id": ROUTER_ID,
                 "queries": [{"query_id": "smoke-query", **query}],
-            }, result
+            }, catalog
+
+            request = {
+                "query_id": "smoke-query",
+                "operations": ["i"],
+                "subscriber": {
+                    "namespace": "applications",
+                    "app_id": "smoke-agent",
+                    "agent_name": "SmokeAgent",
+                },
+                "subscription_incarnation": "image-smoke-1",
+            }
+            created = call_tool(url, protocol, "subscribe", request)
+            assert created["status"] == "created", created
+            assert created["topic_name"], created
+
+            docker("stop", "--timeout", "10", container)
+            assert docker("inspect", "--format", "{{.State.ExitCode}}", container) == "0"
+            docker("start", container)
+            url = f"http://{docker('port', container, '8000/tcp')}"
+            assert wait_for_subscriptions(container, url) == subscriptions
+            protocol = initialize_mcp(url)
+            restored = call_tool(url, protocol, "subscribe", request)
+            assert restored == {**created, "status": "updated"}, restored
+            removal = {key: value for key, value in request.items() if key != "operations"}
+            assert call_tool(url, protocol, "unsubscribe", removal) == {
+                "query_id": "smoke-query", "removed": True,
+            }
+            assert call_tool(url, protocol, "unsubscribe", removal) == {
+                "query_id": "smoke-query", "removed": False,
+            }
 
             control = request_json(
                 f"{url}{subscription['route']}",

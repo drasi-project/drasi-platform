@@ -3,14 +3,20 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pytest
+import httpx
+from dapr.clients.exceptions import DaprInternalError
 from fastapi.testclient import TestClient
+from grpc import RpcError
 
 import agent_router.app as app_module
+import agent_router.subscriptions as subscriptions_module
+from agent_router.subscriptions import SubscriptionError
 from drasi_agent_router_contracts import router_dead_letter_topic
 
 from conftest import cloud_event
@@ -161,3 +167,84 @@ def test_sdk_routes_dlt_and_typed_delivery_boundaries(
     assert "control-private" not in caplog.text
     assert "malformed-private" not in caplog.text
     assert app.state.reaction.is_ready is False
+
+
+@pytest.mark.parametrize("failure", ["read", "write", "corrupt"])
+def test_state_initialization_failure_unwinds_without_readiness(
+    app_factory, state_store, failure
+) -> None:
+    app = app_factory()
+    subscriptions = app.state.subscriptions
+    if failure == "corrupt":
+        state_store.put(
+            (subscriptions.state_store_name, subscriptions.state_key),
+            b"not-json",
+        )
+    else:
+        failure_type = RpcError if failure == "read" else DaprInternalError
+        setattr(state_store, f"{failure}_error", failure_type("state unavailable"))
+
+    with pytest.RaisesGroup(SubscriptionError):
+        with TestClient(app):
+            pytest.fail("state initialization failed but the app became ready")
+    assert app.state.reaction.is_ready is False
+    assert state_store.clients
+    assert all(client.closed for client in state_store.clients)
+
+
+def test_all_admission_waits_for_the_complete_state_load(app_factory, state_store) -> None:
+    app = app_factory({"orders.v1": "title: Orders\ndescription: Order changes.\n"})
+
+    async def exercise():
+        read_started, release_read = asyncio.Event(), asyncio.Event()
+        ready, shutdown = asyncio.Event(), asyncio.Event()
+
+        async def blocked_read():
+            read_started.set()
+            await release_read.wait()
+
+        async def application_lifespan():
+            async with app.router.lifespan_context(app):
+                ready.set()
+                await shutdown.wait()
+
+        state_store.before_read = blocked_read
+        task = asyncio.create_task(application_lifespan())
+        try:
+            await asyncio.wait_for(read_started.wait(), timeout=1)
+            assert app.state.reaction.is_ready is False
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app), base_url="http://router.test"
+            ) as client:
+                assert (await client.get("/dapr/subscribe")).status_code == 503
+                assert (await client.post("/mcp", json={})).status_code == 503
+                result = await client.post(
+                    "/_drasi/events/orders.v1", json=cloud_event("orders.v1")
+                )
+                assert result.json() == {"status": "RETRY"}
+                release_read.set()
+                await asyncio.wait_for(ready.wait(), timeout=1)
+                assert app.state.reaction.is_ready is True
+                assert (await client.get("/dapr/subscribe")).status_code == 200
+        finally:
+            release_read.set()
+            shutdown.set()
+            await task
+        assert all(client.closed for client in state_store.clients)
+        assert app.state.reaction.is_ready is False
+
+    asyncio.run(exercise())
+
+
+def test_state_client_creation_failure_stays_unready(app_factory, monkeypatch, caplog):
+    app = app_factory()
+
+    def fail_client_creation():
+        raise TimeoutError("private-sidecar-address")
+
+    monkeypatch.setattr(subscriptions_module, "DaprClient", fail_client_creation)
+    with pytest.RaisesGroup(SubscriptionError):
+        with TestClient(app):
+            pytest.fail("client creation failed but the app became ready")
+    assert app.state.reaction.is_ready is False
+    assert "private-sidecar-address" not in caplog.text
