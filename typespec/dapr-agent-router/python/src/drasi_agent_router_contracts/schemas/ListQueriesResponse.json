@@ -1,0 +1,27 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "ListQueriesResponse.json",
+    "type": "object",
+    "properties": {
+        "protocol_version": {
+            "type": "number",
+            "const": 1
+        },
+        "router_id": {
+            "$ref": "RouterId.json"
+        },
+        "queries": {
+            "type": "array",
+            "items": {
+                "$ref": "Query.json"
+            }
+        }
+    },
+    "required": [
+        "protocol_version",
+        "router_id",
+        "queries"
+    ],
+    "additionalProperties": false,
+    "title": "ListQueriesResponse"
+}

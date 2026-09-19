@@ -1,0 +1,23 @@
+[
+  {
+    "tool": "subscribe",
+    "result": {
+      "isError": true,
+      "content": [{"type": "text", "text": "{\"code\":\"unknown_query\",\"message\":\"The query is not in the catalog.\"}"}]
+    }
+  },
+  {
+    "tool": "unsubscribe",
+    "result": {
+      "isError": true,
+      "content": [{"type": "text", "text": "{\"code\":\"incarnation_conflict\",\"message\":\"A different incarnation is registered.\"}"}]
+    }
+  },
+  {
+    "tool": "subscribe",
+    "result": {
+      "isError": true,
+      "content": [{"type": "text", "text": "{\"code\":\"state_unavailable\",\"message\":\"The rule could not be persisted.\"}"}]
+    }
+  }
+]

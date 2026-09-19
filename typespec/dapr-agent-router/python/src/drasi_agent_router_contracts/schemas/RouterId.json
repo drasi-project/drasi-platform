@@ -1,0 +1,11 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "RouterId.json",
+    "type": "string",
+    "minLength": 1,
+    "title": "RouterId",
+    "pattern": "^[^/\\s]+/[^/\\s]+$",
+    "not": {
+        "pattern": "\\s"
+    }
+}
