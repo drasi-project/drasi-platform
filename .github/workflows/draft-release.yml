@@ -78,6 +78,7 @@ env:
     {"label": "StorageQueue", "path": "reactions/azure/storagequeue-reaction", "name": "reaction-storage-queue", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "SyncDaprStateStore", "path": "reactions/dapr/sync-statestore", "name": "reaction-sync-dapr-statestore", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "PostDaprPubSub", "path": "reactions/dapr/post-pubsub", "name": "reaction-post-dapr-pubsub", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
+    {"label": "DaprAgentRouter", "path": "reactions/dapr/agent-router", "name": "reaction-dapr-agent-router", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "Http", "path": "reactions/http", "name": "reaction-http", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "StoredProc", "path": "reactions/sql/storedproc-reaction", "name": "reaction-storedproc", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
     {"label": "SyncVectorStore", "path": "reactions/sync-vectorstore", "name": "reaction-sync-vectorstore", "platforms": "linux/amd64,linux/arm64", "category": "reactions"},
@@ -183,6 +184,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push manifest lists for all components
+        env:
+          IMAGE_PREFIX: ${{ inputs.image_prefix }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           # Process all build configs
           for build_config in $(echo '${{ env.BUILD_CONFIGS }}' | jq -r '.[].name'); do
@@ -203,43 +207,45 @@ jobs:
               
               # Calculate the base tag based on Makefile logic
               if [ "$build_config" = "default" ]; then
-                base_tag="${{ inputs.tag }}"
+                base_tag="$RELEASE_TAG"
               else
-                base_tag="${{ inputs.tag }}-$build_config"
+                base_tag="$RELEASE_TAG-$build_config"
               fi
+
+              image="${IMAGE_PREFIX}/${component}"
               
               # Does this component need to be built for linux/amd64?
               if echo "$expected_platforms" | grep -q "linux/amd64"; then
                 amd64_tag="${base_tag}-amd64"
-                if docker manifest inspect ghcr.io/drasi-project/$component:$amd64_tag > /dev/null 2>&1; then
-                  echo "Found amd64 manifest for $component:$amd64_tag"
-                  manifests+=("ghcr.io/drasi-project/$component:$amd64_tag")
+                if docker manifest inspect "${image}:${amd64_tag}" > /dev/null 2>&1; then
+                  echo "Found amd64 manifest for ${image}:${amd64_tag}"
+                  manifests+=("${image}:${amd64_tag}")
                   component_has_images=true
                 else
-                  echo "Warning: amd64 manifest not found for $component:$amd64_tag"
+                  echo "Warning: amd64 manifest not found for ${image}:${amd64_tag}"
                 fi
               fi
               
               # Does this component need to be built for linux/arm64?
               if echo "$expected_platforms" | grep -q "linux/arm64"; then
                 arm64_tag="${base_tag}-arm64"
-                if docker manifest inspect ghcr.io/drasi-project/$component:$arm64_tag > /dev/null 2>&1; then
-                  echo "Found arm64 manifest for $component:$arm64_tag"
-                  manifests+=("ghcr.io/drasi-project/$component:$arm64_tag")
+                if docker manifest inspect "${image}:${arm64_tag}" > /dev/null 2>&1; then
+                  echo "Found arm64 manifest for ${image}:${arm64_tag}"
+                  manifests+=("${image}:${arm64_tag}")
                   component_has_images=true
                 else
-                  echo "Warning: arm64 manifest not found for $component:$arm64_tag"
+                  echo "Warning: arm64 manifest not found for ${image}:${arm64_tag}"
                 fi
               fi
               
               # Create the manifest list if there are manifests to combine
-              if [ ${#manifests[@]} -gt 0 ]; then
+              if [ "${#manifests[@]}" -gt 0 ]; then
                 final_tag="${base_tag}"
-                echo "Creating manifest list for $component:$final_tag with ${#manifests[@]} manifests"
-                docker buildx imagetools create -t ghcr.io/drasi-project/$component:$final_tag ${manifests[@]}
+                echo "Creating manifest list for ${image}:${final_tag} with ${#manifests[@]} manifests"
+                docker buildx imagetools create -t "${image}:${final_tag}" "${manifests[@]}"
                 build_config_has_images=true
               else
-                echo "No manifests found for $component with build config $build_config, skipping manifest creation."
+                echo "No manifests found for ${image} with build config $build_config, skipping manifest creation."
               fi
             done
             
@@ -350,6 +356,7 @@ jobs:
     uses: ./.github/workflows/image-validation.yml
     with:
       tag: ${{ inputs.tag }}
+      image_prefix: ${{ inputs.image_prefix }}
 
   # Final release job
   release:

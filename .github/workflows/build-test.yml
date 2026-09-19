@@ -71,8 +71,9 @@ jobs:
       - name: Verify application
         working-directory: reactions/dapr/agent-router
         run: |
-          uv sync --locked --python '${{ matrix.python-version }}' --group test
-          make test
+          PYTHON_VERSION='${{ matrix.python-version }}' make install-dependencies
+          PYTHON_VERSION='${{ matrix.python-version }}' make lint-check
+          PYTHON_VERSION='${{ matrix.python-version }}' make test
           make package
 
   verify-openapi-spec:
@@ -331,6 +332,11 @@ jobs:
             path: './reactions/dapr/post-pubsub', 
             name: 'reaction-post-dapr-pubsub'
           },
+          {
+            label: 'DaprAgentRouter',
+            path: './reactions/dapr/agent-router',
+            name: 'reaction-dapr-agent-router'
+          },
           { 
             label: 'Http',
             path: './reactions/http', 
@@ -379,6 +385,16 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           BUILD_CONFIG=${{ matrix.variant.build_config }} DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}-${{ matrix.variant.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+
+      - name: Smoke test DaprAgentRouter ${{ matrix.variant.name }} image
+        if: matrix.component.name == 'reaction-dapr-agent-router'
+        working-directory: ${{ matrix.component.path }}
+        run: |
+          docker load --input '${{ github.workspace }}/${{ matrix.component.name }}-${{ matrix.variant.name }}.tar'
+          BUILD_CONFIG=${{ matrix.variant.build_config }} \
+          DOCKER_TAG_VERSION=latest \
+          IMAGE_PREFIX=drasi-project \
+          make image-test
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6

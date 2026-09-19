@@ -1,10 +1,10 @@
-# DaprAgentRouter application, subscriptions, and row conversion
+# DaprAgentRouter reaction
 
-This package implements the application host and static query catalog from [drasi-project/drasi-platform#456](https://github.com/drasi-project/drasi-platform/issues/456), durable subscription management from [drasi-project/drasi-platform#459](https://github.com/drasi-project/drasi-platform/issues/459), and row conversion from [drasi-project/drasi-platform#462](https://github.com/drasi-project/drasi-platform/issues/462). It composes the Python Reaction SDK and a stateless streamable HTTP MCP endpoint in one FastAPI application.
+This package provides the DaprAgentRouter image and built-in ReactionProvider, including the application host and static query catalog from [drasi-project/drasi-platform#456](https://github.com/drasi-project/drasi-platform/issues/456), durable subscription management from [drasi-project/drasi-platform#459](https://github.com/drasi-project/drasi-platform/issues/459), and row conversion from [drasi-project/drasi-platform#462](https://github.com/drasi-project/drasi-platform/issues/462). It composes the Python Reaction SDK and a stateless streamable HTTP MCP endpoint in one FastAPI application.
 
 The earlier runner, catalog, and subscription registry prototype is in [drasi-project/drasi-platform#443](https://github.com/drasi-project/drasi-platform/pull/443). This application adapts its same-port architecture and store-first registry approach to the current SDK lifecycle and shared protocol, without lazy cache loading or failure-to-empty/success fallbacks.
 
-**This is not yet a functioning event router.** `list_queries`, `subscribe`, and `unsubscribe` are implemented. Row conversion is available through the helpers below but is not wired into delivery. Fanout, administration, and built-in provider packaging remain separate work. Valid change events deliberately return `RETRY`, rather than acknowledging changes that have not been forwarded. Do not deploy this application against live query streams expecting delivery or retention guarantees: broker retry/dead-letter policies can exhaust retries.
+**This is not yet a functioning event router.** `list_queries`, `subscribe`, and `unsubscribe` are implemented. Row conversion is available through the helpers below but is not wired into delivery. Fanout and administration remain separate work. Valid change events deliberately return `RETRY`, rather than acknowledging changes that have not been forwarded. Do not deploy this application against live query streams expecting delivery or retention guarantees: broker retry/dead-letter policies can exhaust retries.
 
 ## Configuration
 
@@ -20,7 +20,41 @@ The application reads the following environment variables. Reaction properties b
 
 `routerId` must match the actual Dapr application identity and namespace. It is explicit configuration, not inferred from the pod name or `INSTANCE_ID`; the latter is a separate generated Drasi resource UUID. Router identity determines the inbound dead-letter topic through the shared contract's naming helper.
 
-Component names must be non-empty and contain no whitespace. Configuration errors fail application creation. Startup connects to the state component and restores all subscription rules before readiness; it does not prove broker connectivity. This package does not provision components or their backing infrastructure. Router namespace/app-ID values are trusted operator configuration, not authenticated caller identities.
+Component names must be non-empty and contain no whitespace. Configuration errors fail application creation. Startup connects to the state component and restores all subscription rules before readiness; it does not prove broker connectivity. The application does not provision components or their backing infrastructure; the provider requests platform-managed state as described below. Router namespace/app-ID values are trusted operator configuration, not authenticated caller identities.
+
+## Provider installation and deployment
+
+The CLI embeds this provider in its default installation resources, including `drasi init --manifest` output. Installing the provider only registers the `DaprAgentRouter` kind. It does not create a router Reaction, an application broker, or public ingress.
+
+For an existing installation, register the same provider from this directory:
+
+```sh
+drasi apply -f reaction-provider.yaml
+```
+
+Use a platform build containing the merged per-reaction state and single-instance deployment support, and build or select an image tag containing this package. An older published platform/image tag does not acquire these capabilities by applying a new provider manifest. The provider uses the platform's configured image registry and tag for `reaction-dapr-agent-router`.
+
+The provider requests a platform-managed state Component with `state_store: true`. This uses the platform's configured backing store, not a separate database. Its reaction service declares `supportsConcurrentInstances: false`, which requests one replica and a stop-before-start `Recreate` rollout on Kubernetes. Brief replacement downtime is expected; this is not distributed fencing.
+
+Both SDK delivery and MCP use HTTP port `8000`. The image runs one non-root Uvicorn worker. No provider endpoint or ingress is needed: clients use private Dapr service invocation. Keep the application and its control path in a trusted deployment.
+
+The operator must provide an agent-facing Pub/Sub Component in the router's namespace. Agent applications in other namespaces use their own Components connected to that same broker; their Component names may differ. Neither this provider nor the image provisions the application broker. Do not point `egressPubsubName` at Drasi's internal broker Component or replace that Component.
+
+An empty-catalog Reaction is sufficient to inspect the currently implemented host without consuming live query changes:
+
+```yaml
+apiVersion: v1
+kind: Reaction
+name: sre-router
+spec:
+  kind: DaprAgentRouter
+  properties:
+    routerId: drasi-system/sre-router-reaction
+    egressPubsubName: agent-egress
+  queries: {}
+```
+
+For a Reaction named `sre-router`, the platform assigns the service the Dapr app ID `sre-router-reaction`. Replace `drasi-system` in `routerId` if the platform uses another namespace. Do not substitute `INSTANCE_ID`. The provider requires non-empty `routerId` and `egressPubsubName`; the application additionally validates identity format, whitespace, and inbound/egress collisions at startup. `PubsubName` and `StateStoreName` are platform-injected, not required Reaction properties.
 
 ## Query catalog
 
@@ -51,7 +85,7 @@ The SDK scans the directory once while installing its routes. The application va
 
 ## Run locally
 
-Use Python 3.10-3.13 and uv. From this directory:
+Use Python 3.10-3.13 and uv. Make targets default to Python 3.12; set `PYTHON_VERSION` to select another supported interpreter. From this directory:
 
 ```sh
 make install-dependencies
@@ -207,11 +241,10 @@ Both the SDK and `drasi-agent-router-contracts` dependencies are pinned to the p
 `list_queries` returns `protocol_version`, `router_id`, and `queries`. It does not implement the obsolete capability/delivery-version handshake from earlier proposals. All three implemented tools advertise the shared request and success-response schemas.
 
 ```sh
-make test
-make package
+make lint-check test package
 ```
 
-The focused suite exercises configuration, static catalog validation, shared MCP schemas/results, startup readiness, restart recovery, conditional-write conflicts, ambiguous outcomes, concurrent mutations, storage failures, coexistence with the SDK routes, and row conversion against the shared protocol fixtures.
+The focused suite exercises configuration, static catalog validation, shared MCP schemas/results, startup readiness, restart recovery, conditional-write conflicts, ambiguous outcomes, concurrent mutations, storage failures, coexistence with the SDK routes, row conversion against the shared protocol fixtures, provider registration, and image build/release wiring.
 
 For real state-component coverage, Docker and Docker Compose are sufficient; no Dapr CLI, Kubernetes cluster, broker, or agent application is needed:
 
@@ -221,4 +254,36 @@ make test-state-integration
 
 This target starts an isolated Compose project with Dapr 1.14.5 (the CLI's current default) and MongoDB 6, uses dynamically assigned loopback ports, and removes its containers and volumes on exit. It exercises durable restoration, actual ETag rejection, unsupported-record handling, and state-component errors. The fixture does not enable actors or require MongoDB multi-document transactions. The ordinary suite skips these cases unless `DRASI_ROUTER_TEST_STATE_STORE` and the Dapr endpoints are supplied.
 
-Production container images, broker policies, health/administrative endpoints, and default provider registration are not supplied by this application slice.
+Broker policies and health/administrative endpoints remain separate work.
+
+## Container builds
+
+From this directory, plain `make` builds the default image. Docker Buildx is required:
+
+```sh
+make docker-build
+make image-test
+
+make docker-build BUILD_CONFIG=azure-linux
+make image-test BUILD_CONFIG=azure-linux
+```
+
+Both variants use Python 3.12, uv 0.11.27, and the committed dependency lockfile. The builder installs the current application and its immutable Git-pinned SDK/contract dependencies without editable links. The runtime contains the installed environment, not a source checkout or startup dependency installer.
+
+| Build configuration | Default local image |
+| --- | --- |
+| `default` | `drasi-project/reaction-dapr-agent-router:latest` |
+| `azure-linux` | `drasi-project/reaction-dapr-agent-router:latest-azure-linux` |
+
+The Makefile supports the repository's `IMAGE_PREFIX`, `DOCKER_TAG_VERSION`, `BUILD_CONFIG`, `TAG_SUFFIX`, and `DOCKERX_OPTS` conventions. Release workflows publish both Linux `amd64` and `arm64` variants. For example, `DOCKER_TAG_VERSION=vX.Y.Z BUILD_CONFIG=azure-linux TAG_SUFFIX=-arm64` selects the tag `vX.Y.Z-azure-linux-arm64`.
+
+`make image-test` needs Docker, Docker Compose, and Python 3.10 or later on the host. It starts an isolated copy of the Dapr/MongoDB state fixture and connects the actual router image to that private network. It mounts a synthetic catalog, exercises MCP and SDK delivery on the same temporary loopback port, checks the non-root/single-worker configuration, and verifies subscription persistence across a clean router restart. It removes its containers, volumes, network, and temporary query files. No installed Dapr CLI, broker, model, or credentials are needed.
+
+Load a locally built image into an existing development cluster using matching build/tag options:
+
+```sh
+make kind-load CLUSTER_NAME=kind
+make k3d-load CLUSTER_NAME=k3s-default
+```
+
+Build, load, and deploy with consistent registry/tag settings; registering the provider alone does not build or load its image. The top-level reaction Makefile includes this component in its standard build, load, test, and lint targets.
