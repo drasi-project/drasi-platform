@@ -24,7 +24,7 @@ Component names must be non-empty and contain no whitespace. Configuration error
 
 ## Query catalog
 
-The platform mounts each `Reaction.spec.queries` entry as `/etc/queries/<query-id>`. Its value is a YAML or JSON metadata document:
+The platform mounts each `Reaction.spec.queries` value as `/etc/queries/<query-id>`. The following is a manifest excerpt to place under `Reaction.spec`, not the contents of a per-query file:
 
 ```yaml
 queries:
@@ -35,6 +35,14 @@ queries:
   checkout-rollout-status: |
     title: Checkout rollout status
     description: Individual checkout rollout rows with rolloutId, service, status, and message fields.
+```
+
+The resulting `/etc/queries/checkout-server-errors` file contains only the metadata, without a `queries:` wrapper:
+
+```yaml
+title: Checkout server errors
+description: Individual checkout HTTP 5xx errors with errorId, service, statusCode, and message fields.
+usage: Use inserts to react to newly matching errors.
 ```
 
 `title` and `description` are required non-blank strings. `usage` is optional, but must be a non-blank string when present. Unknown fields, explicit null metadata, and an embedded `query_id` are rejected. Query identity comes from the entire filename, including dots, not a metadata field or filename stem.
@@ -50,7 +58,7 @@ make install-dependencies
 mkdir -p local-queries
 ```
 
-Place metadata files named after your query IDs in `local-queries`, then run one application worker:
+Create `local-queries/checkout-server-errors` with the per-query file contents shown above, then run one application worker:
 
 ```sh
 export routerId=drasi-system/sre-router-reaction
