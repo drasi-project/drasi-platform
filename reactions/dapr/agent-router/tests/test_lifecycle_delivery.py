@@ -218,6 +218,9 @@ def test_all_admission_waits_for_the_complete_state_load(app_factory, state_stor
             ) as client:
                 assert (await client.get("/dapr/subscribe")).status_code == 503
                 assert (await client.post("/mcp", json={})).status_code == 503
+                assert (await client.get("/healthz")).status_code == 200
+                assert (await client.get("/readyz")).status_code == 503
+                assert (await client.get("/admin/rules")).status_code == 503
                 result = await client.post(
                     "/_drasi/events/orders.v1", json=cloud_event("orders.v1")
                 )
@@ -226,6 +229,8 @@ def test_all_admission_waits_for_the_complete_state_load(app_factory, state_stor
                 await asyncio.wait_for(ready.wait(), timeout=1)
                 assert app.state.reaction.is_ready is True
                 assert (await client.get("/dapr/subscribe")).status_code == 200
+                assert (await client.get("/readyz")).status_code == 200
+                assert (await client.get("/admin/rules")).status_code == 200
         finally:
             release_read.set()
             shutdown.set()

@@ -167,6 +167,25 @@ def check_image(image: str) -> None:
             assert subscription["pubsubname"] == "smoke-inbound", subscription
             assert subscription["topic"] == "smoke-query-results", subscription
             assert subscription["deadLetterTopic"], subscription
+            assert request_json(f"{url}/healthz") == {"status": "alive"}
+            assert request_json(f"{url}/readyz") == {"status": "ready"}
+            for path in ("/admin/rules/remove", "/admin/subscribers/remove-rules"):
+                invalid = Request(
+                    f"{url}{path}",
+                    data=(
+                        b'{"subscriber":{"namespace":"applications","app_id":"smoke-agent",'
+                        b'"agent_name":"\xffrouter-smoke-private-data"}}'
+                    ),
+                    headers={"Content-Type": "application/json"},
+                )
+                try:
+                    with urlopen(invalid, timeout=10):
+                        raise AssertionError("Invalid UTF-8 request was accepted")
+                except HTTPError as error:
+                    assert error.code == 422, error.code
+                    response = json.loads(error.read())
+                    assert response["code"] == "invalid_arguments", response
+                    assert "router-smoke-private-data" not in json.dumps(response)
 
             protocol = initialize_mcp(url)
             catalog = call_tool(url, protocol, "list_queries", {})
@@ -189,6 +208,11 @@ def check_image(image: str) -> None:
             created = call_tool(url, protocol, "subscribe", request)
             assert created["status"] == "created", created
             assert created["topic_name"], created
+            assert request_json(f"{url}/admin/rules") == {
+                "router_id": ROUTER_ID,
+                "view": "routing_snapshot",
+                "rules": [{**request, "topic_name": created["topic_name"]}],
+            }
 
             docker("stop", "--timeout", "10", container)
             assert docker("inspect", "--format", "{{.State.ExitCode}}", container) == "0"
@@ -205,6 +229,27 @@ def check_image(image: str) -> None:
             assert call_tool(url, protocol, "unsubscribe", removal) == {
                 "query_id": "smoke-query", "removed": False,
             }
+            call_tool(url, protocol, "subscribe", request)
+            operator_removal = {
+                "query_id": request["query_id"],
+                "subscriber": request["subscriber"],
+            }
+            assert request_json(
+                f"{url}/admin/rules/remove", operator_removal
+            ) == {"removed": True}
+            call_tool(url, protocol, "subscribe", request)
+            assert request_json(
+                f"{url}/admin/subscribers/remove-rules",
+                {"subscriber": request["subscriber"]},
+            ) == {"removed_count": 1}
+            assert request_json(f"{url}/admin/rules")["rules"] == []
+            docker("stop", "--timeout", "10", container)
+            assert docker("inspect", "--format", "{{.State.ExitCode}}", container) == "0"
+            docker("start", container)
+            url = f"http://{docker('port', container, '8000/tcp')}"
+            assert wait_for_subscriptions(container, url) == subscriptions
+            assert request_json(f"{url}/readyz") == {"status": "ready"}
+            assert request_json(f"{url}/admin/rules")["rules"] == []
 
             control = request_json(
                 f"{url}{subscription['route']}",
@@ -221,7 +266,7 @@ def check_image(image: str) -> None:
                         "queryId": "smoke-query",
                         "sequence": 1,
                         "sourceTimeMs": 1,
-                        "metadata": {},
+                        "metadata": {"private": "router-smoke-private-data"},
                         "controlSignal": {"kind": "running"},
                     },
                 },
@@ -235,6 +280,18 @@ def check_image(image: str) -> None:
             assert entrypoint[entrypoint.index("--workers") + 1] == "1", entrypoint
             docker("stop", "--timeout", "10", container)
             assert docker("inspect", "--format", "{{.State.ExitCode}}", container) == "0"
+            logs = subprocess.run(
+                ["docker", "logs", container], check=True, text=True, capture_output=True
+            )
+            records = [
+                json.loads(line)
+                for line in logs.stdout.splitlines()
+                if line.startswith("{")
+            ]
+            assert {record.get("event") for record in records} >= {
+                "router_ready", "router_rules_cleaned", "router_stopped",
+            }
+            assert "router-smoke-private-data" not in logs.stdout
             passed = True
         finally:
             try:
