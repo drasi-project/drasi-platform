@@ -1,10 +1,10 @@
-# DaprAgentRouter application and catalog
+# DaprAgentRouter application, catalog, and row conversion
 
-This package implements the application host and static query catalog for [drasi-project/drasi-platform#456](https://github.com/drasi-project/drasi-platform/issues/456). It composes the Python Reaction SDK and a stateless streamable HTTP MCP endpoint in one FastAPI application.
+This package implements the application host and static query catalog for [drasi-project/drasi-platform#456](https://github.com/drasi-project/drasi-platform/issues/456), and row conversion for [drasi-project/drasi-platform#462](https://github.com/drasi-project/drasi-platform/issues/462). It composes the Python Reaction SDK and a stateless streamable HTTP MCP endpoint in one FastAPI application.
 
 The earlier runner and catalog prototype is in [drasi-project/drasi-platform#443](https://github.com/drasi-project/drasi-platform/pull/443). This application adapts that same-port architecture to the current SDK lifecycle and shared protocol.
 
-**This is not yet a functioning event router.** Only `list_queries` is implemented. Durable subscriptions, row conversion, fanout, administration, and built-in provider packaging are separate work. Valid change events deliberately return `RETRY`, rather than acknowledging changes that have not been forwarded. Do not deploy this application against live query streams expecting delivery or retention guarantees: broker retry/dead-letter policies can exhaust retries.
+**This is not yet a functioning event router.** Only `list_queries` is implemented on the MCP surface. Durable subscriptions, fanout, administration, and built-in provider packaging are separate work. Row conversion is available through the helpers below but is not wired into delivery. Valid change events deliberately return `RETRY`, rather than acknowledging changes that have not been forwarded. Do not deploy this application against live query streams expecting delivery or retention guarantees: broker retry/dead-letter policies can exhaust retries.
 
 ## Configuration
 
@@ -89,6 +89,54 @@ http://localhost:<dapr-http-port>/v1.0/invoke/<router-app-id>.<router-namespace>
 
 The MCP session manager starts before the SDK marks the reaction ready. Dapr discovery and both delivery paths reject work until initialization completes. Startup failures unwind lifespan resources; shutdown clears readiness before stopping the MCP manager. Valid query control events are acknowledged by the SDK without forwarding.
 
+## Row conversion
+
+The conversion helpers perform no subscription lookup, publication, or workflow activation. A future forwarding handler can use them with the SDK's `ReactionMessage.event`:
+
+```python
+from time import time_ns
+
+from agent_router import build_delivery, unpack_change
+
+rows = unpack_change(message.event, unpacked_at_ms=time_ns() // 1_000_000)
+deliveries = [
+    build_delivery(
+        row,
+        router_id="drasi-system/sre-router-reaction",
+        subscription_incarnation="recipient-lifecycle",
+    )
+    for row in rows
+]
+```
+
+`unpack_change` accepts a typed SDK `ChangeEvent` and eagerly returns an ordered list of `ConvertedRow` values, each containing a generated row `event` and its `event_id`. It reads no clock or state and does not mutate the input. Query controls are not converter inputs.
+
+| Packed array | Operation | Required snapshots |
+| --- | --- | --- |
+| `addedResults` | `i` | `after` |
+| `updatedResults` | `u` | `before` and `after` |
+| `deletedResults` | `d` | `before` |
+
+All three arrays may occur in one batch. Conversion traverses them in the order above, preserving each array's order. Operations describe membership and changes in the query result, not necessarily database record creation or deletion. Snapshots are projected result rows, not partial source-record patches.
+
+The real sequence is copied without rounding or a signed-integer limit. Source query ID and timestamp are preserved. `event.ts_ms` is the caller-supplied unpacking time, not the source timestamp.
+
+The shared `row_event_id` helper derives identity from query ID, sequence, operation, and the original zero-based position in that operation's array. Convert once before applying recipient filters. A retry can use a different unpacking time without changing row identity; recipient order and count do not participate in identity.
+
+`build_delivery` adds the configured router ID and recipient incarnation, then validates through the shared package's `to_wire` boundary. It returns a JSON-compatible dictionary for the normal Dapr CloudEvent's `data`, not an outer CloudEvent. The semantic row and row ID are shared across recipients; incarnation is recipient-specific.
+
+Only the declared delivery fields and projected row data are copied. Packed metadata and handling instructions are not forwarded. Arbitrary projected columns, including nested values and null-valued columns, remain intact. Inserts omit `before`; deletes omit `after`.
+
+### Conversion failures
+
+Empty objects are valid snapshots. Null required snapshots, including null-snapshot aggregate updates, are unsupported. Projected values must be JSON-compatible, with string object keys and finite numbers. Nested `NaN`/infinity, cyclic structures, and non-JSON Python values are rejected before serialization can silently change them.
+
+Unsupported snapshots or invalid packed sequence/source metadata raise `InvalidPackedChangeError` before any rows are returned. Missing fields and malformed array entries rejected by the SDK do not reach the converter. The exception carries `query_id`, `operation`, and `position` for diagnostics; its message does not include row content.
+
+The forwarding callback must catch this specific exception, log identifiers and an outcome without event data, and return `DeliveryOutcome.DROP` with the configured dead-letter path. Letting it escape would cause the SDK to request `RETRY`. Do not classify every exception as bad input: invalid caller-supplied processing time or recipient configuration is a caller/configuration error, and transient publication failures require retry handling.
+
+Eager conversion prevents a malformed later row from exposing partial conversion output. It is not a transactional-fanout, deduplication, or exactly-once guarantee. The future publication loop owns partial-failure handling and explicit SDK delivery outcomes.
+
 ## Shared contract and development
 
 Both the SDK and `drasi-agent-router-contracts` dependencies are pinned to the public upstream commit containing the merged prerequisites. The contract package supplies generated models, JSON Schemas, validation, and identity helpers. This application neither vendors those definitions nor changes the generic Reaction SDK.
@@ -100,4 +148,4 @@ make test
 make package
 ```
 
-The focused suite exercises configuration, static catalog validation, shared MCP schemas and results, lifecycle failure handling, and coexistence with the SDK routes. Container images, broker policies, health/administrative endpoints, and default provider registration are not supplied by this application slice.
+The focused suite exercises configuration, static catalog validation, shared MCP schemas and results, lifecycle failure handling, coexistence with the SDK routes, and row conversion against the shared protocol fixtures. Container images, broker policies, health/administrative endpoints, and default provider registration are not supplied by this application slice.
