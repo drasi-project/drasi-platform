@@ -1,10 +1,10 @@
-# DaprAgentRouter application, catalog, and row conversion
+# DaprAgentRouter application, subscriptions, and row conversion
 
-This package implements the application host and static query catalog for [drasi-project/drasi-platform#456](https://github.com/drasi-project/drasi-platform/issues/456), and row conversion for [drasi-project/drasi-platform#462](https://github.com/drasi-project/drasi-platform/issues/462). It composes the Python Reaction SDK and a stateless streamable HTTP MCP endpoint in one FastAPI application.
+This package implements the application host and static query catalog from [drasi-project/drasi-platform#456](https://github.com/drasi-project/drasi-platform/issues/456), durable subscription management from [drasi-project/drasi-platform#459](https://github.com/drasi-project/drasi-platform/issues/459), and row conversion from [drasi-project/drasi-platform#462](https://github.com/drasi-project/drasi-platform/issues/462). It composes the Python Reaction SDK and a stateless streamable HTTP MCP endpoint in one FastAPI application.
 
-The earlier runner and catalog prototype is in [drasi-project/drasi-platform#443](https://github.com/drasi-project/drasi-platform/pull/443). This application adapts that same-port architecture to the current SDK lifecycle and shared protocol.
+The earlier runner, catalog, and subscription registry prototype is in [drasi-project/drasi-platform#443](https://github.com/drasi-project/drasi-platform/pull/443). This application adapts its same-port architecture and store-first registry approach to the current SDK lifecycle and shared protocol, without lazy cache loading or failure-to-empty/success fallbacks.
 
-**This is not yet a functioning event router.** Only `list_queries` is implemented on the MCP surface. Durable subscriptions, fanout, administration, and built-in provider packaging are separate work. Row conversion is available through the helpers below but is not wired into delivery. Valid change events deliberately return `RETRY`, rather than acknowledging changes that have not been forwarded. Do not deploy this application against live query streams expecting delivery or retention guarantees: broker retry/dead-letter policies can exhaust retries.
+**This is not yet a functioning event router.** `list_queries`, `subscribe`, and `unsubscribe` are implemented. Row conversion is available through the helpers below but is not wired into delivery. Fanout, administration, and built-in provider packaging remain separate work. Valid change events deliberately return `RETRY`, rather than acknowledging changes that have not been forwarded. Do not deploy this application against live query streams expecting delivery or retention guarantees: broker retry/dead-letter policies can exhaust retries.
 
 ## Configuration
 
@@ -20,7 +20,7 @@ The application reads the following environment variables. Reaction properties b
 
 `routerId` must match the actual Dapr application identity and namespace. It is explicit configuration, not inferred from the pod name or `INSTANCE_ID`; the latter is a separate generated Drasi resource UUID. Router identity determines the inbound dead-letter topic through the shared contract's naming helper.
 
-Component names must be non-empty and contain no whitespace. Configuration errors fail application creation. This slice validates component names but does not connect to the state store or prove broker connectivity. It does not provision either component or its backing infrastructure. Router namespace/app-ID values are trusted operator configuration, not authenticated caller identities.
+Component names must be non-empty and contain no whitespace. Configuration errors fail application creation. Startup connects to the state component and restores all subscription rules before readiness; it does not prove broker connectivity. This package does not provision components or their backing infrastructure. Router namespace/app-ID values are trusted operator configuration, not authenticated caller identities.
 
 ## Query catalog
 
@@ -58,7 +58,7 @@ make install-dependencies
 mkdir -p local-queries
 ```
 
-Create `local-queries/checkout-server-errors` with the per-query file contents shown above, then run one application worker:
+With a Dapr sidecar and the configured state component available, create `local-queries/checkout-server-errors` with the per-query file contents shown above, then run one application worker:
 
 ```sh
 export routerId=drasi-system/sre-router-reaction
@@ -69,13 +69,13 @@ export QueryConfigPath="$PWD/local-queries"
 uv run --locked uvicorn agent_router.app:create_app --factory --host 127.0.0.1 --port 8000 --workers 1
 ```
 
-Catalog access does not require a running Dapr sidecar or database. For Dapr hosting, use the same application port, one worker, and private service invocation. Configure the actual Dapr app ID and namespace to match `routerId`. Multiple application workers and replicas are unsupported.
+Even catalog access now requires a running Dapr sidecar and an available state component. The sidecar must expose its outbound APIs before application initialization completes. For non-default sidecar ports, configure the SDK's `DAPR_HTTP_ENDPOINT` and `DAPR_GRPC_ENDPOINT`. For Dapr hosting, use the same application port, one worker, and private service invocation. Configure the actual Dapr app ID and namespace to match `routerId`. Multiple application workers and replicas are unsupported.
 
 The application exposes:
 
 | Endpoint | Behavior |
 | --- | --- |
-| `POST /mcp` | Stateless MCP initialization, tool discovery, and `list_queries` calls. |
+| `POST /mcp` | Stateless MCP initialization, tool discovery, and the three catalog/subscription tools. |
 | `GET /dapr/subscribe` | SDK-managed query subscriptions and the derived inbound dead-letter topic. |
 | `POST /_drasi/events/{query_id}` | SDK-managed CloudEvent validation and explicit delivery outcomes. |
 
@@ -87,7 +87,70 @@ No MCP session ID or long-lived SSE connection is required. GET/SSE and session 
 http://localhost:<dapr-http-port>/v1.0/invoke/<router-app-id>.<router-namespace>/method/mcp
 ```
 
-The MCP session manager starts before the SDK marks the reaction ready. Dapr discovery and both delivery paths reject work until initialization completes. Startup failures unwind lifespan resources; shutdown clears readiness before stopping the MCP manager. Valid query control events are acknowledged by the SDK without forwarding.
+The MCP session manager starts before the SDK marks the reaction ready. Dapr discovery, SDK delivery, and MCP admission reject work until the full state load completes. Startup failures unwind lifespan resources; shutdown clears readiness and closes the state client before stopping the MCP manager. Shutdown never removes rules. Valid query control events are acknowledged by the SDK without forwarding.
+
+## Subscription API
+
+The complete request/response schemas and topic algorithm live in the [shared protocol](../../../typespec/dapr-agent-router/README.md). `subscribe` accepts:
+
+```json
+{
+  "query_id": "checkout-server-errors",
+  "operations": ["i", "u"],
+  "subscriber": {
+    "namespace": "applications",
+    "app_id": "checkout-sre",
+    "agent_name": "CheckoutSRE"
+  },
+  "subscription_incarnation": "one-agent-generated-lifecycle-token"
+}
+```
+
+The key is the query ID and all three subscriber identity fields, scoped to this router. A new rule returns `status: "created"`; an existing rule with the same incarnation replaces its whole operation filter and returns `status: "updated"`. Operation order has no meaning. The response includes the effective query, operations, incarnation, and derived `topic_name`. Every query for a router/subscriber pair shares that inbox. Arbitrary topics, handling instructions, broker selection, and TTL fields are rejected.
+
+`unsubscribe` takes the same query, subscriber, and incarnation fields without `operations`. It returns the query and `removed: true` after durable removal, or `removed: false` when already absent. It does not require the query to remain in the current catalog. Neither operation may replace or delete a rule with a different current incarnation.
+
+| MCP error code | Behavior |
+| --- | --- |
+| `invalid_arguments` | Invalid schema, operation set, identity, or undeclared field; no state mutation. |
+| `unknown_query` | Subscribe refers to a query outside the startup catalog. |
+| `incarnation_conflict` | Another incarnation occupies the key; the existing rule is not changed. |
+| `state_unavailable` | A state operation was not confirmed, or persisted state is missing, invalid, or unsupported. Retain pending agent intent and retry the complete operation. |
+
+Errors have `isError: true` and a JSON `ToolError` text block, without `structuredContent`. A timeout or lost response does not prove a write failed to commit. Repeating a subscribe can therefore return `updated` instead of `created`; repeating an unsubscribe can return `removed: false`. These are idempotent outcomes, not lost subscriptions.
+
+## Persistence and lifecycle
+
+The component named by `StateStoreName` owns the durable rules. Current Drasi installs configure `state.mongodb`; the application uses Dapr's state API rather than a MongoDB or Redis client. A component is a connection/reference, not a separate database or an isolation boundary; different components can share backing records. The component must return ETags and enforce first-write concurrency. Its backing data and the Dapr application identity must survive ordinary restarts.
+
+One document stores this router's complete registry. Its logical Dapr state key is `drasi-agent-router:subscriptions:<digest>`, where `digest` is the lowercase SHA-256 hex digest of the exact UTF-8 `routerId`. Dapr/component key prefixes can additionally scope the physical backend key. The document contains:
+
+```json
+{
+  "format_version": 1,
+  "router_id": "drasi-system/sre-router-reaction",
+  "rules": []
+}
+```
+
+Each rule contains the `SubscribeRequest` fields plus the derived `topic_name`, never agent handling instructions. The format marker is internal persistence versioning, not another wire-protocol negotiation. Unknown fields, unsupported versions, duplicate rule keys, invalid operations/identities, and inconsistent topics fail loading rather than being discarded or repaired. There are no historical migrations.
+
+A successful read of an absent key is the only empty-registry bootstrap case. The single supported writer creates the initial document and reads it back with its ETag before becoming ready. This is not distributed create-if-absent fencing. Removing the final rule persists an empty document, preserving the root's conditional-write lifecycle.
+
+All asynchronous mutations run under one process-local lock. Each reads the current document and ETag, constructs a separate candidate, and conditionally saves it before replacing the in-memory view or reporting success. ETag conflicts are explicit errors; the router never refreshes an ETag and blindly overwrites a newer document with an old snapshot. State read/write calls have a 30-second deadline, separate from the SDK's sidecar-health startup wait.
+
+Routing snapshots are immutable and require no state-store calls or evicting cache. This trades whole-document writes and serialized management operations for a small, complete startup snapshot; it is intended for the single-instance POC, not an unbounded or distributed registry.
+
+| Condition | Behavior |
+| --- | --- |
+| Unavailable or corrupt state at startup | Fail initialization and remain unready. |
+| Store outage after startup | Keep the existing in-memory routing view; management operations needing storage return errors. Catalog access remains available. |
+| State key disappears during the process lifetime | Reject management operations; do not silently reinitialize or replace known rules with an empty table. |
+| Ordinary shutdown/restart | Preserve rules and restore them before accepting work. |
+| Query removed from the catalog | Preserve its stored rules so incarnation-checked unsubscribe remains possible. New subscribe calls are rejected. |
+| Agent permanently removed | Explicit operator cleanup is required; shutdown is not unsubscribe. Administrative endpoints are a separate issue. |
+
+The agent's durable intent is separate state containing its instructions and pending/active status. It must preserve pending operations across failures and reconcile them after restart. The router cannot reconstruct missing agent instructions. Query recreation, backing-store restoration, and decommissioning require coordinated operator action; deleting a Dapr Component is not a purge of its backing data. There are no leases, heartbeats, automatic expiry, replay, or permanent tombstones.
 
 ## Row conversion
 
@@ -141,11 +204,21 @@ Eager conversion prevents a malformed later row from exposing partial conversion
 
 Both the SDK and `drasi-agent-router-contracts` dependencies are pinned to the public upstream commit containing the merged prerequisites. The contract package supplies generated models, JSON Schemas, validation, and identity helpers. This application neither vendors those definitions nor changes the generic Reaction SDK.
 
-`list_queries` returns `protocol_version`, `router_id`, and `queries`. It does not implement the obsolete capability/delivery-version handshake from earlier proposals. Only the implemented catalog tool is advertised; `subscribe` and `unsubscribe` will be added with durable rule storage.
+`list_queries` returns `protocol_version`, `router_id`, and `queries`. It does not implement the obsolete capability/delivery-version handshake from earlier proposals. All three implemented tools advertise the shared request and success-response schemas.
 
 ```sh
 make test
 make package
 ```
 
-The focused suite exercises configuration, static catalog validation, shared MCP schemas and results, lifecycle failure handling, coexistence with the SDK routes, and row conversion against the shared protocol fixtures. Container images, broker policies, health/administrative endpoints, and default provider registration are not supplied by this application slice.
+The focused suite exercises configuration, static catalog validation, shared MCP schemas/results, startup readiness, restart recovery, conditional-write conflicts, ambiguous outcomes, concurrent mutations, storage failures, coexistence with the SDK routes, and row conversion against the shared protocol fixtures.
+
+For real state-component coverage, Docker and Docker Compose are sufficient; no Dapr CLI, Kubernetes cluster, broker, or agent application is needed:
+
+```sh
+make test-state-integration
+```
+
+This target starts an isolated Compose project with Dapr 1.14.5 (the CLI's current default) and MongoDB 6, uses dynamically assigned loopback ports, and removes its containers and volumes on exit. It exercises durable restoration, actual ETag rejection, unsupported-record handling, and state-component errors. The fixture does not enable actors or require MongoDB multi-document transactions. The ordinary suite skips these cases unless `DRASI_ROUTER_TEST_STATE_STORE` and the Dapr endpoints are supplied.
+
+Production container images, broker policies, health/administrative endpoints, and default provider registration are not supplied by this application slice.

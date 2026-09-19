@@ -332,9 +332,11 @@ name = "drasi-agent-router"
 version = "0.1.0a1"
 source = { editable = "." }
 dependencies = [
+    { name = "dapr" },
     { name = "drasi-agent-router-contracts" },
     { name = "drasi-reaction-sdk" },
     { name = "fastapi" },
+    { name = "grpcio" },
     { name = "jsonschema" },
     { name = "mcp" },
     { name = "pydantic" },
@@ -351,9 +353,11 @@ test = [
 
 [package.metadata]
 requires-dist = [
+    { name = "dapr", specifier = ">=1.14,<2" },
     { name = "drasi-agent-router-contracts", git = "https://github.com/drasi-project/drasi-platform.git?subdirectory=typespec%2Fdapr-agent-router%2Fpython&rev=49e8df694a16520519a1ba559f99c1a13a668431" },
     { name = "drasi-reaction-sdk", git = "https://github.com/drasi-project/drasi-platform.git?subdirectory=reactions%2Fsdk%2Fpython&rev=49e8df694a16520519a1ba559f99c1a13a668431" },
     { name = "fastapi", specifier = ">=0.115.4,<0.116" },
+    { name = "grpcio", specifier = ">=1.76,<2" },
     { name = "jsonschema", specifier = ">=4.23,<5" },
     { name = "mcp", specifier = ">=1.28.1,<2" },
     { name = "pydantic", specifier = ">=2.11,<3" },
@@ -365,7 +369,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 test = [
     { name = "httpx", specifier = ">=0.27.1,<1" },
-    { name = "pytest", specifier = ">=8,<9" },
+    { name = "pytest", specifier = ">=8.4,<9" },
 ]
 
 [[package]]

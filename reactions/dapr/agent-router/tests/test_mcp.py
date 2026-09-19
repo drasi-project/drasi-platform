@@ -9,13 +9,11 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
-from mcp import ClientSession, types
-from mcp.client.streamable_http import streamable_http_client
+from mcp import types
 
 from drasi_agent_router_contracts import (
     ListQueriesResponse,
@@ -23,6 +21,8 @@ from drasi_agent_router_contracts import (
     parse,
     to_wire,
 )
+
+from conftest import mcp_session
 
 
 def _contains_reference(value: Any) -> bool:
@@ -34,34 +34,15 @@ def _contains_reference(value: Any) -> bool:
 
 
 async def _mcp_roundtrip(app):
-    async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(
-            transport=transport,
-            base_url="http://router.test",
-            headers={"accept": "application/json, text/event-stream"},
-        ) as http_client:
-            async with streamable_http_client(
-                "http://router.test/mcp",
-                http_client=http_client,
-                terminate_on_close=False,
-            ) as (read_stream, write_stream, get_session_id):
-                async with ClientSession(read_stream, write_stream) as session:
-                    await session.initialize()
-                    tools = await session.list_tools()
-                    success = await session.call_tool("list_queries", {})
-                    second_success = await session.call_tool("list_queries", {})
-                    invalid = await session.call_tool(
-                        "list_queries",
-                        {"private_metadata": {"token": "super-secret"}},
-                    )
-                    return (
-                        tools,
-                        success,
-                        second_success,
-                        invalid,
-                        get_session_id(),
-                    )
+    async with mcp_session(app) as (session, get_session_id):
+        tools = await session.list_tools()
+        success = await session.call_tool("list_queries", {})
+        second_success = await session.call_tool("list_queries", {})
+        invalid = await session.call_tool(
+            "list_queries",
+            {"private_metadata": {"token": "super-secret"}},
+        )
+        return tools, success, second_success, invalid, get_session_id()
 
 
 def test_only_exact_post_mcp_route_is_exposed(app_factory) -> None:
@@ -103,7 +84,9 @@ def test_official_client_roundtrip_schemas_snapshot_and_sanitized_errors(
         _mcp_roundtrip(app)
     )
 
-    assert [tool.name for tool in tools_result.tools] == ["list_queries"]
+    assert [tool.name for tool in tools_result.tools] == [
+        "list_queries", "subscribe", "unsubscribe"
+    ]
     tool = tools_result.tools[0]
     assert tool.inputSchema["additionalProperties"] is False
     assert tool.outputSchema is not None
