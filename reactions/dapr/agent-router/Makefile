@@ -1,4 +1,4 @@
-.PHONY: default docker-build kind-load k3d-load install-dependencies test lint-check test-state-integration package image-test
+.PHONY: default docker-build kind-load k3d-load install-dependencies test lint-check test-state-integration package image-test delivery-test
 
 IMAGE_PREFIX ?= drasi-project
 DOCKER_TAG_VERSION ?= latest
@@ -54,3 +54,6 @@ package:
 
 image-test:
 	python3 tests/smoke_image.py '$(IMAGE)'
+
+delivery-test:
+	python3 tests/smoke_delivery.py '$(IMAGE)'

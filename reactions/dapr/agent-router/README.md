@@ -1,10 +1,10 @@
 # DaprAgentRouter reaction
 
-This package provides the DaprAgentRouter image and built-in ReactionProvider, including the application host and static query catalog from [drasi-project/drasi-platform#456](https://github.com/drasi-project/drasi-platform/issues/456), durable subscription management from [drasi-project/drasi-platform#459](https://github.com/drasi-project/drasi-platform/issues/459), and row conversion from [drasi-project/drasi-platform#462](https://github.com/drasi-project/drasi-platform/issues/462). It composes the Python Reaction SDK and a stateless streamable HTTP MCP endpoint in one FastAPI application.
+This package provides the DaprAgentRouter image and built-in ReactionProvider, including the application host and static query catalog from [drasi-project/drasi-platform#456](https://github.com/drasi-project/drasi-platform/issues/456), durable subscription management from [drasi-project/drasi-platform#459](https://github.com/drasi-project/drasi-platform/issues/459), row conversion from [drasi-project/drasi-platform#462](https://github.com/drasi-project/drasi-platform/issues/462), and fanout from [drasi-project/drasi-platform#458](https://github.com/drasi-project/drasi-platform/issues/458). It composes the Python Reaction SDK and a stateless streamable HTTP MCP endpoint in one FastAPI application.
 
 The earlier runner, catalog, and subscription registry prototype is in [drasi-project/drasi-platform#443](https://github.com/drasi-project/drasi-platform/pull/443). This application adapts its same-port architecture and store-first registry approach to the current SDK lifecycle and shared protocol, without lazy cache loading or failure-to-empty/success fallbacks.
 
-**This is not yet a functioning event router.** `list_queries`, `subscribe`, and `unsubscribe` are implemented. Row conversion is available through the helpers below but is not wired into delivery. Fanout and administration remain separate work. Valid change events deliberately return `RETRY`, rather than acknowledging changes that have not been forwarded. Do not deploy this application against live query streams expecting delivery or retention guarantees: broker retry/dead-letter policies can exhaust retries.
+`list_queries`, `subscribe`, and `unsubscribe` manage which ordinary query-result rows are forwarded to stable agent inboxes. Publication uses the explicitly configured application-facing Dapr Pub/Sub component. Configure inbound retries and dead-letter handling before consuming live streams; delivery is non-transactional and can duplicate or lose messages under the failure conditions below. Administration remains separate work.
 
 ## Configuration
 
@@ -40,7 +40,7 @@ Both SDK delivery and MCP use HTTP port `8000`. The image runs one non-root Uvic
 
 The operator must provide an agent-facing Pub/Sub Component in the router's namespace. Agent applications in other namespaces use their own Components connected to that same broker; their Component names may differ. Neither this provider nor the image provisions the application broker. Do not point `egressPubsubName` at Drasi's internal broker Component or replace that Component.
 
-An empty-catalog Reaction is sufficient to inspect the currently implemented host without consuming live query changes:
+An empty-catalog Reaction can be used to inspect the host before adding query streams:
 
 ```yaml
 apiVersion: v1
@@ -121,7 +121,7 @@ No MCP session ID or long-lived SSE connection is required. GET/SSE and session 
 http://localhost:<dapr-http-port>/v1.0/invoke/<router-app-id>.<router-namespace>/method/mcp
 ```
 
-The MCP session manager starts before the SDK marks the reaction ready. Dapr discovery, SDK delivery, and MCP admission reject work until the full state load completes. Startup failures unwind lifespan resources; shutdown clears readiness and closes the state client before stopping the MCP manager. Shutdown never removes rules. Valid query control events are acknowledged by the SDK without forwarding.
+The MCP session manager starts before the SDK marks the reaction ready. Dapr discovery, SDK delivery, and MCP admission reject work until the full state load and publication-client initialization complete. Startup failures unwind lifespan resources; shutdown clears readiness and closes the publication and state clients before stopping the MCP manager. Shutdown never removes rules. Valid query control events are acknowledged by the SDK without forwarding.
 
 ## Subscription API
 
@@ -188,7 +188,7 @@ The agent's durable intent is separate state containing its instructions and pen
 
 ## Row conversion
 
-The conversion helpers perform no subscription lookup, publication, or workflow activation. A future forwarding handler can use them with the SDK's `ReactionMessage.event`:
+The conversion helpers perform no subscription lookup, publication, or workflow activation. The forwarding handler uses them with the SDK's `ReactionMessage.event`:
 
 ```python
 from time import time_ns
@@ -230,9 +230,50 @@ Empty objects are valid snapshots. Null required snapshots, including null-snaps
 
 Unsupported snapshots or invalid packed sequence/source metadata raise `InvalidPackedChangeError` before any rows are returned. Missing fields and malformed array entries rejected by the SDK do not reach the converter. The exception carries `query_id`, `operation`, and `position` for diagnostics; its message does not include row content.
 
-The forwarding callback must catch this specific exception, log identifiers and an outcome without event data, and return `DeliveryOutcome.DROP` with the configured dead-letter path. Letting it escape would cause the SDK to request `RETRY`. Do not classify every exception as bad input: invalid caller-supplied processing time or recipient configuration is a caller/configuration error, and transient publication failures require retry handling.
+The forwarding callback catches this specific exception, logs identifiers and an outcome without event data, and returns `DeliveryOutcome.DROP` with the configured dead-letter path. Other exceptions are not classified as bad input: invalid caller-supplied processing time or recipient configuration is a caller/configuration error, and publication failures require retry handling.
 
-Eager conversion prevents a malformed later row from exposing partial conversion output. It is not a transactional-fanout, deduplication, or exactly-once guarantee. The future publication loop owns partial-failure handling and explicit SDK delivery outcomes.
+Eager conversion prevents a malformed later row from exposing partial conversion output. It is not a transactional-fanout, deduplication, or exactly-once guarantee.
+
+## Fanout and delivery outcomes
+
+Each SDK change callback takes one immutable subscription snapshot for its query, converts the entire packed batch once, and filters each resulting row against each rule's operation set. Inserts, updates, and deletes may coexist in one batch; the router does not classify a whole batch by its first non-empty array. Conversion also validates batches with no subscribers, so unsupported input is not silently accepted.
+
+Rows are traversed in insert/update/delete array order, with each selected publication awaited sequentially. Each recipient receives a normal Dapr CloudEvent whose `data` is the shared delivery envelope. The same semantic row and row event ID are reused across recipients; the incarnation comes from each rule. Publication uses `egressPubsubName` and the rule's derived inbox, never Drasi's internal component or a caller-chosen destination.
+
+Routing reads only the in-memory snapshot, not the state store. Subscription mutations can proceed while a publication is awaiting Dapr, but they do not change the current attempt's snapshot.
+
+| Situation | Reaction SDK outcome |
+| --- | --- |
+| Supported input with no matching rows/rules, or all selected publications accepted | `SUCCESS` |
+| Valid control event intentionally ignored | `SUCCESS` |
+| Not initialized, publication failure, or publication deadline exceeded | `RETRY` |
+| Malformed SDK input or unsupported packed-row content | `DROP` |
+
+The router stops on the first publication failure and makes no custom retry attempts. Individual publication calls have a 30-second deadline. A timeout or error does not prove that the broker failed to accept the message. Earlier successful publications are not rolled back, and there is no per-recipient checkpoint or event outbox.
+
+Dapr retries the original packed event according to the configured inbound policy. Each callback takes a fresh rule snapshot, so a retry may duplicate successful deliveries or reach a subscriber added after the first attempt. An unsubscribe cannot retract messages already published or remove a rule from an in-flight snapshot. Subscription boundaries are processing-time decisions, not strict source-event-time cutoffs.
+
+A successful publication means Dapr's component accepted the message, not that an agent is online or that a workflow completed. The router neither checks agent availability nor waits for agent execution. Deterministic row traversal is not a guarantee of globally ordered broker delivery or workflow completion. Downstream actions must tolerate duplicate execution.
+
+### Configure bounded retries and dead letters
+
+The router already declares its derived inbound `deadLetterTopic` in `GET /dapr/subscribe`. The DLT belongs to `PubsubName`, not the agent-facing egress component. It receives the original packed event, not a per-recipient failure record, and is not an automatic replay service.
+
+Apply the standalone [Resiliency example](examples/resiliency.yaml) before starting or restarting the example `sre-router` Reaction:
+
+```sh
+kubectl apply -f examples/resiliency.yaml
+```
+
+The example retries five times at one-second intervals after the initial attempt. Adjust the namespace, app scope (`sre-router-reaction`), and inbound component target (`drasi-pubsub-sre-router`) together when changing the Reaction identity. The policy supplies finite inbound retry/backoff without modifying Drasi's internal `drasi-pubsub` Component. It is an operator-managed Dapr resource, not part of the ReactionProvider schema or the Reaction's managed lifecycle; remove it explicitly when retiring the router:
+
+```sh
+kubectl delete -f examples/resiliency.yaml
+```
+
+`SUCCESS` intentionally consumes input, including a no-subscriber discard. `DROP` sends poison input to the configured DLT without retrying it. Retry exhaustion can also send input there. Dapr policy retry counts do not establish universal broker retention guarantees, and broker-level redelivery may add another layer of attempts.
+
+The reference runtime is Dapr 1.14.5 with Redis Streams. In that runtime, a failed DLT publication on the drop or exhausted-retry path can still consume the original input. Egress persistence also depends on broker configuration. Do not describe this as loss-free delivery, guaranteed eventual delivery, permanent deduplication, or exactly-once execution. Inspect runtime errors and broker backlog/DLTs; replaying retained input can repeat already successful work.
 
 ## Shared contract and development
 
@@ -254,7 +295,7 @@ make test-state-integration
 
 This target starts an isolated Compose project with Dapr 1.14.5 (the CLI's current default) and MongoDB 6, uses dynamically assigned loopback ports, and removes its containers and volumes on exit. It exercises durable restoration, actual ETag rejection, unsupported-record handling, and state-component errors. The fixture does not enable actors or require MongoDB multi-document transactions. The ordinary suite skips these cases unless `DRASI_ROUTER_TEST_STATE_STORE` and the Dapr endpoints are supplied.
 
-Broker policies and health/administrative endpoints remain separate work.
+Health/administrative endpoints remain separate work.
 
 ## Container builds
 
@@ -263,9 +304,11 @@ From this directory, plain `make` builds the default image. Docker Buildx is req
 ```sh
 make docker-build
 make image-test
+make delivery-test
 
 make docker-build BUILD_CONFIG=azure-linux
 make image-test BUILD_CONFIG=azure-linux
+make delivery-test BUILD_CONFIG=azure-linux
 ```
 
 Both variants use Python 3.12, uv 0.11.27, and the committed dependency lockfile. The builder installs the current application and its immutable Git-pinned SDK/contract dependencies without editable links. The runtime contains the installed environment, not a source checkout or startup dependency installer.
@@ -278,6 +321,8 @@ Both variants use Python 3.12, uv 0.11.27, and the committed dependency lockfile
 The Makefile supports the repository's `IMAGE_PREFIX`, `DOCKER_TAG_VERSION`, `BUILD_CONFIG`, `TAG_SUFFIX`, and `DOCKERX_OPTS` conventions. Release workflows publish both Linux `amd64` and `arm64` variants. For example, `DOCKER_TAG_VERSION=vX.Y.Z BUILD_CONFIG=azure-linux TAG_SUFFIX=-arm64` selects the tag `vX.Y.Z-azure-linux-arm64`.
 
 `make image-test` needs Docker, Docker Compose, and Python 3.10 or later on the host. It starts an isolated copy of the Dapr/MongoDB state fixture and connects the actual router image to that private network. It mounts a synthetic catalog, exercises MCP and SDK delivery on the same temporary loopback port, checks the non-root/single-worker configuration, and verifies subscription persistence across a clean router restart. It removes its containers, volumes, network, and temporary query files. No installed Dapr CLI, broker, model, or credentials are needed.
+
+`make delivery-test` uses the same host tools and selected image, with an isolated Dapr 1.14.5/MongoDB 6 fixture and separate Redis 7 inbound and egress brokers. It sends packed input through real Dapr Pub/Sub, inspects output/DLT streams, and waits for the input consumer cursor and acknowledgments. Dapr topic-scoping supplies a deterministic publication failure after earlier success. The fixture covers operation filtering, no-match/control acknowledgments, poison drops before publication, successful retry, changed rules between attempts, duplicate deliveries, and bounded retry exhaustion preserving the original DLT payload. CI runs both image checks for both build configurations. Fixture containers, volumes, networks, and temporary files are removed on exit.
 
 Load a locally built image into an existing development cluster using matching build/tag options:
 

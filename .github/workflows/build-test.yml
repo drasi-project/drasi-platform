@@ -394,7 +394,7 @@ jobs:
           BUILD_CONFIG=${{ matrix.variant.build_config }} \
           DOCKER_TAG_VERSION=latest \
           IMAGE_PREFIX=drasi-project \
-          make image-test
+          make image-test delivery-test
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6

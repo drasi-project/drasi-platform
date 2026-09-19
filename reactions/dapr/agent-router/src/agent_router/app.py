@@ -3,45 +3,44 @@
 
 """Compose the router and Reaction SDK in one caller-owned FastAPI app."""
 
-import logging
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from typing import Any
 
-from drasi.reaction import DeliveryOutcome, DrasiReaction, ReactionMessage
-from drasi.reaction.models.ChangeEvent import ChangeEvent
+from drasi.reaction import DrasiReaction
 from drasi_agent_router_contracts.models.Query import Query
 from fastapi import FastAPI
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
 from .catalog import build_catalog, parse_query_config
 from .config import RouterConfig
+from .forwarding import ChangeForwarder
 from .mcp import MCPRoute, create_mcp_server
 from .subscriptions import SubscriptionRegistry
-
-logger = logging.getLogger(__name__)
-
-
-async def _forwarding_unavailable(
-    message: ReactionMessage[ChangeEvent, Query],
-) -> DeliveryOutcome:
-    logger.warning(
-        "router_forwarding_not_implemented",
-        extra={"drasi_query_id": message.query.query_id},
-    )
-    return DeliveryOutcome.RETRY
 
 
 def create_app() -> FastAPI:
     config = RouterConfig.from_environment()
     app = FastAPI(redirect_slashes=False)
     subscriptions = SubscriptionRegistry(config.router_id, config.state_store_name)
+    forwarder = ChangeForwarder(config, subscriptions)
+
+    async def initialize() -> None:
+        await subscriptions.initialize()
+        await forwarder.initialize()
+
+    async def cleanup() -> None:
+        try:
+            await forwarder.close()
+        finally:
+            await subscriptions.close()
+
     reaction = DrasiReaction[Query](
-        on_change_event=_forwarding_unavailable,
+        on_change_event=forwarder.on_change,
         parse_query_configs=parse_query_config,
         dead_letter_topic=config.dead_letter_topic,
-        on_initialize=subscriptions.initialize,
-        on_cleanup=subscriptions.close,
+        on_initialize=initialize,
+        on_cleanup=cleanup,
     )
     reaction.install(app)
     catalog = build_catalog(config.router_id, reaction.query_registrations)
@@ -66,4 +65,5 @@ def create_app() -> FastAPI:
     )
     app.state.reaction = reaction
     app.state.subscriptions = subscriptions
+    app.state.forwarder = forwarder
     return app

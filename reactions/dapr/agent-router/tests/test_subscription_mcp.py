@@ -53,7 +53,7 @@ def error(result: types.CallToolResult, code: Code) -> ToolError:
     return value
 
 
-def test_subscription_roundtrips_and_shared_schemas(app_factory):
+def test_subscription_roundtrips_and_shared_schemas(app_factory, pubsub):
     app = app_factory(CATALOG)
 
     async def exercise():
@@ -98,7 +98,8 @@ def test_subscription_roundtrips_and_shared_schemas(app_factory):
                 delivery = await http.post(
                     "/_drasi/events/orders.v1", json=cloud_event("orders.v1")
                 )
-                assert delivery.json() == {"status": "RETRY"}
+                assert delivery.json() == {"status": "SUCCESS"}
+                assert pubsub.attempts == []
 
             removal = to_wire(removal_request(request))
             deleted = await session.call_tool("unsubscribe", removal)
