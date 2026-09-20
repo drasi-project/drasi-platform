@@ -1,0 +1,226 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: i460-router-postgres-init
+  namespace: default
+data:
+  init.sql: |
+    CREATE ROLE replication_group;
+    CREATE ROLE replication_user REPLICATION LOGIN;
+    GRANT replication_group TO i460user;
+    GRANT replication_group TO replication_user;
+
+    CREATE TABLE router_order (
+        order_id SERIAL PRIMARY KEY,
+        marker TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        priority BOOLEAN NOT NULL
+    );
+
+    ALTER TABLE router_order OWNER TO replication_group;
+    CREATE PUBLICATION i460_router_publication FOR TABLE router_order;
+    SELECT pg_create_logical_replication_slot('i460_router_slot', 'pgoutput');
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: i460-router-postgres-credentials
+  namespace: default
+type: Opaque
+stringData:
+  POSTGRES_USER: i460user
+  POSTGRES_PASSWORD: i460password
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: i460-router-postgres
+  namespace: default
+spec:
+  serviceName: i460-router-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: i460-router-postgres
+  template:
+    metadata:
+      labels:
+        app: i460-router-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15.8-alpine3.20
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: i460-router-postgres-credentials
+          env:
+            - name: POSTGRES_DB
+              value: i460db
+          args:
+            - -c
+            - wal_level=logical
+            - -c
+            - max_replication_slots=5
+            - -c
+            - max_wal_senders=10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: init
+          configMap:
+            name: i460-router-postgres-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: i460-router-postgres
+  namespace: default
+spec:
+  selector:
+    app: i460-router-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: i460-agent-redis-data
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: i460-agent-redis
+  namespace: default
+spec:
+  serviceName: i460-agent-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: i460-agent-redis
+  template:
+    metadata:
+      labels:
+        app: i460-agent-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4.1-alpine3.20
+          imagePullPolicy: IfNotPresent
+          args:
+            - redis-server
+            - --appendonly
+            - "yes"
+            - --appendfsync
+            - everysec
+            - --dir
+            - /data
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 2
+            periodSeconds: 2
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: i460-agent-redis-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: i460-agent-redis
+  namespace: default
+spec:
+  selector:
+    app: i460-agent-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: i460-agent-egress
+  namespace: drasi-system
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: i460-agent-redis.default.svc.cluster.local:6379
+    - name: redisPassword
+      value: ""
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: i460-agent-egress
+  namespace: default
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: i460-agent-redis.default.svc.cluster.local:6379
+    - name: redisPassword
+      value: ""
+---
+apiVersion: dapr.io/v1alpha1
+kind: Resiliency
+metadata:
+  name: i460-agent-router-inbound-retries
+  namespace: drasi-system
+scopes:
+  - i460-agent-router-reaction
+spec:
+  policies:
+    retries:
+      routerInbound:
+        policy: constant
+        duration: 1s
+        maxRetries: 5
+  targets:
+    components:
+      drasi-pubsub-i460-agent-router:
+        inbound:
+          retry: routerInbound

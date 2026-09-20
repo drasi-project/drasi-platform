@@ -376,6 +376,48 @@ def test_delivery_passes_typed_event_config_and_cloud_event_context(
         messages[0].delivery.attributes["another"] = "value"  # type: ignore[index]
 
 
+@pytest.mark.parametrize("make_event", [change_event, control_event])
+@pytest.mark.parametrize(
+    ("subscriber_pubsub", "publisher_pubsub"),
+    [
+        ("drasi-pubsub-test-reaction", "drasi-pubsub"),
+        ("consumer-component", "publisher-component"),
+    ],
+)
+def test_delivery_preserves_publisher_component_with_local_subscription_alias(
+    query_config_dir,
+    monkeypatch,
+    make_event,
+    subscriber_pubsub,
+    publisher_pubsub,
+):
+    monkeypatch.setenv("PubsubName", subscriber_pubsub)
+    messages = []
+
+    async def callback(message):
+        messages.append(message)
+        return DeliveryOutcome.SUCCESS
+
+    app = FastAPI()
+    reaction = configured_reaction(
+        query_config_dir, callback, on_control_event=callback
+    )
+    reaction.install(app)
+    event = make_event()
+    event["pubsubname"] = publisher_pubsub
+
+    with TestClient(app) as client:
+        subscriptions = client.get("/dapr/subscribe").json()
+        assert {item["pubsubname"] for item in subscriptions} == {subscriber_pubsub}
+        response = client.post("/_drasi/events/query1", json=event)
+
+    assert response.json() == {"status": "SUCCESS"}
+    assert len(messages) == 1
+    assert messages[0].delivery.pubsub_name == publisher_pubsub
+    assert messages[0].delivery.attributes["pubsubname"] == publisher_pubsub
+    assert messages[0].query.topic == "query1-results"
+
+
 def test_optional_cloud_event_attributes_accept_null_and_long_names(
     query_config_dir,
 ):
@@ -596,10 +638,9 @@ def test_deeply_nested_mime_comments_do_not_escape_validation(query_config_dir):
     ("mutate", "path"),
     [
         (lambda event: event.update(topic="another-results"), "/_drasi/events/query1"),
-        (
-            lambda event: event.update(pubsubname="another-pubsub"),
-            "/_drasi/events/query1",
-        ),
+        (lambda event: event.pop("pubsubname"), "/_drasi/events/query1"),
+        (lambda event: event.update(pubsubname=""), "/_drasi/events/query1"),
+        (lambda event: event.update(pubsubname=None), "/_drasi/events/query1"),
         (
             lambda event: event["data"].update(queryId="query.with.dot"),
             "/_drasi/events/query1",

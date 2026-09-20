@@ -108,10 +108,12 @@ def test_mcp_startup_failure_unwinds_and_never_marks_sdk_ready(
     assert app.state.reaction.is_ready is False
 
 
+@pytest.mark.parametrize("publisher_component", ["router-inbound", "drasi-pubsub"])
 def test_sdk_routes_dlt_and_typed_delivery_boundaries(
     app_factory,
     pubsub,
     caplog: pytest.LogCaptureFixture,
+    publisher_component: str,
 ) -> None:
     query_id = "orders.region.v1"
     app = app_factory(
@@ -139,14 +141,23 @@ def test_sdk_routes_dlt_and_typed_delivery_boundaries(
 
         change = client.post(
             f"/_drasi/events/{query_id}",
-            json=cloud_event(query_id, secret="do-not-log-this"),
+            json=cloud_event(
+                query_id,
+                pubsub_name=publisher_component,
+                secret="do-not-log-this",
+            ),
         )
         assert change.status_code == 200
         assert change.json() == {"status": "SUCCESS"}
 
         control = client.post(
             f"/_drasi/events/{query_id}",
-            json=cloud_event(query_id, kind="control", secret="control-private"),
+            json=cloud_event(
+                query_id,
+                kind="control",
+                pubsub_name=publisher_component,
+                secret="control-private",
+            ),
         )
         assert control.json() == {"status": "SUCCESS"}
 

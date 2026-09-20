@@ -20,7 +20,7 @@ IMAGE := $(IMAGE_PREFIX)/reaction-dapr-agent-router:$(DOCKER_TAG_VERSION)
 default: docker-build
 
 docker-build:
-	docker buildx build . -f Dockerfile.$(BUILD_CONFIG) -t $(IMAGE) $(DOCKERX_OPTS)
+	docker buildx build . --build-context reaction_sdk=../../sdk/python -f Dockerfile.$(BUILD_CONFIG) -t $(IMAGE) $(DOCKERX_OPTS)
 
 kind-load:
 	kind load docker-image $(IMAGE) --name $(if $(CLUSTER_NAME),$(CLUSTER_NAME),kind)

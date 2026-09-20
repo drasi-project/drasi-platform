@@ -41,6 +41,7 @@ const images = [
   "drasi-project/reaction-gremlin",
   "drasi-project/reaction-sync-dapr-statestore",
   "drasi-project/reaction-post-dapr-pubsub",
+  "drasi-project/reaction-dapr-agent-router",
   "drasi-project/reaction-sync-vectorstore",
   "drasi-project/reaction-eventbridge",
   "drasi-project/reaction-eventgrid",
