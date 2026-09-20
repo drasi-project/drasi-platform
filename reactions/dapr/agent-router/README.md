@@ -341,13 +341,15 @@ The reference runtime is Dapr 1.14.5 with Redis Streams. In that runtime, a fail
 
 ## Shared contract and development
 
-The Python Reaction SDK is a local dependency at `../../sdk/python`. `uv sync` installs it as an editable dependency for development, so SDK and router changes are exercised together from the same checkout without a separate publication or dependency-pin update. `drasi-agent-router-contracts` remains pinned to an immutable public commit and supplies generated models, JSON Schemas, validation, and identity helpers. This application does not vendor those definitions.
+The Python Reaction SDK uses a local `uv` source at `../../sdk/python`. `uv sync` installs it as an editable dependency for development, so SDK and router changes are exercised together from the same checkout. Distributable package metadata separately pins a compatible public SDK commit for installations that do not use the local override. `drasi-agent-router-contracts` remains pinned to an immutable public commit and supplies generated models, JSON Schemas, validation, and identity helpers. This application does not vendor those definitions.
 
 `list_queries` returns `protocol_version`, `router_id`, and `queries`. It does not implement the obsolete capability/delivery-version handshake from earlier proposals. All three implemented tools advertise the shared request and success-response schemas.
 
 ```sh
 make lint-check test package
 ```
+
+`make package` builds the wheel and source distribution, then installs the wheel into a fresh environment outside the checkout and imports the application. This checks the distributable dependency references without relying on `tool.uv.sources`.
 
 The focused suite exercises configuration, static catalog validation, shared MCP schemas/results, startup readiness, restart recovery, conditional-write conflicts, ambiguous outcomes, concurrent mutations, storage failures, coexistence with the SDK routes, row conversion against the shared protocol fixtures, provider registration, and image build/release wiring.
 

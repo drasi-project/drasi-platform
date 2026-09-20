@@ -29,11 +29,16 @@ const QUERY_IDS = [QUERY_ALL, QUERY_PRIORITY];
 const POSTGRES_SERVICE = 'i460-router-postgres';
 const APPLICATION_REDIS_SERVICE = 'i460-agent-redis';
 const INTERNAL_REDIS_SERVICE = 'drasi-redis';
+const APPLICATION_NAMESPACE = 'default';
+const RECEIVER_NAME = 'i460-agent-receiver';
+const RECEIVER_APP_ID = 'i460-e2e-reader';
+const RECEIVER_PORT = 8080;
+const RECEIVER_TOPIC_PLACEHOLDER = '__I460_INBOX_TOPIC__';
 const RUN_ID = `${Date.now()}-${process.pid}`;
 const INCARNATION = `i460-e2e-${RUN_ID}`;
 const SUBSCRIBER = {
-  namespace: 'i460-applications',
-  app_id: 'i460-e2e-reader',
+  namespace: APPLICATION_NAMESPACE,
+  app_id: RECEIVER_APP_ID,
   agent_name: 'Issue460E2E',
 };
 
@@ -75,6 +80,16 @@ function loadYaml(fileName) {
   return yaml
     .loadAll(fs.readFileSync(path.join(SCENARIO_DIR, fileName), 'utf8'))
     .filter(Boolean);
+}
+
+function receiverResourcesForTopic(resources, topicName) {
+  const result = JSON.parse(JSON.stringify(resources));
+  const subscription = result.find(resource => resource.kind === 'Subscription');
+  if (subscription?.spec.topic !== RECEIVER_TOPIC_PLACEHOLDER) {
+    throw new Error('Receiver Subscription topic placeholder is missing');
+  }
+  subscription.spec.topic = topicName;
+  return result;
 }
 
 function sleep(milliseconds) {
@@ -266,6 +281,18 @@ function getInboundComponent() {
   ]);
 }
 
+function getReceiverDeployment() {
+  return kubectlJson([
+    'get',
+    'deployment',
+    RECEIVER_NAME,
+    '-n',
+    APPLICATION_NAMESPACE,
+    '-o',
+    'json',
+  ]);
+}
+
 function getReadyRouterPod() {
   const podList = kubectlJson([
     'get',
@@ -392,10 +419,14 @@ function deliveryMatches(raw, { queryId, operation, marker }) {
   );
 }
 
-async function getConsumerGroup(redisClient, streamName) {
+async function getConsumerGroup(
+  redisClient,
+  streamName,
+  consumerGroup = CONSUMER_GROUP,
+) {
   try {
     const groups = await redisClient.xInfoGroups(streamName);
-    return groups.find(group => group.name === CONSUMER_GROUP) ?? null;
+    return groups.find(group => group.name === consumerGroup) ?? null;
   } catch (error) {
     if (error.message?.toLowerCase().includes('no such key')) {
       return null;
@@ -488,14 +519,68 @@ function validateDeliveryInRouter(raw, podName) {
   return JSON.parse(output);
 }
 
-async function waitForDelivery(applicationRedis, topicName, expected) {
+async function readReceiverRecords(receiverBaseUrl) {
+  const response = await axios.get(`${receiverBaseUrl}/records`, {
+    timeout: 10000,
+  });
+  if (!Array.isArray(response.data?.records)) {
+    throw new Error('Receiver records response is invalid');
+  }
+  return response.data.records.map(record => {
+    if (
+      !Number.isInteger(record.id) ||
+      typeof record.body_base64 !== 'string'
+    ) {
+      throw new Error('Receiver record is invalid');
+    }
+    return {
+      id: record.id,
+      raw: Buffer.from(record.body_base64, 'base64'),
+    };
+  });
+}
+
+function validatedDeliveryMatches(delivery, { queryId, operation, marker }) {
+  return (
+    delivery.operation === operation &&
+    delivery.source?.queryId === queryId &&
+    [delivery.before, delivery.after].some(
+      snapshot => snapshot?.marker === marker,
+    )
+  );
+}
+
+async function waitForReceiverDelivery({
+  receiverBaseUrl,
+  validationCache,
+  podName,
+  queryId,
+  operation,
+  marker,
+}) {
   return eventually({
     actionFn: async () => {
-      const entries = await readStream(applicationRedis, topicName);
-      return entries.find(entry => deliveryMatches(entry.raw, expected)) ?? null;
+      const records = await readReceiverRecords(receiverBaseUrl);
+      for (const record of records) {
+        let delivery = validationCache.get(record.id);
+        if (!delivery) {
+          delivery = validateDeliveryInRouter(record.raw, podName);
+          validationCache.set(record.id, delivery);
+        }
+        if (
+          validatedDeliveryMatches(delivery, {
+            queryId,
+            operation,
+            marker,
+          })
+        ) {
+          return delivery;
+        }
+      }
+      return null;
     },
-    predicateFn: entry => entry !== null,
-    description: `${expected.operation} delivery for ${expected.queryId}/${expected.marker}`,
+    predicateFn: delivery => delivery !== null,
+    description: `${operation} receiver callback for ${queryId}/${marker}`,
     timeoutMs: 60000,
   });
 }
@@ -506,7 +591,8 @@ async function expectNoDelivery(applicationRedis, topicName, expected) {
 }
 
 async function assertDelivery({
-  applicationRedis,
+  receiverBaseUrl,
+  receiverValidationCache,
   topicName,
   podName,
   queryId,
@@ -515,12 +601,14 @@ async function assertDelivery({
   before,
   after,
 }) {
-  const entry = await waitForDelivery(applicationRedis, topicName, {
+  const delivery = await waitForReceiverDelivery({
+    receiverBaseUrl,
+    validationCache: receiverValidationCache,
+    podName,
     queryId,
     operation,
     marker,
   });
-  const delivery = validateDeliveryInRouter(entry.raw, podName);
 
   expect(delivery.cloudEventPubsub).toBe(EGRESS_COMPONENT);
   expect(delivery.cloudEventTopic).toBe(topicName);
@@ -607,27 +695,34 @@ async function deleteDefinitions(resources, label, cleanupErrors) {
   }
 }
 
-describe('DaprAgentRouter PostgreSQL to application broker path', () => {
+describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
   const infrastructureResources = loadYaml('resources.yaml');
   const sourceResources = loadYaml('sources.yaml');
   const queryResources = loadYaml('queries.yaml');
   const reactionResources = loadYaml('reactions.yaml');
+  const receiverResourceTemplates = loadYaml('receiver.yaml');
 
   let postgresForward;
   let applicationRedisForward;
   let internalRedisForward;
   let routerForward;
+  let receiverForward;
+  let receiverDaprForward;
   let postgres;
   let applicationRedis;
   let internalRedis;
   let routerDaprUrl;
   let routerBaseUrl;
+  let receiverBaseUrl;
+  let receiverDaprUrl;
   let mcpProtocol;
   let mcpRequestId = 0;
   let applicationTopic;
   let deadLetterTopic;
   let deadLetterBaseline = 0;
+  let deployedReceiverResources = [];
   let scenarioCompleted = false;
+  const receiverValidationCache = new Map();
 
   const invokeRouter = async (method, route, data, headers = {}) => {
     const response = await axios({
@@ -672,6 +767,65 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
         );
       },
       description: 'Dapr sidecar subscriptions for both query streams',
+      timeoutMs: 120000,
+    });
+  };
+
+  const deployAndStartReceiver = async topicName => {
+    deployedReceiverResources = receiverResourcesForTopic(
+      receiverResourceTemplates,
+      topicName,
+    );
+    await deployResources(deployedReceiverResources);
+
+    receiverForward = new ReliablePortForward(
+      RECEIVER_NAME,
+      RECEIVER_PORT,
+      APPLICATION_NAMESPACE,
+      'service',
+    );
+    receiverBaseUrl = `http://127.0.0.1:${await receiverForward.start()}`;
+    await eventually({
+      actionFn: async () =>
+        (await axios.get(`${receiverBaseUrl}/healthz`, { timeout: 10000 }))
+          .data,
+      predicateFn: body => body?.status === 'ready',
+      description: 'receiver HTTP readiness',
+      timeoutMs: 60000,
+    });
+
+    receiverDaprForward = new ReliablePortForward(
+      RECEIVER_NAME,
+      3500,
+      APPLICATION_NAMESPACE,
+      'deployment',
+    );
+    receiverDaprUrl = `http://127.0.0.1:${await receiverDaprForward.start()}`;
+    await eventually({
+      actionFn: async () =>
+        (
+          await axios.get(`${receiverDaprUrl}/v1.0/metadata`, {
+            timeout: 10000,
+          })
+        ).data,
+      predicateFn: metadata =>
+        (metadata.subscriptions ?? []).some(
+          subscription =>
+            subscription.pubsubname === EGRESS_COMPONENT &&
+            subscription.topic === topicName,
+        ),
+      description: 'receiver Dapr subscription metadata',
+      timeoutMs: 120000,
+    });
+    await eventually({
+      actionFn: () =>
+        getConsumerGroup(
+          applicationRedis,
+          topicName,
+          RECEIVER_APP_ID,
+        ),
+      predicateFn: group => group !== null && Number(group.consumers) >= 1,
+      description: 'receiver Redis consumer group on the application inbox',
       timeoutMs: 120000,
     });
   };
@@ -868,6 +1022,52 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
         '--tail=100',
       ]);
       safeExec('drasi', ['describe', 'reaction', REACTION_ID]);
+      if (deployedReceiverResources.length > 0) {
+        safeExec('kubectl', [
+          'logs',
+          '-n',
+          APPLICATION_NAMESPACE,
+          `deployment/${RECEIVER_NAME}`,
+          '-c',
+          'receiver',
+          '--tail=100',
+        ]);
+        safeExec('kubectl', [
+          'logs',
+          '-n',
+          APPLICATION_NAMESPACE,
+          `deployment/${RECEIVER_NAME}`,
+          '-c',
+          'daprd',
+          '--tail=100',
+        ]);
+      }
+      if (receiverBaseUrl) {
+        try {
+          const records = await readReceiverRecords(receiverBaseUrl);
+          const pod = getReadyRouterPod();
+          const diagnostics = records.map(record => {
+            const summary = {
+              id: record.id,
+              bytes: record.raw.length,
+            };
+            if (pod) {
+              try {
+                summary.delivery = validateDeliveryInRouter(
+                  record.raw,
+                  pod.name,
+                );
+              } catch (error) {
+                summary.validationError = error.message;
+              }
+            }
+            return summary;
+          });
+          console.error('Receiver recorded callbacks:', diagnostics);
+        } catch (error) {
+          console.error('Failed to collect receiver diagnostics:', error);
+        }
+      }
       if (internalRedis?.isOpen) {
         try {
           const groups = {};
@@ -882,6 +1082,12 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
             console.error(
               `Router dead-letter stream ${deadLetterTopic} length:`,
               await internalRedis.xLen(deadLetterTopic),
+            );
+          }
+          if (applicationTopic && applicationRedis?.isOpen) {
+            console.error(
+              `Application inbox stream ${applicationTopic} length:`,
+              await applicationRedis.xLen(applicationTopic),
             );
           }
         } catch (error) {
@@ -964,6 +1170,8 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
         ['application broker Redis', applicationRedisForward],
         ['Drasi internal Redis', internalRedisForward],
         ['router Dapr', routerForward],
+        ['receiver HTTP', receiverForward],
+        ['receiver Dapr', receiverDaprForward],
       ].map(async ([name, portForward]) => {
         try {
           await portForward?.stop();
@@ -976,6 +1184,28 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
         }
       }),
     );
+
+    await deleteDefinitions(
+      [...deployedReceiverResources].reverse(),
+      'receiver resource',
+      cleanupErrors,
+    );
+    if (deployedReceiverResources.length > 0) {
+      try {
+        await eventually({
+          actionFn: getReceiverDeployment,
+          predicateFn: value => value === null,
+          description: `${RECEIVER_NAME} deployment deletion`,
+          timeoutMs: 60000,
+        });
+      } catch (error) {
+        collectCleanupError(
+          cleanupErrors,
+          `Failed to confirm ${RECEIVER_NAME} deployment deletion`,
+          error,
+        );
+      }
+    }
 
     await deleteDefinitions(reactionResources, 'reaction', cleanupErrors);
     try {
@@ -1081,6 +1311,7 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
         topic_name: applicationTopic,
       },
     ]);
+    await deployAndStartReceiver(applicationTopic);
 
     const initialMarker = `i460-selected-${RUN_ID}`;
     const initialInsert = await postgres.query(
@@ -1101,7 +1332,8 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
       description: 'the initial ready router pod',
     });
     await assertDelivery({
-      applicationRedis,
+      receiverBaseUrl,
+      receiverValidationCache,
       topicName: applicationTopic,
       podName: routerPod.name,
       queryId: QUERY_ALL,
@@ -1171,7 +1403,8 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
       ),
     );
     await assertDelivery({
-      applicationRedis,
+      receiverBaseUrl,
+      receiverValidationCache,
       topicName: applicationTopic,
       podName: routerPod.name,
       queryId: QUERY_ALL,
@@ -1241,7 +1474,8 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
       ),
     );
     await assertDelivery({
-      applicationRedis,
+      receiverBaseUrl,
+      receiverValidationCache,
       topicName: applicationTopic,
       podName: routerPod.name,
       queryId: QUERY_ALL,
@@ -1338,7 +1572,8 @@ describe('DaprAgentRouter PostgreSQL to application broker path', () => {
       ),
     );
     await assertDelivery({
-      applicationRedis,
+      receiverBaseUrl,
+      receiverValidationCache,
       topicName: applicationTopic,
       podName: replacementPod.name,
       queryId: QUERY_PRIORITY,

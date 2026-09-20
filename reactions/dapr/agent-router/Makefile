@@ -51,6 +51,7 @@ test-state-integration:
 
 package:
 	uv build
+	uv run --locked --python $(PYTHON_VERSION) python tests/smoke_package.py
 
 image-test:
 	python3 tests/smoke_image.py '$(IMAGE)'

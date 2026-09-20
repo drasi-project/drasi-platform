@@ -196,6 +196,8 @@ kind: Component
 metadata:
   name: i460-agent-egress
   namespace: default
+scopes:
+  - i460-e2e-reader
 spec:
   type: pubsub.redis
   version: v1
@@ -204,6 +206,8 @@ spec:
       value: i460-agent-redis.default.svc.cluster.local:6379
     - name: redisPassword
       value: ""
+    - name: consumerID
+      value: i460-e2e-reader
 ---
 apiVersion: dapr.io/v1alpha1
 kind: Resiliency

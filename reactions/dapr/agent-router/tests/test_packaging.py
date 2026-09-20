@@ -108,6 +108,16 @@ def test_development_uses_the_same_checkout_reaction_sdk() -> None:
     ).as_uri()
 
 
+def test_package_target_checks_an_isolated_wheel_install() -> None:
+    commands = subprocess.check_output(
+        ["make", "--no-print-directory", "-n", "PYTHON_VERSION=3.10", "package"],
+        cwd=PACKAGE,
+        text=True,
+    )
+    assert "uv build" in commands
+    assert "uv run --locked --python 3.10 python tests/smoke_package.py" in commands
+
+
 def test_image_is_in_build_release_and_validation_workflows() -> None:
     workflows = REPOSITORY / ".github/workflows"
     build = load_yaml(workflows / "build-test.yml")
