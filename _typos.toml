@@ -19,4 +19,5 @@ ba = "ba"
 SCHEM = "SCHEM"
 AKS = "AKS"
 aks = "aks"
-
+# Prefix in escaped and percent-encoded Unicode identity fixtures.
+caf = "caf"
