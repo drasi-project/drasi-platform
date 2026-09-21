@@ -63,6 +63,8 @@ Each callback receives one `ReactionMessage` containing:
 - `query`: The validated query ID, topic, and isolated query configuration.
 - `delivery`: Structurally validated CloudEvent context. Its `identity` property is the `(source, id)` pair for this publication and any redeliveries. Attribute values remain untrusted application input.
 
+Dapr preserves the publisher's `pubsubname` in the CloudEvent. `delivery.pubsub_name` reports that value, which can differ from the local component selected by `PubsubName`. The SDK validates the topic and query ID against the registered delivery route; a publisher's component name is not a local subscription identity or an authentication check.
+
 Callbacks must return a `DeliveryOutcome`:
 
 | Outcome | Dapr behavior |

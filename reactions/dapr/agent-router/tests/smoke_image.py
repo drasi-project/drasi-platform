@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -259,7 +260,7 @@ def check_image(image: str) -> None:
                     "specversion": "1.0",
                     "type": "com.dapr.event.sent",
                     "topic": subscription["topic"],
-                    "pubsubname": subscription["pubsubname"],
+                    "pubsubname": "smoke-publisher",
                     "datacontenttype": "application/json",
                     "data": {
                         "kind": "control",
@@ -272,6 +273,19 @@ def check_image(image: str) -> None:
                 },
             )
             assert control == {"status": "SUCCESS"}, control
+            sdk_source = (
+                Path(__file__).resolve().parents[3]
+                / "sdk/python/drasi/reaction/sdk.py"
+            )
+            sdk_digest = docker(
+                "exec", container, "python", "-c",
+                "import hashlib; from pathlib import Path; "
+                "import drasi.reaction.sdk as sdk; "
+                "print(hashlib.sha256(Path(sdk.__file__).read_bytes()).hexdigest())",
+            )
+            assert sdk_digest == hashlib.sha256(sdk_source.read_bytes()).hexdigest(), (
+                "Router image must contain the SDK from this checkout"
+            )
             uid = docker("exec", container, "python", "-c", "import os; print(os.getuid())")
             assert int(uid) != 0, "Router must run as a non-root user"
             entrypoint = json.loads(

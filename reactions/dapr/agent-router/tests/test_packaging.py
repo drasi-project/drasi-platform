@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from importlib.metadata import distribution
 from pathlib import Path
 
 import pytest
@@ -87,6 +88,7 @@ def test_make_build_and_load_targets_use_the_same_image_tag(variant: str) -> Non
 
     build = dry_run()
     assert "docker buildx build" in build
+    assert "--build-context reaction_sdk=../../sdk/python" in build
     assert f"Dockerfile.{variant}" in build
     assert f"-t {image}" in build
     assert "--load" in build
@@ -96,6 +98,24 @@ def test_make_build_and_load_targets_use_the_same_image_tag(variant: str) -> Non
     assert "packaging-test" in dry_run("kind-load", "k3d-load")
     assert image in dry_run("image-test")
     assert "smoke_image.py" in dry_run("image-test")
+
+
+def test_development_uses_the_same_checkout_reaction_sdk() -> None:
+    source = distribution("drasi-reaction-sdk").read_text("direct_url.json")
+    assert source is not None
+    assert json.loads(source)["url"] == (
+        REPOSITORY / "reactions/sdk/python"
+    ).as_uri()
+
+
+def test_package_target_checks_an_isolated_wheel_install() -> None:
+    commands = subprocess.check_output(
+        ["make", "--no-print-directory", "-n", "PYTHON_VERSION=3.10", "package"],
+        cwd=PACKAGE,
+        text=True,
+    )
+    assert "uv build" in commands
+    assert "uv run --locked --python 3.10 python tests/smoke_package.py" in commands
 
 
 def test_image_is_in_build_release_and_validation_workflows() -> None:

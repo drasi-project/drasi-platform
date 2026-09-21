@@ -16,7 +16,7 @@ requires-python = ">=3.10,<3.14"
 dependencies = [
     "dapr>=1.14,<2",
     "drasi-agent-router-contracts @ git+https://github.com/drasi-project/drasi-platform.git@49e8df694a16520519a1ba559f99c1a13a668431#subdirectory=typespec/dapr-agent-router/python",
-    "drasi-reaction-sdk @ git+https://github.com/drasi-project/drasi-platform.git@49e8df694a16520519a1ba559f99c1a13a668431#subdirectory=reactions/sdk/python",
+    "drasi-reaction-sdk @ git+https://github.com/drasi-project/drasi-platform.git@17aa695fbdedfad3564624ffe2aa22ee42776998#subdirectory=reactions/sdk/python",
     "fastapi>=0.115.4,<0.116",
     "grpcio>=1.76,<2",
     "jsonschema>=4.23,<5",
@@ -48,3 +48,6 @@ markers = ["integration: requires an isolated Dapr sidecar and state component"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F"]
+
+[tool.uv.sources]
+drasi-reaction-sdk = { path = "../../sdk/python", editable = true }

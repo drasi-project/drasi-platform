@@ -30,7 +30,11 @@ jobs:
       # `cargo fmt -- --check` and `cargo clippy ...`, so the reusable
       # workflow's separate fmt job is intentionally a no-op below.
       # Preserve the pinned drasi-core submodule's unused import/variable allowances.
+      # Avoid component conflicts with the runner's preinstalled Rust toolchains.
       clippy-command: >-
+        export RUSTUP_HOME="$RUNNER_TEMP/drasi-rustup" &&
+        rustup set profile minimal &&
+        rustup show &&
         python3 -m venv "$RUNNER_TEMP/uv-bootstrap" &&
         "$RUNNER_TEMP/uv-bootstrap/bin/python" -m pip install uv==0.11.27 &&
         PATH="$RUNNER_TEMP/uv-bootstrap/bin:$PATH"

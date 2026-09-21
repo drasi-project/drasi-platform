@@ -877,6 +877,16 @@ fn calc_deployment_hash(spec: &KubernetesSpec) -> String {
     format!("{hsh:02x}")
 }
 
+fn calc_service_account_hash(spec: &KubernetesSpec) -> String {
+    let mut hash = SpookyHasher::default();
+
+    let sa_data = serde_json::to_vec(&spec.service_account).unwrap();
+    sa_data.hash(&mut hash);
+
+    let hsh = hash.finish();
+    format!("{hsh:02x}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -946,14 +956,4 @@ mod tests {
             calc_deployment_hash(&recreate)
         );
     }
-}
-
-fn calc_service_account_hash(spec: &KubernetesSpec) -> String {
-    let mut hash = SpookyHasher::default();
-
-    let sa_data = serde_json::to_vec(&spec.service_account).unwrap();
-    sa_data.hash(&mut hash);
-
-    let hsh = hash.finish();
-    format!("{hsh:02x}")
 }

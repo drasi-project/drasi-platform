@@ -341,13 +341,15 @@ The reference runtime is Dapr 1.14.5 with Redis Streams. In that runtime, a fail
 
 ## Shared contract and development
 
-Both the SDK and `drasi-agent-router-contracts` dependencies are pinned to the public upstream commit containing the merged prerequisites. The contract package supplies generated models, JSON Schemas, validation, and identity helpers. This application neither vendors those definitions nor changes the generic Reaction SDK.
+The Python Reaction SDK uses a local `uv` source at `../../sdk/python`. `uv sync` installs it as an editable dependency for development, so SDK and router changes are exercised together from the same checkout. Distributable package metadata separately pins a compatible public SDK commit for installations that do not use the local override. `drasi-agent-router-contracts` remains pinned to an immutable public commit and supplies generated models, JSON Schemas, validation, and identity helpers. This application does not vendor those definitions.
 
 `list_queries` returns `protocol_version`, `router_id`, and `queries`. It does not implement the obsolete capability/delivery-version handshake from earlier proposals. All three implemented tools advertise the shared request and success-response schemas.
 
 ```sh
 make lint-check test package
 ```
+
+`make package` builds the wheel and source distribution, then installs the wheel into a fresh environment outside the checkout and imports the application. This checks the distributable dependency references without relying on `tool.uv.sources`.
 
 The focused suite exercises configuration, static catalog validation, shared MCP schemas/results, startup readiness, restart recovery, conditional-write conflicts, ambiguous outcomes, concurrent mutations, storage failures, coexistence with the SDK routes, row conversion against the shared protocol fixtures, provider registration, and image build/release wiring.
 
@@ -373,7 +375,7 @@ make image-test BUILD_CONFIG=azure-linux
 make delivery-test BUILD_CONFIG=azure-linux
 ```
 
-Both variants use Python 3.12, uv 0.11.27, and the committed dependency lockfile. The builder installs the current application and its immutable Git-pinned SDK/contract dependencies without editable links. The runtime contains the installed environment, not a source checkout or startup dependency installer.
+Both variants use Python 3.12, uv 0.11.27, and the committed dependency lockfile. The Makefile supplies the checkout's Python SDK through the `reaction_sdk` build context. The builder installs the application and SDK without editable links and uses the Git-pinned contract package. The SDK is rebuilt during the final sync so cached wheels cannot hide SDK source changes. The runtime contains the installed environment, not a source checkout or startup dependency installer.
 
 | Build configuration | Default local image |
 | --- | --- |

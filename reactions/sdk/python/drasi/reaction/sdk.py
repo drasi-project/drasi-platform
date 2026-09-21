@@ -592,7 +592,8 @@ class DrasiReaction(Generic[ConfigT]):
             )
 
         expected_topic = f"{query_id}-results"
-        if envelope.topic != expected_topic or envelope.pubsubname != self._pubsub_name:
+        # Dapr preserves the publisher's component name, which can differ locally.
+        if envelope.topic != expected_topic:
             return self._delivery_response(
                 query_id=query_id,
                 outcome=DeliveryOutcome.DROP,

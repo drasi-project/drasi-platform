@@ -358,7 +358,7 @@ test = [
 requires-dist = [
     { name = "dapr", specifier = ">=1.14,<2" },
     { name = "drasi-agent-router-contracts", git = "https://github.com/drasi-project/drasi-platform.git?subdirectory=typespec%2Fdapr-agent-router%2Fpython&rev=49e8df694a16520519a1ba559f99c1a13a668431" },
-    { name = "drasi-reaction-sdk", git = "https://github.com/drasi-project/drasi-platform.git?subdirectory=reactions%2Fsdk%2Fpython&rev=49e8df694a16520519a1ba559f99c1a13a668431" },
+    { name = "drasi-reaction-sdk", editable = "../../sdk/python" },
     { name = "fastapi", specifier = ">=0.115.4,<0.116" },
     { name = "grpcio", specifier = ">=1.76,<2" },
     { name = "jsonschema", specifier = ">=4.23,<5" },
@@ -389,7 +389,7 @@ dependencies = [
 [[package]]
 name = "drasi-reaction-sdk"
 version = "0.2.0a0"
-source = { git = "https://github.com/drasi-project/drasi-platform.git?subdirectory=reactions%2Fsdk%2Fpython&rev=49e8df694a16520519a1ba559f99c1a13a668431#49e8df694a16520519a1ba559f99c1a13a668431" }
+source = { editable = "../../sdk/python" }
 dependencies = [
     { name = "dapr" },
     { name = "dapr-ext-fastapi" },
@@ -397,6 +397,16 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "rfc3986-validator" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dapr", specifier = ">=1.14.0,<2.0.0" },
+    { name = "dapr-ext-fastapi", specifier = ">=1.14.0,<2.0.0" },
+    { name = "fastapi", specifier = ">=0.115.4,<0.116.0" },
+    { name = "pydantic", specifier = ">=2.10.0,<3.0.0" },
+    { name = "pyyaml", specifier = "==6.0.2" },
+    { name = "rfc3986-validator", specifier = ">=0.1.1,<0.2.0" },
 ]
 
 [[package]]
