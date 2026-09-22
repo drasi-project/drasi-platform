@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.95-bullseye AS builder
+FROM rust:1.95-bookworm AS builder
 
 RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get clean
 
@@ -27,8 +27,8 @@ COPY ./sources/shared/change-router .
 RUN cargo install  --debug --force --path .
 
 
-FROM ubuntu:20.04 
-RUN apt-get update && apt-get install -y openssl curl libssl1.1  && rm -rf /var/lib/apt/lists/*
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y openssl curl libssl3  && rm -rf /var/lib/apt/lists/*
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/change-router /usr/local/bin/change-router
 CMD ["change-router"]

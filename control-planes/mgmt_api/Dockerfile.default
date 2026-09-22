@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.95-bullseye AS builder
+FROM rust:1.95-bookworm AS builder
 RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
 
 WORKDIR /usr/src
@@ -26,7 +26,7 @@ RUN cargo fetch
 COPY ./control-planes/mgmt_api .
 RUN cargo install --force --path . --bin mgmt_api
 
-FROM gcr.io/distroless/cc
+FROM gcr.io/distroless/cc-debian12
 COPY --from=builder /usr/local/cargo/bin/mgmt_api /usr/local/bin/mgmt_api
 USER root
 CMD ["mgmt_api"]
