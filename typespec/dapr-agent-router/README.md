@@ -2,13 +2,15 @@
 
 This is the public contract between a `DaprAgentRouter` Reaction and the Drasi extension in Dapr Agents. `main.tsp` owns the wire models. This document owns the transport, lifecycle, identity algorithms, and contextual requirements that a schema cannot express. The independent [Python contract package](python/) contains generated JSON Schemas, Pydantic v2 models, validation/identity helpers, and shared fixtures. Both applications consume that package; neither owns a separate copy of the protocol. None of this belongs to the general-purpose Reaction SDK.
 
-Protocol version 1 identifies the current dynamic integration introduced in Milestone 2. It is not a milestone number or a Drasi/Dapr package version. There is one current contract, shared by control and delivery messages, with no capability negotiation or alternative schema versions. Drasi is pre-release with no users: change the contract and its consumers together, without backward-compatibility adapters or schema/data migrations.
+Protocol version 1 identifies the current dynamic integration introduced in Milestone 2. It is not a milestone number or a Drasi/Dapr package version. There is one current contract, shared by control and delivery messages, with no capability negotiation or alternative schema versions. The router and Drasi extension in Dapr Agents are a pre-release POC with no existing users: change the contract and its consumers together, without compatibility with earlier proposal variants, backward-compatibility adapters, or schema/data migrations.
 
 This contract addresses [drasi-project/drasi-platform#457](https://github.com/drasi-project/drasi-platform/issues/457). It does not implement the router service, persistence, packed-event conversion, agent workflows, or deployment. Changes to unrelated reactions are unnecessary for this contract. [drasi-project/drasi-platform#443](https://github.com/drasi-project/drasi-platform/pull/443) is prior work, not an interface to preserve.
 
 ## Deployment and identity
 
 The supported environment is a private, trusted Dapr deployment with one active router instance per Reaction and one Drasi-enabled logical agent per application. Multiple agent applications may share a router. The application operator supplies a broker reachable by the router and agents through namespace-local Pub/Sub Components.
+
+Operators explicitly configure `routerId` as `<namespace>/<actual-dapr-app-id>` and provide `egressPubsubName`. The platform supplies `StateStoreName` and the inbound `PubsubName`. Use the [router's operator configuration example](../../reactions/dapr/agent-router/README.md#provider-installation-and-deployment); the router identity must match the actual Dapr deployment, not a pod name or Drasi resource UUID.
 
 | Identity | Representation |
 | --- | --- |
@@ -50,7 +52,7 @@ Error messages must be readable without echoing prompts, handling instructions, 
 
 ### `list_queries`
 
-Accept `ListQueriesRequest`, exactly `{}`, and return `ListQueriesResponse`. The response contains:
+Accept `ListQueriesRequest`, exactly `{}`, and return `ListQueriesResponse`. The response contains only the following fields; do not add `delivery_schema_version` or `capabilities` from older proposals:
 
 | Field | Meaning |
 | --- | --- |
@@ -104,7 +106,7 @@ Shutdown preserves rules and intent. There are no leases, automatic expiry, or p
 
 ## Stable inbox and dead-letter names
 
-Both implementations use the following algorithm for the current protocol.
+Both implementations use the shared package's `agent_inbox_topic`, `agent_dead_letter_topic`, and `router_dead_letter_topic` helpers, not independent reimplementations of the following current-protocol algorithm.
 
 1. Start a SHA-256 input with the ASCII bytes `drasi-agent-router/v1` followed by one zero byte.
 2. For each identity component, append its UTF-8 byte length as an unsigned four-byte big-endian integer, then its exact UTF-8 bytes. Do not normalize text or join components with a delimiter.
@@ -169,7 +171,7 @@ This identity lasts only for a query sequence lifecycle with durable state intac
 
 The agent extension must additionally bind the envelope to its configured router and local query intent, current incarnation, operation filter, and lifecycle status. Structurally valid data alone does not authorize or activate a subscription.
 
-Malformed/unsupported messages take the explicit failure/dead-letter path, not ordinary no-subscriber handling. Stale incarnations or absent/inactive intent are intentional discards without model work. State-access and scheduling failures request retry. ACK only after workflow scheduling is accepted, not when the message merely enters a local queue.
+Malformed/unsupported messages take the explicit failure/dead-letter path, not ordinary no-subscriber handling. Matching deliveries while subscribe/update intent is pending must request retry, not be acknowledged and discarded: the router may have persisted its rule before local intent becomes active. Stale incarnations, absent or unavailable intent, and pending unsubscribe are intentional discards without model work. State-access and scheduling failures request retry. ACK only after workflow scheduling is accepted, not when the message merely enters a local queue.
 
 At-least-once processing, partial fanout, retries, and duplicate workflows are possible. Rules are evaluated on each processing attempt, not by source-event timestamp. There is no strict "only source changes after subscribe" cutoff, replay service, snapshot, outbox, loss-free guarantee, or exactly-once external action guarantee.
 
@@ -179,12 +181,7 @@ JSON Schemas use draft 2020-12 and local relative references. Resolve references
 
 Generated Pydantic models are typed representations, not complete protocol validators: code generation does not enforce distinct operation lists or the distinction between an absent optional field and an explicit `null`. **Use the shared package's `parse`/`parse_catalog` at input boundaries and `to_wire` before publishing.** They enforce the current generated schemas and semantic identity rules without hand-editing generated files or selecting historical formats.
 
-```python
-from drasi_agent_router_contracts import AgentDelivery, parse, to_wire
-
-delivery = parse(AgentDelivery, cloud_event["data"])
-wire_data = to_wire(delivery)
-```
+The [minimal consumer example](python/README.md#minimal-consumer-example) validates a catalog against the configured router, constructs subscription arguments and derives the inbox with shared helpers, and validates a delivered M2 envelope. It explicitly rejects incompatible catalogs and deliveries without a fallback handshake.
 
 Each generated event model contains only its applicable snapshots; inserts have no `before` field and deletes have no `after` field. `to_wire` omits unset optional metadata and validates the output, including row-ID consistency.
 

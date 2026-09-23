@@ -273,6 +273,77 @@ def test_catalog_rejects_invalid_protocol_version(value):
         protocol.parse_catalog(catalog, catalog["router_id"])
 
 
+@pytest.fixture(scope="module")
+def consumer_example():
+    readme = Path(__file__).resolve().parents[1] / "README.md"
+    code = readme.read_text().split("```python\n", 1)[1].split("```", 1)[0]
+    return compile(code, str(readme), "exec")
+
+
+@pytest.fixture
+def consumer_inputs():
+    request = message("subscribe")
+    return {
+        "catalog_document": message("catalog"),
+        "query_id": request["query_id"],
+        "subscription_incarnation": request["subscription_incarnation"],
+        "cloud_event": {"specversion": "1.0", "data": message("insert")},
+    }
+
+
+@pytest.mark.parametrize("event_name", ["insert", "update", "delete"])
+def test_documented_consumer_uses_shared_contract(
+    consumer_example, consumer_inputs, event_name
+):
+    consumer_inputs["cloud_event"]["data"] = message(event_name)
+    exec(consumer_example, consumer_inputs)
+    assert consumer_inputs["subscribe_arguments"] == message("subscribe")
+    assert consumer_inputs["expected_inbox"] == message("created")["topic_name"]
+    assert protocol.to_wire(consumer_inputs["delivery"]) == message(event_name)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("router_id", "another/router"),
+        ("protocol_version", 2),
+        ("delivery_schema_version", 1),
+        ("capabilities", []),
+    ],
+)
+def test_documented_consumer_rejects_incompatible_catalog(
+    consumer_example, consumer_inputs, field, value
+):
+    consumer_inputs["catalog_document"][field] = value
+    with pytest.raises(RuntimeError, match="Incompatible router catalog"):
+        exec(consumer_example, consumer_inputs)
+    assert "subscribe_arguments" not in consumer_inputs
+
+
+def test_documented_consumer_does_not_subscribe_to_absent_query(
+    consumer_example, consumer_inputs
+):
+    consumer_inputs["catalog_document"]["queries"] = []
+    with pytest.raises(ValueError, match="not in the router catalog"):
+        exec(consumer_example, consumer_inputs)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error"),
+    [
+        ("routerId", "another/router", "unexpected router"),
+        ("schemaVersion", 2, "Invalid or unsupported"),
+        ("eventId", "drasi:v1:another-query:42:i:0", "Invalid or unsupported"),
+    ],
+)
+def test_documented_consumer_rejects_invalid_delivery(
+    consumer_example, consumer_inputs, field, value, error
+):
+    consumer_inputs["cloud_event"]["data"][field] = value
+    with pytest.raises(ValueError, match=error):
+        exec(consumer_example, consumer_inputs)
+
+
 @pytest.mark.parametrize(
     "case", [case for case in CASES if case["valid"]], ids=lambda case: case["name"]
 )
