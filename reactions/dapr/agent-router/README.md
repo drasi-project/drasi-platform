@@ -349,7 +349,7 @@ The Python Reaction SDK uses a local `uv` source at `../../sdk/python`. `uv sync
 make lint-check test package
 ```
 
-`make package` builds the wheel and source distribution, then installs the wheel into a fresh environment outside the checkout and imports the application. This checks the distributable dependency references without relying on `tool.uv.sources`.
+`make package` builds the wheel and source distribution, then installs the wheel into a fresh environment outside the checkout, imports the application, and checks SDK HTTP admission for change and control events. Malformed sequence/timestamp metadata must return `DROP` without callbacks; valid integers, including zero and values above JavaScript's safe-integer range, must reach callbacks unchanged. This checks the distributable dependency references without relying on `tool.uv.sources`.
 
 The focused suite exercises configuration, static catalog validation, shared MCP schemas/results, startup readiness, restart recovery, conditional-write conflicts, ambiguous outcomes, concurrent mutations, storage failures, coexistence with the SDK routes, row conversion against the shared protocol fixtures, provider registration, and image build/release wiring.
 
