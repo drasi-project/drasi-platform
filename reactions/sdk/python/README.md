@@ -201,6 +201,8 @@ reaction.install(app)
 
 ## Dead-letter delivery
 
+Incoming change and control events are validated without type coercion before callbacks run. `sequence` and `sourceTimeMs` must be integers; booleans, numeric strings, and floating-point values are rejected with `DROP`.
+
 Set one dead-letter topic for all query subscriptions:
 
 ```python
