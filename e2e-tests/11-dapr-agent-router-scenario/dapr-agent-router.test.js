@@ -30,6 +30,8 @@ const POSTGRES_SERVICE = 'i460-router-postgres';
 const APPLICATION_REDIS_SERVICE = 'i460-agent-redis';
 const INTERNAL_REDIS_SERVICE = 'drasi-redis';
 const APPLICATION_NAMESPACE = 'default';
+const CALLER_NAME = 'i460-agent-caller';
+const CALLER_APP_ID = 'i460-e2e-caller';
 const RECEIVER_NAME = 'i460-agent-receiver';
 const RECEIVER_APP_ID = 'i460-e2e-reader';
 const RECEIVER_PORT = 8080;
@@ -45,7 +47,9 @@ const SUBSCRIBER = {
 const DELIVERY_VALIDATOR = `
 import json
 import sys
-from drasi_agent_router_contracts import AgentDelivery, parse, to_wire
+from drasi_agent_router_contracts import (
+    AgentDelivery, Subscriber, agent_inbox_topic, parse, to_wire,
+)
 
 outer = json.load(sys.stdin)
 delivery = outer["data"]
@@ -55,6 +59,9 @@ delivery = to_wire(parse(AgentDelivery, delivery))
 event = delivery["event"]
 payload = event["payload"]
 summary = {
+    "expectedInboxTopic": agent_inbox_topic(
+        sys.argv[1], parse(Subscriber, json.loads(sys.argv[2]))
+    ),
     "cloudEventPubsub": outer.get("pubsubname"),
     "cloudEventTopic": outer.get("topic"),
     "envelopeKeys": sorted(delivery),
@@ -508,6 +515,8 @@ function validateDeliveryInRouter(raw, podName) {
       'python',
       '-c',
       DELIVERY_VALIDATOR,
+      ROUTER_ID,
+      JSON.stringify(SUBSCRIBER),
     ],
     {
       input: raw,
@@ -612,6 +621,7 @@ async function assertDelivery({
 
   expect(delivery.cloudEventPubsub).toBe(EGRESS_COMPONENT);
   expect(delivery.cloudEventTopic).toBe(topicName);
+  expect(topicName).toBe(delivery.expectedInboxTopic);
   expect(delivery.envelopeKeys).toEqual([
     'event',
     'eventId',
@@ -695,8 +705,9 @@ async function deleteDefinitions(resources, label, cleanupErrors) {
   }
 }
 
-describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
+describe('DaprAgentRouter cross-namespace MCP and PostgreSQL delivery path', () => {
   const infrastructureResources = loadYaml('resources.yaml');
+  const callerResources = loadYaml('caller.yaml');
   const sourceResources = loadYaml('sources.yaml');
   const queryResources = loadYaml('queries.yaml');
   const reactionResources = loadYaml('reactions.yaml');
@@ -706,6 +717,7 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
   let applicationRedisForward;
   let internalRedisForward;
   let routerForward;
+  let callerForward;
   let receiverForward;
   let receiverDaprForward;
   let postgres;
@@ -713,6 +725,7 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
   let internalRedis;
   let routerDaprUrl;
   let routerBaseUrl;
+  let callerRouterUrl;
   let receiverBaseUrl;
   let receiverDaprUrl;
   let mcpProtocol;
@@ -733,6 +746,40 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
       timeout: 10000,
     });
     return response.data;
+  };
+
+  const invokeMcp = async (data, headers) => {
+    const response = await axios.post(`${callerRouterUrl}/mcp`, data, {
+      headers,
+      timeout: 10000,
+    });
+    return response.data;
+  };
+
+  const startCallerForward = async () => {
+    callerForward = new ReliablePortForward(
+      CALLER_NAME,
+      3500,
+      APPLICATION_NAMESPACE,
+      'deployment',
+    );
+    const callerDaprUrl = `http://127.0.0.1:${await callerForward.start()}`;
+    await eventually({
+      actionFn: async () =>
+        (await axios.get(`${callerDaprUrl}/v1.0/metadata`, { timeout: 10000 }))
+          .data,
+      predicateFn: metadata => metadata.id === CALLER_APP_ID,
+      description: 'application caller Dapr sidecar identity',
+    });
+    expect(APPLICATION_NAMESPACE).not.toBe(NAMESPACE);
+    callerRouterUrl = `${callerDaprUrl}/v1.0/invoke/${APP_ID}.${NAMESPACE}/method`;
+    await eventually({
+      actionFn: async () =>
+        (await axios.get(`${callerRouterUrl}/readyz`, { timeout: 10000 })).data,
+      predicateFn: body => body?.status === 'ready',
+      description: 'router readiness through the cross-namespace caller sidecar',
+      timeoutMs: 120000,
+    });
   };
 
   const startRouterForward = async () => {
@@ -835,9 +882,7 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
       Accept: 'application/json, text/event-stream',
       'Content-Type': 'application/json',
     };
-    const initialization = await invokeRouter(
-      'post',
-      '/mcp',
+    const initialization = await invokeMcp(
       {
         jsonrpc: '2.0',
         id: ++mcpRequestId,
@@ -851,18 +896,14 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
       headers,
     );
     mcpProtocol = initialization.result.protocolVersion;
-    await invokeRouter(
-      'post',
-      '/mcp',
+    await invokeMcp(
       { jsonrpc: '2.0', method: 'notifications/initialized' },
       { ...headers, 'MCP-Protocol-Version': mcpProtocol },
     );
   };
 
   const callToolResult = async (name, args) => {
-    const response = await invokeRouter(
-      'post',
-      '/mcp',
+    const response = await invokeMcp(
       {
         jsonrpc: '2.0',
         id: ++mcpRequestId,
@@ -987,6 +1028,8 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
 
     await waitForConsumerGroups(internalRedis);
     deadLetterBaseline = await internalRedis.xLen(deadLetterTopic);
+    await deployResources(callerResources);
+    await startCallerForward();
     await initializeMcp();
   }, 480000);
 
@@ -1022,6 +1065,15 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
         '--tail=100',
       ]);
       safeExec('drasi', ['describe', 'reaction', REACTION_ID]);
+      safeExec('kubectl', [
+        'logs',
+        '-n',
+        APPLICATION_NAMESPACE,
+        `deployment/${CALLER_NAME}`,
+        '-c',
+        'daprd',
+        '--tail=100',
+      ]);
       if (deployedReceiverResources.length > 0) {
         safeExec('kubectl', [
           'logs',
@@ -1170,6 +1222,7 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
         ['application broker Redis', applicationRedisForward],
         ['Drasi internal Redis', internalRedisForward],
         ['router Dapr', routerForward],
+        ['caller Dapr', callerForward],
         ['receiver HTTP', receiverForward],
         ['receiver Dapr', receiverDaprForward],
       ].map(async ([name, portForward]) => {
@@ -1185,6 +1238,7 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
       }),
     );
 
+    await deleteDefinitions(callerResources, 'caller resource', cleanupErrors);
     await deleteDefinitions(
       [...deployedReceiverResources].reverse(),
       'receiver resource',
@@ -1516,6 +1570,21 @@ describe('DaprAgentRouter PostgreSQL to receiving application path', () => {
       await callTool('unsubscribe', unsubscribeRequest(QUERY_ALL)),
     ).toEqual({ query_id: QUERY_ALL, removed: false });
     await expectRules([]);
+
+    await postgres.query('DELETE FROM router_order WHERE order_id = $1', [
+      filteredOrderId,
+    ]);
+    await waitForInputProcessed(
+      internalRedis,
+      QUERY_ALL,
+      'd',
+      filteredUpdateMarker,
+    );
+    await expectNoDelivery(applicationRedis, applicationTopic, {
+      queryId: QUERY_ALL,
+      operation: 'd',
+      marker: filteredUpdateMarker,
+    });
 
     const recoverySubscription = await callTool(
       'subscribe',
