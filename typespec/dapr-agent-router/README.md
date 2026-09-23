@@ -171,7 +171,7 @@ This identity lasts only for a query sequence lifecycle with durable state intac
 
 The agent extension must additionally bind the envelope to its configured router and local query intent, current incarnation, operation filter, and lifecycle status. Structurally valid data alone does not authorize or activate a subscription.
 
-Malformed/unsupported messages take the explicit failure/dead-letter path, not ordinary no-subscriber handling. Stale incarnations or absent/inactive intent are intentional discards without model work. State-access and scheduling failures request retry. ACK only after workflow scheduling is accepted, not when the message merely enters a local queue.
+Malformed/unsupported messages take the explicit failure/dead-letter path, not ordinary no-subscriber handling. Matching deliveries while subscribe/update intent is pending must request retry, not be acknowledged and discarded: the router may have persisted its rule before local intent becomes active. Stale incarnations, absent or unavailable intent, and pending unsubscribe are intentional discards without model work. State-access and scheduling failures request retry. ACK only after workflow scheduling is accepted, not when the message merely enters a local queue.
 
 At-least-once processing, partial fanout, retries, and duplicate workflows are possible. Rules are evaluated on each processing attempt, not by source-event timestamp. There is no strict "only source changes after subscribe" cutoff, replay service, snapshot, outbox, loss-free guarantee, or exactly-once external action guarantee.
 
