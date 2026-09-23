@@ -76,6 +76,12 @@ jobs:
           PYTHON_VERSION='${{ matrix.python-version }}' make test
           make package
 
+      - name: Verify agent-router state integration
+        if: matrix.python-version == '3.12'
+        env:
+          PYTEST_ADDOPTS: -rA
+        run: make -C reactions/dapr/agent-router test-state-integration
+
   verify-openapi-spec:
     name: Verify OpenAPI Specification
     runs-on: ubuntu-latest
