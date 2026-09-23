@@ -130,7 +130,7 @@ The MCP session manager starts before the SDK marks the reaction ready. Dapr dis
 
 ## Subscription API
 
-The complete request/response schemas and topic algorithm live in the [shared protocol](../../../typespec/dapr-agent-router/README.md). `subscribe` accepts:
+The complete request/response schemas and topic algorithm live in the [shared protocol](../../../typespec/dapr-agent-router/README.md#control-api). The extension supplies subscriber identity and incarnation from trusted configuration and durable intent, not language-model arguments. `subscribe` accepts:
 
 ```json
 {
@@ -284,7 +284,7 @@ The real sequence is copied without rounding or a signed-integer limit. Source q
 
 The shared `row_event_id` helper derives identity from query ID, sequence, operation, and the original zero-based position in that operation's array. Convert once before applying recipient filters. A retry can use a different unpacking time without changing row identity; recipient order and count do not participate in identity.
 
-`build_delivery` adds the configured router ID and recipient incarnation, then validates through the shared package's `to_wire` boundary. It returns a JSON-compatible dictionary for the normal Dapr CloudEvent's `data`, not an outer CloudEvent. The semantic row and row ID are shared across recipients; incarnation is recipient-specific.
+`build_delivery` adds the configured router ID and recipient incarnation, then validates through the shared package's `to_wire` boundary. It returns the M2 envelope containing `schemaVersion`, `routerId`, `subscriptionIncarnation`, `eventId`, and the semantic row `event` as a JSON-compatible dictionary for the normal Dapr CloudEvent's `data`, not an outer CloudEvent. The semantic row and row ID are shared across recipients; incarnation is recipient-specific.
 
 Only the declared delivery fields and projected row data are copied. Packed metadata and handling instructions are not forwarded. Arbitrary projected columns, including nested values and null-valued columns, remain intact. Inserts omit `before`; deletes omit `after`.
 
@@ -341,9 +341,11 @@ The reference runtime is Dapr 1.14.5 with Redis Streams. In that runtime, a fail
 
 ## Shared contract and development
 
+[`typespec/dapr-agent-router`](../../../typespec/dapr-agent-router/README.md) and its distributed Python package, `drasi-agent-router-contracts`, are the authoritative contract. The router and Drasi extension in Dapr Agents are a pre-release POC with no existing users. Both must use the same package revision and its models, validation helpers, and topic/identity conventions rather than independent copies. Earlier proposal variants require no compatibility adapters or data migrations. Closed schemas reject unknown protocol fields; projected query-result columns remain unrestricted.
+
 The Python Reaction SDK uses a local `uv` source at `../../sdk/python`. `uv sync` installs it as an editable dependency for development, so SDK and router changes are exercised together from the same checkout. Distributable package metadata separately pins a compatible public SDK commit for installations that do not use the local override. `drasi-agent-router-contracts` remains pinned to an immutable public commit and supplies generated models, JSON Schemas, validation, and identity helpers. This application does not vendor those definitions.
 
-`list_queries` returns `protocol_version`, `router_id`, and `queries`. It does not implement the obsolete capability/delivery-version handshake from earlier proposals. All three implemented tools advertise the shared request and success-response schemas.
+`list_queries` accepts exactly `{}` and returns only `protocol_version`, `router_id`, and `queries`, not `delivery_schema_version` or `capabilities`. There is no extra handshake or negotiation layer. All three implemented tools advertise the shared request and success-response schemas. The shared package's [minimal consumer example](../../../typespec/dapr-agent-router/python/README.md#minimal-consumer-example) covers catalog identity/version checks, subscription arguments, derived inbox naming, and M2 delivery validation.
 
 ```sh
 make lint-check test package
