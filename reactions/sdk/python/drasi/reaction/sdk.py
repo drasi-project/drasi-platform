@@ -603,10 +603,10 @@ class DrasiReaction(Generic[ConfigT]):
         event_kind = envelope.data.get("kind")
         try:
             if event_kind == "change":
-                event = ChangeEvent.model_validate(envelope.data)
+                event = ChangeEvent.model_validate(envelope.data, strict=True)
                 callback = self.on_change_event
             elif event_kind == "control":
-                event = ControlEvent.model_validate(envelope.data)
+                event = ControlEvent.model_validate(envelope.data, strict=True)
                 callback = self.on_control_event
             else:
                 return self._delivery_response(

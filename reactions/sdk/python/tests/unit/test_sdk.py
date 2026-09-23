@@ -564,6 +564,69 @@ def test_malformed_json_is_dropped_before_callback(query_config_dir):
     assert calls == 0
 
 
+@pytest.mark.parametrize("make_event", [change_event, control_event])
+@pytest.mark.parametrize("field", ["sequence", "sourceTimeMs"])
+@pytest.mark.parametrize("value", [True, False, "42", "100", 42.0, 1.5, None])
+def test_invalid_integer_metadata_is_dropped_before_callback(
+    query_config_dir, make_event, field, value, caplog
+):
+    messages = []
+
+    async def callback(message):
+        messages.append(message)
+        return DeliveryOutcome.SUCCESS
+
+    app = FastAPI()
+    reaction = configured_reaction(
+        query_config_dir, callback, on_control_event=callback
+    )
+    reaction.install(app)
+    payload = make_event()
+    payload["data"][field] = value
+    payload["data"]["metadata"] = {"private": "secret-metadata"}
+
+    with caplog.at_level(logging.WARNING, logger="drasi.reaction.sdk"):
+        with TestClient(app) as client:
+            response = client.post("/_drasi/events/query1", json=payload)
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "DROP"}
+    assert messages == []
+    assert caplog.records[-1].drasi_delivery_reason == "invalid_drasi_event"
+    assert caplog.records[-1].drasi_delivery_outcome == "DROP"
+    assert "secret-metadata" not in caplog.text
+    assert "secret-payload" not in caplog.text
+    assert "trace-value" not in caplog.text
+
+
+@pytest.mark.parametrize("make_event", [change_event, control_event])
+@pytest.mark.parametrize("value", [0, 42, 2**53 + 1])
+def test_integer_metadata_is_preserved(query_config_dir, make_event, value):
+    messages = []
+
+    async def callback(message):
+        messages.append(message)
+        return DeliveryOutcome.SUCCESS
+
+    app = FastAPI()
+    reaction = configured_reaction(
+        query_config_dir, callback, on_control_event=callback
+    )
+    reaction.install(app)
+    payload = make_event()
+    payload["data"].update(sequence=value, sourceTimeMs=value + 100)
+
+    with TestClient(app) as client:
+        response = client.post("/_drasi/events/query1", json=payload)
+
+    assert response.json() == {"status": "SUCCESS"}
+    assert len(messages) == 1
+    assert type(messages[0].event.sequence) is int
+    assert messages[0].event.sequence == value
+    assert type(messages[0].event.sourceTimeMs) is int
+    assert messages[0].event.sourceTimeMs == value + 100
+
+
 @pytest.mark.parametrize(
     "mutate",
     [

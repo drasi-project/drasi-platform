@@ -162,6 +162,59 @@ def test_intentional_no_publication_is_success(app_factory, pubsub, case):
     asyncio.run(exercise())
 
 
+@pytest.mark.parametrize("kind", ["change", "control"])
+@pytest.mark.parametrize("field", ["sequence", "sourceTimeMs"])
+@pytest.mark.parametrize("value", [True, False, "42", "100", 42.0])
+def test_invalid_integer_metadata_drops_before_publication(
+    app_factory, pubsub, kind, field, value, caplog
+):
+    app = app_factory(CATALOG)
+    document = cloud_event("orders.v1", kind=kind, secret="private-row")
+    document["data"][field] = value
+
+    async def exercise():
+        async with running(app) as client:
+            await app.state.subscriptions.subscribe(subscription_request())
+            response = await client.post(ROUTE, json=document)
+            assert response.status_code == 200
+            assert response.json() == {"status": "DROP"}
+            assert pubsub.attempts == []
+            assert pubsub.published == []
+
+    asyncio.run(exercise())
+    assert "private-row" not in caplog.text
+    records = [
+        record
+        for record in caplog.records
+        if record.getMessage() == "reaction_delivery"
+    ]
+    assert len(records) == 1
+    assert records[0].drasi_delivery_reason == "invalid_drasi_event"
+    assert records[0].drasi_delivery_outcome == "DROP"
+
+
+@pytest.mark.parametrize("sequence", [0, 42, 2**53 + 1])
+def test_integer_metadata_preserves_delivery_and_row_identity(
+    app_factory, pubsub, sequence
+):
+    app = app_factory(CATALOG)
+    source_time = sequence + 100
+
+    async def exercise():
+        async with running(app) as client:
+            await app.state.subscriptions.subscribe(subscription_request())
+            response = await client.post(
+                ROUTE, json=event(sequence=sequence, sourceTimeMs=source_time)
+            )
+            assert response.json() == {"status": "SUCCESS"}
+
+    asyncio.run(exercise())
+    [received] = deliveries(pubsub)
+    assert received.eventId == f"drasi:v1:orders.v1:{sequence}:i:0"
+    assert received.event.seq == sequence
+    assert received.event.payload.source.ts_ms == source_time
+
+
 @pytest.mark.parametrize("subscribed", [False, True])
 @pytest.mark.parametrize(
     "changes",
