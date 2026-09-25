@@ -41,8 +41,11 @@ namespace Drasi.Reaction.SDK
             _webappBuilder.Services.AddControllers();
             _webappBuilder.Services.AddSingleton<IQueryConfigService, QueryConfigService>();
             _webappBuilder.Services.AddSingleton<IConfigDeserializer, NullConfigDeserializer>();
-            _webappBuilder.Services.AddSingleton<IResultViewClient, ResultViewClient>();
-            _webappBuilder.Services.AddSingleton<IManagementClient, ManagementClient>();
+            _webappBuilder.Services.AddHttpClient<IManagementClient, ManagementClient>(client =>
+            {
+                client.BaseAddress = new Uri("http://drasi-api:8080");
+            });
+            _webappBuilder.Services.AddHttpClient<IResultViewClient, ResultViewClient>();
             _webappBuilder.Services.AddScoped<IControlEventHandler<TQueryConfig>, DefaultControlEventHandler<TQueryConfig>>();
             _webappBuilder.Configuration.AddEnvironmentVariables();
             _webappBuilder.Logging.AddConsole();
