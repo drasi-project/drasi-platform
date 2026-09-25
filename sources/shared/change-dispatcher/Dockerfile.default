@@ -14,6 +14,30 @@
 
 
 FROM mcr.microsoft.com/azurelinux/base/rust:1.90 AS builder
+
+# The Azure Linux base image only ships Rust up to 1.90, and its tdnf-managed
+# cargo ignores the rust-toolchain.toml channel pin, so install Rust 1.95 via rustup.
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo
+# Pin rustup-init and verify its SHA256 before executing (instead of piping
+# `curl | sh`) so the installer content is cryptographically verified.
+ARG RUST_VERSION=1.95.0
+ARG RUSTUP_VERSION=1.29.0
+RUN set -eux; \
+    tdnf install -y ca-certificates curl tar gzip; \
+    arch="$(uname -m)"; \
+    case "${arch}" in \
+        x86_64) rustArch='x86_64-unknown-linux-gnu'; rustupSha256='4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10' ;; \
+        aarch64) rustArch='aarch64-unknown-linux-gnu'; rustupSha256='9732d6c5e2a098d3521fca8145d826ae0aaa067ef2385ead08e6feac88fa5792' ;; \
+        *) echo >&2 "unsupported architecture: ${arch}"; exit 1 ;; \
+    esac; \
+    url="https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${rustArch}/rustup-init"; \
+    curl --proto '=https' --tlsv1.2 -sSf "${url}" -o /tmp/rustup-init; \
+    echo "${rustupSha256}  /tmp/rustup-init" | sha256sum -c -; \
+    chmod +x /tmp/rustup-init; \
+    RUSTUP_INIT_SKIP_PATH_CHECK=yes /tmp/rustup-init -y --no-modify-path --profile minimal --default-toolchain "${RUST_VERSION}" --default-host "${rustArch}"; \
+    rm -f /tmp/rustup-init
+ENV PATH=/usr/local/cargo/bin:${PATH}
 RUN tdnf update -y && tdnf install -y protobuf-devel cmake openssl-devel clang-devel
 
 WORKDIR /usr/src

@@ -1,0 +1,16 @@
+apiVersion: dapr.io/v1alpha1
+kind: Resiliency
+metadata:
+  name: python-reaction-sdk-retries
+spec:
+  policies:
+    retries:
+      pubsubRetry:
+        policy: constant
+        duration: 100ms
+        maxRetries: 2
+  targets:
+    components:
+      drasi-pubsub:
+        inbound:
+          retry: pubsubRetry

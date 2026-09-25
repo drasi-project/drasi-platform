@@ -76,7 +76,7 @@ async fn serves_messages_sequentially() {
             .xadd(
                 &query_container_id,
                 "*",
-                &[("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {i}}}"))],
             )
             .await
             .unwrap();
@@ -114,7 +114,7 @@ async fn buffers_messages() {
             .xadd(
                 &query_container_id,
                 "*",
-                &[("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {i}}}"))],
             )
             .await
             .unwrap();
@@ -130,7 +130,7 @@ async fn buffers_messages() {
 
     for i in 1..=5 {
         let msg = subject.recv::<TestMessage>().await.unwrap().unwrap();
-        println!("msg: {:?}", msg);
+        println!("msg: {msg:?}");
         assert_eq!(msg.data.data, i);
         subject.ack(&msg.id).await.unwrap();
     }
@@ -169,7 +169,7 @@ async fn recovers_unack_messages() {
             .xadd(
                 &query_container_id,
                 "*",
-                &[("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {i}}}"))],
             )
             .await
             .unwrap();
@@ -192,7 +192,7 @@ async fn recovers_unack_messages() {
 
     for i in 6..=10 {
         let msg = subject.recv::<TestMessage>().await.unwrap().unwrap();
-        println!("msg: {:?}", msg);
+        println!("msg: {msg:?}");
         assert_eq!(msg.data.data, i);
         subject.ack(&msg.id).await.unwrap();
     }
@@ -255,7 +255,7 @@ async fn stops_buffering_on_drop() {
             .xadd(
                 &query_container_id,
                 "*",
-                &[("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {i}}}"))],
             )
             .await
             .unwrap();
@@ -276,7 +276,7 @@ async fn stops_buffering_on_drop() {
             .xadd(
                 &query_container_id,
                 "*",
-                &[("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {i}}}"))],
             )
             .await
             .unwrap();

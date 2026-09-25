@@ -1,0 +1,111 @@
+name: pr-all-reviewers
+
+# Orchestrator for the `review:all` label.
+#
+# Each reviewer is a reusable workflow (declares `on: workflow_call`).
+# This file chains them as jobs that `uses:` the reviewer's compiled
+# `.lock.yml`, with `needs:` ensuring sequential execution. No polling,
+# no extra GitHub App permissions, native pass/fail propagation.
+
+on:
+  pull_request_target:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_url:
+        description: "Full URL of the PR to review (e.g. https://github.com/drasi-project/drasi-platform/pull/42)"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+jobs:
+  resolve:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'review:all'
+    runs-on: ubuntu-latest
+    outputs:
+      pr_url: ${{ steps.pr.outputs.pr_url }}
+    steps:
+      - name: Resolve PR URL
+        id: pr
+        env:
+          INPUT_PR_URL: ${{ github.event.inputs.pr_url }}
+          EVENT_PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_PR_URL:-}" ]; then
+            PR_URL="$INPUT_PR_URL"
+          else
+            PR_URL="$EVENT_PR_URL"
+          fi
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "Sequential review chain target: $PR_URL"
+
+  # Each reviewer runs only after the previous one finishes. `if: always()`
+  # ensures a failed reviewer does NOT abort the chain — subsequent
+  # reviewers still run. We still gate on `resolve` succeeding so the
+  # chain stops if PR-URL resolution itself failed.
+  # NOTE: A unique `aw_context` value is passed to each reusable reviewer workflow.
+  # The gh-aw `compute_artifact_prefix.sh` script derives the artifact name prefix by
+  # hashing `toJSON(inputs) + GITHUB_RUN_ATTEMPT`. When the calling workflow invokes
+  # multiple reusable workflows in the same run with identical inputs, every reviewer
+  # would compute the same prefix and the second `<prefix>-activation` artifact upload
+  # fails with `409 Conflict: an artifact with this name already exists on the workflow
+  # run`. Passing a distinct `aw_context` per reviewer perturbs the inputs hash so each
+  # reviewer gets its own unique artifact-name prefix.
+  correctness:
+    needs: resolve
+    if: ${{ needs.resolve.result == 'success' }}
+    uses: ./.github/workflows/pr-correctness-reviewer.lock.yml
+    secrets: inherit
+    with:
+      pr_url: ${{ needs.resolve.outputs.pr_url }}
+      aw_context: pr-all-reviewers/correctness
+
+  security:
+    needs: [resolve, correctness]
+    if: ${{ always() && needs.resolve.result == 'success' }}
+    uses: ./.github/workflows/pr-security-reviewer.lock.yml
+    secrets: inherit
+    with:
+      pr_url: ${{ needs.resolve.outputs.pr_url }}
+      aw_context: pr-all-reviewers/security
+
+  design:
+    needs: [resolve, security]
+    if: ${{ always() && needs.resolve.result == 'success' }}
+    uses: ./.github/workflows/pr-design-reviewer.lock.yml
+    secrets: inherit
+    with:
+      pr_url: ${{ needs.resolve.outputs.pr_url }}
+      aw_context: pr-all-reviewers/design
+
+  testing:
+    needs: [resolve, design]
+    if: ${{ always() && needs.resolve.result == 'success' }}
+    uses: ./.github/workflows/pr-testing-reviewer.lock.yml
+    secrets: inherit
+    with:
+      pr_url: ${{ needs.resolve.outputs.pr_url }}
+      aw_context: pr-all-reviewers/testing
+
+  docs:
+    needs: [resolve, testing]
+    if: ${{ always() && needs.resolve.result == 'success' }}
+    uses: ./.github/workflows/pr-docs-reviewer.lock.yml
+    secrets: inherit
+    with:
+      pr_url: ${{ needs.resolve.outputs.pr_url }}
+      aw_context: pr-all-reviewers/docs
+
+  prior_art:
+    needs: [resolve, docs]
+    if: ${{ always() && needs.resolve.result == 'success' }}
+    uses: ./.github/workflows/pr-prior-art-reviewer.lock.yml
+    secrets: inherit
+    with:
+      pr_url: ${{ needs.resolve.outputs.pr_url }}
+      aw_context: pr-all-reviewers/prior_art

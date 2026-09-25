@@ -15,31 +15,32 @@
  */
 
 import { DrasiReaction, ChangeEvent,parseYaml, ControlEvent, getConfigValue } from '@drasi/reaction-sdk';
+import knexLib from 'knex';
 
 const databaseHostname = getConfigValue('databaseHostname');
 const databasePort = getConfigValue('databasePort');
 const databaseUser = getConfigValue('databaseUser');
 const databasePassword = getConfigValue('databasePassword');
 const databaseDbname = getConfigValue('databaseDbname');
-const databaseCient = getConfigValue('databaseClient', 'pg');
-const databaseSsl = convertConfigValue(getConfigValue('databaseSsl', 'false'));
+const databaseClient = getConfigValue('databaseClient', 'pg')!;
+const databaseSsl = convertConfigValue(getConfigValue('databaseSsl', 'false')!);
 
-let knex = require('knex')({
-    client: databaseCient,
+let knex = knexLib({
+    client: databaseClient,
     connection: {
       host : databaseHostname,
-      port : databasePort,
+      port : databasePort ? Number(databasePort) : undefined,
       user :   databaseUser,
       password : databasePassword,
       database : databaseDbname,
-      ssl: databaseSsl
+      ssl: Boolean(databaseSsl)
     }
   });
 
 //  mssql requires a different connection object; see https://knexjs.org/faq/recipes.html#connecting-to-mssql-on-azure-sql-database
-if (databaseCient === 'mssql') {
-    knex = require('knex')({
-        client: databaseCient,
+if (databaseClient === 'mssql') {
+    knex = knexLib({
+        client: databaseClient,
         connection: {
           server: databaseHostname,
           user: databaseUser,
@@ -49,13 +50,13 @@ if (databaseCient === 'mssql') {
             port: Number(databasePort),
             encrypt: true,
           },
-        }
+        } as any
       });
 }
 
 
 const queryParamsRegex = /@\w+/g;
-const addedResultCommand: string = getConfigValue('addedResultCommand', '');
+const addedResultCommand: string = getConfigValue('addedResultCommand', '')!;
 console.log(`AddedResultCommand: ${addedResultCommand}`);
 const addedResultCommandParamList: string[] = [];
 // Retrieve the parameters from the addedResultCommand
@@ -70,7 +71,7 @@ if (addedResultCommand !== '') {
     }
 }
 
-const updatedResultCommand: string = getConfigValue("updatedResultCommand", '');
+const updatedResultCommand: string = getConfigValue("updatedResultCommand", '')!;
 console.log(`UpdatedResultCommand: ${updatedResultCommand}`);
 const updatedResultCommandParamList: string[] = [];
 // Retrieve the parameters from the updatedResultCommand
@@ -84,7 +85,7 @@ if (updatedResultCommand !== '') {
     }
 }
 
-const deletedResultCommand: string = getConfigValue("deletedResultCommand", '');
+const deletedResultCommand: string = getConfigValue("deletedResultCommand", '')!;
 console.log(`DeletedResultCommand: ${deletedResultCommand}`);
 const deletedResultCommandParamList: string[] = [];
 if (deletedResultCommand !== '') {
@@ -116,7 +117,7 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
             try {
                 await executeStoredProcedure(addedResultCommand, queryArguments);
             } catch (error) {
-                throw new Error(`Failed to execute added stored procedure: ${error.message}`);
+                throw new Error(`Failed to execute added stored procedure: ${(error as Error).message}`);
             }
         } else {
             throw new Error(`Missing parameters in the added results`);
@@ -133,7 +134,7 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
             try {
                 await executeStoredProcedure(updatedResultCommand, queryArguments);
             } catch (error) {
-                throw new Error(`Failed to execute updated stored procedure: ${error.message}`);
+                throw new Error(`Failed to execute updated stored procedure: ${(error as Error).message}`);
             }
         } else {
             throw new Error(`Missing parameters in the updated results`);
@@ -148,7 +149,7 @@ async function onChangeEvent(event: ChangeEvent): Promise<void> {
             try {
                 await executeStoredProcedure(deletedResultCommand, queryArguments);
             } catch (error) {
-                throw new Error(`Failed to execute deleted stored procedure: ${error.message}`);
+                throw new Error(`Failed to execute deleted stored procedure: ${(error as Error).message}`);
             }
         } else {
             throw new Error(`Missing parameters in the deleted results`);
@@ -171,12 +172,12 @@ function checkSqlCommandParameters(data: Record<string, any>, paramList: string[
 
 async function executeStoredProcedure(command: string, queryArguments: string[]): Promise<void> {
     // Check if the command starts with 'CALL ' and add it if it doesn't
-    if (databaseCient !== 'mssql' && !command.trim().toUpperCase().startsWith('CALL ')) {
+    if (databaseClient !== 'mssql' && !command.trim().toUpperCase().startsWith('CALL ')) {
       command = 'CALL ' + command;
     }
 
     // Check if the command starts with 'EXEC ' and add it if it doesn't
-    if (databaseCient === 'mssql' && !command.trim().toUpperCase().startsWith('EXEC ')) {
+    if (databaseClient === 'mssql' && !command.trim().toUpperCase().startsWith('EXEC ')) {
         command = 'EXEC ' + command;
     }
     
@@ -194,8 +195,8 @@ async function executeStoredProcedure(command: string, queryArguments: string[])
     query += ")";
 
 
-    if (databaseCient === 'mssql') {
-        // mssql syntax requirments
+    if (databaseClient === 'mssql') {
+        // mssql syntax requirements
         query = query.replace('(', ' ').replace(')', '');
     }
     console.log(`Executing the stored proc: ${query}`);
@@ -206,7 +207,7 @@ async function executeStoredProcedure(command: string, queryArguments: string[])
         console.log("The query was executed successfully");
       } catch (error) {
         console.log(error);
-        throw new Error(`Failed to execute stored procedure: ${error.message}`);
+        throw new Error(`Failed to execute stored procedure: ${(error as Error).message}`);
       }
   }
 

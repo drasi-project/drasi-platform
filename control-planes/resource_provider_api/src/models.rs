@@ -162,6 +162,8 @@ pub struct ReactionSpec {
     pub properties: Option<HashMap<String, ConfigValue>>,
     pub queries: HashMap<String, String>,
     pub identity: Option<ServiceIdentity>,
+    #[serde(default)]
+    pub state_store: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -188,6 +190,8 @@ pub struct Service {
     pub replica: Option<String>,
     pub image: String,
     pub external_image: Option<bool>,
+    #[serde(rename = "supportsConcurrentInstances")]
+    pub supports_concurrent_instances: bool,
     pub endpoints: Option<HashMap<String, Endpoint>>,
     pub dapr: Option<HashMap<String, ConfigValue>>,
     pub properties: Option<HashMap<String, ConfigValue>>,

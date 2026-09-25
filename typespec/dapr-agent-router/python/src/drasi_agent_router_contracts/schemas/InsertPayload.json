@@ -1,0 +1,26 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "InsertPayload.json",
+    "type": "object",
+    "properties": {
+        "source": {
+            "$ref": "ChangeSource.json"
+        },
+        "after": {
+            "$ref": "#/$defs/RecordUnknown"
+        }
+    },
+    "required": [
+        "source",
+        "after"
+    ],
+    "additionalProperties": false,
+    "title": "InsertPayload",
+    "$defs": {
+        "RecordUnknown": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {}
+        }
+    }
+}

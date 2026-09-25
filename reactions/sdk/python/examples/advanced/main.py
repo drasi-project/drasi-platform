@@ -1,58 +1,51 @@
 import logging
 from typing import Any
 
+from fastapi import FastAPI
+
+from drasi.reaction import DeliveryOutcome, DrasiReaction, ReactionMessage
 from drasi.reaction.models.ChangeEvent import ChangeEvent
 from drasi.reaction.models.ControlEvent import ControlEvent
-from drasi.reaction.sdk import DrasiReaction
 from drasi.reaction.utils import get_config_value, yaml_query_configs
 
-logging.basicConfig(level=logging.INFO)
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("advanced_python_app")
 
+connection_string = get_config_value("MyConnectionString")
 
-def change_event_wrapper(conn_str: str):
 
-    # conn str can be accessed by the inner function
-    logger.info(f"Connection string from the config props: {conn_str}")
+async def change_event(
+    message: ReactionMessage[ChangeEvent, dict[str, Any]],
+) -> DeliveryOutcome:
+    event = message.event
+    query_config = message.query.config
 
-    async def change_event(event: ChangeEvent, query_configs: dict[Any, Any] | None):
-        logger.info(query_configs)
-        logger.info(
-            f"Received change sequence {event.sequence} for query {event.queryId}"
-        )
-
-        if event.addedResults:
-            logger.info(f"Added result: {event.addedResults}")
-
-        if event.deletedResults:
-            logger.info(f"Removed result: {event.deletedResults}")
-
-        if event.updatedResults:
-            logger.info(
-                f"Updated result - before: {event.updatedResults[0].before}, after {event.updatedResults[0].after}"
-            )
-
-    return change_event
+    logger.info(
+        "Processing change sequence %s for query %s with greeting %s",
+        event.sequence,
+        event.queryId,
+        query_config.get("greeting") if query_config else None,
+    )
+    # Use connection_string to send the result changes to the external system.
+    return DeliveryOutcome.SUCCESS
 
 
 async def control_event(
-    event: ControlEvent, query_configs: dict[Any, Any] | None = None
-):
+    message: ReactionMessage[ControlEvent, dict[str, Any]],
+) -> DeliveryOutcome:
     logger.info(
-        f"Received control signal: {event.controlSignal} for query {event.queryId}"
+        "Received control signal %s for query %s",
+        message.event.controlSignal.kind,
+        message.event.queryId,
     )
+    return DeliveryOutcome.SUCCESS
 
 
-if __name__ == "__main__":
-    conn_str = get_config_value("MyConnectionString")
-
-    change_event = change_event_wrapper(conn_str)
-
-    reaction = DrasiReaction(
-        on_change_event=change_event,
-        on_control_event=control_event,
-        parse_query_configs=yaml_query_configs,
-    )
-
-    reaction.start()
+app = FastAPI()
+reaction = DrasiReaction[dict[str, Any]](
+    on_change_event=change_event,
+    on_control_event=control_event,
+    parse_query_configs=yaml_query_configs,
+)
+reaction.install(app)

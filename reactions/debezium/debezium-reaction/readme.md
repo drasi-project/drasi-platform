@@ -50,10 +50,10 @@ The `test-debezium-reaction.yaml` file in the `devops` folder can be used to dep
 |Property|Description
 |--- |---
 |`queries`| The list of continuous queries you would like the Debezium Reaction to listen to and publish change events for.
-|`properties.brokers`| The Kafka broker to write to, for example `test-kakfa:9092` which is the name of the server set up by applying the `test-kafka.yaml` file.
+|`properties.brokers`| The Kafka broker to write to, for example `test-kafka:9092` which is the name of the server set up by applying the `test-kafka.yaml` file.
 |`properties.topic`| The name of the Kafka topic to write to, for example `my-kafka-topic`.
 
-For testing purposes, this folder also includes a `test-kafka.yaml` file that can be used to deploy a Kafka & Zookeper instance in your Kubernetes cluster. 
+For testing purposes, this folder also includes a `test-kafka.yaml` file that can be used to deploy a Kafka & Zookeeper instance in your Kubernetes cluster. 
 
 Navigate to the `devops` folder and follow the following steps:
 
@@ -67,7 +67,7 @@ kubectl apply -f test-kafka.yaml
 kubectl apply -f test-debezium-reaction.yaml
 ```
 
-You can view the content of the kakfa topic by executing into the kafka pod:
+You can view the content of the kafka topic by executing into the kafka pod:
 ```bash
 kubectl exec -it <name-of-the-kafka-pod> -n <k8s-namespace> -- bash
 # After executing into the pod, run the following command:

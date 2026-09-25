@@ -141,7 +141,7 @@ pub async fn start_view_service(view_store: Arc<dyn ViewStore>, port: u16) {
         .with_state(view_store.clone());
 
     // let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    let addr = format!("0.0.0.0:{}", port);
+    let addr = format!("0.0.0.0:{port}");
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
     axum::serve(listener, app).await.unwrap();
@@ -153,10 +153,7 @@ async fn view_stream(
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     let timestamp = match params.get("timestamp") {
-        Some(ts) => match ts.parse::<u64>() {
-            Ok(ts) => Some(ts),
-            Err(_) => None,
-        },
+        Some(ts) => ts.parse::<u64>().ok(),
         None => None,
     };
 
@@ -164,11 +161,11 @@ async fn view_stream(
         Ok(stream) => StreamBodyAs::json_array(stream).into_response(),
         Err(e) => match e {
             ViewError::NotFound => {
-                let body = format!("View `{}` not found", query_id);
+                let body = format!("View `{query_id}` not found");
                 (axum::http::StatusCode::NOT_FOUND, body).into_response()
             }
             _ => {
-                let body = format!("Error: {}", e);
+                let body = format!("Error: {e}");
                 (axum::http::StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
             }
         },

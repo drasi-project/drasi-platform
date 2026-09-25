@@ -1,0 +1,19 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: delivery-inbound
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: inbound-redis:6379
+    - name: redisPassword
+      value: ""
+    - name: consumerID
+      value: delivery-router-reaction
+    - name: concurrency
+      value: "1"
+    - name: queueDepth
+      value: "100"
+    # No maxLenApprox: this isolated broker retains evidence until teardown.

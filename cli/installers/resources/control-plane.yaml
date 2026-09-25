@@ -75,6 +75,24 @@ spec:
                   name: drasi-config
                   key: DAPR_SIDECAR
                   optional: true
+            - name: STATE_STORE_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: STATE_STORE_TYPE
+                  optional: true
+            - name: STATE_STORE_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: STATE_STORE_VERSION
+                  optional: true
+            - name: STATE_STORE_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: drasi-config
+                  key: STATE_STORE_CONFIG
+                  optional: true
             - name: INGRESS_CLASS_NAME
               valueFrom:
                 configMapKeyRef:

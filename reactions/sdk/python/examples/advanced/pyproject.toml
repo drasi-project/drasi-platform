@@ -3,11 +3,11 @@ name = "advanced"
 version = "0.1.0"
 description = "advanced drasi python reaction"
 authors = [""]
-readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-drasi-reaction-sdk = "0.1.0a0"
+drasi-reaction-sdk = {path = "../.."}
+uvicorn = "^0.32.1"
 
 
 [build-system]

@@ -27,7 +27,6 @@
 !.git/packed-refs
 !.git/refs/heads/**
 LICENSE
-README.md
 
 **/__pycache__/
 **/*.py[cod]
@@ -56,5 +55,4 @@ var/
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
 

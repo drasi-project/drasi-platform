@@ -146,8 +146,7 @@ pub async fn ready_wait(
 
     if params.timeout > MAX_READY_WAIT_TIMEOUT_SECS {
         return HttpResponse::BadRequest().body(format!(
-            "timeout must be less than {} seconds",
-            MAX_READY_WAIT_TIMEOUT_SECS
+            "timeout must be less than {MAX_READY_WAIT_TIMEOUT_SECS} seconds"
         ));
     }
 

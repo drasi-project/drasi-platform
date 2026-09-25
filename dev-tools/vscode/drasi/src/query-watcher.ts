@@ -38,7 +38,7 @@ export class QueryWatcher {
       this.resultsPanel?.webview.postMessage(message);    
     }
   
-    private createResultsPanel(intialStatus: ContinuousQueryStatus) {
+    private createResultsPanel(initialStatus: ContinuousQueryStatus) {
       this.resultsPanel = vscode.window.createWebviewPanel(
         'queryResults',
         'Query Results: ' + this.queryId,
@@ -50,7 +50,7 @@ export class QueryWatcher {
         }
       );
   
-      this.resultsPanel.webview.html = queryResultsView(this.resultsPanel.webview, this.extensionUri, intialStatus.status);
+      this.resultsPanel.webview.html = queryResultsView(this.resultsPanel.webview, this.extensionUri, initialStatus.status);
   
       this.resultsPanel.onDidDispose(() => {
         this.resultsPanel = undefined;

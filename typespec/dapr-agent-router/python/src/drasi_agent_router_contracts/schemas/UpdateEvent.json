@@ -1,0 +1,28 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "UpdateEvent.json",
+    "type": "object",
+    "properties": {
+        "seq": {
+            "$ref": "Sequence.json"
+        },
+        "ts_ms": {
+            "$ref": "Timestamp.json"
+        },
+        "op": {
+            "type": "string",
+            "const": "u"
+        },
+        "payload": {
+            "$ref": "UpdatePayload.json"
+        }
+    },
+    "required": [
+        "seq",
+        "ts_ms",
+        "op",
+        "payload"
+    ],
+    "additionalProperties": false,
+    "title": "UpdateEvent"
+}

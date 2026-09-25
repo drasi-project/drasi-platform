@@ -165,10 +165,17 @@ class ChangeListener {
     this.complete = false;
     this.predicate = predicate;
     this.resolve = (_value) => {};
+    this.timeoutHandle = null;
     let self = this;
     this.promise = new Promise((resolve, reject) => {
-      self.resolve = resolve;
-      setTimeout(reject, timeoutMs);
+      self.resolve = (value) => {
+        if (self.timeoutHandle) {
+          clearTimeout(self.timeoutHandle);
+          self.timeoutHandle = null;
+        }
+        resolve(value);
+      };
+      self.timeoutHandle = setTimeout(reject, timeoutMs);
     });
   }
 

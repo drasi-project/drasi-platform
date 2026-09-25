@@ -20,14 +20,24 @@ on:
       tag:
         description: 'Version tag to validate'
         required: true
+      image_prefix:
+        description: 'Image prefix to validate'
+        required: false
+        default: 'ghcr.io/drasi-project'
   workflow_call:
     inputs:
       tag:
         description: 'Version tag to validate'
         required: true
         type: string
+      image_prefix:
+        description: 'Image prefix to validate'
+        required: false
+        default: 'ghcr.io/drasi-project'
+        type: string
 
 env:
+  IMAGE_PREFIX: ${{ inputs.image_prefix }}
   DRASI_IMAGES: >-
     ghcr.io/drasi-project/query-container-query-host
     ghcr.io/drasi-project/query-container-publish-api
@@ -58,6 +68,7 @@ env:
     ghcr.io/drasi-project/reaction-storedproc
     ghcr.io/drasi-project/reaction-sync-dapr-statestore
     ghcr.io/drasi-project/reaction-post-dapr-pubsub
+    ghcr.io/drasi-project/reaction-dapr-agent-router
     ghcr.io/drasi-project/reaction-http
     ghcr.io/drasi-project/reaction-eventbridge
 
@@ -99,7 +110,8 @@ jobs:
 
           failed_images=()
 
-          for image in $DRASI_IMAGES; do
+          for configured_image in $DRASI_IMAGES; do
+            image="${IMAGE_PREFIX}/${configured_image##*/}"
             echo "📦 Checking $image:$IMAGE_TAG"
 
             # Check if image exists and get manifest
@@ -196,7 +208,8 @@ jobs:
 
           failed_pulls=()
 
-          for image in $DRASI_IMAGES; do
+          for configured_image in $DRASI_IMAGES; do
+            image="${IMAGE_PREFIX}/${configured_image##*/}"
             echo "📦 Pulling $image:$IMAGE_TAG on ${{ matrix.arch }}..."
 
             if docker pull  "${image}:${IMAGE_TAG}" > /dev/null 2>&1; then

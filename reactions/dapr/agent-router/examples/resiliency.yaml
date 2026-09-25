@@ -1,0 +1,22 @@
+# Finite inbound retries for a Reaction named "sre-router".
+# The router's programmatic query subscriptions already declare its derived DLT.
+apiVersion: dapr.io/v1alpha1
+kind: Resiliency
+metadata:
+  name: sre-router-inbound-retries
+  namespace: drasi-system
+scopes:
+  - sre-router-reaction
+spec:
+  policies:
+    retries:
+      routerInbound:
+        policy: constant
+        duration: 1s
+        # The initial delivery plus five retries are attempted before the DLT.
+        maxRetries: 5
+  targets:
+    components:
+      drasi-pubsub-sre-router:
+        inbound:
+          retry: routerInbound

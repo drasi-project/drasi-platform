@@ -53,6 +53,7 @@ impl From<ServiceConfigDto> for ServiceConfig {
             image: None,
             external_image: None,
             deprovision_handler: None,
+            supports_concurrent_instances: true,
             endpoints: service
                 .endpoints
                 .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),
@@ -215,6 +216,7 @@ impl From<ProviderSpecDto> for ProviderSpec {
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
             config_schema: provider_spec.config_schema.map(|schema| schema.into()),
+            state_store: provider_spec.state_store.unwrap_or_default(),
         }
     }
 }
@@ -228,6 +230,7 @@ impl From<ProviderSpec> for ProviderSpecDto {
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
             config_schema: provider_spec.config_schema.map(|schema| schema.into()),
+            state_store: provider_spec.state_store.then_some(true),
         }
     }
 }
@@ -254,6 +257,7 @@ impl From<ProviderServiceDto> for ProviderService {
     fn from(provider_service: ProviderServiceDto) -> Self {
         ProviderService {
             image: provider_service.image,
+            supports_concurrent_instances: provider_service.supports_concurrent_instances,
             external_image: provider_service.external_image,
             dapr: provider_service.dapr,
             endpoints: provider_service
@@ -269,6 +273,7 @@ impl From<ProviderService> for ProviderServiceDto {
     fn from(provider_service: ProviderService) -> Self {
         ProviderServiceDto {
             image: provider_service.image,
+            supports_concurrent_instances: provider_service.supports_concurrent_instances,
             external_image: provider_service.external_image,
             dapr: provider_service.dapr,
             endpoints: provider_service
@@ -367,5 +372,55 @@ impl From<JsonSchema> for JsonSchemaDto {
             description: schema.description,
             default: schema.default,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn provider_service_defaults_to_supporting_concurrent_instances() {
+        let dto: ProviderServiceDto =
+            serde_json::from_value(json!({ "image": "example/provider" })).unwrap();
+
+        assert!(dto.supports_concurrent_instances);
+
+        let service: ProviderService = dto.into();
+        assert!(service.supports_concurrent_instances);
+    }
+
+    #[test]
+    fn provider_service_maps_explicit_concurrency_capability() {
+        let dto: ProviderServiceDto = serde_json::from_value(json!({
+            "image": "example/provider",
+            "supportsConcurrentInstances": false
+        }))
+        .unwrap();
+
+        let service: ProviderService = dto.into();
+        assert!(!service.supports_concurrent_instances);
+
+        let serialized = serde_json::to_value(ProviderServiceDto::from(service)).unwrap();
+        assert_eq!(serialized["supportsConcurrentInstances"], false);
+    }
+
+    #[test]
+    fn resolved_service_maps_concurrency_capability_to_provider_api() {
+        let service = ServiceConfig {
+            replica: None,
+            image: Some("example/provider".to_string()),
+            external_image: None,
+            supports_concurrent_instances: false,
+            endpoints: None,
+            dapr: None,
+            properties: None,
+            deprovision_handler: None,
+        };
+
+        let provider_service: resource_provider_api::models::Service = service.into();
+
+        assert!(!provider_service.supports_concurrent_instances);
     }
 }

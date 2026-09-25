@@ -238,7 +238,7 @@ mod tests {
                 assert!(message.contains("unknown"));
                 assert!(message.contains("sub1"));
             }
-            other => panic!("expected InvalidSpec, got: {:?}", other),
+            other => panic!("expected InvalidSpec, got: {other:?}"),
         }
     }
 }

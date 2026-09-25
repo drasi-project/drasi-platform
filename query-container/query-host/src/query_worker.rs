@@ -21,7 +21,6 @@ use drasi_query_cypher::CypherParser;
 use drasi_query_gql::GQLParser;
 use futures::StreamExt;
 use std::{
-    error::Error,
     pin::pin,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -29,7 +28,7 @@ use std::{
 
 use drasi_core::{
     evaluation::functions::FunctionRegistry,
-    interface::{ElementIndex, ResultIndex, ResultSequence},
+    interface::{ElementIndex, IndexError, ResultIndex, ResultSequence, ResultSequenceCounter},
     middleware::MiddlewareTypeRegistry,
     models,
     query::{ContinuousQuery, QueryBuilder},
@@ -41,7 +40,7 @@ use tokio::{
     select,
     sync::{
         mpsc::{self},
-        oneshot, watch, Mutex,
+        oneshot, Mutex,
     },
     task::JoinHandle,
     time::Instant,
@@ -95,9 +94,9 @@ impl QueryWorker {
         let query_id2 = query_id.clone();
 
         let inner_handle = tokio::spawn(async move {
-            log::info!("Query {} worker starting", query_id);
+            log::info!("Query {query_id} worker starting");
 
-            let topic = format!("{}-publish", query_container_id);
+            let topic = format!("{query_container_id}-publish");
 
             let view_spec = config.view.clone();
             let query_language = config.query_language.clone();
@@ -133,7 +132,7 @@ impl QueryWorker {
             {
                 Ok(ei) => ei,
                 Err(err) => {
-                    log::error!("Error initializing index: {}", err);
+                    log::error!("Error initializing index: {err}");
                     lifecycle.change_state(QueryState::TransientError(err.to_string()));
                     return;
                 }
@@ -166,7 +165,7 @@ impl QueryWorker {
             let continuous_query = match builder.try_build().await {
                 Ok(cq) => cq,
                 Err(err) => {
-                    log::error!("Error building query: {}", err);
+                    log::error!("Error building query: {err}");
                     lifecycle.change_state(QueryState::TerminalError(err.to_string()));
                     return;
                 }
@@ -201,7 +200,7 @@ impl QueryWorker {
             )
             .await
             {
-                log::error!("Error configuring result view: {}", err);
+                log::error!("Error configuring result view: {err}");
                 lifecycle.change_state(QueryState::TransientError(err.to_string()));
                 return;
             }
@@ -209,20 +208,20 @@ impl QueryWorker {
             if lifecycle.get_state() == QueryState::Running
                 && index_factory.is_volatile(&modified_config.storage_profile)
             {
-                log::info!("Query {} is volatile, re-bootstrapping", query_id);
+                log::info!("Query {query_id} is volatile, re-bootstrapping");
                 lifecycle.change_state(QueryState::Configured);
             }
 
             let mut sequence_manager = match SequenceManager::new(result_index.clone()).await {
                 Ok(sm) => sm,
                 Err(err) => {
-                    log::error!("Error initializing sequence manager: {}", err);
+                    log::error!("Error initializing sequence manager: {err}");
                     lifecycle.change_state(QueryState::TransientError(err.to_string()));
                     return;
                 }
             };
 
-            let init_seq = sequence_manager.get().await;
+            let init_seq = sequence_manager.get();
             log::info!(
                 "Query {} starting at sequence {}",
                 query_id,
@@ -250,7 +249,7 @@ impl QueryWorker {
                     )
                     .await
                     {
-                        log::error!("Error bootstrapping query: {}", err);
+                        log::error!("Error bootstrapping query: {err}");
                         lifecycle.change_state(QueryState::TerminalError(err.to_string()));
                         return;
                     }
@@ -272,13 +271,13 @@ impl QueryWorker {
             {
                 Ok(cs) => cs,
                 Err(err) => {
-                    log::error!("Error creating change stream: {}", err);
+                    log::error!("Error creating change stream: {err}");
                     lifecycle.change_state(QueryState::TransientError(err.to_string()));
                     return;
                 }
             };
 
-            let trace_propogator = TraceContextPropagator::new();
+            let trace_propagator = TraceContextPropagator::new();
             let meter = opentelemetry::global::meter("query-host");
             let change_counter = meter
                 .u64_counter("drasi.query-host.change_count")
@@ -287,18 +286,27 @@ impl QueryWorker {
 
             let msg_latency = meter
                 .f64_histogram("drasi.query-host.msg_latency")
-                .with_description("Latency of messge processing")
+                .with_description("Latency of message processing")
                 .with_unit(opentelemetry::metrics::Unit::new("ns"))
                 .init();
 
             let metric_attributes = [KeyValue::new("query_id", query_id.to_string())];
+
+            let running_sequence = match sequence_manager.increment("control").await {
+                Ok(sequence) => sequence,
+                Err(err) => {
+                    log::error!("Error allocating Running sequence: {err}");
+                    lifecycle.change_state(QueryState::TransientError(err.to_string()));
+                    return;
+                }
+            };
 
             match publisher
                 .publish(
                     &query_id,
                     ResultEvent::from_control_signal(
                         query_id.as_ref(),
-                        sequence_manager.increment("control"),
+                        running_sequence,
                         SystemTime::now()
                             .duration_since(UNIX_EPOCH)
                             .unwrap_or_default()
@@ -310,7 +318,7 @@ impl QueryWorker {
             {
                 Ok(_) => log::debug!("Published Running signal"),
                 Err(err) => {
-                    log::error!("Error publishing Running signal: {}", err);
+                    log::error!("Error publishing Running signal: {err}");
                 }
             };
 
@@ -319,7 +327,7 @@ impl QueryWorker {
                     cmd = command_rx.recv() => {
                             match cmd {
                                 Some(Command::Shutdown) => {
-                                    log::info!("Query {} worker shutting down", query_id);
+                                    log::info!("Query {query_id} worker shutting down");
                                     break;
                                 },
                                 Some(Command::Delete) => {
@@ -334,18 +342,23 @@ impl QueryWorker {
                                             Err(err) => log::error!("Error unsubscribing from source {}: {}", subscription.id, err),
                                         };
                                     }
-                                    match publisher.publish(
-                                        &query_id,
-                                        ResultEvent::from_control_signal(
-                                            query_id.as_ref(),
-                                            sequence_manager.increment("control"),
-                                            SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
-                                            ControlSignal::QueryDeleted)
-                                    ).await {
-                                        Ok(_) => log::info!("Published delete signal"),
-                                        Err(err) => {
-                                            log::error!("Error publishing delete signal: {}", err);
-                                        },
+                                    match sequence_manager.increment("control").await {
+                                            Ok(sequence) => {
+                                                match publisher.publish(
+                                                    &query_id,
+                                                    ResultEvent::from_control_signal(
+                                                        query_id.as_ref(),
+                                                        sequence,
+                                                        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
+                                                        ControlSignal::QueryDeleted)
+                                                ).await {
+                                                    Ok(_) => log::info!("Published delete signal"),
+                                                    Err(err) => {
+                                                        log::error!("Error publishing delete signal: {err}");
+                                                    },
+                                                };
+                                            }
+                                            Err(err) => log::error!("Error allocating delete sequence: {err}"),
                                     };
                                     _ = deprovision_result_view(dapr_client.clone(), query_container_id.as_ref(), query_id.as_ref(), &view_spec).await;
                                     break;
@@ -364,7 +377,7 @@ impl QueryWorker {
 
                         match msg {
                             Err(err) => {
-                                log::error!("Error polling stream consumer: {}", err);
+                                log::error!("Error polling stream consumer: {err}");
                                 lifecycle.change_state(QueryState::TransientError(err.to_string()));
                                 break;
                             },
@@ -383,12 +396,12 @@ impl QueryWorker {
                                         if !evt.data.has_query(query_id.as_ref()) {
                                             log::info!("skipping message for another query");
                                             if let Err(err) = change_stream.ack(&evt.id).await {
-                                                log::error!("Error acknowledging message: {}", err);
+                                                log::error!("Error acknowledging message: {err}");
                                             }
                                             continue;
                                         }
 
-                                        let parent_context = trace_propogator.extract(&evt);
+                                        let parent_context = trace_propagator.extract(&evt);
                                         let span = tracing::span!(tracing::Level::INFO, "process_message");
                                         span.set_parent(parent_context);
                                         span.set_attribute("query_id", query_id.clone());
@@ -407,7 +420,7 @@ impl QueryWorker {
                                         }
 
                                         if let Err(err) = change_stream.ack(evt_id).await {
-                                            log::error!("Error acknowledging message: {}", err);
+                                            log::error!("Error acknowledging message: {err}");
                                             tracing::error!("Error acknowledging message: {}", err);
                                         }
 
@@ -424,32 +437,37 @@ impl QueryWorker {
             continuous_query.terminate_future_consumer().await;
             drop(continuous_query);
 
-            match publisher
-                .publish(
-                    &query_id,
-                    ResultEvent::from_control_signal(
-                        query_id.as_ref(),
-                        sequence_manager.increment("control"),
-                        SystemTime::now()
-                            .duration_since(UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_millis() as u64,
-                        ControlSignal::Stopped,
-                    ),
-                )
-                .await
-            {
-                Ok(_) => log::debug!("Published Stopped signal"),
-                Err(err) => {
-                    log::error!("Error publishing Stopped signal: {}", err);
+            match sequence_manager.increment("control").await {
+                Ok(sequence) => {
+                    match publisher
+                        .publish(
+                            &query_id,
+                            ResultEvent::from_control_signal(
+                                query_id.as_ref(),
+                                sequence,
+                                SystemTime::now()
+                                    .duration_since(UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_millis() as u64,
+                                ControlSignal::Stopped,
+                            ),
+                        )
+                        .await
+                    {
+                        Ok(_) => log::debug!("Published Stopped signal"),
+                        Err(err) => {
+                            log::error!("Error publishing Stopped signal: {err}");
+                        }
+                    };
                 }
+                Err(err) => log::error!("Error allocating Stopped sequence: {err}"),
             };
         });
 
         let handle = tokio::spawn(async move {
             match inner_handle.await {
-                Ok(_r) => log::info!("Query {} worker finished", query_id2),
-                Err(e) => log::error!("View {} worker exited with error {:?}", query_id2, e),
+                Ok(_r) => log::info!("Query {query_id2} worker finished"),
+                Err(e) => log::error!("View {query_id2} worker exited with error {e:?}"),
             };
             _ = is_shutdown_tx.send(());
         });
@@ -464,14 +482,14 @@ impl QueryWorker {
     pub fn delete(&self) {
         match self.commander.send(Command::Delete) {
             Ok(_) => log::info!("Delete command sent"),
-            Err(err) => log::error!("Error sending delete command: {}", err),
+            Err(err) => log::error!("Error sending delete command: {err}"),
         }
     }
 
     pub fn pause(&self) {
         match self.commander.send(Command::Pause) {
             Ok(_) => log::info!("Pause command sent"),
-            Err(err) => log::error!("Error sending Pause command: {}", err),
+            Err(err) => log::error!("Error sending Pause command: {err}"),
         }
     }
 
@@ -483,7 +501,7 @@ impl QueryWorker {
 
         match self.commander.send(Command::Shutdown) {
             Ok(_) => log::info!("Shutdown command sent"),
-            Err(err) => log::error!("Error sending shutdown command: {}", err),
+            Err(err) => log::error!("Error sending shutdown command: {err}"),
         }
     }
 
@@ -508,14 +526,14 @@ async fn process_change(
     enqueue_time: Option<u64>,
     dequeue_time: u64,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    log::info!("Query {} received message: {:?}", query_id, evt);
+    log::info!("Query {query_id} received message: {evt:?}");
     let timestamp = evt.data.get_timestamp();
     let mut metadata = evt.data.get_metadata();
     let source_change_id = evt.id.clone();
     let source_change: models::SourceChange = match evt.data.try_into() {
         Ok(sc) => sc,
         Err(err) => {
-            log::error!("Error converting event to source change: {}", err);
+            log::error!("Error converting event to source change: {err}");
             return Err(Box::new(err));
         }
     };
@@ -524,7 +542,7 @@ async fn process_change(
     let changes = match continuous_query.process_source_change(source_change).await {
         Ok(c) => c,
         Err(err) => {
-            log::error!("Error processing source change: {}", err);
+            log::error!("Error processing source change: {err}");
             return Err(Box::new(err));
         }
     };
@@ -569,14 +587,14 @@ async fn process_change(
             tracking.insert("query".to_string(), Value::Object(qt));
         }
 
-        let seq = seq_manager.increment(&source_change_id);
+        let seq = seq_manager.increment(&source_change_id).await?;
         let output =
             ResultEvent::from_query_results(query_id, changes, seq, timestamp, Some(metadata));
 
         match publisher.publish(query_id, output).await {
             Ok(_) => log::info!("Published result"),
             Err(err) => {
-                log::error!("Error publishing result: {}", err);
+                log::error!("Error publishing result: {err}");
                 return Err(err);
             }
         };
@@ -599,13 +617,17 @@ async fn bootstrap(
     result_index: Arc<dyn ResultIndex>,
 ) -> Result<(), BootstrapError> {
     let process_span = info_span!("process_bootstrap", query_id = query_id);
+    let sequence = seq_manager
+        .increment("control")
+        .await
+        .map_err(|err| BootstrapError::other(Box::new(err)))?;
 
     match publisher
         .publish(
             query_id,
             ResultEvent::from_control_signal(
                 query_id,
-                seq_manager.increment("control"),
+                sequence,
                 SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
@@ -617,7 +639,7 @@ async fn bootstrap(
     {
         Ok(_) => log::info!("Published start signal"),
         Err(err) => {
-            log::error!("Error publishing start signal: {}", err);
+            log::error!("Error publishing start signal: {err}");
             return Err(BootstrapError::publish_error(err));
         }
     };
@@ -652,7 +674,7 @@ async fn bootstrap(
                     let change_results = match query.process_source_change(change).await {
                         Ok(r) => r,
                         Err(e) => {
-                            log::error!("Error processing source change: {}", e);
+                            log::error!("Error processing source change: {e}");
                             return Err(BootstrapError::process_failed(
                                 source.id.to_string(),
                                 element_id,
@@ -661,7 +683,10 @@ async fn bootstrap(
                         }
                     };
 
-                    let seq = seq_manager.increment("bootstrap");
+                    let seq = seq_manager
+                        .increment("bootstrap")
+                        .await
+                        .map_err(|err| BootstrapError::other(Box::new(err)))?;
                     let output = dispatcher::with_default(
                         &tracing::Dispatch::none(), // Disable tracing for this scope
                         || {
@@ -683,25 +708,30 @@ async fn bootstrap(
                     match result {
                         Ok(_) => log::info!("Published result"),
                         Err(err) => {
-                            log::error!("Error publishing result: {}", err);
+                            log::error!("Error publishing result: {err}");
                             return Err(BootstrapError::publish_error(err));
                         }
                     };
                 }
                 Err(err) => {
-                    log::error!("Error fetching initial data: {}", err);
+                    log::error!("Error fetching initial data: {err}");
                     return Err(err);
                 }
             }
         }
     }
 
+    let sequence = seq_manager
+        .increment("control")
+        .await
+        .map_err(|err| BootstrapError::other(Box::new(err)))?;
+
     match publisher
         .publish(
             query_id,
             ResultEvent::from_control_signal(
                 query_id,
-                seq_manager.increment("control"),
+                sequence,
                 SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
@@ -713,7 +743,7 @@ async fn bootstrap(
     {
         Ok(_) => log::info!("Published complete signal"),
         Err(err) => {
-            log::error!("Error publishing complete signal: {}", err);
+            log::error!("Error publishing complete signal: {err}");
             return Err(BootstrapError::publish_error(err));
         }
     };
@@ -761,7 +791,7 @@ async fn configure_result_view(
 
     let _: () = match mut_dapr
         .invoke_actor(
-            format!("{}.View", query_container),
+            format!("{query_container}.View"),
             query_id.to_string(),
             "configure",
             view_spec,
@@ -770,7 +800,7 @@ async fn configure_result_view(
         .await
     {
         Err(e) => {
-            log::error!("Error configuring result view: {}", e);
+            log::error!("Error configuring result view: {e}");
             return Err(QueryError::Other(e.to_string()));
         }
         r => r.unwrap(),
@@ -793,7 +823,7 @@ async fn deprovision_result_view(
 
     let _: () = match mut_dapr
         .invoke_actor(
-            format!("{}.View", query_container),
+            format!("{query_container}.View"),
             query_id.to_string(),
             "deprovision",
             (),
@@ -802,7 +832,7 @@ async fn deprovision_result_view(
         .await
     {
         Err(e) => {
-            log::error!("Error deprovisioning result view: {}", e);
+            log::error!("Error deprovisioning result view: {e}");
             return Err(QueryError::Other(e.to_string()));
         }
         r => r.unwrap(),
@@ -814,46 +844,186 @@ async fn deprovision_result_view(
 /// Track the current sequence number for a query
 struct SequenceManager {
     value: ResultSequence,
-    tx: watch::Sender<ResultSequence>,
+    store: Arc<dyn ResultSequenceCounter>,
 }
 
 impl SequenceManager {
-    pub async fn new(store: Arc<dyn ResultIndex>) -> Result<Self, Box<dyn Error>> {
-        let (tx, mut rx) = watch::channel(ResultSequence::default());
+    pub async fn new(store: Arc<dyn ResultSequenceCounter>) -> Result<Self, IndexError> {
         let current = store.get_sequence().await?;
-
-        let store = store.clone();
-
-        tokio::spawn(async move {
-            loop {
-                let chg = rx.changed().await;
-                // only store the latest value, ignore intermediate changes
-                let latest = rx.borrow().clone();
-
-                if let Err(err) = store
-                    .apply_sequence(latest.sequence, &latest.source_change_id)
-                    .await
-                {
-                    log::error!("Error applying sequence: {}", err);
-                }
-
-                if chg.is_err() {
-                    log::info!("Sequence counter channel closed");
-                    break;
-                }
-            }
-        });
-        Ok(Self { value: current, tx })
+        Ok(Self {
+            value: current,
+            store,
+        })
     }
 
-    pub async fn get(&self) -> &ResultSequence {
+    pub fn get(&self) -> &ResultSequence {
         &self.value
     }
 
-    pub fn increment(&mut self, source_change_id: &str) -> u64 {
-        self.value.sequence += 1;
+    pub async fn increment(&mut self, source_change_id: &str) -> Result<u64, IndexError> {
+        let sequence = self.value.sequence + 1;
+        self.value.sequence = sequence;
         self.value.source_change_id = Arc::from(source_change_id);
-        _ = self.tx.send_replace(self.value.clone());
-        self.value.sequence
+
+        self.store
+            .apply_sequence(sequence, source_change_id)
+            .await?;
+
+        Ok(sequence)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{process_change, SequenceManager};
+    use crate::{change_stream::Message, result_publisher::ResultPublisher};
+    use async_trait::async_trait;
+    use drasi_core::{
+        evaluation::functions::FunctionRegistry,
+        in_memory_index::in_memory_result_index::InMemoryResultIndex,
+        interface::{IndexError, ResultSequence, ResultSequenceCounter},
+        query::QueryBuilder,
+    };
+    use drasi_query_cypher::CypherParser;
+    use serde_json::json;
+    use std::sync::Arc;
+    use tokio::net::TcpListener;
+
+    #[tokio::test]
+    async fn no_result_change_does_not_allocate_or_publish() {
+        let store = Arc::new(InMemoryResultIndex::new());
+        store.apply_sequence(41, "previous").await.unwrap();
+        let stores: [Arc<dyn ResultSequenceCounter>; 2] = [store, Arc::new(FailingSequenceCounter)];
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let publisher = ResultPublisher::new(
+            "127.0.0.1".to_string(),
+            listener.local_addr().unwrap().port(),
+            "test".to_string(),
+        );
+
+        for store in stores {
+            let mut manager = SequenceManager::new(store.clone()).await.unwrap();
+            let initial_sequence = manager.get().clone();
+            let parser = Arc::new(CypherParser::new(Arc::new(FunctionRegistry::new())));
+            let query = QueryBuilder::new(
+                "MATCH (n:Person) WHERE n.age >= 18 RETURN n.name AS name",
+                parser,
+            )
+            .try_build()
+            .await
+            .unwrap();
+            let evt = Message {
+                id: "1-0".to_string(),
+                data: serde_json::from_value(json!({
+                    "id": "event-1",
+                    "sourceId": "source",
+                    "time": {"seq": 1, "ms": 1},
+                    "queries": ["query"],
+                    "type": "i",
+                    "elementType": "node",
+                    "after": {
+                        "id": "person-1",
+                        "labels": ["Person"],
+                        "properties": {"name": "Ada", "age": 17}
+                    }
+                }))
+                .unwrap(),
+                enqueue_time: None,
+                trace_state: None,
+                trace_parent: None,
+            };
+
+            tokio::select! {
+                result = process_change("query", &query, &mut manager, &publisher, evt, None, 0) => {
+                    result.unwrap();
+                }
+                _ = listener.accept() => panic!("A no-result change must not be published"),
+            }
+
+            assert_eq!(manager.get(), &initial_sequence);
+            assert_eq!(store.get_sequence().await.unwrap(), initial_sequence);
+        }
+    }
+
+    #[tokio::test]
+    async fn increment_persists_sequence() {
+        let store = Arc::new(InMemoryResultIndex::new());
+        store.apply_sequence(41, "previous").await.unwrap();
+        let mut manager = SequenceManager::new(store.clone()).await.unwrap();
+
+        assert_eq!(manager.increment("current").await.unwrap(), 42);
+        assert_eq!(
+            store.get_sequence().await.unwrap(),
+            ResultSequence {
+                sequence: 42,
+                source_change_id: Arc::from("current"),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn drop_does_not_reset_sequence() {
+        let store = Arc::new(InMemoryResultIndex::new());
+        store.apply_sequence(41, "previous").await.unwrap();
+
+        let manager = SequenceManager::new(store.clone()).await.unwrap();
+        drop(manager);
+        tokio::task::yield_now().await;
+
+        assert_eq!(
+            store.get_sequence().await.unwrap(),
+            ResultSequence {
+                sequence: 41,
+                source_change_id: Arc::from("previous"),
+            }
+        );
+    }
+
+    struct FailingSequenceCounter;
+
+    #[async_trait]
+    impl ResultSequenceCounter for FailingSequenceCounter {
+        async fn apply_sequence(
+            &self,
+            _sequence: u64,
+            _source_change_id: &str,
+        ) -> Result<(), IndexError> {
+            Err(IndexError::IOError)
+        }
+
+        async fn get_sequence(&self) -> Result<ResultSequence, IndexError> {
+            Ok(ResultSequence::default())
+        }
+    }
+
+    #[tokio::test]
+    async fn increment_does_not_reuse_failed_allocation() {
+        let mut manager = SequenceManager::new(Arc::new(FailingSequenceCounter))
+            .await
+            .unwrap();
+
+        assert_eq!(
+            manager.increment("current").await.unwrap_err(),
+            IndexError::IOError
+        );
+        assert_eq!(
+            manager.get(),
+            &ResultSequence {
+                sequence: 1,
+                source_change_id: Arc::from("current"),
+            }
+        );
+
+        assert_eq!(
+            manager.increment("stopped").await.unwrap_err(),
+            IndexError::IOError
+        );
+        assert_eq!(
+            manager.get(),
+            &ResultSequence {
+                sequence: 2,
+                source_change_id: Arc::from("stopped"),
+            }
+        );
     }
 }

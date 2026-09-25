@@ -1,4 +1,4 @@
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 ARG POETRY_VERSION=1.8
 
@@ -12,19 +12,24 @@ ENV POETRY_CACHE_DIR=/opt/.cache
 
 RUN pip install "poetry==${POETRY_VERSION}"
 
-WORKDIR /app
+WORKDIR /sdk
 
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock README.md ./
+COPY drasi ./drasi
+COPY examples/simple/pyproject.toml examples/simple/poetry.lock ./examples/simple/
+
+WORKDIR /sdk/examples/simple
 
 RUN poetry install --no-root && rm -rf $POETRY_CACHE_DIR
 
-FROM python:3.11-slim as runtime
+FROM python:3.11-slim AS runtime
 
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+COPY --from=builder /sdk/examples/simple/.venv ${VIRTUAL_ENV}
+COPY examples/simple/main.py /app/main.py
 
-COPY . . 
+WORKDIR /app
 
-ENTRYPOINT ["python", "-m", "main"]
+ENTRYPOINT ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]

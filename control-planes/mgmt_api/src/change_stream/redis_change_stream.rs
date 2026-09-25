@@ -267,7 +267,7 @@ where
                 Err(err) => {
                     return Err(ChangeStreamError::MessageError {
                         id: message.id.clone(),
-                        error: format!("Failed to deserialize data: {:?}", err),
+                        error: format!("Failed to deserialize data: {err:?}"),
                     })
                 }
             },
@@ -297,7 +297,7 @@ where
                 }),
                 Err(err) => Err(ChangeStreamError::MessageError {
                     id: message.id.clone(),
-                    error: format!("Failed to deserialize data: {:?}", err),
+                    error: format!("Failed to deserialize data: {err:?}"),
                 }),
             },
             _ => Err(ChangeStreamError::MessageError {

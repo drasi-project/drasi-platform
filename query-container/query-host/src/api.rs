@@ -498,7 +498,7 @@ pub enum ApiError {
 impl Display for ApiError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ApiError::BadRequest(msg) => write!(f, "Bad request: {}", msg),
+            ApiError::BadRequest(msg) => write!(f, "Bad request: {msg}"),
         }
     }
 }

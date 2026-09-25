@@ -22,6 +22,7 @@ use super::{
 };
 use k8s_openapi::{
     api::{
+        apps::v1::DeploymentStrategy,
         core::v1::{ServicePort, ServiceSpec},
         networking::v1::{
             HTTPIngressPath, HTTPIngressRuleValue, Ingress, IngressBackend, IngressRule,
@@ -79,6 +80,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             volume_claims: BTreeMap::new(),
             ingresses: None,
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         });
@@ -110,6 +112,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             volume_claims: BTreeMap::new(),
             ingresses: None,
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         });
@@ -158,6 +161,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
             volume_claims: BTreeMap::new(),
             ingresses: None,
             pub_sub: None,
+            state_store: None,
             service_account: None,
             removed: false,
         });
@@ -185,9 +189,12 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 None => None,
             };
 
-            let replica = match service_spec.replica {
-                Some(rep) => rep.parse::<i32>().unwrap_or(1),
-                None => 1,
+            let replica = match service_spec.supports_concurrent_instances {
+                true => match service_spec.replica.as_deref() {
+                    Some(rep) => rep.parse::<i32>().unwrap_or(1),
+                    None => 1,
+                },
+                false => 1,
             };
             let mut env_var_map = env_var_map.clone();
             // combine this with the properties in service_spec
@@ -315,25 +322,34 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                 }
             };
 
+            let mut deployment_spec = build_deployment_spec(
+                runtime_config,
+                ResourceType::Source,
+                &source.id,
+                &service_name,
+                service_spec.image.as_str(),
+                service_spec.external_image.unwrap_or(false),
+                replica,
+                app_port,
+                env_var_map.clone(),
+                None,
+                None,
+                None,
+                app_protocol,
+            );
+
+            if !service_spec.supports_concurrent_instances {
+                deployment_spec.strategy = Some(DeploymentStrategy {
+                    type_: Some("Recreate".to_string()),
+                    ..Default::default()
+                });
+            }
+
             let mut k8s_spec = KubernetesSpec {
                 resource_type: ResourceType::Source,
                 resource_id: source.id.to_string(),
                 service_name: service_name.to_string(),
-                deployment: build_deployment_spec(
-                    runtime_config,
-                    ResourceType::Source,
-                    &source.id,
-                    &service_name,
-                    service_spec.image.as_str(),
-                    service_spec.external_image.unwrap_or(false),
-                    replica,
-                    app_port,
-                    env_var_map.clone(),
-                    None,
-                    None,
-                    None,
-                    app_protocol,
-                ),
+                deployment: deployment_spec,
                 services: k8s_services,
                 config_maps: BTreeMap::new(),
                 volume_claims: BTreeMap::new(),
@@ -343,6 +359,7 @@ impl SpecBuilder<SourceSpec> for SourceSpecBuilder {
                     Some(k8s_ingresses)
                 },
                 pub_sub: None,
+                state_store: None,
                 service_account: None,
                 removed: false,
             };
@@ -378,4 +395,80 @@ fn apply_proxy_svc(spec: &mut KubernetesSpec, app_port: Option<u16>) {
         ..Default::default()
     };
     spec.services.insert("proxy".to_string(), svc);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use resource_provider_api::models::Service;
+    use std::collections::HashMap;
+
+    fn build_specs(
+        supports_concurrent_instances: bool,
+        replica: Option<&str>,
+    ) -> Vec<KubernetesSpec> {
+        SourceSpecBuilder {}.build(
+            ResourceRequest {
+                id: "my-source".to_string(),
+                spec: SourceSpec {
+                    kind: "TestSource".to_string(),
+                    services: Some(HashMap::from([(
+                        "provider-service".to_string(),
+                        Service {
+                            replica: replica.map(str::to_string),
+                            image: "source-image".to_string(),
+                            external_image: Some(true),
+                            supports_concurrent_instances,
+                            endpoints: None,
+                            dapr: None,
+                            properties: None,
+                        },
+                    )])),
+                    properties: None,
+                    identity: None,
+                },
+            },
+            &RuntimeConfig::default(),
+            "instance-id",
+        )
+    }
+
+    #[test]
+    fn uses_recreate_and_one_replica_when_concurrent_instances_are_unsupported() {
+        let specs = build_specs(false, Some("3"));
+        let provider_spec = specs
+            .iter()
+            .find(|spec| spec.service_name == "provider-service")
+            .unwrap();
+
+        assert_eq!(provider_spec.deployment.replicas, Some(1));
+        assert_eq!(
+            provider_spec
+                .deployment
+                .strategy
+                .as_ref()
+                .and_then(|strategy| strategy.type_.as_deref()),
+            Some("Recreate")
+        );
+
+        for platform_service in ["change-router", "change-dispatcher", "query-api"] {
+            let platform_spec = specs
+                .iter()
+                .find(|spec| spec.service_name == platform_service)
+                .unwrap();
+            assert!(platform_spec.deployment.strategy.is_none());
+        }
+    }
+
+    #[test]
+    fn preserves_replica_count_and_default_strategy_when_concurrency_is_supported() {
+        let specs = build_specs(true, Some("3"));
+        let provider_spec = specs
+            .iter()
+            .find(|spec| spec.service_name == "provider-service")
+            .unwrap();
+
+        assert_eq!(provider_spec.deployment.replicas, Some(3));
+        assert!(provider_spec.deployment.strategy.is_none());
+    }
 }
