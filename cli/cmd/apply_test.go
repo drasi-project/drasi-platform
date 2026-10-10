@@ -15,17 +15,17 @@
 package cmd
 
 import (
+	"errors"
+	"os"
+	"testing"
+
 	"drasi.io/cli/api"
 	"drasi.io/cli/output"
 	"drasi.io/cli/sdk"
 	"drasi.io/cli/testutil"
-	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"os"
-	"testing"
 )
-
 
 func TestApplyCommand(t *testing.T) {
 	t.Run("Success case - apply single manifest", func(t *testing.T) {
@@ -242,7 +242,8 @@ spec:
 
 		manifestContent := `apiVersion: v1
 kind: Source
-name: test-source`
+name: test-source
+spec: {}`
 		_, err = tempFile.WriteString(manifestContent)
 		assert.NoError(t, err)
 		tempFile.Close()
@@ -275,7 +276,8 @@ name: test-source`
 
 		manifestContent := `apiVersion: v1
 kind: Source
-name: test-source`
+name: test-source
+spec: {}`
 		_, err = tempFile.WriteString(manifestContent)
 		assert.NoError(t, err)
 		tempFile.Close()
