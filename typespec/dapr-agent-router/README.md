@@ -234,7 +234,9 @@ Consumers can load the shared fixtures through `importlib.resources.files("drasi
 
 `make package` writes a wheel and source distribution to `python/dist/`. This package can be released independently of Drasi Platform containers and Dapr Agents. No registry release is performed by this change, and development does not require publishing every iteration.
 
-When ready for upstream consumption, publish a reviewed prerelease after configuring the package registry's ownership/publishing permissions. Replace local or fork-source overrides with the same exact released version in both consumers, for example `drasi-agent-router-contracts==0.1.0a1` once that version is published. Build identifiers and dependency pins provide reproducibility, not backward-compatibility or migration obligations.
+To publish a reviewed release, run the `Publish agent-router contracts` workflow from `main`. It repeats the generation and package tests, builds the wheel and source distribution, and publishes them through the protected `pypi-agent-router-contracts` environment using PyPI Trusted Publishing. The version in `python/pyproject.toml` must not already exist on PyPI.
+
+After publication, replace local or fork-source overrides with the same exact released version in both consumers, for example `drasi-agent-router-contracts==0.1.0a1`. Update both lockfiles together and rerun their package and integration tests. Build identifiers and dependency pins provide reproducibility, not backward-compatibility or migration obligations.
 
 ### Shared protocol fixtures
 
