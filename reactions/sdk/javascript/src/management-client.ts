@@ -20,6 +20,12 @@ export interface IManagementClient {
    * Gets the container ID for a given query ID
    */
   getQueryContainerId(queryId: string): Promise<string>;
+
+  /**
+   * Waits until a query has completed bootstrapping and is ready.
+   * Returns false when the wait times out on the server side.
+   */
+  waitForQueryReady(queryId: string, waitSeconds?: number): Promise<boolean>;
 }
 
 /**
@@ -46,5 +52,23 @@ export class ManagementClient implements IManagementClient {
     }
 
     return containerId;
+  }
+
+  /**
+   * Waits until a query has completed bootstrapping and is ready.
+   * Returns false if the management API returns 503 (timeout / not ready yet).
+   */
+  async waitForQueryReady(queryId: string, waitSeconds?: number): Promise<boolean> {
+    const timeoutQuery = waitSeconds !== undefined ? `?timeout=${waitSeconds}` : "";
+    const response = await fetch(`${this.managementApiUrl}/v1/continuousQueries/${queryId}/ready-wait${timeoutQuery}`);
+
+    if (response.ok) {
+      return true;
+    }
+    if (response.status === 503) {
+      return false;
+    }
+
+    throw new Error(`Failed to wait for query readiness: ${response.status} ${response.statusText}`);
   }
 }
