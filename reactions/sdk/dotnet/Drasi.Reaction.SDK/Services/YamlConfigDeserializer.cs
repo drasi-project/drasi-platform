@@ -21,46 +21,54 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Core.Events;
 using System.IO;
 using System.Text.Json;
+using YamlDotNet.Core;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace Drasi.Reaction.SDK.Services
 {
     public class YamlConfigDeserializer : IConfigDeserializer
     {
         private readonly IDeserializer _yamlDeserializer;
-        private readonly ISerializer _yamlJsonSerializer;
 
         public YamlConfigDeserializer()
         {
             _yamlDeserializer = new DeserializerBuilder()
-                .WithNodeTypeResolver(new InferTypeFromValue())
-                .Build();
-
-            _yamlJsonSerializer = new SerializerBuilder()
-                .JsonCompatible()
+                .WithNodeTypeResolver(new ImprovedTypeResolver())
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .Build();
         }
 
         public T? Deserialize<T>(string data) where T : class
         {
-            var yamlObject = _yamlDeserializer.Deserialize(data);
-            var specJson = _yamlJsonSerializer.Serialize(yamlObject);
-            var result = JsonSerializer.Deserialize<T>(specJson);
-
-            return result;
+            return _yamlDeserializer.Deserialize<T>(data);
         }
     }
 
-    internal class InferTypeFromValue : INodeTypeResolver
+    internal class ImprovedTypeResolver : INodeTypeResolver
     {
-        public bool Resolve(NodeEvent nodeEvent, ref Type currentType)
+        public bool Resolve(NodeEvent? nodeEvent, ref Type currentType)
         {
             var scalar = nodeEvent as Scalar;
-            if (scalar != null)
+            if (scalar != null && scalar.Style == ScalarStyle.Plain)
             {
-                int value;
-                if (int.TryParse(scalar.Value, out value))
+                if (int.TryParse(scalar.Value, out _))
                 {
                     currentType = typeof(int);
+                    return true;
+                }
+                if (double.TryParse(scalar.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
+                {
+                    currentType = typeof(double);
+                    return true;
+                }
+                if (bool.TryParse(scalar.Value, out _))
+                {
+                    currentType = typeof(bool);
+                    return true;
+                }
+                if (DateTime.TryParse(scalar.Value, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
+                {
+                    currentType = typeof(DateTime);
                     return true;
                 }
             }
