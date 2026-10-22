@@ -109,9 +109,12 @@ Alternatively, you can choose whichever editor you are most comfortable for work
 
 The Drasi CLI tool will be required in your development workflow to manage a Drasi instance that you may want to test against. You can either [build it from source](../../../../cli/) or download a pre-built binary.
 
-Download the CLI for your platform, and add it to your system path:
-- [MacOS arm64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-darwin-arm64)
-- [MacOS x64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-darwin-x64)
-- [Windows x64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-windows-x64.exe)
-- [Linux x64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-linux-x64)
-- [Linux arm64](https://github.com/drasi-project/drasi-platform/releases/download/v0.1.0/drasi-linux-arm64)
+We support development on macOS, Linux, and Windows. We recommend installing the CLI using the official installation script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/drasi-project/drasi-platform/main/cli/installers/install-drasi-cli.sh | /bin/bash
+```
+>Note: The installation script may not work in restricted environments (e.g., Windows PowerShell Constrained Language Mode or limited sudo permissions). In such cases, you can use alternative installation methods.
+
+For platform-specific instructions (macOS, Windows PowerShell, Linux), manual binaries, or building from source, refer to the official documentation:
+https://drasi.io/drasi-kubernetes/reference/command-line-interface/#get-the-drasi-cli
