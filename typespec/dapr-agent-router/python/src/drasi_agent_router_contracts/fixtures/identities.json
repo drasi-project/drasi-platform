@@ -1,0 +1,39 @@
+{
+  "topics": [
+    {
+      "router_id": "drasi-system/sre-router-reaction",
+      "subscriber": {"namespace": "applications", "app_id": "checkout-sre", "agent_name": "CheckoutSRE"},
+      "inbox": "drasi-ai1-6yqocy32t35jddui3sl5mkfsse7eeigdr5vklfeskji77pe4hr2a",
+      "agent_dlt": "drasi-ad1-6yqocy32t35jddui3sl5mkfsse7eeigdr5vklfeskji77pe4hr2a",
+      "router_dlt": "drasi-rd1-ikktgqz7jghtuypoy5w4mdlegbifnttp4fizgp7abj4py6kcw6jq"
+    },
+    {
+      "router_id": "drasi-system/sre-router-reaction",
+      "subscriber": {"namespace": "ab", "app_id": "c", "agent_name": "Team:ops/caf\u00e9"},
+      "inbox": "drasi-ai1-54mnbvb2imjtusgkds2q2gfvdqc4xhwobfqye6bcss4qaqvpv57a",
+      "agent_dlt": "drasi-ad1-54mnbvb2imjtusgkds2q2gfvdqc4xhwobfqye6bcss4qaqvpv57a",
+      "router_dlt": "drasi-rd1-ikktgqz7jghtuypoy5w4mdlegbifnttp4fizgp7abj4py6kcw6jq"
+    },
+    {
+      "router_id": "drasi-system/sre-router-reaction",
+      "subscriber": {"namespace": "a", "app_id": "bc", "agent_name": "Team:ops/caf\u00e9"},
+      "inbox": "drasi-ai1-fyplfnvtvu7mxr2amyoi5cnjxca3xl7lkblwdloxfrqwbcaybkrq",
+      "agent_dlt": "drasi-ad1-fyplfnvtvu7mxr2amyoi5cnjxca3xl7lkblwdloxfrqwbcaybkrq",
+      "router_dlt": "drasi-rd1-ikktgqz7jghtuypoy5w4mdlegbifnttp4fizgp7abj4py6kcw6jq"
+    },
+    {
+      "router_id": "other/sre-router-reaction",
+      "subscriber": {"namespace": "applications", "app_id": "checkout-sre", "agent_name": "CheckoutSRE"},
+      "inbox": "drasi-ai1-3kbcci4rzllfj2keg3qf3t3br3ajtbodte6ydsa4i2ixzivwbuhq",
+      "agent_dlt": "drasi-ad1-3kbcci4rzllfj2keg3qf3t3br3ajtbodte6ydsa4i2ixzivwbuhq",
+      "router_dlt": "drasi-rd1-qxxmqnsfe5kb43ckkgs4ma2pqniaaeewpqrmnaqqj3l7sq4vqd7a"
+    }
+  ],
+  "rows": [
+    {"query_id": "service-errors", "sequence": 0, "operation": "i", "position": 0, "id": "drasi:v1:service-errors:0:i:0"},
+    {"query_id": "a:b/%~", "sequence": 42, "operation": "u", "position": 2, "id": "drasi:v1:a%3Ab%2F%25~:42:u:2"},
+    {"query_id": "caf\u00e9", "sequence": 9007199254740993, "operation": "d", "position": 10, "id": "drasi:v1:caf%C3%A9:9007199254740993:d:10"},
+    {"query_id": "cafe\u0301", "sequence": 18446744073709551615, "operation": "i", "position": 0, "id": "drasi:v1:cafe%CC%81:18446744073709551615:i:0"},
+    {"query_id": "space ._~-", "sequence": 1, "operation": "i", "position": 0, "id": "drasi:v1:space%20._~-:1:i:0"}
+  ]
+}

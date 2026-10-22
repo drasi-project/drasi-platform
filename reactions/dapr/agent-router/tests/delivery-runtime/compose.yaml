@@ -1,0 +1,75 @@
+services:
+  mongo:
+    image: mongo:6
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping: 1})"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  inbound-redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  egress-redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  dapr:
+    image: daprio/daprd:1.14.5
+    command:
+      - /daprd
+      - --app-id
+      - delivery-router-reaction
+      - --app-channel-address
+      - router
+      - --app-port
+      - "8000"
+      - --app-protocol
+      - http
+      - --resources-path
+      - /components
+      - --dapr-listen-addresses
+      - 0.0.0.0
+      - --log-level
+      - warn
+    depends_on:
+      mongo:
+        condition: service_healthy
+      inbound-redis:
+        condition: service_healthy
+      egress-redis:
+        condition: service_healthy
+    volumes:
+      - ./components:/components:ro
+    ports:
+      - "127.0.0.1::3500"
+      - "127.0.0.1::50001"
+
+  router:
+    image: ${ROUTER_IMAGE:?ROUTER_IMAGE must name the packaged router image}
+    depends_on:
+      dapr:
+        condition: service_started
+    environment:
+      routerId: drasi-system/delivery-router-reaction
+      egressPubsubName: delivery-egress
+      PubsubName: delivery-inbound
+      StateStoreName: delivery-state
+      DAPR_HTTP_ENDPOINT: http://dapr:3500
+      DAPR_GRPC_ENDPOINT: dapr:50001
+    volumes:
+      - type: bind
+        source: ${QUERY_CONFIG_PATH:?QUERY_CONFIG_PATH must be an absolute directory}
+        target: /etc/queries
+        read_only: true
+    ports:
+      - "127.0.0.1::8000"

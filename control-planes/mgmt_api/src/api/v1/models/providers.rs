@@ -20,6 +20,10 @@ use utoipa::ToSchema;
 
 use super::ConfigValueDto;
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ProviderSpecDto {
     pub services: HashMap<String, ProviderServiceDto>,
@@ -34,6 +38,9 @@ pub struct ProviderSpecDto {
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct ProviderServiceDto {
     pub image: String,
+    #[serde(rename = "supportsConcurrentInstances", default = "default_true")]
+    #[schema(default = true)]
+    pub supports_concurrent_instances: bool,
     #[serde(rename = "externalImage")]
     pub external_image: Option<bool>,
     pub dapr: Option<HashMap<String, String>>,

@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.95-bullseye as builder
-# rust:1.81-bullseye
+FROM rust:1.95-bookworm as builder
 RUN apt-get update && apt-get install -y protobuf-compiler cmake libc6-dev libssl-dev libclang-dev
 
 WORKDIR /usr/src
@@ -27,8 +26,7 @@ RUN cargo fetch
 COPY ./control-planes/mgmt_api .
 RUN cargo install  --debug --force --path . --bin mgmt_api
 
-FROM ubuntu:20.04 
-RUN apt-get update && apt-get install -y openssl curl libssl1.1  && rm -rf /var/lib/apt/lists/*
-# gcr.io/distroless/cc-debian11
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y openssl curl libssl3  && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/local/cargo/bin/mgmt_api /usr/local/bin/mgmt_api
 CMD ["mgmt_api"]

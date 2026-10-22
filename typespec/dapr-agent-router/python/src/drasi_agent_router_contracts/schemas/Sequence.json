@@ -1,0 +1,7 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "Sequence.json",
+    "type": "integer",
+    "minimum": 0,
+    "title": "Sequence"
+}

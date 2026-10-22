@@ -1,0 +1,44 @@
+# Copyright 2026 The Drasi Authors.
+# Licensed under the Apache License, Version 2.0.
+
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drasi-agent-router-contracts"
+version = "0.1.0a1"
+description = "Shared wire contracts for DaprAgentRouter and the Drasi agent extension"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = [
+    "jsonschema>=4.23,<5",
+    "pydantic>=2.10,<3",
+    "referencing>=0.28.4,<1",
+]
+
+[dependency-groups]
+dev = [
+    "datamodel-code-generator==0.76.2",
+]
+test = [
+    "pytest>=8,<9",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"drasi_agent_router_contracts" = ["schemas/*.json", "fixtures/*.json", "py.typed"]
+
+[project.urls]
+Source = "https://github.com/drasi-project/drasi-platform"
+Documentation = "https://github.com/drasi-project/drasi-platform/tree/main/typespec/dapr-agent-router"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

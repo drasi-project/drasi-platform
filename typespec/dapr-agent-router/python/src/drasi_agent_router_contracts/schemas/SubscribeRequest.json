@@ -1,0 +1,33 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "SubscribeRequest.json",
+    "type": "object",
+    "properties": {
+        "query_id": {
+            "$ref": "NonEmptyString.json"
+        },
+        "operations": {
+            "type": "array",
+            "items": {
+                "$ref": "Operation.json"
+            },
+            "minItems": 1,
+            "maxItems": 3,
+            "uniqueItems": true
+        },
+        "subscriber": {
+            "$ref": "Subscriber.json"
+        },
+        "subscription_incarnation": {
+            "$ref": "NonEmptyString.json"
+        }
+    },
+    "required": [
+        "query_id",
+        "operations",
+        "subscriber",
+        "subscription_incarnation"
+    ],
+    "title": "SubscribeRequest",
+    "additionalProperties": false
+}

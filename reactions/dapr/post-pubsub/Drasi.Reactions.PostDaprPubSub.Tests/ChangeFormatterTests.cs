@@ -70,6 +70,7 @@ public class ChangeFormatterTests
         Assert.Contains("\"queryId\":\"test-query\"", json);
         Assert.Contains("\"id\":\"123\"", json);
         Assert.Contains("\"name\":\"test\"", json);
+        Assert.Equal(1, result[0].GetProperty("seq").GetInt64());
     }
 
     [Fact]
@@ -103,6 +104,7 @@ public class ChangeFormatterTests
         Assert.Contains("\"after\":{", json);
         Assert.Contains("\"name\":\"before\"", json);
         Assert.Contains("\"name\":\"after\"", json);
+        Assert.Equal(1, result[0].GetProperty("seq").GetInt64());
     }
 
     [Fact]
@@ -132,6 +134,7 @@ public class ChangeFormatterTests
         Assert.Contains("\"before\":{", json);
         Assert.Contains("\"id\":\"123\"", json);
         Assert.DoesNotContain("\"after\":{", json);
+        Assert.Equal(1, result[0].GetProperty("seq").GetInt64());
     }
 
     [Fact]
@@ -163,6 +166,7 @@ public class ChangeFormatterTests
         Assert.Contains(result, r => r.GetRawText().Contains("\"op\":\"i\""));
         Assert.Contains(result, r => r.GetRawText().Contains("\"op\":\"u\""));
         Assert.Contains(result, r => r.GetRawText().Contains("\"op\":\"d\""));
+        Assert.All(result, item => Assert.Equal(1, item.GetProperty("seq").GetInt64()));
     }
 
     [Fact]

@@ -100,6 +100,10 @@ export async function validateSourceProvider(spNode: vscode.TreeItem) {
                                   image: {
                                       type: "string"
                                   },
+                                  supportsConcurrentInstances: {
+                                      type: "boolean",
+                                      default: true
+                                  },
                                   dapr: {
                                       type: "object",
                                       properties: {
@@ -194,6 +198,10 @@ export async function validateSourceProvider(spNode: vscode.TreeItem) {
                               properties: {
                                   image: {
                                       type: "string"
+                                  },
+                                  supportsConcurrentInstances: {
+                                      type: "boolean",
+                                      default: true
                                   },
                                   dapr: {
                                       type: "object",

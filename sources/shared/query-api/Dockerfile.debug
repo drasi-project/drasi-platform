@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM rust:1.95-bullseye as builder
+FROM rust:1.95-bookworm as builder
 
 RUN apt-get update && apt-get install -y protobuf-compiler libcurl4 && apt-get clean
 
@@ -27,7 +27,7 @@ COPY ./sources/shared/query-api .
 RUN cargo install  --debug --force --path .
 
     
-FROM ubuntu:22.04 
+FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y openssl bash curl libssl3  && rm -rf /var/lib/apt/lists/*
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/query-api /usr/local/bin/query-api

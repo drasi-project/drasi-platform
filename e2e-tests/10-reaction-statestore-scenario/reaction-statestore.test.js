@@ -120,13 +120,23 @@ describe('Reaction provider state store dependency', () => {
       env => env.name === 'StateStoreName',
     );
     expect(stateStoreEnv.value).toBe(COMPONENT_NAME);
+    const pubsubNameEnv = reactionContainer.env.find(
+      env => env.name === 'PubsubName',
+    );
+    expect(pubsubNameEnv.value).toBe(`drasi-pubsub-${REACTION_ID}`);
 
     let sequence = 0;
     const sendChange = async () => {
       sequence += 1;
-      await axios.post(
-        `http://127.0.0.1:${daprPort}/v1.0/invoke/${APP_ID}/method/counter-query`,
+      const response = await axios.post(
+        `http://127.0.0.1:${daprPort}/v1.0/invoke/${APP_ID}/method/_drasi/events/counter-query`,
         {
+          id: `counter-query-${sequence}`,
+          source: 'urn:drasi:e2e',
+          specversion: '1.0',
+          type: 'com.dapr.event.sent',
+          topic: 'counter-query-results',
+          pubsubname: pubsubNameEnv.value,
           data: {
             kind: 'change',
             queryId: 'counter-query',
@@ -139,6 +149,7 @@ describe('Reaction provider state store dependency', () => {
         },
         { timeout: 10000 },
       );
+      expect(response.data).toEqual({ status: 'SUCCESS' });
     };
     const getCounter = async () => {
       const response = await axios.get(

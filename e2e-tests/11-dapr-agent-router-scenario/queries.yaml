@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ContinuousQuery
+name: i460-router-all
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: i460-router-source
+        nodes:
+          - sourceLabel: router_order
+  query: >
+    MATCH
+      (o:router_order)
+    RETURN
+      o.order_id AS order_id,
+      o.marker AS marker,
+      o.quantity AS quantity,
+      o.priority AS priority
+---
+apiVersion: v1
+kind: ContinuousQuery
+name: i460-router-priority
+spec:
+  mode: query
+  sources:
+    subscriptions:
+      - id: i460-router-source
+        nodes:
+          - sourceLabel: router_order
+  query: >
+    MATCH
+      (o:router_order)
+    WHERE
+      o.priority = true
+    RETURN
+      o.order_id AS order_id,
+      o.marker AS marker,
+      o.quantity AS quantity,
+      o.priority AS priority

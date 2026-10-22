@@ -1,0 +1,20 @@
+apiVersion: dapr.io/v1alpha1
+kind: Resiliency
+metadata:
+  name: delivery-router-retries
+scopes:
+  - delivery-router-reaction
+spec:
+  policies:
+    retries:
+      deliveryRetry:
+        policy: constant
+        # The pause gives the test time to persist a rule change between attempts.
+        duration: 4s
+        # Two retries plus the initial call bound each broker delivery to 3 attempts.
+        maxRetries: 2
+  targets:
+    components:
+      delivery-inbound:
+        inbound:
+          retry: deliveryRetry

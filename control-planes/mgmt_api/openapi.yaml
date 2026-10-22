@@ -984,6 +984,9 @@ components:
           nullable: true
         image:
           type: string
+        supportsConcurrentInstances:
+          type: boolean
+          default: true
     ProviderSpecDto:
       type: object
       required:

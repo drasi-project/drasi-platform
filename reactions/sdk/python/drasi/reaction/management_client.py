@@ -44,7 +44,18 @@ class ManagementClient:
             f"/ready-wait?timeout={timeout_seconds}"
         )
         async with httpx.AsyncClient(timeout=timeout_seconds + 5) as client:
-            response = await client.get(url)
+            try:
+                response = await client.get(url)
+            except httpx.TimeoutException as e:
+                raise TimeoutError(
+                    f"Timed out waiting for query '{query_id}' to become ready."
+                ) from e
+            except httpx.RequestError as e:
+                raise ConnectionError(
+                    f"Failed to reach the management API while waiting "
+                    f"for query '{query_id}': {e}"
+                ) from e
+
             if response.status_code == 503:
                 raise TimeoutError(
                     f"Query '{query_id}' did not become ready "

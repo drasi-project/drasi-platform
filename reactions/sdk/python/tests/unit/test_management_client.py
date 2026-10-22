@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest.mock import AsyncMock, patch, MagicMock
+import httpx
 import pytest
+from drasi.reaction import DrasiReaction
 from drasi.reaction.management_client import ManagementClient
 
 
@@ -76,6 +78,8 @@ async def test_wait_for_query_ready_timeout():
         )
         with pytest.raises(TimeoutError, match="query1"):
             await client.wait_for_query_ready("query1", timeout_seconds=5)
+
+
 @pytest.mark.asyncio
 async def test_wait_for_query_ready_not_found():
     client = ManagementClient("http://fake-drasi-api:8080")
@@ -89,3 +93,36 @@ async def test_wait_for_query_ready_not_found():
         )
         with pytest.raises(ValueError, match="not found"):
             await client.wait_for_query_ready("query1")
+
+
+@pytest.mark.asyncio
+async def test_wait_for_query_ready_connection_error():
+    client = ManagementClient("http://fake-drasi-api:8080")
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+        with pytest.raises(ConnectionError, match="query1"):
+            await client.wait_for_query_ready("query1")
+
+
+@pytest.mark.asyncio
+async def test_wait_for_query_ready_client_timeout():
+    client = ManagementClient("http://fake-drasi-api:8080")
+
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+            side_effect=httpx.ReadTimeout("read timed out")
+        )
+        with pytest.raises(TimeoutError, match="query1"):
+            await client.wait_for_query_ready("query1")
+
+
+def test_drasi_reaction_exposes_management_client():
+    async def callback(message):
+        pass
+
+    reaction = DrasiReaction(on_change_event=callback)
+
+    assert isinstance(reaction.management_client, ManagementClient)

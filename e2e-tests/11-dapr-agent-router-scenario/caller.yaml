@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: i460-agent-caller
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: i460-agent-caller
+  template:
+    metadata:
+      labels:
+        app: i460-agent-caller
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: i460-e2e-caller
+    spec:
+      containers:
+        - name: caller
+          image: python:3.12.7-alpine3.20
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -c
+            - "import time; time.sleep(86400)"
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

@@ -88,6 +88,10 @@ export async function validateReactionProvider(spNode: vscode.TreeItem) {
                             image: {
                                 type: "string"
                             },
+                            supportsConcurrentInstances: {
+                                type: "boolean",
+                                default: true
+                            },
                             dapr: {
                                 type: "object",
                                 properties: {

@@ -1,0 +1,47 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "SubscribeResponse.json",
+    "type": "object",
+    "properties": {
+        "query_id": {
+            "$ref": "NonEmptyString.json"
+        },
+        "operations": {
+            "type": "array",
+            "items": {
+                "$ref": "Operation.json"
+            },
+            "minItems": 1,
+            "maxItems": 3,
+            "uniqueItems": true,
+            "description": "Selected operations form a non-empty, unique set. Their order has no semantic meaning."
+        },
+        "subscription_incarnation": {
+            "$ref": "NonEmptyString.json"
+        },
+        "topic_name": {
+            "$ref": "NonEmptyString.json"
+        },
+        "status": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "const": "created"
+                },
+                {
+                    "type": "string",
+                    "const": "updated"
+                }
+            ]
+        }
+    },
+    "required": [
+        "query_id",
+        "operations",
+        "subscription_incarnation",
+        "topic_name",
+        "status"
+    ],
+    "additionalProperties": false,
+    "title": "SubscribeResponse"
+}

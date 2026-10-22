@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Source
+name: i460-router-source
+spec:
+  kind: PostgreSQL
+  properties:
+    host: i460-router-postgres.default.svc.cluster.local
+    port: 5432
+    user: i460user
+    password: i460password
+    database: i460db
+    ssl: false
+    tables:
+      - public.router_order

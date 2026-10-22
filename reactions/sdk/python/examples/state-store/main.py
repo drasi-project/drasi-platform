@@ -1,16 +1,17 @@
 import os
-from typing import Any
 
 from dapr.aio.clients import DaprClient
+from fastapi import FastAPI
+
+from drasi.reaction import DeliveryOutcome, DrasiReaction, ReactionMessage
 from drasi.reaction.models.ChangeEvent import ChangeEvent
-from drasi.reaction.sdk import DrasiReaction
 
 STATE_STORE_NAME = os.environ["StateStoreName"]
 
 
 async def on_change_event(
-    _event: ChangeEvent, _query_config: dict[str, Any] | None
-) -> None:
+    _message: ReactionMessage[ChangeEvent, None],
+) -> DeliveryOutcome:
     async with DaprClient() as client:
         current = await client.get_state(
             store_name=STATE_STORE_NAME,
@@ -24,9 +25,9 @@ async def on_change_event(
             etag=current.etag or None,
         )
 
+    return DeliveryOutcome.SUCCESS
 
+
+app = FastAPI()
 reaction = DrasiReaction(on_change_event=on_change_event)
-
-
-if __name__ == "__main__":
-    reaction.start()
+reaction.install(app)
