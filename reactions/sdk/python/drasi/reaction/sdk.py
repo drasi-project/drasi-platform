@@ -36,6 +36,7 @@ from drasi.reaction.delivery import (
     ReactionMessage,
 )
 from drasi.reaction.logger import get_logger
+from drasi.reaction.management_client import ManagementClient
 from drasi.reaction.models.ChangeEvent import ChangeEvent
 from drasi.reaction.models.ControlEvent import ControlEvent
 
@@ -355,12 +356,22 @@ class DrasiReaction(Generic[ConfigT]):
         self._installed_app: FastAPI | None = None
         self._ready = False
         self._lifecycle_active = False
+        self._management_client = ManagementClient()
 
     @property
     def is_ready(self) -> bool:
         """Whether initialization completed and deliveries may be processed."""
 
         return self._ready
+
+    @property
+    def management_client(self) -> ManagementClient:
+        """Gets the ManagementClient for interacting with the Drasi Management API.
+
+        Returns:
+            ManagementClient: The management client instance.
+        """
+        return self._management_client
 
     @property
     def query_registrations(self) -> Mapping[str, QueryRegistration[ConfigT]]:
