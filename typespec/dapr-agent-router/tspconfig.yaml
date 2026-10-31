@@ -1,0 +1,7 @@
+emit:
+  - "@typespec/json-schema"
+options:
+  "@typespec/json-schema":
+    file-type: "json"
+    int64-strategy: "number"
+output-dir: "{project-root}/_generated"

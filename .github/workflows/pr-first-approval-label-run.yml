@@ -58,7 +58,9 @@ jobs:
             }
 
             // Re-query reviews from the API (never trust artifact data for state)
-            const reviews = await github.rest.pulls.listReviews({
+            // Use paginate to fetch ALL reviews — the default per_page (30)
+            // can miss approvals on PRs with many bot/comment reviews.
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
               owner,
               repo,
               pull_number: prNumber,
@@ -66,7 +68,7 @@ jobs:
 
             // Count unique approvals (latest review per user)
             const latestReviewByUser = new Map();
-            for (const review of reviews.data) {
+            for (const review of reviews) {
               const existing = latestReviewByUser.get(review.user.login);
               if (!existing || new Date(review.submitted_at) > new Date(existing.submitted_at)) {
                 latestReviewByUser.set(review.user.login, review);

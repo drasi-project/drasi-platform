@@ -1,0 +1,25 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: delivery-egress
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: egress-redis:6379
+    - name: redisPassword
+      value: ""
+    # No maxLenApprox: this isolated broker retains evidence until teardown.
+    # The denied recovery/exhaustion destinations are intentionally absent.
+    # Dapr rejects them before Redis while all expected successful topics remain real.
+    - name: publishingScopes
+      value: >-
+        delivery-router-reaction=drasi-ai1-4kifrgcnkkbs4pr2vegokq7emi5pfq7vwyqkm4dmhaapbsafwa5a,
+        drasi-ai1-ozfqykdyeaqn62xcahklqvbtbztbjp5gjjgpgixcgd45e3zuhrla,
+        drasi-ai1-nvaf6x2uxubd6rxdl5zqyk2lwtfjfdhuw5gug3abwnykrjgoupga,
+        drasi-ai1-np4pmba376iw6tjsj4rr7xely6r7nxbdyv2d2ud7ibz5ttwhpoyq,
+        drasi-ai1-ohr4eyrmpur4ozrijvmykxard3lkm2tymvkglzqhvvcd4s462aaa,
+        drasi-ai1-tqx74n2ih7mp6xwe244uce7n2ewjdqnl4hr4wo4axtyhumwdrjdq,
+        drasi-ai1-2s665ne2tjhazva6irsgcyzdso7roocl6xqhlibxojaulprnm2oa,
+        drasi-ai1-hi6vnkizkgmwsay5ompymkckd3oudrg2x2divycoxudoepgqkv2a

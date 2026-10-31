@@ -45,7 +45,7 @@ impl SourceClient {
         });
         let resp = match self
             .client
-            .post(format!("http://{}/subscription", app_id))
+            .post(format!("http://{app_id}/subscription"))
             .json(&data)
             .send()
             .await
@@ -62,14 +62,11 @@ impl SourceClient {
         if !resp.status().is_success() {
             return Err(BootstrapError::fetch_failed(
                 subscription.id.to_string(),
-                Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "{} {}",
-                        resp.status(),
-                        resp.text().await.unwrap_or_default()
-                    ),
-                )),
+                Box::new(std::io::Error::other(format!(
+                    "{} {}",
+                    resp.status(),
+                    resp.text().await.unwrap_or_default()
+                ))),
             ));
         }
 
@@ -91,13 +88,12 @@ impl SourceClient {
         query_id: String,
         subscription_id: String,
     ) -> Result<(), UnsubscriptionError> {
-        let app_id = format!("{}-query-api", subscription_id);
+        let app_id = format!("{subscription_id}-query-api");
 
         let resp = match self
             .client
             .delete(format!(
-                "http://{}/subscription/{}/{}",
-                app_id, query_container_id, query_id
+                "http://{app_id}/subscription/{query_container_id}/{query_id}"
             ))
             .send()
             .await
@@ -105,8 +101,7 @@ impl SourceClient {
             Ok(resp) => resp,
             Err(e) => {
                 return Err(UnsubscriptionError::UnsubscribeFailed(format!(
-                    "Failed to unsubscribe from app '{}': {}",
-                    app_id, e
+                    "Failed to unsubscribe from app '{app_id}': {e}"
                 )))
             }
         };

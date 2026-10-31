@@ -23,11 +23,13 @@ class PortForward {
  * @param {string} serviceName
  * @param {number} servicePort
  * @param {string} namespace
+ * @param {string} resourceType
  */
-  constructor(serviceName, servicePort, namespace = "default") {
+  constructor(serviceName, servicePort, namespace = "default", resourceType = "services") {
     this.serviceName = serviceName;
     this.servicePort = servicePort;
     this.namespace = namespace;
+    this.resourceType = resourceType;
   }
 
   /**
@@ -38,7 +40,7 @@ class PortForward {
     let localPort = await portfinder.getPortPromise();
 
     let promise = new Promise((resolve, reject) => {
-      let proc = cp.spawn("kubectl", ["port-forward", `services/${this.serviceName}`, `${localPort}:${this.servicePort}`, "-n", self.namespace]);
+      let proc = cp.spawn("kubectl", ["port-forward", `${this.resourceType}/${this.serviceName}`, `${localPort}:${this.servicePort}`, "-n", self.namespace]);
       
       proc.stdout.on('data', function(msg){         
         console.log(`PortForward: ${self.serviceName} ${msg.toString()}`);

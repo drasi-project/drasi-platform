@@ -176,8 +176,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(listener) => listener,
         Err(e) => {
             return Err(Box::<dyn std::error::Error>::from(format!(
-                "Error binding to address: {:?}",
-                e
+                "Error binding to address: {e:?}"
             )));
         }
     };
@@ -439,7 +438,7 @@ async fn process_changes(
                     }
                 }
                 _ => {
-                    // TODO - supprt other ops on SourceSubscriptions
+                    // TODO - support other ops on SourceSubscriptions
                 }
             }
             return Ok(());

@@ -97,7 +97,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                 Some(ref properties) => properties.clone(),
                 None => {
                     return Err(DomainError::InvalidSpec {
-                        message: format!("properties are not defined for {}", kind),
+                        message: format!("properties are not defined for {kind}"),
                     })
                 }
             };
@@ -149,7 +149,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                 Ok(json_data_properties) => json_data_properties,
                 Err(_e) => {
                     return Err(DomainError::JsonParseError {
-                        message: format!("Unable to parse the properties for {}", kind),
+                        message: format!("Unable to parse the properties for {kind}"),
                     })
                 }
             };
@@ -183,7 +183,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
         for service_name in services.keys() {
             if !defined_services.contains(service_name) {
                 return Err(DomainError::UndefinedSetting {
-                    message: format!("Service {} is not defined in the schema", service_name),
+                    message: format!("Service {service_name} is not defined in the schema"),
                 });
             }
         }
@@ -200,8 +200,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                 Err(e) => {
                     return Err(DomainError::InvalidSpec {
                         message: format!(
-                            "Invalid service config schema for service {} - {}",
-                            service_name, e
+                            "Invalid service config schema for service {service_name} - {e}"
                         ),
                     });
                 }
@@ -212,8 +211,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                 Err(_e) => {
                     return Err(DomainError::InvalidSpec {
                         message: format!(
-                            "Invalid service config schema for service {}",
-                            service_name
+                            "Invalid service config schema for service {service_name}"
                         ),
                     });
                 }
@@ -225,8 +223,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                     None => {
                         return Err(DomainError::InvalidSpec {
                             message: format!(
-                                "Invalid service properties for service {}",
-                                service_name
+                                "Invalid service properties for service {service_name}"
                             ),
                         })
                     }
@@ -284,8 +281,7 @@ impl ExtensibleSpecValidator<ReactionSpec> for ReactionSpecValidator {
                     Err(_e) => {
                         return Err(DomainError::JsonParseError {
                             message: format!(
-                                "Unable to parse the service properties for {}",
-                                service_name
+                                "Unable to parse the service properties for {service_name}"
                             ),
                         })
                     }
@@ -326,5 +322,33 @@ fn populate_default_values(
         properties: Some(properties),
         queries: reaction.queries.clone(),
         identity: reaction.identity.clone(),
+        state_store: schema_json.state_store,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn derives_state_store_dependency_from_provider() {
+        let reaction = ReactionSpec {
+            kind: "StatefulReaction".to_string(),
+            tag: None,
+            services: Some(HashMap::new()),
+            properties: Some(HashMap::new()),
+            queries: HashMap::new(),
+            identity: None,
+            state_store: false,
+        };
+        let provider = ProviderSpec {
+            services: HashMap::new(),
+            config_schema: None,
+            state_store: true,
+        };
+
+        let populated = populate_default_values(&reaction, &provider).unwrap();
+
+        assert!(populated.state_store);
+    }
 }

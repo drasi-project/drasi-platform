@@ -121,6 +121,8 @@ pub struct ReactionSpec {
     pub properties: Option<HashMap<String, ConfigValue>>,
     pub queries: HashMap<String, String>,
     pub identity: Option<ServiceIdentity>,
+    #[serde(default)]
+    pub state_store: bool,
 }
 
 impl HasKind for ReactionSpec {
@@ -230,6 +232,8 @@ pub struct SourceProviderStatus {
 pub struct ProviderSpec {
     pub services: HashMap<String, ProviderService>,
     pub config_schema: Option<JsonSchema>,
+    #[serde(default)]
+    pub state_store: bool,
 }
 
 pub struct SourceProviderMarker;
@@ -239,6 +243,7 @@ pub struct ReactionProviderMarker;
 #[serde(rename_all = "camelCase")]
 pub struct ProviderService {
     pub image: String,
+    pub supports_concurrent_instances: bool,
     pub external_image: Option<bool>,
     pub dapr: Option<HashMap<String, String>>,
     pub endpoints: Option<HashMap<String, ServiceEndpoint>>,
@@ -258,6 +263,7 @@ pub struct ServiceConfig {
     pub replica: Option<String>,
     pub image: Option<String>,
     pub external_image: Option<bool>,
+    pub supports_concurrent_instances: bool,
     pub dapr: Option<HashMap<String, ConfigValue>>,
     pub endpoints: Option<HashMap<String, Endpoint>>,
     pub properties: Option<HashMap<String, ConfigValue>>,

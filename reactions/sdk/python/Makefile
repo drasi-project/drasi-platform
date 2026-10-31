@@ -1,4 +1,4 @@
-.PHONY: install-dependencies generate-types test package
+.PHONY: install-dependencies generate-types test integration-test package
 
 install-dependencies:
 	poetry install --with dev
@@ -14,6 +14,9 @@ generate-types:
 
 test:
 	poetry run pytest tests
+
+integration-test:
+	DAPR_INTEGRATION_TESTS=1 poetry run pytest tests/integration
 
 package:
 	@echo "No published python package yet"

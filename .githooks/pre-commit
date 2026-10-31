@@ -12,8 +12,10 @@ echo "Running pre-commit hook: Checking for API spec changes..."
 # Generate the latest spec based on the current code
 make -C control-planes/mgmt_api openapi-generate
 
-# Check if the generated spec file has unstaged changes
-if ! git diff --quiet HEAD control-planes/mgmt_api/openapi.yaml; then
+# Check if the generated spec matches what is staged for commit.
+# Compare the working tree (freshly generated) against the index (staged),
+# so that staging the regenerated file satisfies the check.
+if ! git diff --quiet control-planes/mgmt_api/openapi.yaml; then
     echo "\nERROR: API specification is out of date."
     echo "The OpenAPI spec has been regenerated based on your code changes."
     echo "Please stage the updated file to include it in your commit:"

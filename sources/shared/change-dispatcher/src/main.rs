@@ -126,7 +126,7 @@ async fn receive(
             log::error!("Error processing changes: {:?}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error processing changes: {:?}", e),
+                format!("Error processing changes: {e:?}"),
             )
                 .into_response()
         }
@@ -182,7 +182,7 @@ async fn process_changes(
             .collect();
 
         for query_node_id in query_nodes {
-            let app_id = format!("{}-publish-api", query_node_id);
+            let app_id = format!("{query_node_id}-publish-api");
 
             let queries: Vec<_> = subscriptions
                 .iter()
@@ -228,8 +228,7 @@ async fn process_changes(
                 Ok(_) => {}
                 Err(e) => {
                     return Err(Box::<dyn std::error::Error>::from(format!(
-                        "Error invoking app: {}",
-                        e
+                        "Error invoking app: {e}"
                     )));
                 }
             }

@@ -33,8 +33,9 @@ use kube::{
     Api, ResourceExt,
 };
 use serde::Serialize;
+use serde_json::Value;
 
-use crate::models::Component;
+use crate::models::{Component, ResourceType};
 
 use super::super::models::{KubernetesSpec, RuntimeConfig};
 
@@ -120,7 +121,7 @@ impl ResourceReconciler {
 
                     let label_selector = deployment_labels
                         .iter()
-                        .map(|(k, v)| format!("{}={}", k, v))
+                        .map(|(k, v)| format!("{k}={v}"))
                         .collect::<Vec<String>>()
                         .join(",");
 
@@ -281,6 +282,96 @@ impl ResourceReconciler {
             }
         }
 
+        if let Some(pub_sub) = &self.spec.pub_sub {
+            self.delete_component(pub_sub.metadata.name.as_ref().unwrap())
+                .await?;
+        }
+
+        if let Some(state_store) = &self.spec.state_store {
+            self.delete_component(state_store.metadata.name.as_ref().unwrap())
+                .await?;
+        } else if self.spec.pub_sub.is_some()
+            && matches!(&self.spec.resource_type, ResourceType::Reaction)
+        {
+            self.delete_managed_component(&format!("drasi-statestore-{}", self.spec.resource_id))
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn delete_managed_component(&self, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        match self.component_api.get(name).await {
+            Ok(component) => {
+                let labels = component.metadata.labels.unwrap_or_default();
+                let resource_type = self.spec.resource_type.to_string();
+                let is_managed = labels.get("drasi/type") == Some(&resource_type)
+                    && labels.get("drasi/resource") == Some(&self.spec.resource_id);
+
+                if is_managed {
+                    self.delete_component(name).await?;
+                } else {
+                    log::warn!("Component {} is not managed by this resource", name);
+                }
+            }
+            Err(kube::Error::Api(api_err)) if api_err.code == 404 => {}
+            Err(kube::Error::Api(api_err)) => return Err(Box::new(api_err)),
+            Err(err) => return Err(Box::new(err)),
+        }
+
+        Ok(())
+    }
+
+    async fn delete_component(&self, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        log::info!("Deleting component {}", name);
+        let pp = DeleteParams::default();
+        if let Err(err) = self.component_api.delete(name, &pp).await {
+            match err {
+                kube::Error::Api(api_err) if api_err.code == 404 => {}
+                kube::Error::Api(api_err) => return Err(Box::new(api_err)),
+                _ => return Err(Box::new(err)),
+            }
+        }
+        Ok(())
+    }
+
+    async fn reconcile_component(
+        &self,
+        component: &Component,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let name = component.metadata.name.as_ref().unwrap();
+        match self.component_api.get(name).await {
+            Ok(current) => {
+                if current.spec != component.spec
+                    || current.metadata.labels != component.metadata.labels
+                {
+                    log::info!("Updating component {}", name);
+                    let mut replacement = component.clone();
+                    replacement.metadata.resource_version = current.metadata.resource_version;
+                    let pp = PostParams::default();
+                    self.component_api.replace(name, &pp, &replacement).await?;
+                }
+            }
+            Err(kube::Error::Api(api_err)) if api_err.code == 404 => {
+                log::info!("Creating component {}", name);
+                let pp = PostParams::default();
+                if let Err(err) = self.component_api.create(&pp, component).await {
+                    match err {
+                        kube::Error::Api(api_err) if api_err.code == 409 => {
+                            log::debug!("Component {} was created concurrently", name);
+                        }
+                        kube::Error::Api(api_err) => return Err(Box::new(api_err)),
+                        _ => return Err(Box::new(err)),
+                    }
+                }
+            }
+            Err(kube::Error::Api(api_err)) => {
+                log::error!("Error getting component {}: {}", name, api_err.code);
+                return Err(Box::new(api_err));
+            }
+            Err(e) => return Err(Box::new(e)),
+        }
+
         Ok(())
     }
 
@@ -288,28 +379,16 @@ impl ResourceReconciler {
         log::info!("Reconciling components {}", self.spec.resource_id);
 
         if let Some(pub_sub) = &self.spec.pub_sub {
-            let name = &pub_sub.metadata.name.clone().unwrap();
-            match self.component_api.get(name).await {
-                Ok(current) => {
-                    if current.spec != pub_sub.spec {
-                        log::info!("Updating component {}", name);
-                        let pp = PostParams::default();
-                        _ = self.component_api.replace(name, &pp, pub_sub).await?;
-                    }
-                }
-                Err(e) => match e {
-                    kube::Error::Api(api_err) => {
-                        if api_err.code != 404 {
-                            log::error!("Error getting pubsub component: {}", api_err.code);
-                            return Err(Box::new(api_err));
-                        }
-                        log::info!("Creating component {}", name);
-                        let pp = PostParams::default();
-                        _ = self.component_api.create(&pp, pub_sub).await?;
-                    }
-                    _ => return Err(Box::new(e)),
-                },
-            }
+            self.reconcile_component(pub_sub).await?;
+        }
+
+        if let Some(state_store) = &self.spec.state_store {
+            self.reconcile_component(state_store).await?;
+        } else if self.spec.pub_sub.is_some()
+            && matches!(&self.spec.resource_type, ResourceType::Reaction)
+        {
+            self.delete_managed_component(&format!("drasi-statestore-{}", self.spec.resource_id))
+                .await?;
         }
 
         Ok(())
@@ -332,13 +411,9 @@ impl ResourceReconciler {
                 annotations: Some(annotations),
                 ..Default::default()
             },
-            spec: Some(DeploymentSpec {
-                strategy: Some(DeploymentStrategy {
-                    type_: Some("RollingUpdate".to_string()),
-                    ..Default::default()
-                }),
-                ..self.spec.deployment.clone()
-            }),
+            spec: Some(with_default_deployment_strategy(
+                self.spec.deployment.clone(),
+            )),
             ..Default::default()
         };
 
@@ -349,7 +424,8 @@ impl ResourceReconciler {
                 if current_hash != self.deployment_hash {
                     log::info!("Updating deployment {}", name);
                     let pp = PatchParams::default();
-                    let pat = Patch::Merge(&dep);
+                    let deployment_patch = deployment_merge_patch(&dep);
+                    let pat = Patch::Merge(&deployment_patch);
                     let update_result = self.deployment_api.patch(&name, &pp, &pat).await?;
                     self.update_deployment_status(&update_result).await;
                 }
@@ -567,7 +643,7 @@ impl ResourceReconciler {
             log::info!("Reconciling ingresses {}", self.spec.resource_id);
 
             let ip_suffix = match self.get_ingress_external_ip().await {
-                Some(ip) => format!("{}.nip.io", ip),
+                Some(ip) => format!("{ip}.nip.io"),
                 None => {
                     log::warn!("Could not determine external IP, using UNAVAILABLE");
                     "UNAVAILABLE".to_string()
@@ -757,6 +833,37 @@ impl ResourceReconciler {
     }
 }
 
+fn with_default_deployment_strategy(mut spec: DeploymentSpec) -> DeploymentSpec {
+    if spec.strategy.is_none() {
+        spec.strategy = Some(DeploymentStrategy {
+            type_: Some("RollingUpdate".to_string()),
+            ..Default::default()
+        });
+    }
+
+    spec
+}
+
+fn deployment_merge_patch(deployment: &Deployment) -> Value {
+    let mut patch = serde_json::to_value(deployment).unwrap();
+    let is_recreate = deployment
+        .spec
+        .as_ref()
+        .and_then(|spec| spec.strategy.as_ref())
+        .and_then(|strategy| strategy.type_.as_deref())
+        == Some("Recreate");
+
+    if is_recreate {
+        patch
+            .pointer_mut("/spec/strategy")
+            .and_then(Value::as_object_mut)
+            .unwrap()
+            .insert("rollingUpdate".to_string(), Value::Null);
+    }
+
+    patch
+}
+
 fn calc_deployment_hash(spec: &KubernetesSpec) -> String {
     let mut hash = SpookyHasher::default();
 
@@ -767,7 +874,7 @@ fn calc_deployment_hash(spec: &KubernetesSpec) -> String {
     cm_data.hash(&mut hash);
 
     let hsh = hash.finish();
-    format!("{:02x}", hsh)
+    format!("{hsh:02x}")
 }
 
 fn calc_service_account_hash(spec: &KubernetesSpec) -> String {
@@ -777,5 +884,76 @@ fn calc_service_account_hash(spec: &KubernetesSpec) -> String {
     sa_data.hash(&mut hash);
 
     let hsh = hash.finish();
-    format!("{:02x}", hsh)
+    format!("{hsh:02x}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
+
+    fn deployment_spec(strategy: Option<&str>) -> DeploymentSpec {
+        DeploymentSpec {
+            selector: LabelSelector::default(),
+            strategy: strategy.map(|strategy| DeploymentStrategy {
+                type_: Some(strategy.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn preserves_explicit_deployment_strategy() {
+        let spec = with_default_deployment_strategy(deployment_spec(Some("Recreate")));
+
+        assert_eq!(
+            spec.strategy.and_then(|strategy| strategy.type_),
+            Some("Recreate".to_string())
+        );
+    }
+
+    #[test]
+    fn defaults_missing_deployment_strategy_to_rolling_update() {
+        let spec = with_default_deployment_strategy(deployment_spec(None));
+
+        assert_eq!(
+            spec.strategy.and_then(|strategy| strategy.type_),
+            Some("RollingUpdate".to_string())
+        );
+    }
+
+    #[test]
+    fn recreate_merge_patch_clears_rolling_update_settings() {
+        let deployment = Deployment {
+            spec: Some(deployment_spec(Some("Recreate"))),
+            ..Default::default()
+        };
+
+        let patch = deployment_merge_patch(&deployment);
+
+        assert_eq!(patch["spec"]["strategy"]["type"], "Recreate");
+        assert!(patch["spec"]["strategy"]["rollingUpdate"].is_null());
+    }
+
+    #[test]
+    fn deployment_hash_includes_strategy() {
+        let rolling = KubernetesSpec::new(
+            ResourceType::Source,
+            "source".to_string(),
+            "service".to_string(),
+            deployment_spec(None),
+        );
+        let recreate = KubernetesSpec::new(
+            ResourceType::Source,
+            "source".to_string(),
+            "service".to_string(),
+            deployment_spec(Some("Recreate")),
+        );
+
+        assert_ne!(
+            calc_deployment_hash(&rolling),
+            calc_deployment_hash(&recreate)
+        );
+    }
 }

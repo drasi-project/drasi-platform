@@ -23,6 +23,7 @@ use super::{
 use hashers::jenkins::spooky_hash::SpookyHasher;
 use k8s_openapi::{
     api::{
+        apps::v1::DeploymentStrategy,
         core::v1::{ConfigMap, EnvVar, ServicePort, ServiceSpec},
         networking::v1::{
             HTTPIngressPath, HTTPIngressRuleValue, Ingress, IngressBackend, IngressRule,
@@ -75,9 +76,24 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             },
         );
 
+        let state_store_name = format!("drasi-statestore-{}", reaction.id);
+        if reaction.spec.state_store {
+            env.insert(
+                "StateStoreName".to_string(),
+                ConfigValue::Inline {
+                    value: state_store_name.clone(),
+                },
+            );
+        }
+
+        let mut component_labels = BTreeMap::new();
+        component_labels.insert("drasi/type".to_string(), ResourceType::Reaction.to_string());
+        component_labels.insert("drasi/resource".to_string(), reaction.id.to_string());
+
         let services = reaction.spec.services.clone().unwrap_or_default();
 
         for (service_name, service_spec) in services {
+            let owns_components = specs.is_empty();
             let mut config_volumes = BTreeMap::new();
             let mut config_maps = BTreeMap::new();
 
@@ -102,7 +118,15 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
             );
             let image = service_spec.image.clone();
 
-            let replica = service_spec.replica.unwrap_or("1".to_string());
+            let replica = match service_spec.supports_concurrent_instances {
+                true => service_spec
+                    .replica
+                    .as_deref()
+                    .unwrap_or("1")
+                    .parse::<i32>()
+                    .unwrap(),
+                false => 1,
+            };
 
             let app_port = match service_spec.dapr {
                 Some(ref dapr) => match dapr.get("app-port") {
@@ -159,7 +183,7 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                                 ..Default::default()
                             };
                             // Use just endpoint_name as key - ResourceReconciler will add reaction.id prefix
-                            let service_key = format!("{}-{}", service_name, endpoint_name);
+                            let service_key = format!("{service_name}-{endpoint_name}");
                             k8s_services.insert(service_key.clone(), service_spec);
 
                             // Create Ingress resource with hostname-based routing
@@ -225,14 +249,14 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
 
             config_volumes.insert(config_name.clone(), "/etc/queries".to_string());
 
-            let deployment_spec = build_deployment_spec(
+            let mut deployment_spec = build_deployment_spec(
                 runtime_config,
                 ResourceType::Reaction,
                 &reaction.id,
                 &service_name,
                 image.as_str(),
                 service_spec.external_image.unwrap_or(false),
-                replica.parse::<i32>().unwrap(),
+                replica,
                 Some(app_port.unwrap_or(80)),
                 env.clone(),
                 Some(ports),
@@ -240,6 +264,13 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 None,
                 app_protocol,
             );
+
+            if !service_spec.supports_concurrent_instances {
+                deployment_spec.strategy = Some(DeploymentStrategy {
+                    type_: Some("Recreate".to_string()),
+                    ..Default::default()
+                });
+            }
 
             let mut pub_sub_metadata = runtime_config.pub_sub_config.clone();
             pub_sub_metadata.push(EnvVar {
@@ -257,16 +288,28 @@ impl SpecBuilder<ReactionSpec> for ReactionSpecBuilder {
                 config_maps,
                 volume_claims: BTreeMap::new(),
                 ingresses: Some(k8s_ingresses),
-                pub_sub: Some(Component {
+                pub_sub: owns_components.then(|| Component {
                     metadata: ObjectMeta {
                         name: Some(pub_sub_name.clone()),
-                        labels: Some(labels.clone()),
+                        labels: Some(component_labels.clone()),
                         ..Default::default()
                     },
                     spec: ComponentSpec {
                         _type: runtime_config.pub_sub_type.clone(),
                         version: runtime_config.pub_sub_version.clone(),
                         metadata: pub_sub_metadata,
+                    },
+                }),
+                state_store: (owns_components && reaction.spec.state_store).then(|| Component {
+                    metadata: ObjectMeta {
+                        name: Some(state_store_name.clone()),
+                        labels: Some(component_labels.clone()),
+                        ..Default::default()
+                    },
+                    spec: ComponentSpec {
+                        _type: runtime_config.state_store_type.clone(),
+                        version: runtime_config.state_store_version.clone(),
+                        metadata: runtime_config.state_store_config.clone(),
                     },
                 }),
                 service_account: None,
@@ -289,5 +332,134 @@ fn calc_hash<T: Serialize>(obj: &T) -> String {
     let mut hash = SpookyHasher::default();
     data.hash(&mut hash);
     let hsh = hash.finish();
-    format!("{:02x}", hsh)
+    format!("{hsh:02x}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use resource_provider_api::models::Service;
+    use std::collections::HashMap;
+
+    fn build_specs_with_concurrency(
+        state_store: bool,
+        service_count: usize,
+        supports_concurrent_instances: bool,
+        replica: Option<&str>,
+    ) -> Vec<KubernetesSpec> {
+        let services = (0..service_count)
+            .map(|index| {
+                (
+                    format!("service-{index}"),
+                    Service {
+                        replica: replica.map(str::to_string),
+                        image: "reaction-image".to_string(),
+                        external_image: Some(true),
+                        supports_concurrent_instances,
+                        endpoints: None,
+                        dapr: None,
+                        properties: None,
+                    },
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        ReactionSpecBuilder {}.build(
+            ResourceRequest {
+                id: "my-reaction".to_string(),
+                spec: ReactionSpec {
+                    kind: "TestReaction".to_string(),
+                    tag: None,
+                    services: Some(services),
+                    properties: None,
+                    queries: HashMap::new(),
+                    identity: None,
+                    state_store,
+                },
+            },
+            &RuntimeConfig::default(),
+            "instance-id",
+        )
+    }
+
+    fn build_specs(state_store: bool, service_count: usize) -> Vec<KubernetesSpec> {
+        build_specs_with_concurrency(state_store, service_count, true, None)
+    }
+
+    fn env_value<'a>(spec: &'a KubernetesSpec, name: &str) -> Option<&'a str> {
+        spec.deployment.template.spec.as_ref().unwrap().containers[0]
+            .env
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|env| env.name == name)
+            .and_then(|env| env.value.as_deref())
+    }
+
+    #[test]
+    fn creates_one_state_store_for_a_multi_service_reaction() {
+        let specs = build_specs(true, 2);
+
+        assert_eq!(specs.len(), 2);
+        assert_eq!(
+            specs.iter().filter(|spec| spec.pub_sub.is_some()).count(),
+            1
+        );
+        assert_eq!(
+            specs
+                .iter()
+                .filter(|spec| spec.state_store.is_some())
+                .count(),
+            1
+        );
+
+        for spec in &specs {
+            assert_eq!(
+                env_value(spec, "StateStoreName"),
+                Some("drasi-statestore-my-reaction")
+            );
+        }
+
+        let state_store = specs
+            .iter()
+            .find_map(|spec| spec.state_store.as_ref())
+            .unwrap();
+        assert_eq!(
+            state_store.metadata.name.as_deref(),
+            Some("drasi-statestore-my-reaction")
+        );
+        assert_eq!(state_store.spec._type, "state.mongodb");
+        assert_eq!(state_store.spec.version, "v1");
+    }
+
+    #[test]
+    fn omits_state_store_when_provider_does_not_request_one() {
+        let specs = build_specs(false, 1);
+
+        assert!(specs[0].state_store.is_none());
+        assert_eq!(env_value(&specs[0], "StateStoreName"), None);
+    }
+
+    #[test]
+    fn uses_recreate_and_one_replica_when_concurrent_instances_are_unsupported() {
+        let specs = build_specs_with_concurrency(false, 1, false, Some("3"));
+
+        assert_eq!(specs[0].deployment.replicas, Some(1));
+        assert_eq!(
+            specs[0]
+                .deployment
+                .strategy
+                .as_ref()
+                .and_then(|strategy| strategy.type_.as_deref()),
+            Some("Recreate")
+        );
+    }
+
+    #[test]
+    fn preserves_replica_count_and_default_strategy_when_concurrency_is_supported() {
+        let specs = build_specs_with_concurrency(false, 1, true, Some("3"));
+
+        assert_eq!(specs[0].deployment.replicas, Some(3));
+        assert!(specs[0].deployment.strategy.is_none());
+    }
 }

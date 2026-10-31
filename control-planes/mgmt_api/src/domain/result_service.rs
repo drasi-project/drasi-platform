@@ -28,7 +28,7 @@ impl ResultService {
         query_id: &str,
         consumer_id: &str,
     ) -> Result<impl Stream<Item = ResultEvent> + Send, DomainError> {
-        let topic = format!("{}-results", query_id);
+        let topic = format!("{query_id}-results");
         let change_stream = match RedisChangeStream::new(
             &self.stream_config.redis_url,
             &topic,
@@ -80,10 +80,7 @@ impl ResultService {
     ) -> Result<impl Stream<Item = ResultEvent> + Send, DomainError> {
         let mut snapshot_stream = match self
             .http_client
-            .get(format!(
-                "http://{}-view-svc/{}",
-                query_container_id, query_id
-            ))
+            .get(format!("http://{query_container_id}-view-svc/{query_id}"))
             .send()
             .await
         {
@@ -102,7 +99,7 @@ impl ResultService {
             }
         };
 
-        let topic = format!("{}-results", query_id);
+        let topic = format!("{query_id}-results");
         let change_stream = match RedisChangeStream::new(
             &self.stream_config.redis_url,
             &topic,

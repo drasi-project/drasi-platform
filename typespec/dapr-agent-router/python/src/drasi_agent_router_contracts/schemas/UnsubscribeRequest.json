@@ -1,0 +1,23 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "UnsubscribeRequest.json",
+    "type": "object",
+    "properties": {
+        "query_id": {
+            "$ref": "NonEmptyString.json"
+        },
+        "subscriber": {
+            "$ref": "Subscriber.json"
+        },
+        "subscription_incarnation": {
+            "$ref": "NonEmptyString.json"
+        }
+    },
+    "required": [
+        "query_id",
+        "subscriber",
+        "subscription_incarnation"
+    ],
+    "title": "UnsubscribeRequest",
+    "additionalProperties": false
+}

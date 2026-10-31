@@ -131,6 +131,7 @@ impl From<ReactionSpec> for resource_provider_api::models::ReactionSpec {
                 .map(|properties| properties.into_iter().map(|(k, v)| (k, v.into())).collect()),
             queries: reaction_spec.queries,
             identity: reaction_spec.identity.map(|identity| identity.into()),
+            state_store: reaction_spec.state_store,
         }
     }
 }
@@ -172,6 +173,7 @@ impl From<ServiceConfig> for resource_provider_api::models::Service {
             replica: service.replica,
             image: service.image.unwrap(),
             external_image: service.external_image,
+            supports_concurrent_instances: service.supports_concurrent_instances,
             endpoints: service
                 .endpoints
                 .map(|endpoints| endpoints.into_iter().map(|(k, v)| (k, v.into())).collect()),

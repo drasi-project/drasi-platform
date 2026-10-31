@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Reaction
+name: i460-agent-router
+spec:
+  kind: DaprAgentRouter
+  properties:
+    routerId: drasi-system/i460-agent-router-reaction
+    egressPubsubName: i460-agent-egress
+  queries:
+    i460-router-all: |
+      title: All issue 460 orders
+      description: Individual projected order rows used to verify router operation filters.
+    i460-router-priority: |
+      title: Priority issue 460 orders
+      description: Individual projected order rows whose priority flag is true.

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ReactionProvider
+name: PythonStateStoreE2E
+spec:
+  state_store: true
+  services:
+    python:
+      image: drasi-project/e2e-python-state-reaction:latest
+      externalImage: true

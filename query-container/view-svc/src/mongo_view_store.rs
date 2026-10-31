@@ -132,7 +132,7 @@ impl ViewStore for MongoViewStore {
             .drop(options::DropCollectionOptions::builder().build())
             .await
         {
-            Ok(r) => log::debug!("clear: {:?}", r),
+            Ok(r) => log::debug!("clear: {r:?}"),
             Err(e) => return Err(ViewError::StoreError(Box::new(e))),
         };
         Ok(())
@@ -187,7 +187,7 @@ impl ViewStore for MongoViewStore {
             };
 
             match response {
-                Ok(r) => log::debug!("remove: {:?}", r),
+                Ok(r) => log::debug!("remove: {r:?}"),
                 Err(e) => return Err(ViewError::StoreError(Box::new(e))),
             };
         }
@@ -230,7 +230,7 @@ impl ViewStore for MongoViewStore {
                 };
 
                 match response {
-                    Ok(r) => log::debug!("update before: {:?}", r),
+                    Ok(r) => log::debug!("update before: {r:?}"),
                     Err(e) => return Err(ViewError::StoreError(Box::new(e))),
                 };
             }
@@ -260,7 +260,7 @@ impl ViewStore for MongoViewStore {
                     .await;
 
                 match response {
-                    Ok(r) => log::debug!("update after: {:?}", r),
+                    Ok(r) => log::debug!("update after: {r:?}"),
                     Err(e) => return Err(ViewError::StoreError(Box::new(e))),
                 };
             }
@@ -288,7 +288,7 @@ impl ViewStore for MongoViewStore {
                 .await;
 
             match response {
-                Ok(r) => log::debug!("add: {:?}", r),
+                Ok(r) => log::debug!("add: {r:?}"),
                 Err(e) => return Err(ViewError::StoreError(Box::new(e))),
             };
         }
@@ -388,7 +388,7 @@ impl ViewStore for MongoViewStore {
                     },
                     Ok(ViewItem::Metadata(_)) => {},
                     Err(err) => {
-                        log::error!("error reading from view: {:?}", err);
+                        log::error!("error reading from view: {err:?}");
                     }
                 }
             }
@@ -527,7 +527,7 @@ async fn collect_garbage(store: Arc<MongoViewStore>) {
             RetentionPolicy::All => continue,
         };
 
-        log::info!("query {} garbage collection: {}", query_id, epoch);
+        log::info!("query {query_id} garbage collection: {epoch}");
 
         let collection = store.database.collection::<ViewItem>(&query_id);
 
@@ -541,8 +541,8 @@ async fn collect_garbage(store: Arc<MongoViewStore>) {
             .await;
 
         match del_response {
-            Ok(r) => log::info!("query {} garbage collection: {:?}", query_id, r),
-            Err(e) => log::error!("query {} garbage collection error: {:?}", query_id, e),
+            Ok(r) => log::info!("query {query_id} garbage collection: {r:?}"),
+            Err(e) => log::error!("query {query_id} garbage collection error: {e:?}"),
         };
     }
 }

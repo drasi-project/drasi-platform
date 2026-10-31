@@ -15,13 +15,6 @@
 name: Build and Test
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-      - release/*
-    tags:
-      - v*
   pull_request:
     branches:
       - main
@@ -33,6 +26,62 @@ permissions:
   packages: write
 
 jobs:
+  agent-router-contract:
+    name: Verify agent-router contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: typespec/package-lock.json
+      - name: Install contract tooling
+        run: |
+          python -m pip install uv==0.11.27
+          npm ci --prefix typespec
+          cd typespec/dapr-agent-router/python
+          uv sync --locked --python 3.12 --group dev --group test
+      - name: Verify generation and shared contracts
+        working-directory: typespec/dapr-agent-router
+        run: |
+          make check-types
+          make test
+
+  agent-router-application:
+    name: Verify agent-router application (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install application tooling
+        run: python -m pip install uv==0.11.27
+      - name: Verify application
+        working-directory: reactions/dapr/agent-router
+        run: |
+          PYTHON_VERSION='${{ matrix.python-version }}' make install-dependencies
+          PYTHON_VERSION='${{ matrix.python-version }}' make lint-check
+          PYTHON_VERSION='${{ matrix.python-version }}' make test
+          make package
+
+      - name: Verify agent-router state integration
+        if: matrix.python-version == '3.12'
+        env:
+          PYTEST_ADDOPTS: -rA
+        run: make -C reactions/dapr/agent-router test-state-integration
+
   verify-openapi-spec:
     name: Verify OpenAPI Specification
     runs-on: ubuntu-latest
@@ -289,6 +338,11 @@ jobs:
             path: './reactions/dapr/post-pubsub', 
             name: 'reaction-post-dapr-pubsub'
           },
+          {
+            label: 'DaprAgentRouter',
+            path: './reactions/dapr/agent-router',
+            name: 'reaction-dapr-agent-router'
+          },
           { 
             label: 'Http',
             path: './reactions/http', 
@@ -317,9 +371,6 @@ jobs:
         with:
           submodules: true
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
         with:
@@ -337,6 +388,16 @@ jobs:
         run: |
           cd ${{ matrix.component.path }}
           BUILD_CONFIG=${{ matrix.variant.build_config }} DOCKERX_OPTS="--output type=docker,dest=${{ github.workspace }}/${{ matrix.component.name }}-${{ matrix.variant.name }}.tar --cache-to type=local,dest=/tmp/.buildx-cache,mode=max --cache-from type=local,src=/tmp/.buildx-cache" make
+
+      - name: Smoke test DaprAgentRouter ${{ matrix.variant.name }} image
+        if: matrix.component.name == 'reaction-dapr-agent-router'
+        working-directory: ${{ matrix.component.path }}
+        run: |
+          docker load --input '${{ github.workspace }}/${{ matrix.component.name }}-${{ matrix.variant.name }}.tar'
+          BUILD_CONFIG=${{ matrix.variant.build_config }} \
+          DOCKER_TAG_VERSION=latest \
+          IMAGE_PREFIX=drasi-project \
+          make image-test delivery-test
 
       - name: Upload artifact
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6

@@ -91,11 +91,9 @@ pub async fn debug(
                         };
                         break;
                     }
-                    Ok(actix_ws::Message::Ping(bytes)) => {
-                        if session.pong(&bytes).await.is_err() {
-                            log::info!("Ping failed, closing session");
-                            break;
-                        }
+                    Ok(actix_ws::Message::Ping(bytes)) if session.pong(&bytes).await.is_err() => {
+                        log::info!("Ping failed, closing session");
+                        break;
                     }
                     Ok(actix_ws::Message::Pong(_)) => {}
                     Ok(actix_ws::Message::Close(cr)) => {

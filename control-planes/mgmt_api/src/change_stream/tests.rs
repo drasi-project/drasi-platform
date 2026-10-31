@@ -314,7 +314,7 @@ async fn stops_buffering_on_drop() {
             .xadd(
                 &query_container_id,
                 "*",
-                &[("data", format!("{{\"data\": {}}}", i))],
+                &[("data", format!("{{\"data\": {i}}}"))],
             )
             .await
             .unwrap();

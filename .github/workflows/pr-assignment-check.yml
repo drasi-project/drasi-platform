@@ -90,7 +90,7 @@ jobs:
                   issue_number: prNumber,
                   body: `Hi @${prAuthor}, thanks for your contribution!
 
-This PR doesn't appear to have a linked issue. Per our [contributing guidelines](https://github.com/drasi-project/drasi-platform/blob/main/CONTRIBUTING.md), please:
+This PR doesn't appear to have a linked issue. Per our [contributing guidelines](https://github.com/drasi-project/.github/blob/main/CONTRIBUTING.md), please:
 
 1. Find an existing issue or [open a new one](https://github.com/drasi-project/drasi-platform/issues/new/choose)
 2. Wait to be assigned to the issue
@@ -139,7 +139,7 @@ Join our [Discord server](https://aka.ms/drasidiscord) to engage with maintainer
                 issue_number: prNumber,
                 body: `Hi @${prAuthor}, thanks for your interest in contributing to drasi-platform!
 
-However, I need to close this PR because you are not assigned to the linked issue(s). Per our [contributing guidelines](https://github.com/drasi-project/drasi-platform/blob/main/CONTRIBUTING.md):
+However, I need to close this PR because you are not assigned to the linked issue(s). Per our [contributing guidelines](https://github.com/drasi-project/.github/blob/main/CONTRIBUTING.md):
 
 > Please start by choosing an existing issue, or opening an issue to work on. The maintainers will respond to your issue, please work with the maintainers to ensure that what you're doing is in scope for the project before writing any code.
 

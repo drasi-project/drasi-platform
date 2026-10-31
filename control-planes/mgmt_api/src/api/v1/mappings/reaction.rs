@@ -43,6 +43,7 @@ impl From<ReactionSpecDto> for ReactionSpec {
                 .map(|(k, v)| (k, v.unwrap_or_default()))
                 .collect(),
             identity: spec.identity.map(|identity| identity.into()),
+            state_store: false,
         }
     }
 }

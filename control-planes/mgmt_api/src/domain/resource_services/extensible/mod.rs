@@ -157,7 +157,7 @@ where
                             .invoker
                             .invoke(
                                 Payload::None,
-                                format!("{}-{}", id, service_name).as_str(),
+                                format!("{id}-{service_name}").as_str(),
                                 "deprovision",
                                 None,
                             )
@@ -393,6 +393,7 @@ fn merge_spec(
                 replica: None,
                 image: None,
                 external_image: None,
+                supports_concurrent_instances: true,
                 endpoints: None,
                 dapr: None,
                 properties: None,
@@ -424,8 +425,7 @@ fn merge_spec(
                     None => {
                         return Err(DomainError::InvalidSpec {
                             message: format!(
-                                "Unable to retrieve the service properties for {}",
-                                service_name
+                                "Unable to retrieve the service properties for {service_name}"
                             ),
                         })
                     }
@@ -518,7 +518,7 @@ fn merge_spec(
                                         }),
                                     },
                                     None => return Err(DomainError::InvalidSpec {
-                                        message: format!("Unable to retrieve the target port; {} is not defined", target),
+                                        message: format!("Unable to retrieve the target port; {target} is not defined"),
                                     }),
                                 }
                             },
@@ -550,6 +550,7 @@ fn merge_spec(
             replica: None,
             image: Some(service_config.image.clone()),
             external_image: service_config.external_image,
+            supports_concurrent_instances: service_config.supports_concurrent_instances,
             endpoints,
             dapr,
             properties: service_properties,
@@ -559,4 +560,66 @@ fn merge_spec(
         services.insert(service_name.clone(), new_service);
     }
     Ok((properties, services))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::models::ProviderService;
+
+    fn service_config(supports_concurrent_instances: bool) -> ServiceConfig {
+        ServiceConfig {
+            replica: None,
+            image: None,
+            external_image: None,
+            supports_concurrent_instances,
+            dapr: None,
+            endpoints: None,
+            properties: None,
+            deprovision_handler: None,
+        }
+    }
+
+    fn provider_spec(supports_concurrent_instances: bool) -> ProviderSpec {
+        ProviderSpec {
+            services: HashMap::from([(
+                "provider-service".to_string(),
+                ProviderService {
+                    image: "provider-image".to_string(),
+                    supports_concurrent_instances,
+                    external_image: None,
+                    dapr: None,
+                    endpoints: None,
+                    config_schema: None,
+                    deprovision_handler: None,
+                },
+            )]),
+            config_schema: None,
+            state_store: false,
+        }
+    }
+
+    #[test]
+    fn merge_spec_uses_provider_concurrency_capability() {
+        for (provider_supports_concurrency, resource_supports_concurrency) in
+            [(false, true), (true, false)]
+        {
+            let resource_services = HashMap::from([(
+                "provider-service".to_string(),
+                service_config(resource_supports_concurrency),
+            )]);
+
+            let (_, services) = merge_spec(
+                None,
+                Some(&resource_services),
+                &provider_spec(provider_supports_concurrency),
+            )
+            .unwrap();
+
+            assert_eq!(
+                services["provider-service"].supports_concurrent_instances,
+                provider_supports_concurrency
+            );
+        }
+    }
 }

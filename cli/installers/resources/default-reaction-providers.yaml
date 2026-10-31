@@ -282,6 +282,33 @@ spec:
 ---
 apiVersion: v1
 kind: ReactionProvider
+name: DaprAgentRouter
+spec:
+  state_store: true
+  services:
+    reaction:
+      image: reaction-dapr-agent-router
+      supportsConcurrentInstances: false
+      dapr:
+        app-port: "8000"
+        app-protocol: "http"
+  config_schema:
+    type: object
+    properties:
+      routerId:
+        type: string
+        minLength: 1
+        description: "Stable <namespace>/<reaction-name>-reaction identity matching the deployed Dapr app."
+      egressPubsubName:
+        type: string
+        minLength: 1
+        description: "Operator-provided agent-facing Pub/Sub component; must differ from drasi-pubsub and the injected PubsubName."
+    required:
+      - routerId
+      - egressPubsubName
+---
+apiVersion: v1
+kind: ReactionProvider
 name: Http
 spec:
   services:

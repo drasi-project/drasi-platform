@@ -1,0 +1,28 @@
+services:
+  mongo:
+    image: mongo:6
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping: 1})"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  dapr:
+    image: daprio/daprd:1.14.5
+    command:
+      - /daprd
+      - --app-id
+      - drasi-router-state-tests
+      - --resources-path
+      - /components
+      - --dapr-listen-addresses
+      - 0.0.0.0
+      - --log-level
+      - warn
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./components:/components:ro
+    ports:
+      - "127.0.0.1::3500"
+      - "127.0.0.1::50001"

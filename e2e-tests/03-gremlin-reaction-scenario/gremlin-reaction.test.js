@@ -56,7 +56,10 @@ beforeAll(async () => {
 
   // gremlin-server-service.default.svc.cluster.local
   const traversal = gremlin.process.AnonymousTraversalSource.traversal;
-  gremlinDriverConnection = new gremlin.driver.DriverRemoteConnection(`ws://localhost:${gremlinPort}/gremlin`, {});
+  // Pass a `ws`-specific option so the gremlin driver uses the `ws` package
+  // instead of `globalThis.WebSocket` (present on Node >=21), which lacks the
+  // EventEmitter `.on()` API gremlin relies on.
+  gremlinDriverConnection = new gremlin.driver.DriverRemoteConnection(`ws://localhost:${gremlinPort}/gremlin`, { rejectUnauthorized: true });
   gremlinClient = traversal().withRemote(gremlinDriverConnection);
 }, 150000);
 

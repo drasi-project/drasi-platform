@@ -271,11 +271,11 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
     async fn reconcile_internal(&self) {
         log::info!("start reconcile {}", self.id);
 
-        let mut recievers = Vec::new();
+        let mut receivers = Vec::new();
 
         let controllers = self.controllers.read().await;
         for (_, controller) in controllers.iter() {
-            recievers.push(controller.reconcile());
+            receivers.push(controller.reconcile());
         }
 
         log::info!("end reconcile {}", self.id);
@@ -284,15 +284,15 @@ impl<TSpec, TStatus> ResourceActor<TSpec, TStatus> {
     async fn reconcile_internal_async(&self) {
         log::info!("start reconcile_async {}", self.id);
 
-        let mut recievers = Vec::new();
+        let mut receivers = Vec::new();
 
         let controllers = self.controllers.read().await;
         for (_, controller) in controllers.iter() {
-            recievers.push(controller.reconcile());
+            receivers.push(controller.reconcile());
         }
 
-        for reciever in recievers {
-            _ = reciever.await;
+        for receiver in receivers {
+            _ = receiver.await;
         }
 
         log::info!("end reconcile_async {}", self.id);

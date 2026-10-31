@@ -1,0 +1,26 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "DeletePayload.json",
+    "type": "object",
+    "properties": {
+        "source": {
+            "$ref": "ChangeSource.json"
+        },
+        "before": {
+            "$ref": "#/$defs/RecordUnknown"
+        }
+    },
+    "required": [
+        "source",
+        "before"
+    ],
+    "additionalProperties": false,
+    "title": "DeletePayload",
+    "$defs": {
+        "RecordUnknown": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {}
+        }
+    }
+}

@@ -1,22 +1,27 @@
 import logging
-from typing import Any
 
+from fastapi import FastAPI
+
+from drasi.reaction import DeliveryOutcome, DrasiReaction, ReactionMessage
 from drasi.reaction.models.ChangeEvent import ChangeEvent
-from drasi.reaction.sdk import DrasiReaction
+
 
 logging.basicConfig(level=logging.INFO)
-
 logger = logging.getLogger("simple_python_app")
 
 
-async def change_event(event: ChangeEvent, query_configs: dict[Any, Any] | None = None):
-    logger.info(f"Received change sequence {event.sequence} for query {event.queryId}")
-    logger.info(event)
-
-
-if __name__ == "__main__":
-    reaction = DrasiReaction(
-        on_change_event=change_event,
+async def change_event(
+    message: ReactionMessage[ChangeEvent, None],
+) -> DeliveryOutcome:
+    event = message.event
+    logger.info(
+        "Received change sequence %s for query %s",
+        event.sequence,
+        event.queryId,
     )
+    return DeliveryOutcome.SUCCESS
 
-    reaction.start()
+
+app = FastAPI()
+reaction = DrasiReaction(on_change_event=change_event)
+reaction.install(app)

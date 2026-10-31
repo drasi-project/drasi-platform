@@ -1,0 +1,53 @@
+# Copyright 2026 The Drasi Authors.
+# Licensed under the Apache License, Version 2.0.
+
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drasi-agent-router"
+version = "0.1.0a1"
+description = "Drasi query catalog and durable subscriptions for DaprAgentRouter"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "dapr>=1.14,<2",
+    "drasi-agent-router-contracts @ git+https://github.com/drasi-project/drasi-platform.git@49e8df694a16520519a1ba559f99c1a13a668431#subdirectory=typespec/dapr-agent-router/python",
+    "drasi-reaction-sdk @ git+https://github.com/drasi-project/drasi-platform.git@a5d838763f1bbd88a8f9f1b7d92d6ec80c042261#subdirectory=reactions/sdk/python",
+    "fastapi>=0.115.4,<0.116",
+    "grpcio>=1.76,<2",
+    "jsonschema>=4.23,<5",
+    "mcp>=1.28.1,<2",
+    "pydantic>=2.11,<3",
+    "PyYAML==6.0.2",
+    "starlette>=0.40,<0.47",
+    "uvicorn>=0.31.1,<1",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12,<1",
+]
+test = [
+    "httpx>=0.27.1,<1",
+    "pytest>=8.4,<9",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: requires an isolated Dapr sidecar and state component"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.uv.sources]
+drasi-reaction-sdk = { path = "../../sdk/python", editable = true }
