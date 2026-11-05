@@ -27,7 +27,7 @@ COPY ./sources/shared/change-router .
 RUN cargo install  --debug --force --path .
 
 
-FROM debian:bookworm-slim
+FROM debian:12.15-slim
 RUN apt-get update && apt-get install -y openssl curl libssl3  && rm -rf /var/lib/apt/lists/*
 ENV RUST_BACKTRACE=1
 COPY --from=builder /usr/local/cargo/bin/change-router /usr/local/bin/change-router
