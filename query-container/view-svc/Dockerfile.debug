@@ -20,7 +20,7 @@ COPY . .
 WORKDIR /usr/src
 RUN cargo install  --debug --force --path .
 
-FROM debian:bookworm-slim
+FROM debian:12.15-slim
 RUN apt-get update && apt-get install -y openssl curl libssl3  && rm -rf /var/lib/apt/lists/*
 # gcr.io/distroless/cc 
 ENV RUST_BACKTRACE=1
