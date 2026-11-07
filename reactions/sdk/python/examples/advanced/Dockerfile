@@ -1,4 +1,4 @@
-FROM python:3.13.8-slim AS builder
+FROM python:3.15.2-slim AS builder
 
 ARG POETRY_VERSION=1.8
 
@@ -22,7 +22,7 @@ WORKDIR /sdk/examples/advanced
 
 RUN poetry install --no-root && rm -rf $POETRY_CACHE_DIR
 
-FROM python:3.13.8-slim AS runtime
+FROM python:3.15.2-slim AS runtime
 
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
